@@ -5,7 +5,6 @@
  * Data syncs to Supabase when online.
  */
 
-import * as SQLite from 'expo-sqlite';
 import {
   Flashcard,
   UserFlashcardProgress,
@@ -15,8 +14,7 @@ import {
   ReviewSession,
 } from '@/types/flashcard';
 import { initializeSM2, calculateSM2, isDueForReview } from '@/lib/spaced-repetition/sm2';
-
-const DB_NAME = 'vox_language.db';
+import { dbManager } from './database';
 
 /**
  * Initialize the flashcard database schema
@@ -24,7 +22,9 @@ const DB_NAME = 'vox_language.db';
  */
 export async function initializeFlashcardDB(): Promise<void> {
   try {
-    const db = await SQLite.openDatabaseAsync(DB_NAME);
+    // Initialize database manager first (singleton pattern)
+    await dbManager.initialize();
+    const db = await dbManager.getDatabase();
 
     // Execute each statement separately for better error handling
     await db.execAsync(`
@@ -109,7 +109,7 @@ export async function initializeFlashcardDB(): Promise<void> {
  * Insert sample flashcards (for development/testing)
  */
 export async function insertSampleFlashcards(): Promise<void> {
-  const db = await SQLite.openDatabaseAsync(DB_NAME);
+  const db = await dbManager.getDatabase();
 
   // Check if we already have flashcards
   const result = await db.getFirstAsync<{ count: number }>(
@@ -159,7 +159,7 @@ export async function getFlashcardsDueForReview(
   userId: string,
   limit: number = 10
 ): Promise<FlashcardWithProgress[]> {
-  const db = await SQLite.openDatabaseAsync(DB_NAME);
+  const db = await dbManager.getDatabase();
   const now = new Date().toISOString();
 
   const results = await db.getAllAsync<Flashcard & { progress_id?: string; next_review?: string }>(
@@ -188,7 +188,7 @@ export async function getOrCreateProgress(
   userId: string,
   flashcardId: string
 ): Promise<UserFlashcardProgress> {
-  const db = await SQLite.openDatabaseAsync(DB_NAME);
+  const db = await dbManager.getDatabase();
 
   // Try to get existing progress
   const existing = await db.getFirstAsync<UserFlashcardProgress>(
@@ -250,7 +250,7 @@ export async function updateFlashcardProgress(
   flashcardId: string,
   quality: ReviewQuality
 ): Promise<UserFlashcardProgress> {
-  const db = await SQLite.openDatabaseAsync(DB_NAME);
+  const db = await dbManager.getDatabase();
   const progress = await getOrCreateProgress(userId, flashcardId);
 
   // Calculate new SM-2 values
@@ -307,7 +307,7 @@ export async function updateFlashcardProgress(
  * Create a new review session
  */
 export async function createReviewSession(userId: string): Promise<string> {
-  const db = await SQLite.openDatabaseAsync(DB_NAME);
+  const db = await dbManager.getDatabase();
   const id = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const now = new Date().toISOString();
 
@@ -327,7 +327,7 @@ export async function updateReviewSession(
   flashcardsReviewed: number,
   pointsEarned: number
 ): Promise<void> {
-  const db = await SQLite.openDatabaseAsync(DB_NAME);
+  const db = await dbManager.getDatabase();
   const now = new Date().toISOString();
 
   await db.runAsync(
@@ -347,7 +347,7 @@ export async function recordFlashcardReview(
   timeSpentSeconds: number,
   cardType: 'learning' | 'listening' | 'speaking'
 ): Promise<void> {
-  const db = await SQLite.openDatabaseAsync(DB_NAME);
+  const db = await dbManager.getDatabase();
   const id = `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const now = new Date().toISOString();
 

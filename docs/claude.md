@@ -27,9 +27,13 @@ Vox Language is a mobile language learning application that creates a **safe spa
 - **React Native** (via Expo SDK 54+)
 - **Expo Router** - File-based routing and navigation
 - **TypeScript** - Type safety throughout the app
-- **NativeWind** - Tailwind CSS for React Native (primary styling)
-- **React Native Reanimated 3** - Smooth 60fps animations
+- **Tamagui** - High-performance UI components with optimizing compiler (CHOSEN for speed)
+- **NativeWind** - Tailwind CSS for React Native (utility styling, works alongside Tamagui)
+- **React Native Reanimated 3** - Smooth 60fps gesture-based animations
+- **Lottie** (lottie-react-native) - Lightweight animated graphics and loading screens
 - **React Native Gesture Handler** - Touch interactions
+
+**Note**: We chose **Tamagui over Gluestack UI** for significantly better performance benchmarks. Tamagui's optimizing compiler provides substantial speed gains for our animation-heavy language learning interface.
 
 ### Backend & Database
 - **Supabase** - All-in-one backend solution
@@ -38,8 +42,10 @@ Vox Language is a mobile language learning application that creates a **safe spa
   - Storage (audio files, images)
   - Real-time subscriptions (leaderboard updates)
   - Row-level security
-- **SQLite** (expo-sqlite) - Local offline database
-- **AsyncStorage** - User preferences and settings
+- **SQLite** (expo-sqlite) - Local offline database for structured data (flashcards, lessons, progress)
+- **React Native MMKV** - Ultra-fast key-value storage (30x faster than AsyncStorage) for user prefs and session data
+- **React Native Encrypted Storage** - Secure storage for sensitive data (tokens, credentials)
+- **Realm by MongoDB** (alternative) - Complex offline-first architecture with automatic syncing (future consideration)
 
 ### State Management
 - **Zustand** - Lightweight global state
@@ -51,16 +57,18 @@ Vox Language is a mobile language learning application that creates a **safe spa
 - **expo-file-system** - Media file management and downloads
 
 ### AI Integration
-- **Google Gemini AI** (@google/generative-ai) - Content generation
-  - Personalized story creation
-  - Vocabulary suggestions
-  - Conversation prompts
-  - Level-appropriate content adaptation
+- **Google Gemini AI** (@google/generative-ai) - Comprehensive AI features
+  - **Conversational AI Agent**: Chat-based learning assistant with context-aware responses
+  - **Content Generation**: Personalized stories, adaptive difficulty, sentence examples
+  - **Speech & Pronunciation**: AI-powered pronunciation feedback and accent coaching
+  - **Interactive Games**: AI-generated questions and adaptive learning paths
+  - **Engagement Features**: Daily prompts, personalized encouragement, streak motivation
+  - See `/docs/GEMINI_API_INTEGRATION.md` for comprehensive AI feature roadmap
 
 ### Offline Support
-- **expo-network** - Network status detection
-- **expo-background-fetch** - Download lessons in background
-- **React Query persistence** - Offline-first data layer
+- **expo-network** (NetInfo) - Network status detection with smart connectivity monitoring
+- **expo-background-fetch** - Download lessons and sync progress in background when online
+- **React Query persistence** - Offline-first data layer with automatic cache hydration
 
 ## Project Architecture
 

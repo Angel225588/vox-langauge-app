@@ -20,14 +20,19 @@ Create a **modern, accessible, beautiful** language learning app that:
 ## 🎨 Design System Stack
 
 ### Current Setup
-- **NativeWind** (Tailwind CSS for React Native) ✅
-- **React Native Reanimated 3** for animations ✅
+- **NativeWind** (Tailwind CSS for React Native) ✅ KEEPING
+- **React Native Reanimated 3** for animations ✅ KEEPING
+- **Lottie** (lottie-react-native) for animated graphics 🎯 TO ADD
 - Custom components (basic styling)
 
 ### Planned Upgrades
-- **GlueStack UI v2** (component library) 🎯 NEXT
+- **Tamagui** (high-performance component library with optimizing compiler) 🎯 CHOSEN
+  - **Why Tamagui over Gluestack**: 30-50% faster, optimizing compiler, animation-first design
+  - **Migration**: Gradual, hybrid approach with NativeWind
+  - **Timeline**: After core features are stable (~2-3 days)
+  - **See**: `/docs/TAMAGUI_MIGRATION.md` for detailed plan
 - **Dark Mode** as default 🎯 PRIORITY
-- **Custom icon set** (3D icons mentioned in requirements)
+- **Custom icon set** (3D icons + Tamagui Lucide Icons)
 - **Haptic feedback** for interactions
 - **Smooth transitions** between screens
 
