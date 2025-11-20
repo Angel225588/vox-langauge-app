@@ -16,7 +16,7 @@ import { SimpleQuality } from '@/types/flashcard';
 // Import card components
 import LearningCard from '@/components/flashcards/LearningCard';
 import ListeningCard from '@/components/flashcards/ListeningCard';
-// import SpeakingCard from '@/components/flashcards/SpeakingCard'; // Coming soon
+import SpeakingCard from '@/components/flashcards/SpeakingCard';
 
 export default function FlashcardSessionScreen() {
   const router = useRouter();
@@ -229,21 +229,18 @@ export default function FlashcardSessionScreen() {
             key={`speaking-${flashcard.id}`}
             entering={FadeIn.duration(400)}
             exiting={FadeOut.duration(200)}
-            className="flex-1 items-center justify-center"
+            className="flex-1"
           >
-            {/* Placeholder for SpeakingCard (being built by Gemini) */}
-            <View className="bg-white p-8 rounded-3xl shadow-lg">
-              <Text className="text-2xl text-center mb-4">🎤</Text>
-              <Text className="text-lg font-bold text-center mb-4">
-                Speaking Card
-              </Text>
-              <Text className="text-gray-600 text-center mb-4">
-                Say: {flashcard.word}
-              </Text>
-              <Text className="text-sm text-gray-500 text-center">
-                (SpeakingCard component coming from Gemini)
-              </Text>
-            </View>
+            <SpeakingCard
+              word={flashcard.word}
+              phonetic={flashcard.phonetic}
+              exampleAudioUrl={flashcard.audio_url}
+              onComplete={(audioUri) => {
+                console.log('Recording completed:', audioUri);
+                handleQualityRating('easy'); // Auto-rate as easy after recording
+              }}
+              onSkip={handleSkip}
+            />
           </Animated.View>
         )}
       </View>

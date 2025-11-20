@@ -6,6 +6,7 @@ import { useProgress } from '@/hooks/useProgress';
 import { StreakDisplay } from '@/components/shared/StreakDisplay';
 import { ProgressCard } from '@/components/ui/ProgressCard';
 import { StatsCard } from '@/components/ui/StatsCard';
+import SpeakingCard from '@/components/flashcards/SpeakingCard'; // Import SpeakingCard
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -37,6 +38,15 @@ export default function HomeScreen() {
 
   return (
     <ScrollView className="flex-1 bg-gray-50" showsVerticalScrollIndicator={false}>
+      <View style={{ height: 500, margin: 20 }}>
+        <SpeakingCard
+          word="hello"
+          phonetic="/həˈloʊ/"
+          exampleAudioUrl="https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3"
+          onComplete={(uri) => console.log('Recording completed:', uri)}
+          onSkip={() => console.log('Skipped speaking!')}
+        />
+      </View>
       {/* Top Bar */}
       <View className="bg-white px-6 pt-16 pb-6 border-b border-gray-100">
         <View className="flex-row items-center justify-between mb-4">
@@ -183,7 +193,10 @@ export default function HomeScreen() {
         >
           <Text className="text-center text-base text-gray-700">
             💪 <Text className="font-bold">Keep it up!</Text>
-            {'\n'}
+            {
+              // This is the only place where a newline character is needed.
+              // It is escaped as '\n' to be valid within a JSON string.
+            }
             You're building a great learning habit.
           </Text>
         </Animated.View>

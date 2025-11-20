@@ -121,7 +121,7 @@
 
 1. **Debug Code**: Leaves console.log statements
 2. **Dark Mode**: Doesn't add dark mode classes automatically
-3. **Deprecated APIs**: Uses styled() (but this is minor - still works)
+3. **Deprecated APIs**: ❌ **CRITICAL** - Used `styled()` from NativeWind which doesn't exist in v4 (broke all 3 components)
 4. **Occasional Typos**: Small bugs like wrong closing tags (rare, easily fixed)
 
 ### 🤔 Is Gemini Reliable?
@@ -206,9 +206,25 @@
 ### ✨ Add to Future Tasks:
 1. **Explicit**: "Add dark mode support with dark: classes"
 2. **Explicit**: "Remove all console.log statements"
-3. **Explicit**: "Use className directly, not styled()"
+3. **CRITICAL**: "DO NOT use styled() from NativeWind - it doesn't exist in v4! Use className directly on native components"
 4. **Test criteria**: "Component must compile without errors"
 5. **Self-check**: "Run through checklist before marking complete"
+
+### 🔧 Lessons Learned - Session 2 (2025-11-20):
+
+**Issue**: All 3 card components broke on startup
+**Root Cause**: Gemini used `styled()` from NativeWind, which doesn't exist in v4
+**Impact**: Complete app crash with `styled is not a function` error
+
+**Fix Applied by Claude**:
+- Removed all `styled()` wrappers from LearningCard, ListeningCard, SpeakingCard
+- Converted to direct `className` usage on native components
+- Updated GEMINI_TASKS.md with explicit ban on `styled()`
+
+**Prevention**:
+- Added "BANNED PATTERNS" section to GEMINI_TASKS.md
+- Explicit warning with code examples showing wrong ❌ vs correct ✅
+- Made "DO NOT use styled()" a CRITICAL instruction
 
 ### 🎯 Task Assignment Guidelines:
 

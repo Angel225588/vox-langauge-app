@@ -6,6 +6,48 @@
 
 ## 🚨 Common Issues & Solutions
 
+### 0. Login Issues - "Email Not Confirmed" Error ⚠️ HIGH PRIORITY
+
+#### Issue: Can't login even with correct credentials
+**Symptoms**:
+- Created account in Supabase dashboard
+- Can see user in Supabase Auth > Users
+- Login says "Email not confirmed" or "Invalid credentials"
+- Email confirmation link is broken or not sent
+
+**Root Cause**: Supabase email confirmation is enabled but email service is not configured
+
+**Solutions**:
+
+**Option A: Disable Email Confirmation (RECOMMENDED for development)**:
+1. Go to Supabase Dashboard → Authentication → Providers
+2. Scroll to "Email" provider settings
+3. Find "Confirm email" toggle
+4. **Disable** "Confirm email"
+5. Save changes
+6. **For existing users**: Go to Authentication → Users
+7. Find your user, click "..." menu
+8. Select "Confirm email" to manually confirm
+9. Now you can login without email confirmation
+
+**Option B: Configure Email Service (for production)**:
+1. Go to Supabase Dashboard → Project Settings → Auth
+2. Scroll to "SMTP Settings"
+3. Configure your email provider (SendGrid, AWS SES, etc.)
+4. Test email delivery
+5. Users will receive confirmation emails
+
+**Quick Fix for Development**:
+```bash
+# Just disable email confirmation in Supabase dashboard
+# Then manually confirm existing users
+# All new signups will work immediately
+```
+
+**Note**: The login screen already has good styling and proper error handling. The issue is purely Supabase configuration.
+
+---
+
 ### 1. Expo Android/iOS Not Working
 
 #### Issue: App won't start on Android/iOS

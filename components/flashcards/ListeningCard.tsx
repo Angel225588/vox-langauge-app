@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { styled } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import Animated, {
@@ -13,12 +12,6 @@ import Animated, {
   FadeIn,
   FadeOut,
 } from 'react-native-reanimated';
-
-const StyledView = styled(View);
-const StyledText = styled(Text);
-const StyledTextInput = styled(TextInput);
-const StyledTouchableOpacity = styled(TouchableOpacity);
-const AnimatedView = styled(Animated.View);
 
 interface ListeningCardProps {
   word: string;
@@ -103,18 +96,18 @@ const ListeningCard: React.FC<ListeningCardProps> = ({
   });
 
   return (
-    <StyledView className="flex-1 justify-center items-center p-4">
-      <StyledView className="w-full aspect-[3/4] max-w-sm bg-white rounded-3xl shadow-lg border border-gray-200 p-6 justify-between">
-        <StyledView>
-          <StyledText className="text-xl font-bold text-gray-800 text-center mb-4">
+    <View className="flex-1 justify-center items-center p-4">
+      <View className="w-full aspect-[3/4] max-w-sm bg-white rounded-3xl shadow-lg border border-gray-200 p-6 justify-between">
+        <View>
+          <Text className="text-xl font-bold text-gray-800 text-center mb-4">
             Listen and type what you hear
-          </StyledText>
-          <StyledTouchableOpacity className="items-center my-8" onPress={playSound}>
+          </Text>
+          <TouchableOpacity className="items-center my-8" onPress={playSound}>
             <Feather name="volume-2" size={64} color="#2196F3" />
-          </StyledTouchableOpacity>
-        </StyledView>
+          </TouchableOpacity>
+        </View>
 
-        <StyledTextInput
+        <TextInput
           className="bg-white border border-gray-300 rounded-xl w-full p-4 text-lg text-center"
           placeholder="Type here..."
           value={userInput}
@@ -123,35 +116,35 @@ const ListeningCard: React.FC<ListeningCardProps> = ({
           autoCorrect={false}
         />
 
-        <StyledView>
-          <AnimatedView style={feedbackAnimatedStyle} className={`absolute -top-16 self-center p-3 rounded-full ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
-            <StyledText className="text-white font-bold text-base">{feedbackMessage}</StyledText>
-          </AnimatedView>
+        <View>
+          <Animated.View style={feedbackAnimatedStyle} className={`absolute -top-16 self-center p-3 rounded-full ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
+            <Text className="text-white font-bold text-base">{feedbackMessage}</Text>
+          </Animated.View>
 
-          <StyledTouchableOpacity
+          <TouchableOpacity
             className={`rounded-full p-4 items-center mt-4 ${!userInput ? 'bg-gray-400' : 'bg-green-500'}`}
             onPress={handleCheck}
             disabled={!userInput || feedbackOpacity.value !== 0} // Disable during feedback
           >
-            <StyledText className="text-white font-bold text-lg">Check</StyledText>
-          </StyledTouchableOpacity>
+            <Text className="text-white font-bold text-lg">Check</Text>
+          </TouchableOpacity>
 
-          <StyledView className="flex-row justify-center mt-4">
-            <StyledTouchableOpacity className="p-2" onPress={playSound}>
-              <StyledText className="text-gray-500">Play again</StyledText>
-            </StyledTouchableOpacity>
+          <View className="flex-row justify-center mt-4">
+            <TouchableOpacity className="p-2" onPress={playSound}>
+              <Text className="text-gray-500">Play again</Text>
+            </TouchableOpacity>
             {onSkip && (
               <>
-                <StyledText className="text-gray-300 mx-2">|</StyledText>
-                <StyledTouchableOpacity className="p-2" onPress={onSkip}>
-                  <StyledText className="text-gray-500">Skip</StyledText>
-                </StyledTouchableOpacity>
+                <Text className="text-gray-300 mx-2">|</Text>
+                <TouchableOpacity className="p-2" onPress={onSkip}>
+                  <Text className="text-gray-500">Skip</Text>
+                </TouchableOpacity>
               </>
             )}
-          </StyledView>
-        </StyledView>
-      </StyledView>
-    </StyledView>
+          </View>
+        </View>
+      </View>
+    </View>
   );
 };
 

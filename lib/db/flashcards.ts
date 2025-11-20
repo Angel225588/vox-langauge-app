@@ -23,9 +23,11 @@ const DB_NAME = 'vox_language.db';
  * Creates tables if they don't exist
  */
 export async function initializeFlashcardDB(): Promise<void> {
-  const db = await SQLite.openDatabaseAsync(DB_NAME);
+  try {
+    const db = await SQLite.openDatabaseAsync(DB_NAME);
 
-  await db.execAsync(`
+    // Execute each statement separately for better error handling
+    await db.execAsync(`
     -- Flashcards table
     CREATE TABLE IF NOT EXISTS flashcards (
       id TEXT PRIMARY KEY,
@@ -96,7 +98,11 @@ export async function initializeFlashcardDB(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_reviews_session ON flashcard_reviews(session_id);
   `);
 
-  console.log('✅ Flashcard database initialized');
+    console.log('✅ Flashcard database initialized');
+  } catch (error) {
+    console.error('❌ Database initialization error:', error);
+    throw error;
+  }
 }
 
 /**

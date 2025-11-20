@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, Pressable } from 'react-native';
-import { styled } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
@@ -11,12 +10,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Audio } from 'expo-av';
-
-const StyledView = styled(View);
-const StyledText = styled(Text);
-const StyledImage = styled(Image);
-const StyledTouchableOpacity = styled(TouchableOpacity);
-const AnimatedView = styled(Animated.View);
 
 interface LearningCardProps {
   word: string;
@@ -99,59 +92,59 @@ const LearningCard: React.FC<LearningCardProps> = ({
   });
 
   const FrontCard = () => (
-    <AnimatedView style={frontAnimatedStyle} className="w-full h-full">
-      <StyledView
+    <Animated.View style={frontAnimatedStyle} className="w-full h-full">
+      <View
         className="w-full h-full p-6 bg-white rounded-3xl shadow-lg border border-gray-200 justify-between items-center"
       >
-        <StyledView className="w-full">
-          <StyledText className="text-3xl font-bold text-gray-800 text-center">{word}</StyledText>
-        </StyledView>
+        <View className="w-full">
+          <Text className="text-3xl font-bold text-gray-800 text-center">{word}</Text>
+        </View>
         {imageUrl ? (
-          <StyledImage source={{ uri: imageUrl }} className="w-48 h-48 my-4" resizeMode="contain" />
+          <Image source={{ uri: imageUrl }} className="w-48 h-48 my-4" resizeMode="contain" />
         ) : (
-          <StyledView className="w-48 h-48 my-4 justify-center items-center bg-gray-100 rounded-2xl">
+          <View className="w-48 h-48 my-4 justify-center items-center bg-gray-100 rounded-2xl">
             <Feather name="image" size={48} color="#9CA3AF" />
-          </StyledView>
+          </View>
         )}
-        <StyledView className="w-full items-center">
-          {phonetic && <StyledText className="text-lg text-gray-500 mb-4">{phonetic}</StyledText>}
-          <StyledText className="text-base text-blue-500">Tap to reveal translation</StyledText>
-        </StyledView>
-      </StyledView>
-    </AnimatedView>
+        <View className="w-full items-center">
+          {phonetic && <Text className="text-lg text-gray-500 mb-4">{phonetic}</Text>}
+          <Text className="text-base text-blue-500">Tap to reveal translation</Text>
+        </View>
+      </View>
+    </Animated.View>
   );
 
   const BackCard = () => (
-    <AnimatedView style={backAnimatedStyle} className="w-full h-full">
-      <StyledView
+    <Animated.View style={backAnimatedStyle} className="w-full h-full">
+      <View
         className="w-full h-full p-6 bg-white rounded-3xl shadow-lg border border-gray-200 justify-between items-center"
       >
-        <StyledView className="w-full">
-          <StyledText className="text-3xl font-bold text-gray-800 text-center">{translation}</StyledText>
-        </StyledView>
+        <View className="w-full">
+          <Text className="text-3xl font-bold text-gray-800 text-center">{translation}</Text>
+        </View>
         {exampleSentence && (
-          <StyledText className="text-lg text-gray-600 my-4 text-center">{exampleSentence}</StyledText>
+          <Text className="text-lg text-gray-600 my-4 text-center">{exampleSentence}</Text>
         )}
         {audioUrl && (
           <Pressable onPress={playSound} className="my-4">
             <Feather name="play-circle" size={48} color="#2196F3" />
           </Pressable>
         )}
-        <StyledView className="w-full items-center">
-          <StyledText className="text-base text-blue-500">Tap to flip back</StyledText>
-        </StyledView>
-      </StyledView>
-    </AnimatedView>
+        <View className="w-full items-center">
+          <Text className="text-base text-blue-500">Tap to flip back</Text>
+        </View>
+      </View>
+    </Animated.View>
   );
 
   return (
     <GestureDetector gesture={tap}>
-      <StyledView className="flex-1 justify-center items-center p-4" style={{ perspective: 1000 }}>
-        <StyledView className="w-full aspect-[3/4] max-w-sm">
+      <View className="flex-1 justify-center items-center p-4" style={{ perspective: 1000 }}>
+        <View className="w-full aspect-[3/4] max-w-sm">
           <FrontCard />
           <BackCard />
-        </StyledView>
-      </StyledView>
+        </View>
+      </View>
     </GestureDetector>
   );
 };

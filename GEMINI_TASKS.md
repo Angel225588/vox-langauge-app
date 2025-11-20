@@ -77,10 +77,22 @@ Before marking a task complete, verify:
 
 ### Code Style:
 - Functional components with hooks (no class components)
-- Use `ClassName` prop for NativeWind styling (e.g., `className="bg-blue-500 p-4"`)
+- Use `className` prop for NativeWind styling (e.g., `className="bg-blue-500 p-4"`)
+- **CRITICAL**: DO NOT use `styled()` from NativeWind - it doesn't exist in v4! Use native components with `className` directly
 - File naming: PascalCase for components (e.g., `LearningCard.tsx`)
 - Export components as default: `export default function ComponentName()`
 - Use absolute imports with `@/` prefix (e.g., `import { Flashcard } from '@/types/flashcard'`)
+
+### ❌ BANNED PATTERNS (DO NOT USE):
+```typescript
+// ❌ WRONG - styled() doesn't exist in NativeWind v4
+import { styled } from 'nativewind';
+const StyledView = styled(View);
+
+// ✅ CORRECT - Use className directly
+import { View } from 'react-native';
+<View className="bg-blue-500 p-4">...</View>
+```
 
 ### Where to Find Things:
 - **Types**: `/types/flashcard.ts`
@@ -92,81 +104,6 @@ Before marking a task complete, verify:
 ---
 
 ## 🎯 Active Tasks for Gemini
-
-### Task 3: Build SpeakingCard Component ⚡ MEDIUM PRIORITY
-**Status**: 🔴 Not Started
-**File to create**: `/components/flashcards/SpeakingCard.tsx`
-**Estimated time**: 45-60 minutes
-
-#### What this component does:
-The SpeakingCard shows a word and asks the user to pronounce it. It records their voice and allows playback for self-assessment.
-
-#### Requirements:
-
-**Props Interface**:
-```typescript
-interface SpeakingCardProps {
-  word: string;              // Word to pronounce
-  phonetic?: string;        // IPA pronunciation guide
-  exampleAudioUrl?: string; // Optional reference audio
-  onComplete: (audioUri: string) => void; // Called when recording is done
-  onSkip?: () => void;       // Called when user skips
-}
-```
-
-**Visual Design**:
-- Large word at top
-- Phonetic guide below word (if available)
-- "Play example" button (if exampleAudioUrl available)
-- Large record button in center (🎤 icon)
-- Recording indicator (red pulsing dot when recording)
-- Playback button (appears after recording)
-- "Done" button to continue
-- "Try again" to record again
-
-**Functionality**:
-- Use `expo-av` for recording and playback
-- Record button: Tap to start, tap again to stop
-- Show recording timer during recording
-- Allow playback of user's recording
-- Allow re-recording unlimited times
-- Save recording URI and pass to onComplete
-
-**Recording Logic**:
-```typescript
-import { Audio } from 'expo-av';
-
-// Request permissions
-await Audio.requestPermissionsAsync();
-
-// Start recording
-const recording = new Audio.Recording();
-await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-await recording.startAsync();
-
-// Stop recording
-await recording.stopAndUnloadAsync();
-const uri = recording.getURI();
-```
-
-**Styling**:
-- Word: Large, bold, centered
-- Phonetic: Smaller, gray, italics
-- Record button: Red (#F44336) when recording, blue when ready
-- Pulsing animation while recording
-- Playback button: Green (#4CAF50)
-- Clean, minimal design
-
-**Acceptance Criteria**:
-- ✅ Requests and handles audio permissions
-- ✅ Records audio when button is tapped
-- ✅ Shows recording indicator
-- ✅ Can play back recorded audio
-- ✅ Can re-record multiple times
-- ✅ Passes audio URI to onComplete callback
-- ✅ TypeScript types are correct
-- ✅ Code is well-commented
-- ✅ Handles errors gracefully (no permissions, etc.)
 
 ---
 
@@ -196,6 +133,18 @@ const uri = recording.getURI();
 - Included an optional skip button.
 - Ensured correct callbacks (`onCorrect`, `onIncorrect`, `onSkip`) are fired.
 
+### Task 3: Build SpeakingCard Component ⚡ MEDIUM PRIORITY
+**Status**: ✅ Completed
+**File created**: `/components/flashcards/SpeakingCard.tsx`
+
+**Summary of work**:
+- Created the `SpeakingCard` component for recording and assessing pronunciation.
+- Implemented audio recording and playback using `expo-av`, including permission handling.
+- Integrated a recording timer and a pulsing animation for the record button using React Native Reanimated.
+- Provided UI for playing example audio (if available), playing back user's recording, and options to "Try Again" or "Done".
+- Ensured `onComplete` is called with the recorded audio URI and `onSkip` is triggered correctly.
+- Implemented robust error handling for audio operations.
+
 ---
 
 ## 📝 Notes & Questions for Claude
@@ -219,4 +168,4 @@ const uri = recording.getURI();
 ---
 
 **Last Updated**: 2025-11-20 by Gemini
-**Next Review**: After Task 3 completion
+**Next Review**: All flashcard components completed
