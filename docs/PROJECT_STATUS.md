@@ -1,7 +1,7 @@
 # Vox Language App - Project Status
 
-**Last Updated**: 2025-11-19
-**Current Phase**: Phase 0 ✅ Complete | Phase 1 🚧 Ready to Start
+**Last Updated**: 2025-11-20
+**Current Phase**: Phase 1 🚧 In Progress | Phase 3 🚧 Core Mechanics (Parallel)
 **Version**: 1.0.0
 
 ---
@@ -46,73 +46,69 @@ Create a **self-directed language learning app** where users:
 
 ## 🚧 Phase 1: Authentication & Onboarding (IN PROGRESS)
 
-**Status**: 🎯 Ready to Start
+**Status**: 🚧 Partially Complete
 **Priority**: HIGH
 **Goal**: Get users onboarded and into their first lesson within 5-10 minutes
 
-### Screens to Build (In Order)
+### Completed ✅
 
 #### 1️⃣ Login Screen
-- [ ] Email/password form
-- [ ] Supabase authentication
-- [ ] "Forgot password" link
-- [ ] "Sign up" navigation
-- [ ] Loading states & error handling
+- ✅ Email/password form
+- ✅ Supabase authentication
+- ✅ "Forgot password" link
+- ✅ "Sign up" navigation
+- ✅ Loading states & error handling
+- ✅ Beautiful animations with Reanimated
 
 #### 2️⃣ Signup Screen
-- [ ] Email/password registration
-- [ ] Password confirmation
-- [ ] Email validation
-- [ ] Terms acceptance (optional)
-- [ ] Auto-login after signup
+- ✅ Email/password registration
+- ✅ Password confirmation
+- ✅ Email validation
+- ✅ Terms acceptance UI
+- ✅ Auto-login after signup
+- ✅ Form validation with error messages
 
-#### 3️⃣ Onboarding Flow
+#### 3️⃣ Authentication Hook
+- ✅ useAuth hook with Supabase integration
+- ✅ Session management
+- ✅ Sign in, sign up, sign out functions
+- ✅ Password reset functionality
+
+### In Progress 🚧
+
+#### 4️⃣ Simplified Onboarding Flow (NEW APPROACH)
+
+**DECISION (2025-11-20)**: Skip complex level assessment initially. Let users start at beginner and adjust naturally through usage.
 
 **Step 1: Welcome**
 - [ ] Welcome screen with app value proposition
 - [ ] "Get Started" button
-- [ ] Skip option (save progress to continue later)
+- [ ] Brief explanation of learning approach
 
 **Step 2: Language Selection**
 - [ ] Choose target language (English/French/Spanish)
 - [ ] Native language selection (for translations)
-- [ ] Visual, appealing UI
+- [ ] Visual, appealing UI with flags/icons
 
-**Step 3: Level Assessment** (5-10 minutes max)
-- [ ] Hybrid approach (B + C):
-  - Quick visual test (10-15 images: "Select words you know")
-  - Audio test (3-5 words: "Type what you hear")
-  - Speaking test (1-2 sentences: "Repeat after me")
-- [ ] AI calculates level (beginner/intermediate/advanced)
-- [ ] Show progress during assessment
-- [ ] Save results to profile
-
-**Step 4: Interests & Context Selection**
+**Step 3: Interests Selection** (Simplified)
 - [ ] "What topics interest you?" (travel, food, business, sports, movies, etc.)
-- [ ] "What's your goal?" (casual conversation, job interviews, travel, etc.)
-- [ ] "What's your context?" (work, hobbies, daily life)
 - [ ] Multi-select UI with visual icons
-- [ ] These determine personalized content (phrasal verbs, expressions, vocabulary)
+- [ ] Used to personalize first lesson content
+- [ ] Start at beginner level by default
 
-**Step 5: Pre-Download & Processing**
-- [ ] "Preparing your first lesson..." loading screen
-- [ ] Download first 5 lessons + media (background)
-- [ ] AI generates first personalized story
-- [ ] Initialize local database
-- [ ] Create user profile in Supabase
-
-#### 4️⃣ First Lesson Launch
-- [ ] **Option A Implementation**: Jump straight into 10-minute lesson
-- [ ] Show quick tutorial overlay (optional skip)
-- [ ] Launch lesson flow immediately
-- [ ] Track as "onboarding lesson" (special handling)
+**Step 4: First Lesson Launch**
+- [ ] Jump straight into 10-minute lesson
+- [ ] Quick tutorial overlay (optional skip)
+- [ ] Use the flashcard + game mechanics we're building
+- [ ] Track as "onboarding lesson"
 
 ### Key Decisions Made
 
 ✅ **First Experience**: Users start learning immediately (Option A)
-✅ **Assessment**: Thorough but fast (5-10 min, hybrid approach)
+✅ **Assessment**: DEFERRED - Skip formal assessment, start at beginner, adjust based on usage
 ✅ **Gamification**: Points shown after first lesson completion
 ✅ **Main Path**: Categories-first, self-directed learning
+✅ **Build Order**: Core mechanics FIRST, then complete onboarding around it (2025-11-20)
 
 ---
 
@@ -145,30 +141,45 @@ Create a **self-directed language learning app** where users:
 
 ---
 
-## 📋 Phase 3: Lesson Flow Engine (CORE FEATURE)
+## 📋 Phase 3: Core Learning Mechanics (CURRENT FOCUS) 🚧
 
-**Status**: 📅 Planned
+**Status**: 🚧 IN PROGRESS (Started 2025-11-20)
 **Priority**: CRITICAL
-**Dependencies**: Phase 1 & 2 complete
+**Dependencies**: None (Building in parallel with Phase 1)
+
+**STRATEGIC DECISION**: Build core mechanics FIRST before completing onboarding. This gives us something concrete to test and build around.
 
 ### Build Order (Based on Priority)
 
-#### 1. Flashcards (3-Card Cycle) - FOUNDATION
-- [ ] **Learning Card**: Image + Text + Phonetics + Audio
-- [ ] **Listening Card**: Play audio → User types → Validate
-- [ ] **Speaking Card**: Show word → User records → AI feedback
-- [ ] SM-2 spaced repetition algorithm
-- [ ] Quality rating (Forgot/Remembered/Easy)
+#### 1. Flashcards (3-Card Cycle) - FOUNDATION 🚧 IN PROGRESS
+- [ ] Database schema for flashcards (SQLite + Supabase)
+- [ ] Sample vocabulary data (beginner level, multiple categories)
+- [ ] **Learning Card Component**: Image + Text + Phonetics + Audio button
+- [ ] **Listening Card Component**: Play audio → User types → Validate
+- [ ] **Speaking Card Component**: Show word → User records → Basic feedback
+- [ ] SM-2 spaced repetition algorithm implementation
+- [ ] Quality rating UI (Forgot/Remembered/Easy)
+- [ ] Flashcard session flow (cycle through cards)
 - [ ] Works 100% offline
+- [ ] Points tracking per review
 
-#### 2. Games - REINFORCEMENT
-- [ ] **Tap-to-Match**: Link images to words
-- [ ] **Multiple Choice**: Hear word, select correct image
+#### 2. Games - REINFORCEMENT (NEXT)
+- [ ] **Tap-to-Match Game**: Link images to words
+- [ ] **Multiple Choice Game**: Hear word, select correct image
 - [ ] Immediate feedback (visual + audio)
-- [ ] Points awarded for attempts
+- [ ] Points awarded for attempts (not accuracy)
 - [ ] Works offline with pre-downloaded content
+- [ ] Game session tracking
 
-#### 3. Reading Practice - COMPREHENSION
+#### 3. Lesson Flow Engine (AFTER GAMES)
+- [ ] Time selector UI: [10 min] [20 min]
+- [ ] Dynamic flow generator (mix flashcards + games based on time)
+- [ ] Progress tracking during session
+- [ ] Session summary at end (cards reviewed, games played, points earned)
+- [ ] Save progress to local database
+- [ ] Sync to Supabase when online
+
+#### 4. Reading Practice - COMPREHENSION (FUTURE)
 - [ ] **Teleprompter view** with highlighted vocabulary
 - [ ] Click word → definition (offline)
 - [ ] Double-click → phrase meaning
@@ -176,27 +187,20 @@ Create a **self-directed language learning app** where users:
 - [ ] AI-generated stories (personalized)
 - [ ] Pre-download stories for offline use
 
-#### 4. Speaking/Recording - PRODUCTION
+#### 5. Speaking/Recording - PRODUCTION (FUTURE)
 - [ ] Record practice (expo-av)
 - [ ] Playback review
 - [ ] AI pronunciation feedback (when online)
 - [ ] Save recordings (private by default)
 - [ ] Option to publish to community
 
-#### 5. AI Agent Conversation - INTERACTION
+#### 6. AI Agent Conversation - INTERACTION (FUTURE)
 - [ ] 2-3 minute chat at end of lesson
 - [ ] Uses vocabulary just learned
 - [ ] Gemini AI integration
 - [ ] Voice or text input
 - [ ] Gentle corrections
 - [ ] Requires internet connection
-
-### Lesson Flow Builder
-- [ ] Time selector: [10 min] [20 min]
-- [ ] Dynamic flow generator based on time
-- [ ] Adaptive content based on previous lesson feedback
-- [ ] Progress tracking
-- [ ] Session summary at end
 
 ---
 
@@ -303,25 +307,40 @@ Create a **self-directed language learning app** where users:
 
 ---
 
-## 📝 Next 3 Immediate Tasks
+## 📝 Current Work (Updated 2025-11-20)
 
-1. **Build Login Screen**
-   - Supabase auth integration
-   - Form validation
-   - Error handling
-   - Navigation to signup/home
+### Active Sprint: Core Learning Mechanics
 
-2. **Build Signup Screen**
-   - User registration
-   - Email validation
-   - Auto-login after signup
+**Current Focus**: Building Flashcard System (Phase 3.1)
 
-3. **Build Onboarding Flow**
-   - Welcome screen
-   - Language selection
-   - Level assessment (5-10 min)
-   - Interests/context selection
-   - Launch first lesson
+#### Task Breakdown:
+1. **Database Layer**
+   - Create flashcard schema (SQLite + Supabase)
+   - Implement spaced repetition data model
+   - Add sample vocabulary (50+ words, multiple categories)
+
+2. **Flashcard Components**
+   - Learning Card UI (front: image, back: word + phonetics + audio)
+   - Listening Card UI (audio player + text input + validation)
+   - Speaking Card UI (word display + record button + playback)
+
+3. **SM-2 Algorithm**
+   - Implement spaced repetition calculations
+   - Quality rating system (Forgot/Remembered/Easy)
+   - Next review date calculations
+   - All works offline
+
+4. **Session Flow**
+   - Flashcard review session screen
+   - Card cycling logic (3-card cycle per word)
+   - Progress indicator
+   - Points tracking
+   - Session summary
+
+#### Next After Flashcards:
+5. **Games** (Tap-to-Match + Multiple Choice)
+6. **Lesson Flow Engine** (combine flashcards + games)
+7. **Complete Onboarding** (Welcome → Language → Interests → First Lesson)
 
 ---
 

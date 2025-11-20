@@ -14,31 +14,48 @@ import { useRouter } from 'expo-router';
 import Animated, {
   FadeInDown,
   FadeInUp,
-  useAnimatedStyle,
-  withSpring,
-  useSharedValue,
 } from 'react-native-reanimated';
 import { useAuth } from '@/hooks/useAuth';
 
-export default function LoginScreen() {
+export default function SignupScreen() {
   const router = useRouter();
-  const { signIn, user, loading: authLoading } = useAuth();
+  const { signUp, user, loading: authLoading } = useAuth();
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
 
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      router.replace('/(tabs)/home');
+      // After signup, user should go to onboarding
+      router.replace('/(auth)/onboarding/welcome');
     }
   }, [user]);
 
   // Form validation
   const validateForm = (): boolean => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: {
+      name?: string;
+      email?: string;
+      password?: string;
+      confirmPassword?: string;
+    } = {};
+
+    // Name validation
+    if (!name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,43 +68,54 @@ export default function LoginScreen() {
     // Password validation
     if (!password) {
       newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      newErrors.password = 'Password must contain uppercase, lowercase, and number';
+    }
+
+    // Confirm password validation
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogin = async () => {
+  const handleSignUp = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { data, error } = await signUp(email, password);
     setLoading(false);
 
     if (error) {
       Alert.alert(
-        'Login Failed',
-        error.message || 'An error occurred during login. Please try again.',
+        'Signup Failed',
+        error.message || 'An error occurred during signup. Please try again.',
         [{ text: 'OK' }]
       );
     } else {
-      // Navigation handled by useEffect watching user state
+      // Success! User will be auto-redirected via useEffect
+      // We could also save the name to the profile here
+      Alert.alert(
+        'Welcome! 🎉',
+        'Your account has been created successfully.',
+        [
+          {
+            text: 'Continue',
+            onPress: () => router.replace('/(auth)/onboarding/welcome'),
+          },
+        ]
+      );
     }
   };
 
-  const handleForgotPassword = () => {
-    // TODO: Navigate to forgot password screen
-    Alert.alert(
-      'Forgot Password',
-      'Password reset functionality will be available soon.',
-      [{ text: 'OK' }]
-    );
-  };
-
-  const handleSignUp = () => {
-    router.push('/(auth)/signup');
+  const handleLogin = () => {
+    router.back();
   };
 
   if (authLoading) {
@@ -107,23 +135,51 @@ export default function LoginScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="flex-1 px-6 pt-20 pb-8">
+        <View className="flex-1 px-6 pt-16 pb-8">
           {/* Header */}
           <Animated.View
             entering={FadeInDown.duration(600).springify()}
-            className="mb-12"
+            className="mb-8"
           >
             <Text className="text-4xl font-bold text-gray-900 mb-2">
-              Welcome Back! 👋
+              Create Account 🚀
             </Text>
             <Text className="text-lg text-gray-600">
-              Sign in to continue your learning journey
+              Start your language learning journey today
             </Text>
+          </Animated.View>
+
+          {/* Name Input */}
+          <Animated.View
+            entering={FadeInDown.duration(600).delay(100).springify()}
+            className="mb-4"
+          >
+            <Text className="text-sm font-semibold text-gray-700 mb-2">
+              Full Name
+            </Text>
+            <TextInput
+              className={`w-full px-4 py-4 rounded-xl bg-gray-50 text-gray-900 text-base ${
+                errors.name ? 'border-2 border-red-500' : 'border border-gray-200'
+              }`}
+              placeholder="John Doe"
+              placeholderTextColor="#9CA3AF"
+              value={name}
+              onChangeText={(text) => {
+                setName(text);
+                if (errors.name) setErrors({ ...errors, name: undefined });
+              }}
+              autoCapitalize="words"
+              autoComplete="name"
+              autoCorrect={false}
+            />
+            {errors.name && (
+              <Text className="text-red-500 text-sm mt-1">{errors.name}</Text>
+            )}
           </Animated.View>
 
           {/* Email Input */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(100).springify()}
+            entering={FadeInDown.duration(600).delay(200).springify()}
             className="mb-4"
           >
             <Text className="text-sm font-semibold text-gray-700 mb-2">
@@ -152,8 +208,8 @@ export default function LoginScreen() {
 
           {/* Password Input */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(200).springify()}
-            className="mb-2"
+            entering={FadeInDown.duration(600).delay(300).springify()}
+            className="mb-4"
           >
             <Text className="text-sm font-semibold text-gray-700 mb-2">
               Password
@@ -162,7 +218,7 @@ export default function LoginScreen() {
               className={`w-full px-4 py-4 rounded-xl bg-gray-50 text-gray-900 text-base ${
                 errors.password ? 'border-2 border-red-500' : 'border border-gray-200'
               }`}
-              placeholder="Enter your password"
+              placeholder="Create a strong password"
               placeholderTextColor="#9CA3AF"
               value={password}
               onChangeText={(text) => {
@@ -171,36 +227,63 @@ export default function LoginScreen() {
               }}
               secureTextEntry
               autoCapitalize="none"
-              autoComplete="password"
+              autoComplete="password-new"
               autoCorrect={false}
             />
             {errors.password && (
               <Text className="text-red-500 text-sm mt-1">{errors.password}</Text>
             )}
-          </Animated.View>
-
-          {/* Forgot Password Link */}
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(300).springify()}
-            className="mb-6"
-          >
-            <TouchableOpacity onPress={handleForgotPassword}>
-              <Text className="text-primary text-sm font-semibold text-right">
-                Forgot Password?
+            {!errors.password && password.length > 0 && (
+              <Text className="text-gray-500 text-xs mt-1">
+                Must be 8+ characters with uppercase, lowercase, and number
               </Text>
-            </TouchableOpacity>
+            )}
           </Animated.View>
 
-          {/* Login Button */}
+          {/* Confirm Password Input */}
           <Animated.View
             entering={FadeInDown.duration(600).delay(400).springify()}
+            className="mb-6"
+          >
+            <Text className="text-sm font-semibold text-gray-700 mb-2">
+              Confirm Password
+            </Text>
+            <TextInput
+              className={`w-full px-4 py-4 rounded-xl bg-gray-50 text-gray-900 text-base ${
+                errors.confirmPassword
+                  ? 'border-2 border-red-500'
+                  : 'border border-gray-200'
+              }`}
+              placeholder="Re-enter your password"
+              placeholderTextColor="#9CA3AF"
+              value={confirmPassword}
+              onChangeText={(text) => {
+                setConfirmPassword(text);
+                if (errors.confirmPassword)
+                  setErrors({ ...errors, confirmPassword: undefined });
+              }}
+              secureTextEntry
+              autoCapitalize="none"
+              autoComplete="password-new"
+              autoCorrect={false}
+            />
+            {errors.confirmPassword && (
+              <Text className="text-red-500 text-sm mt-1">
+                {errors.confirmPassword}
+              </Text>
+            )}
+          </Animated.View>
+
+          {/* Sign Up Button */}
+          <Animated.View
+            entering={FadeInDown.duration(600).delay(500).springify()}
             className="mb-6"
           >
             <TouchableOpacity
               className={`w-full py-4 rounded-xl ${
                 loading ? 'bg-primary/70' : 'bg-primary'
               } items-center justify-center`}
-              onPress={handleLogin}
+              onPress={handleSignUp}
               disabled={loading}
               activeOpacity={0.8}
             >
@@ -208,7 +291,7 @@ export default function LoginScreen() {
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text className="text-white text-base font-bold">
-                  Sign In
+                  Create Account
                 </Text>
               )}
             </TouchableOpacity>
@@ -216,7 +299,7 @@ export default function LoginScreen() {
 
           {/* Divider */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(500).springify()}
+            entering={FadeInDown.duration(600).delay(600).springify()}
             className="flex-row items-center mb-6"
           >
             <View className="flex-1 h-px bg-gray-300" />
@@ -224,18 +307,16 @@ export default function LoginScreen() {
             <View className="flex-1 h-px bg-gray-300" />
           </Animated.View>
 
-          {/* Sign Up Link */}
+          {/* Login Link */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(600).springify()}
+            entering={FadeInDown.duration(600).delay(700).springify()}
             className="flex-row justify-center"
           >
             <Text className="text-gray-600 text-base">
-              Don't have an account?{' '}
+              Already have an account?{' '}
             </Text>
-            <TouchableOpacity onPress={handleSignUp}>
-              <Text className="text-primary text-base font-bold">
-                Sign Up
-              </Text>
+            <TouchableOpacity onPress={handleLogin}>
+              <Text className="text-primary text-base font-bold">Sign In</Text>
             </TouchableOpacity>
           </Animated.View>
 
@@ -244,11 +325,11 @@ export default function LoginScreen() {
 
           {/* Footer */}
           <Animated.View
-            entering={FadeInUp.duration(600).delay(700).springify()}
+            entering={FadeInUp.duration(600).delay(800).springify()}
             className="mt-8"
           >
             <Text className="text-center text-gray-400 text-xs">
-              By continuing, you agree to our{'\n'}
+              By creating an account, you agree to our{'\n'}
               <Text className="text-primary">Terms of Service</Text> and{' '}
               <Text className="text-primary">Privacy Policy</Text>
             </Text>

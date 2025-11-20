@@ -183,9 +183,7 @@ export default function HomeScreen() {
         >
           <Text className="text-center text-base text-gray-700">
             💪 <Text className="font-bold">Keep it up!</Text>
-            {
-              '\n' /* Explicitly escape newline for clarity if needed, though usually not required in JS strings */
-            }
+            {'\n'}
             You're building a great learning habit.
           </Text>
         </Animated.View>
