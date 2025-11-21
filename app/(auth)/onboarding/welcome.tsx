@@ -1,12 +1,5 @@
-import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-  FadeIn,
-} from 'react-native-reanimated';
-
-const { width } = Dimensions.get('window');
+import { YStack, XStack, Text, Button, Theme, Card } from '@/components/ui/tamagui'; // Added Card and Theme for potential future use or consistency
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -21,125 +14,109 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gradient-to-b from-primary/10 to-white">
-      <View className="flex-1 px-6 pt-20 pb-8 justify-between">
+    <Theme> {/* Wrap in Theme to ensure theme tokens work if not already at root */}
+      <YStack
+        flex={1}
+        backgroundColor="$background"
+        paddingHorizontal="$6"
+        paddingVertical="$8"
+        justifyContent="space-between"
+      >
         {/* Top Section - Logo & Title */}
-        <Animated.View entering={FadeIn.duration(800)} className="items-center">
-          <Text className="text-6xl mb-4">🗣️</Text>
-          <Text className="text-4xl font-bold text-gray-900 mb-3 text-center">
+        <YStack alignItems="center" paddingTop="$10">
+          <Text fontSize={60} marginBottom="$4">🗣️</Text>
+          <Text fontSize={40} fontWeight="bold" color="$color" marginBottom="$3" textAlign="center">
             Welcome to Vox!
           </Text>
-          <Text className="text-lg text-gray-600 text-center px-4">
+          <Text fontSize={18} color="$textSecondary" textAlign="center" paddingHorizontal="$4">
             Learn languages through practice, not perfection
           </Text>
-        </Animated.View>
+        </YStack>
 
         {/* Middle Section - Value Props */}
-        <View className="space-y-6">
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(200).springify()}
-            className="flex-row items-start"
-          >
-            <View className="bg-primary/10 w-12 h-12 rounded-full items-center justify-center mr-4">
-              <Text className="text-2xl">🎯</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="text-xl font-bold text-gray-900 mb-1">
+        <YStack gap="$6">
+          <XStack alignItems="flex-start" gap="$4">
+            <YStack backgroundColor="$primary/10" width={50} height={50} borderRadius="$round" alignItems="center" justifyContent="center">
+              <Text fontSize={24}>🎯</Text>
+            </YStack>
+            <YStack flex={1}>
+              <Text fontSize={20} fontWeight="bold" color="$color" marginBottom="$1">
                 Jump Right In
               </Text>
-              <Text className="text-base text-gray-600">
+              <Text fontSize={16} color="$textSecondary">
                 Start practicing immediately. No boring lessons—just real conversations.
               </Text>
-            </View>
-          </Animated.View>
+            </YStack>
+          </XStack>
 
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(400).springify()}
-            className="flex-row items-start"
-          >
-            <View className="bg-success/10 w-12 h-12 rounded-full items-center justify-center mr-4">
-              <Text className="text-2xl">🔥</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="text-xl font-bold text-gray-900 mb-1">
+          <XStack alignItems="flex-start" gap="$4">
+            <YStack backgroundColor="$green5" width={50} height={50} borderRadius="$round" alignItems="center" justifyContent="center">
+              <Text fontSize={24}>🔥</Text>
+            </YStack>
+            <YStack flex={1}>
+              <Text fontSize={20} fontWeight="bold" color="$color" marginBottom="$1">
                 Practice Makes Progress
               </Text>
-              <Text className="text-base text-gray-600">
+              <Text fontSize={16} color="$textSecondary">
                 Earn points for every attempt. We reward effort, not perfection.
               </Text>
-            </View>
-          </Animated.View>
+            </YStack>
+          </XStack>
 
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(600).springify()}
-            className="flex-row items-start"
-          >
-            <View className="bg-warning/10 w-12 h-12 rounded-full items-center justify-center mr-4">
-              <Text className="text-2xl">📱</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="text-xl font-bold text-gray-900 mb-1">
+          <XStack alignItems="flex-start" gap="$4">
+            <YStack backgroundColor="$yellow5" width={50} height={50} borderRadius="$round" alignItems="center" justifyContent="center">
+              <Text fontSize={24}>📱</Text>
+            </YStack>
+            <YStack flex={1}>
+              <Text fontSize={20} fontWeight="bold" color="$color" marginBottom="$1">
                 Learn Anywhere
               </Text>
-              <Text className="text-base text-gray-600">
+              <Text fontSize={16} color="$textSecondary">
                 Works offline. Practice on the bus, subway, or anywhere.
               </Text>
-            </View>
-          </Animated.View>
+            </YStack>
+          </XStack>
 
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(800).springify()}
-            className="flex-row items-start"
-          >
-            <View className="bg-secondary/10 w-12 h-12 rounded-full items-center justify-center mr-4">
-              <Text className="text-2xl">⚡</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="text-xl font-bold text-gray-900 mb-1">
+          <XStack alignItems="flex-start" gap="$4">
+            <YStack backgroundColor="$blue5" width={50} height={50} borderRadius="$round" alignItems="center" justifyContent="center">
+              <Text fontSize={24}>⚡</Text>
+            </YStack>
+            <YStack flex={1}>
+              <Text fontSize={20} fontWeight="bold" color="$color" marginBottom="$1">
                 See Results Fast
               </Text>
-              <Text className="text-base text-gray-600">
+              <Text fontSize={16} color="$textSecondary">
                 Build confidence from day one with bite-sized, focused lessons.
               </Text>
-            </View>
-          </Animated.View>
-        </View>
+            </YStack>
+          </XStack>
+        </YStack>
 
         {/* Bottom Section - CTA Buttons */}
-        <View>
-          <Animated.View entering={FadeInUp.duration(600).delay(1000).springify()}>
-            <TouchableOpacity
-              className="w-full py-5 rounded-2xl bg-primary items-center justify-center mb-4 shadow-lg"
-              onPress={handleGetStarted}
-              activeOpacity={0.8}
-            >
-              <Text className="text-white text-lg font-bold">
-                Let's Get Started! 🚀
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-          <Animated.View
-            entering={FadeInUp.duration(600).delay(1100).springify()}
-            className="flex-row justify-center"
+        <YStack>
+          <Button
+            onPress={handleGetStarted}
+            size="lg"
+            theme="active" // Using active theme for primary button feel
+            marginBottom="$4"
           >
-            <TouchableOpacity onPress={handleSkip} className="py-3">
-              <Text className="text-gray-500 text-base">
-                Skip for now
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
+            Let's Get Started! 🚀
+          </Button>
 
-          <Animated.View
-            entering={FadeInUp.duration(600).delay(1200).springify()}
-            className="mt-4"
+          <Button
+            onPress={handleSkip}
+            variant="outlined" // Using outlined variant for secondary action
+            size="md"
+            marginBottom="$4"
           >
-            <Text className="text-center text-gray-400 text-xs">
-              Takes only 5-10 minutes to personalize your experience
-            </Text>
-          </Animated.View>
-        </View>
-      </View>
-    </View>
+            Skip for now
+          </Button>
+
+          <Text textAlign="center" color="$textSecondary" fontSize={12}>
+            Takes only 5-10 minutes to personalize your experience
+          </Text>
+        </YStack>
+      </YStack>
+    </Theme>
   );
 }

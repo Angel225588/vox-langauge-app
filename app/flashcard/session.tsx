@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useFlashcardSession } from '@/hooks/useFlashcard';
@@ -133,7 +134,8 @@ export default function FlashcardSessionScreen() {
   const { flashcard, cardType } = currentCard;
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View className="flex-1 bg-gray-50">
       {/* Header with progress */}
       <Animated.View
         entering={FadeIn.duration(300)}
@@ -304,6 +306,7 @@ export default function FlashcardSessionScreen() {
           <ActivityIndicator size="large" color="#2196F3" />
         </View>
       )}
-    </View>
+      </View>
+    </GestureHandlerRootView>
   );
 }

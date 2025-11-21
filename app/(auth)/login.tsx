@@ -1,260 +1,100 @@
-import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-  useAnimatedStyle,
-  withSpring,
-  useSharedValue,
-} from 'react-native-reanimated';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { YStack, XStack, Text, Button, Input, Card } from '@/components/ui/tamagui';
+import { supabase } from '@/lib/db/supabase';
 
 export default function LoginScreen() {
-  const router = useRouter();
-  const { signIn, user, loading: authLoading } = useAuth();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (user) {
-      router.replace('/(tabs)/home');
-    }
-  }, [user]);
-
-  // Form validation
-  const validateForm = (): boolean => {
-    const newErrors: { email?: string; password?: string } = {};
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!emailRegex.test(email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-
-    // Password validation
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    if (!validateForm()) return;
-
     setLoading(true);
-    const { error } = await signIn(email, password);
-    setLoading(false);
+    setError('');
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (error) {
-      Alert.alert(
-        'Login Failed',
-        error.message || 'An error occurred during login. Please try again.',
-        [{ text: 'OK' }]
-      );
+      setError(error.message);
     } else {
-      // Navigation handled by useEffect watching user state
+      router.replace('/(tabs)/home');
     }
+    setLoading(false);
   };
-
-  const handleForgotPassword = () => {
-    // TODO: Navigate to forgot password screen
-    Alert.alert(
-      'Forgot Password',
-      'Password reset functionality will be available soon.',
-      [{ text: 'OK' }]
-    );
-  };
-
-  const handleSignUp = () => {
-    router.push('/(auth)/signup');
-  };
-
-  if (authLoading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#2196F3" />
-      </View>
-    );
-  }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white"
-    >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={{ flex: 1 }}>
+      <YStack
+        flex={1}
+        backgroundColor="$background"
+        paddingHorizontal="$6"
+        paddingTop="$10"
+        gap="$6"
       >
-        <View className="flex-1 px-6 pt-20 pb-8">
-          {/* Header */}
-          <Animated.View
-            entering={FadeInDown.duration(600).springify()}
-            className="mb-12"
-          >
-            <Text className="text-4xl font-bold text-gray-900 mb-2">
-              Welcome Back! 👋
-            </Text>
-            <Text className="text-lg text-gray-600">
-              Sign in to continue your learning journey
-            </Text>
-          </Animated.View>
+        <YStack gap="$2">
+          <Text fontSize={32} fontWeight="bold" color="$color">
+            Welcome Back
+          </Text>
+          <Text fontSize={16} color="$textSecondary">
+            Sign in to continue learning
+          </Text>
+        </YStack>
 
-          {/* Email Input */}
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(100).springify()}
-            className="mb-4"
-          >
-            <Text className="text-sm font-semibold text-gray-700 mb-2">
-              Email Address
-            </Text>
-            <TextInput
-              className={`w-full px-4 py-4 rounded-xl bg-gray-50 text-gray-900 text-base ${
-                errors.email ? 'border-2 border-red-500' : 'border border-gray-200'
-              }`}
-              placeholder="your.email@example.com"
-              placeholderTextColor="#9CA3AF"
+        <Card variant="elevated" padding="lg">
+          <YStack gap="$5">
+            <Input
+              label="Email"
+              placeholder="you@example.com"
               value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (errors.email) setErrors({ ...errors, email: undefined });
-              }}
+              onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
+              fullWidth
             />
-            {errors.email && (
-              <Text className="text-red-500 text-sm mt-1">{errors.email}</Text>
-            )}
-          </Animated.View>
 
-          {/* Password Input */}
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(200).springify()}
-            className="mb-2"
-          >
-            <Text className="text-sm font-semibold text-gray-700 mb-2">
-              Password
-            </Text>
-            <TextInput
-              className={`w-full px-4 py-4 rounded-xl bg-gray-50 text-gray-900 text-base ${
-                errors.password ? 'border-2 border-red-500' : 'border border-gray-200'
-              }`}
-              placeholder="Enter your password"
-              placeholderTextColor="#9CA3AF"
+            <Input
+              label="Password"
+              placeholder="••••••••"
               value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (errors.password) setErrors({ ...errors, password: undefined });
-              }}
+              onChangeText={setPassword}
               secureTextEntry
-              autoCapitalize="none"
-              autoComplete="password"
-              autoCorrect={false}
+              fullWidth
             />
-            {errors.password && (
-              <Text className="text-red-500 text-sm mt-1">{errors.password}</Text>
+
+            {error && (
+              <Text fontSize={14} color="$error">
+                {error}
+              </Text>
             )}
-          </Animated.View>
 
-          {/* Forgot Password Link */}
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(300).springify()}
-            className="mb-6"
-          >
-            <TouchableOpacity onPress={handleForgotPassword}>
-              <Text className="text-primary text-sm font-semibold text-right">
-                Forgot Password?
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* Login Button */}
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(400).springify()}
-            className="mb-6"
-          >
-            <TouchableOpacity
-              className={`w-full py-4 rounded-xl ${
-                loading ? 'bg-primary/70' : 'bg-primary'
-              } items-center justify-center`}
+            <Button
               onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.8}
+              disabled={loading || !email || !password}
+              fullWidth
+              size="lg"
             >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text className="text-white text-base font-bold">
-                  Sign In
-                </Text>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
+              {loading ? 'Signing In...' : 'Sign In'}
+            </Button>
+          </YStack>
+        </Card>
 
-          {/* Divider */}
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(500).springify()}
-            className="flex-row items-center mb-6"
+        <XStack justifyContent="center" gap="$2">
+          <Text color="$textSecondary">Don't have an account?</Text>
+          <Text
+            color="$primary"
+            fontWeight="600"
+            onPress={() => router.push('/(auth)/signup')}
+            cursor="pointer"
           >
-            <View className="flex-1 h-px bg-gray-300" />
-            <Text className="mx-4 text-gray-500 text-sm">or</Text>
-            <View className="flex-1 h-px bg-gray-300" />
-          </Animated.View>
-
-          {/* Sign Up Link */}
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(600).springify()}
-            className="flex-row justify-center"
-          >
-            <Text className="text-gray-600 text-base">
-              Don't have an account?{' '}
-            </Text>
-            <TouchableOpacity onPress={handleSignUp}>
-              <Text className="text-primary text-base font-bold">
-                Sign Up
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* Bottom Spacing */}
-          <View className="flex-1" />
-
-          {/* Footer */}
-          <Animated.View
-            entering={FadeInUp.duration(600).delay(700).springify()}
-            className="mt-8"
-          >
-            <Text className="text-center text-gray-400 text-xs">
-              By continuing, you agree to our{'\n'}
-              <Text className="text-primary">Terms of Service</Text> and{' '}
-              <Text className="text-primary">Privacy Policy</Text>
-            </Text>
-          </Animated.View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            Sign Up
+          </Text>
+        </XStack>
+      </YStack>
+    </SafeAreaView>
   );
 }

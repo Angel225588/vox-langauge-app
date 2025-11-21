@@ -1,5 +1,9 @@
 # Vox Language App - Main Project Reference
 
+**Platform:** iOS-first (iPhone optimized), Android secondary
+**Primary Device:** iPhone with notch/Dynamic Island support
+**Safe Area:** Always account for iOS safe areas (notch, home indicator, dock)
+
 ## Vision
 
 Vox Language is a mobile language learning application that creates a **safe space for learners to practice through trials, not perfection**. We reward practice attempts and effort rather than accuracy, fostering a supportive community where making mistakes is part of the learning process.
