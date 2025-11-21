@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
+import { TamaguiProvider } from 'tamagui';
 import { validateEnvironment, logEnvironmentStatus } from '@/lib/config/env';
 import { initializeFlashcardDB, insertSampleFlashcards } from '@/lib/db/flashcards';
+import tamaguiConfig from '../tamagui.config';
 import '../global.css';
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const colorScheme = useColorScheme();
 
   useEffect(() => {
     async function prepare() {
@@ -73,20 +76,22 @@ export default function RootLayout() {
 
   // App is ready, show normal navigation
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: '#2196F3',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}
-    >
-      <Stack.Screen name="index" options={{ title: 'Vox Language' }} />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}>
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#2196F3',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
+      >
+        <Stack.Screen name="index" options={{ title: 'Vox Language' }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </TamaguiProvider>
   );
 }
