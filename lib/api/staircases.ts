@@ -4,7 +4,7 @@
  * Backend functions to manage user staircases, progress, and medals
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/db/supabase';
 import { generatePersonalizedStaircase, PersonalizedStaircase } from '@/lib/gemini/staircase-generator';
 
 export interface OnboardingProfile {
