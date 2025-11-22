@@ -5,14 +5,15 @@
  */
 
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 import { useOnboarding } from '@/hooks/useOnboarding';
-import { generatePersonalizedStaircase } from '@/lib/gemini/staircase-generator';
+import { useAuth } from '@/hooks/useAuth';
+import { completeOnboarding } from '@/lib/api/staircases';
 
 // Scenario options based on learning goal
 const SCENARIO_MAP: Record<string, Array<{ id: string; emoji: string; title: string }>> = {
@@ -63,6 +64,7 @@ const SCENARIO_MAP: Record<string, Array<{ id: string; emoji: string; title: str
 
 export default function ScenariosScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { onboardingData, updateOnboardingData, resetOnboardingData } = useOnboarding();
   const [selectedScenarios, setSelectedScenarios] = useState<string[]>(
     onboardingData.scenarios || []
@@ -83,30 +85,41 @@ export default function ScenariosScreen() {
 
   const handleFinish = async () => {
     if (selectedScenarios.length === 0) return;
+    if (!user?.id) {
+      Alert.alert('Error', 'You must be logged in to complete onboarding.');
+      return;
+    }
 
     setIsGenerating(true);
     updateOnboardingData({ scenarios: selectedScenarios });
 
     try {
-      // Generate personalized staircase using Gemini
-      const staircase = await generatePersonalizedStaircase({
+      // Call API to save profile and generate staircase
+      const result = await completeOnboarding(user.id, {
         learning_goal: onboardingData.learning_goal!,
         proficiency_level: onboardingData.proficiency_level!,
         daily_time_minutes: onboardingData.daily_time_minutes!,
         scenarios: selectedScenarios,
       });
 
-      console.log('✅ Staircase generated:', staircase);
+      if (result.success && result.staircase) {
+        console.log('✅ Onboarding complete! Staircase created:', result.staircase);
 
-      // TODO: Save staircase to database
-      // For now, navigate to home screen
-      resetOnboardingData();
-      router.replace('/(tabs)/home');
+        // Reset onboarding state
+        resetOnboardingData();
+
+        // Navigate to staircase tab to see personalized path
+        router.replace('/(tabs)/staircase');
+      } else {
+        throw new Error(result.error || 'Failed to complete onboarding');
+      }
     } catch (error) {
-      console.error('❌ Failed to generate staircase:', error);
+      console.error('❌ Failed to complete onboarding:', error);
       setIsGenerating(false);
-      // Show error to user
-      alert('Failed to generate your learning path. Please try again.');
+      Alert.alert(
+        'Oops!',
+        error instanceof Error ? error.message : 'Failed to create your learning path. Please try again.'
+      );
     }
   };
 

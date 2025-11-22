@@ -1,23 +1,63 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgress } from '@/hooks/useProgress';
 import { StreakDisplay } from '@/components/shared/StreakDisplay';
 import { ProgressCard } from '@/components/ui/ProgressCard';
 import { StatsCard } from '@/components/ui/StatsCard';
+import { OnboardingRedirectModal } from '@/components/OnboardingRedirectModal';
+import { supabase } from '@/lib/db/supabase';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { data: progressData, loading } = useProgress(user?.id);
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
-  if (loading || !progressData) {
+  // Check if user has completed onboarding
+  useEffect(() => {
+    async function checkOnboarding() {
+      if (!user?.id) {
+        setCheckingOnboarding(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_onboarding_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error || !data) {
+          // User hasn't completed onboarding, show modal
+          setShowOnboardingModal(true);
+        }
+      } catch (error) {
+        console.error('Error checking onboarding:', error);
+      } finally {
+        setCheckingOnboarding(false);
+      }
+    }
+
+    checkOnboarding();
+  }, [user?.id]);
+
+  const handleStartOnboarding = () => {
+    setShowOnboardingModal(false);
+    router.push('/(auth)/onboarding');
+  };
+
+  if (loading || !progressData || checkingOnboarding) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
+      <SafeAreaView className="flex-1 items-center justify-center bg-white" edges={['top', 'bottom']}>
         <ActivityIndicator size="large" color="#2196F3" />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -46,7 +86,12 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" showsVerticalScrollIndicator={false}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['top', 'bottom']}>
+      <OnboardingRedirectModal
+        visible={showOnboardingModal}
+        onReady={handleStartOnboarding}
+      />
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
       {/* Top Bar */}
       <View className="bg-white px-6 pt-16 pb-6 border-b border-gray-100">
         <View className="flex-row items-center justify-between mb-4">
@@ -303,5 +348,6 @@ export default function HomeScreen() {
         </Animated.View>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
