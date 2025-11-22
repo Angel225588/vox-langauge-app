@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgress } from '@/hooks/useProgress';
@@ -33,6 +34,15 @@ export default function HomeScreen() {
   const handleStoryPress = (storyId: string) => {
     // TODO: Navigate to story reading
     console.log('Open story:', storyId);
+  };
+
+  const handlePracticeWithOthers = () => {
+    // TODO: Navigate to practice matching screen
+    router.push('/practice-with-others');
+  };
+
+  const handleTestCards = () => {
+    router.push('/test-cards');
   };
 
   return (
@@ -105,6 +115,108 @@ export default function HomeScreen() {
               delay={500}
             />
           </View>
+        </Animated.View>
+
+        {/* Practice with Others - Featured Button */}
+        <Animated.View
+          entering={FadeInDown.duration(600).delay(500).springify()}
+          className="mb-8"
+        >
+          <TouchableOpacity
+            onPress={handlePracticeWithOthers}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#8B5CF6', '#6366F1']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              className="p-6 rounded-3xl"
+              style={{
+                shadowColor: '#6366F1',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.3,
+                shadowRadius: 16,
+                elevation: 8,
+                borderRadius: 24,
+              }}
+            >
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center">
+                  <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-3">
+                    <Text className="text-3xl">👥</Text>
+                  </View>
+                  <View>
+                    <Text className="text-white text-lg font-bold mb-1">
+                      Practice with Others
+                    </Text>
+                    <Text className="text-white/80 text-sm">
+                      Join weekly conversations
+                    </Text>
+                  </View>
+                </View>
+                <View className="w-8 h-8 bg-white/20 rounded-full items-center justify-center">
+                  <Text className="text-white text-lg">→</Text>
+                </View>
+              </View>
+              <View className="flex-row items-center gap-4 pt-3 border-t border-white/20">
+                <View className="flex-row items-center">
+                  <Text className="text-white/80 text-xs mr-1">🎯</Text>
+                  <Text className="text-white text-xs font-medium">Earn points</Text>
+                </View>
+                <View className="flex-row items-center">
+                  <Text className="text-white/80 text-xs mr-1">🌍</Text>
+                  <Text className="text-white text-xs font-medium">Meet learners</Text>
+                </View>
+                <View className="flex-row items-center">
+                  <Text className="text-white/80 text-xs mr-1">⭐</Text>
+                  <Text className="text-white text-xs font-medium">Support role</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Test Cards Button - Temporary for Development */}
+        <Animated.View
+          entering={FadeInDown.duration(600).delay(550).springify()}
+          className="mb-8"
+        >
+          <TouchableOpacity
+            onPress={handleTestCards}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#06D6A0', '#4ECDC4']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              className="p-4 rounded-2xl"
+              style={{
+                shadowColor: '#06D6A0',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 6,
+                borderRadius: 16,
+              }}
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                  <View className="w-10 h-10 bg-white/20 rounded-full items-center justify-center mr-3">
+                    <Text className="text-2xl">🎨</Text>
+                  </View>
+                  <View>
+                    <Text className="text-white text-base font-bold">
+                      Test New Card Components
+                    </Text>
+                    <Text className="text-white/80 text-xs">
+                      Preview all 8 card types
+                    </Text>
+                  </View>
+                </View>
+                <Text className="text-white text-lg">→</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         </Animated.View>
 
         {/* Quick Practice */}

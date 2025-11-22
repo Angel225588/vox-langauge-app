@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { useAudioPlayer, useAudioRecorder, AudioModule } from 'expo-audio';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -28,16 +28,19 @@ const SpeakingCard: React.FC<SpeakingCardProps> = ({
   onComplete,
   onSkip,
 }) => {
-  const [recording, setRecording] = useState<Audio.Recording | undefined>();
+  const audioRecorder = useAudioRecorder();
+  const examplePlayer = useAudioPlayer(exampleAudioUrl || '');
+  const recordedPlayer = useAudioPlayer();
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
-  const [permissionResponse, requestPermission] = Audio.usePermissions();
   const [recordingDuration, setRecordingDuration] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const pulse = useSharedValue(1);
 
+  const isRecording = audioRecorder.isRecording;
+
   useEffect(() => {
-    if (recording) {
+    if (isRecording) {
       intervalRef.current = setInterval(() => {
         setRecordingDuration((prevDuration) => prevDuration + 1);
       }, 1000);
@@ -58,11 +61,9 @@ const SpeakingCard: React.FC<SpeakingCardProps> = ({
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      if (recording) {
-        recording.stopAndUnloadAsync();
-      }
     };
-  }, [recording]);
+  }, [isRecording]);
+
 
   const animatedRecordButtonStyle = useAnimatedStyle(() => {
     return {
@@ -72,22 +73,14 @@ const SpeakingCard: React.FC<SpeakingCardProps> = ({
 
   async function startRecording() {
     try {
-      if (permissionResponse?.status !== 'granted') {
-        console.log('Requesting permissions..');
-        const response = await requestPermission();
-        if (response.status !== 'granted') {
-          Alert.alert('Permission required', 'Please grant microphone access to record audio.');
-          return;
-        }
+      const permissionStatus = await AudioModule.requestRecordingPermissionsAsync();
+      if (!permissionStatus.granted) {
+        Alert.alert('Permission required', 'Please grant microphone access to record audio.');
+        return;
       }
-      
-      console.log('Starting recording..');
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      setRecording(recording);
-      setRecordedUri(null); // Clear previous recording when starting new one
-      console.log('Recording started');
+
+      await audioRecorder.record();
+      setRecordedUri(null);
     } catch (err) {
       console.error('Failed to start recording', err);
       Alert.alert('Recording Error', 'Failed to start recording. Please try again.');
@@ -95,48 +88,32 @@ const SpeakingCard: React.FC<SpeakingCardProps> = ({
   }
 
   async function stopRecording() {
-    console.log('Stopping recording..');
-    setRecording(undefined);
-    await recording?.stopAndUnloadAsync();
-    const uri = recording?.getURI();
-    console.log('Recording stopped and stored at', uri);
-    if (uri) {
-      setRecordedUri(uri);
+    try {
+      const uri = await audioRecorder.stop();
+      if (uri) {
+        setRecordedUri(uri);
+        // Replace the recorded player with the new recording
+        recordedPlayer.replace(uri);
+      }
+    } catch (error) {
+      console.error('Failed to stop recording', error);
     }
   }
 
-  async function playRecordedSound() {
-    if (recordedUri) {
-      try {
-        console.log('Loading recorded sound..');
-        const { sound } = await Audio.Sound.createAsync({ uri: recordedUri });
-        console.log('Playing recorded sound..');
-        await sound.playAsync();
-        // Don't unload immediately, allow user to replay
-      } catch (error) {
-        console.error('Failed to play recorded sound', error);
-        Alert.alert('Playback Error', 'Could not play your recording.');
-      }
+  function playRecordedSound() {
+    if (recordedUri && recordedPlayer) {
+      recordedPlayer.play();
     }
   }
 
-  async function playExampleSound() {
-    if (exampleAudioUrl) {
-      try {
-        console.log('Loading example sound..');
-        const { sound } = await Audio.Sound.createAsync({ uri: exampleAudioUrl });
-        console.log('Playing example sound..');
-        await sound.playAsync();
-        // Don't unload immediately, allow user to replay
-      } catch (error) {
-        console.error('Failed to play example sound', error);
-        Alert.alert('Playback Error', 'Could not play example audio.');
-      }
+  function playExampleSound() {
+    if (exampleAudioUrl && examplePlayer) {
+      examplePlayer.play();
     }
   }
 
   const handleRecordButtonPress = () => {
-    if (recording) {
+    if (isRecording) {
       stopRecording();
     } else {
       startRecording();
@@ -175,13 +152,13 @@ const SpeakingCard: React.FC<SpeakingCardProps> = ({
         {!recordedUri ? (
           <>
             <AnimatedTouchableOpacity
-              className={`w-24 h-24 rounded-full items-center justify-center my-8 ${recording ? 'bg-red-500' : 'bg-blue-500'}`}
+              className={`w-24 h-24 rounded-full items-center justify-center my-8 ${isRecording ? 'bg-red-500' : 'bg-blue-500'}`}
               onPress={handleRecordButtonPress}
               style={animatedRecordButtonStyle}
             >
               <Feather name="mic" size={48} color="white" />
             </AnimatedTouchableOpacity>
-            {recording && (
+            {isRecording && (
               <Text className="text-red-500 font-bold text-lg">
                 {formatDuration(recordingDuration)}
               </Text>

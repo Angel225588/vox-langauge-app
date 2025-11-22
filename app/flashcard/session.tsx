@@ -86,9 +86,9 @@ export default function FlashcardSessionScreen() {
   // Loading state
   if (isLoading && !currentCard) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }}>
         <ActivityIndicator size="large" color="#2196F3" />
-        <Text className="text-lg text-gray-600 mt-4">Loading session...</Text>
+        <Text style={{ fontSize: 18, color: '#6B7280', marginTop: 16 }}>Loading session...</Text>
       </View>
     );
   }
@@ -96,15 +96,21 @@ export default function FlashcardSessionScreen() {
   // Error state
   if (error) {
     return (
-      <View className="flex-1 items-center justify-center bg-white px-6">
-        <Text className="text-2xl mb-4">😕</Text>
-        <Text className="text-xl font-bold text-gray-900 mb-2">Oops!</Text>
-        <Text className="text-base text-gray-600 text-center mb-6">{error}</Text>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 24 }}>
+        <Text style={{ fontSize: 32, marginBottom: 16 }}>😕</Text>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 8 }}>Oops!</Text>
+        <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>{error}</Text>
         <TouchableOpacity
-          className="bg-primary px-6 py-3 rounded-xl"
+          style={{
+            backgroundColor: '#2196F3',
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            borderRadius: 12
+          }}
           onPress={() => router.back()}
+          activeOpacity={0.8}
         >
-          <Text className="text-white font-bold">Go Back</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -113,19 +119,25 @@ export default function FlashcardSessionScreen() {
   // No active session or no current card
   if (!isSessionActive || !currentCard) {
     return (
-      <View className="flex-1 items-center justify-center bg-white px-6">
-        <Text className="text-2xl mb-4">🎉</Text>
-        <Text className="text-xl font-bold text-gray-900 mb-2">
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 24 }}>
+        <Text style={{ fontSize: 32, marginBottom: 16 }}>🎉</Text>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 8 }}>
           No Cards to Review
         </Text>
-        <Text className="text-base text-gray-600 text-center mb-6">
+        <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>
           Great job! You've reviewed all your flashcards for today.
         </Text>
         <TouchableOpacity
-          className="bg-primary px-6 py-3 rounded-xl"
+          style={{
+            backgroundColor: '#2196F3',
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            borderRadius: 12
+          }}
           onPress={() => router.back()}
+          activeOpacity={0.8}
         >
-          <Text className="text-white font-bold">Done</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>Done</Text>
         </TouchableOpacity>
       </View>
     );
@@ -135,49 +147,65 @@ export default function FlashcardSessionScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View className="flex-1 bg-gray-50">
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
       {/* Header with progress */}
       <Animated.View
         entering={FadeIn.duration(300)}
-        className="bg-white px-6 py-4 shadow-sm"
+        style={{
+          backgroundColor: '#FFFFFF',
+          paddingHorizontal: 24,
+          paddingVertical: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 2,
+          elevation: 2,
+        }}
       >
         {/* Progress Bar */}
-        <View className="mb-3">
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-sm text-gray-600">
+        <View style={{ marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={{ fontSize: 14, color: '#6B7280' }}>
               Card {currentCardNumber} of {totalCards}
             </Text>
-            <Text className="text-sm font-bold text-primary">
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#2196F3' }}>
               {pointsEarned} pts
             </Text>
           </View>
-          <View className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+          <View style={{ width: '100%', height: 8, backgroundColor: '#E5E7EB', borderRadius: 9999, overflow: 'hidden' }}>
             <View
-              className="h-full bg-primary rounded-full"
-              style={{ width: `${progressPercentage}%` }}
+              style={{
+                height: '100%',
+                backgroundColor: '#2196F3',
+                borderRadius: 9999,
+                width: `${progressPercentage}%`
+              }}
             />
           </View>
         </View>
 
         {/* Card Type Indicator */}
-        <View className="flex-row items-center justify-center">
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
           <View
-            className={`px-4 py-2 rounded-full ${
-              cardType === 'learning'
-                ? 'bg-blue-100'
-                : cardType === 'listening'
-                ? 'bg-green-100'
-                : 'bg-purple-100'
-            }`}
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 9999,
+              backgroundColor:
+                cardType === 'learning' ? '#DBEAFE' :
+                cardType === 'listening' ? '#D1FAE5' :
+                '#E9D5FF'
+            }}
           >
             <Text
-              className={`text-sm font-semibold ${
-                cardType === 'learning'
-                  ? 'text-blue-700'
-                  : cardType === 'listening'
-                  ? 'text-green-700'
-                  : 'text-purple-700'
-              }`}
+              style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color:
+                  cardType === 'learning' ? '#1D4ED8' :
+                  cardType === 'listening' ? '#047857' :
+                  '#7C3AED'
+              }}
             >
               {cardType === 'learning'
                 ? '📖 Learning'
@@ -190,7 +218,7 @@ export default function FlashcardSessionScreen() {
       </Animated.View>
 
       {/* Card Content */}
-      <View className="flex-1 px-6 py-8">
+      <View style={{ flex: 1, paddingHorizontal: 24, paddingVertical: 32 }}>
         {cardType === 'learning' && (
           <Animated.View
             key={`learning-${flashcard.id}`}
@@ -250,59 +278,103 @@ export default function FlashcardSessionScreen() {
       {/* Quality Rating Buttons */}
       <Animated.View
         entering={FadeIn.duration(400).delay(200)}
-        className="bg-white px-6 py-6 shadow-lg"
+        style={{
+          backgroundColor: '#FFFFFF',
+          paddingHorizontal: 24,
+          paddingVertical: 24,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 5,
+        }}
       >
-        <Text className="text-center text-sm text-gray-600 mb-4">
+        <Text style={{ textAlign: 'center', fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
           How well did you know this?
         </Text>
 
-        <View className="flex-row justify-between gap-3">
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
           {/* Forgot */}
           <TouchableOpacity
-            className="flex-1 bg-red-500 py-4 rounded-xl items-center active:bg-red-600"
+            style={{
+              flex: 1,
+              backgroundColor: '#EF4444',
+              paddingVertical: 16,
+              borderRadius: 12,
+              alignItems: 'center',
+            }}
+            activeOpacity={0.8}
             onPress={() => handleQualityRating('forgot')}
             disabled={isLoading}
           >
-            <Text className="text-white font-bold text-base">😕</Text>
-            <Text className="text-white font-semibold text-sm mt-1">Forgot</Text>
+            <Text style={{ fontSize: 16, fontWeight: 'bold' }}>😕</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14, marginTop: 4 }}>
+              Forgot
+            </Text>
           </TouchableOpacity>
 
           {/* Remembered */}
           <TouchableOpacity
-            className="flex-1 bg-yellow-500 py-4 rounded-xl items-center active:bg-yellow-600"
+            style={{
+              flex: 1,
+              backgroundColor: '#F59E0B',
+              paddingVertical: 16,
+              borderRadius: 12,
+              alignItems: 'center',
+            }}
+            activeOpacity={0.8}
             onPress={() => handleQualityRating('remembered')}
             disabled={isLoading}
           >
-            <Text className="text-white font-bold text-base">🤔</Text>
-            <Text className="text-white font-semibold text-sm mt-1">
+            <Text style={{ fontSize: 16, fontWeight: 'bold' }}>🤔</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14, marginTop: 4 }}>
               Remembered
             </Text>
           </TouchableOpacity>
 
           {/* Easy */}
           <TouchableOpacity
-            className="flex-1 bg-green-500 py-4 rounded-xl items-center active:bg-green-600"
+            style={{
+              flex: 1,
+              backgroundColor: '#10B981',
+              paddingVertical: 16,
+              borderRadius: 12,
+              alignItems: 'center',
+            }}
+            activeOpacity={0.8}
             onPress={() => handleQualityRating('easy')}
             disabled={isLoading}
           >
-            <Text className="text-white font-bold text-base">😄</Text>
-            <Text className="text-white font-semibold text-sm mt-1">Easy</Text>
+            <Text style={{ fontSize: 16, fontWeight: 'bold' }}>😄</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14, marginTop: 4 }}>
+              Easy
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Skip Button */}
         <TouchableOpacity
-          className="mt-4 py-3 items-center"
+          style={{ marginTop: 16, paddingVertical: 12, alignItems: 'center' }}
           onPress={handleSkip}
           disabled={isLoading}
+          activeOpacity={0.6}
         >
-          <Text className="text-gray-500 font-medium">Skip →</Text>
+          <Text style={{ color: '#6B7280', fontWeight: '500' }}>Skip →</Text>
         </TouchableOpacity>
       </Animated.View>
 
       {/* Loading Overlay */}
       {isLoading && (
-        <View className="absolute inset-0 bg-black/20 items-center justify-center">
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
           <ActivityIndicator size="large" color="#2196F3" />
         </View>
       )}

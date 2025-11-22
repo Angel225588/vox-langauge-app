@@ -9,7 +9,7 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 
 interface LearningCardProps {
   word: string;
@@ -31,7 +31,7 @@ const LearningCard: React.FC<LearningCardProps> = ({
   onFlip,
 }) => {
   const rotateY = useSharedValue(0);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const player = useAudioPlayer(audioUrl || '');
 
   const tap = Gesture.Tap().onEnd(() => {
     rotateY.value = withTiming(rotateY.value === 0 ? 180 : 0, { duration: 500 });
@@ -41,24 +41,10 @@ const LearningCard: React.FC<LearningCardProps> = ({
   });
 
   async function playSound() {
-    if (audioUrl) {
-      console.log('Loading Sound');
-      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
-      setSound(sound);
-
-      console.log('Playing Sound');
-      await sound.playAsync();
+    if (audioUrl && player) {
+      player.play();
     }
   }
-
-  useEffect(() => {
-    return sound
-      ? () => {
-          console.log('Unloading Sound');
-          sound.unloadAsync();
-        }
-      : undefined;
-  }, [sound]);
 
   const frontAnimatedStyle = useAnimatedStyle(() => {
     const frontRotate = interpolate(

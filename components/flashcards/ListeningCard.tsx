@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -29,41 +29,22 @@ const ListeningCard: React.FC<ListeningCardProps> = ({
   onSkip,
 }) => {
   const [userInput, setUserInput] = useState('');
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
+  const player = useAudioPlayer(audioUrl);
 
   const feedbackOpacity = useSharedValue(0);
   const feedbackScale = useSharedValue(0.8);
 
-  async function playSound() {
-    if (sound) {
-      await sound.replayAsync();
-      return;
-    }
-
-    if (audioUrl) {
-      console.log('Loading Sound');
-      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
-      setSound(sound);
-
-      console.log('Playing Sound');
-      await sound.playAsync();
+  function playSound() {
+    if (player) {
+      player.play();
     }
   }
 
   useEffect(() => {
     playSound();
   }, []);
-
-  useEffect(() => {
-    return sound
-      ? () => {
-          console.log('Unloading Sound');
-          sound.unloadAsync();
-        }
-      : undefined;
-  }, [sound]);
 
   const showFeedback = (correct: boolean, message: string) => {
     setIsCorrect(correct);
