@@ -232,6 +232,23 @@ export function SpeakingCard({
         </Text>
       </TouchableOpacity>
 
+      {/* Skip Recording Button - "I can't speak now" */}
+      {!recordedUri && !isRecording && (
+        <TouchableOpacity
+          onPress={async () => {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onRecordingComplete?.(null as any);
+          }}
+          activeOpacity={0.8}
+          style={styles.skipButtonContainer}
+        >
+          <View style={styles.skipButton}>
+            <Ionicons name="volume-mute-outline" size={20} color={colors.text.secondary} />
+            <Text style={styles.skipButtonText}>I can't speak now ⏭️</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
       {/* Playback Button */}
       {recordedUri && (
         <TouchableOpacity
@@ -355,5 +372,26 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
     color: colors.text.primary,
+  },
+  skipButtonContainer: {
+    width: '100%',
+    marginTop: spacing.sm,
+  },
+  skipButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  skipButtonText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.secondary,
   },
 });

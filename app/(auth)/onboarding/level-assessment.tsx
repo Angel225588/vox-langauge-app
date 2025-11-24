@@ -1,144 +1,309 @@
+/**
+ * Onboarding - Level Assessment Screen
+ *
+ * Question 2: What's your English level?
+ */
+
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
+import { useOnboarding } from '@/hooks/useOnboarding';
 
-type Level = 'beginner' | 'intermediate' | 'advanced';
+type Level = 'beginner' | 'elementary' | 'intermediate' | 'upper_intermediate' | 'advanced';
+
+const PROFICIENCY_LEVELS = [
+  {
+    id: 'beginner' as Level,
+    emoji: '🌱',
+    title: 'Beginner',
+    description: "I'm just starting",
+    gradient: ['#10B981', '#34D399'],
+  },
+  {
+    id: 'elementary' as Level,
+    emoji: '🌿',
+    title: 'Elementary',
+    description: 'I know basics',
+    gradient: ['#06D6A0', '#4ECDC4'],
+  },
+  {
+    id: 'intermediate' as Level,
+    emoji: '🌳',
+    title: 'Intermediate',
+    description: 'I can hold conversations',
+    gradient: colors.gradients.primary,
+  },
+  {
+    id: 'upper_intermediate' as Level,
+    emoji: '🌲',
+    title: 'Upper Intermediate',
+    description: "I'm fluent but want to improve",
+    gradient: ['#8B5CF6', '#A78BFA'],
+  },
+  {
+    id: 'advanced' as Level,
+    emoji: '🏔️',
+    title: 'Advanced',
+    description: "I'm nearly native",
+    gradient: ['#F59E0B', '#FBBF24'],
+  },
+];
 
 export default function LevelAssessmentScreen() {
   const router = useRouter();
-  const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
+  const { onboardingData, updateOnboardingData } = useOnboarding();
+  const [selectedLevel, setSelectedLevel] = useState<Level | null>(
+    onboardingData.proficiency_level as Level || null
+  );
 
-  const levels = [
-    {
-      id: 'beginner' as Level,
-      title: 'Beginner',
-      emoji: '🌱',
-      description: "I'm just starting out or know very little",
-      examples: 'Hello, thank you, numbers, basic phrases',
-    },
-    {
-      id: 'intermediate' as Level,
-      title: 'Intermediate',
-      emoji: '🚀',
-      description: 'I can have basic conversations',
-      examples: 'Ordering food, asking directions, simple conversations',
-    },
-    {
-      id: 'advanced' as Level,
-      title: 'Advanced',
-      emoji: '⭐',
-      description: 'I can express complex ideas',
-      examples: 'Business discussions, debates, nuanced conversations',
-    },
-  ];
+  const handleLevelSelect = async (levelId: Level) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedLevel(levelId);
+  };
 
   const handleContinue = () => {
-    if (selectedLevel) {
-      // TODO: Save level preference
-      router.push('/(auth)/onboarding/interests');
-    }
+    if (!selectedLevel) return;
+
+    updateOnboardingData({ proficiency_level: selectedLevel });
+    router.push('/(auth)/onboarding/time-commitment');
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="px-6 pt-16 pb-8">
-          {/* Header */}
-          <Animated.View
-            entering={FadeInDown.duration(600).springify()}
-            className="mb-8"
-          >
-            <Text className="text-3xl font-bold text-gray-900 mb-2">
-              What's Your Level?
-            </Text>
-            <Text className="text-lg text-gray-600">
-              Don't worry, this is just a starting point. We'll adapt as you learn.
-            </Text>
-          </Animated.View>
+    <LinearGradient
+      colors={[colors.background.primary, colors.background.secondary]}
+      style={{ flex: 1 }}
+    >
+      {/* Fixed Header: Back button + Progress */}
+      <View
+        style={{
+          paddingHorizontal: spacing.xl,
+          paddingTop: spacing['2xl'],
+          paddingBottom: spacing.lg,
+        }}
+      >
+        {/* Back Button */}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            position: 'absolute',
+            top: spacing['2xl'],
+            left: spacing.xl,
+            width: 40,
+            height: 40,
+            borderRadius: borderRadius.full,
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={{ fontSize: 20, color: colors.text.primary }}>←</Text>
+        </TouchableOpacity>
 
-          {/* Level Options */}
-          <View className="gap-4 mb-8">
-            {levels.map((level, index) => (
-              <Animated.View
-                key={level.id}
-                entering={FadeInDown.duration(600)
-                  .delay(200 + index * 100)
-                  .springify()}
-              >
-                <TouchableOpacity
-                  className={`p-6 rounded-3xl border-2 ${
-                    selectedLevel === level.id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200 bg-white'
-                  }`}
-                  onPress={() => setSelectedLevel(level.id)}
-                  activeOpacity={0.7}
-                >
-                  <View className="flex-row items-center mb-3">
-                    <Text className="text-5xl mr-4">{level.emoji}</Text>
-                    <View className="flex-1">
-                      <Text className="text-2xl font-bold text-gray-900">
-                        {level.title}
-                      </Text>
-                    </View>
-                    {selectedLevel === level.id && (
-                      <View className="bg-primary w-8 h-8 rounded-full items-center justify-center">
-                        <Text className="text-white text-sm font-bold">✓</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text className="text-base text-gray-700 font-semibold mb-2">
-                    {level.description}
-                  </Text>
-                  <Text className="text-sm text-gray-500 italic">
-                    Example: {level.examples}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
+        {/* Progress Indicator */}
+        <Animated.View entering={FadeInDown.duration(400)} style={{ marginTop: spacing.md }}>
+          <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
+            {[1, 2, 3, 4].map((step) => (
+              <View
+                key={step}
+                style={{
+                  flex: 1,
+                  height: 4,
+                  borderRadius: borderRadius.full,
+                  backgroundColor: step <= 2 ? colors.gradients.primary[0] : 'rgba(255, 255, 255, 0.2)',
+                }}
+              />
             ))}
           </View>
-
-          {/* Note */}
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(600).springify()}
-            className="bg-blue-50 p-4 rounded-xl"
+          <Text
+            style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.secondary,
+              textAlign: 'center',
+            }}
           >
-            <Text className="text-sm text-blue-900">
-              💡 <Text className="font-bold">Quick tip:</Text> We'll fine-tune your level as you practice. Choose what feels right now!
-            </Text>
-          </Animated.View>
+            Step 2 of 4
+          </Text>
+        </Animated.View>
+      </View>
+
+      {/* Scrollable Content - 70% of screen */}
+      <ScrollView
+        style={{ flex: 0.7 }}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.xl,
+          paddingBottom: spacing.lg,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+
+        {/* Header */}
+        <Animated.View
+          entering={FadeInDown.duration(600).delay(200).springify()}
+          style={{ marginBottom: spacing['2xl'] }}
+        >
+          <Text
+            style={{
+              fontSize: typography.fontSize['3xl'],
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+              textAlign: 'center',
+              marginBottom: spacing.md,
+            }}
+          >
+            What's your level?
+          </Text>
+          <Text
+            style={{
+              fontSize: typography.fontSize.base,
+              color: colors.text.secondary,
+              textAlign: 'center',
+            }}
+          >
+            Choose your current English proficiency
+          </Text>
+        </Animated.View>
+
+        {/* Level Options */}
+        <View style={{ gap: spacing.md, marginBottom: spacing['2xl'] }}>
+          {PROFICIENCY_LEVELS.map((level, index) => (
+            <Animated.View
+              key={level.id}
+              entering={FadeInDown.duration(600).delay(300 + index * 100).springify()}
+            >
+              <TouchableOpacity
+                onPress={() => handleLevelSelect(level.id)}
+                activeOpacity={0.9}
+                style={{
+                  borderRadius: borderRadius.lg,
+                  borderWidth: 2,
+                  borderColor:
+                    selectedLevel === level.id
+                      ? level.gradient[0]
+                      : 'rgba(255, 255, 255, 0.1)',
+                  overflow: 'hidden',
+                }}
+              >
+                <LinearGradient
+                  colors={
+                    selectedLevel === level.id
+                      ? level.gradient
+                      : ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: spacing.lg,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: borderRadius.md,
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: spacing.md,
+                    }}
+                  >
+                    <Text style={{ fontSize: 32 }}>{level.emoji}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: typography.fontSize.lg,
+                        fontWeight: typography.fontWeight.semibold,
+                        color: colors.text.primary,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {level.title}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: typography.fontSize.sm,
+                        color: colors.text.secondary,
+                      }}
+                    >
+                      {level.description}
+                    </Text>
+                  </View>
+                  {selectedLevel === level.id && (
+                    <View
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: borderRadius.full,
+                        backgroundColor: colors.text.primary,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text style={{ color: level.gradient[0], fontSize: 18 }}>✓</Text>
+                    </View>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
         </View>
       </ScrollView>
 
       {/* Fixed Bottom Button */}
-      <View className="px-6 pb-8 pt-4 bg-white border-t border-gray-200">
-        <Animated.View entering={FadeInUp.duration(600).delay(800).springify()}>
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          paddingHorizontal: spacing.xl,
+          paddingBottom: spacing['2xl'],
+          paddingTop: spacing.lg,
+          backgroundColor: colors.background.primary,
+        }}
+      >
+        <Animated.View entering={FadeInDown.duration(600).delay(900).springify()}>
           <TouchableOpacity
-            className={`w-full py-5 rounded-2xl items-center justify-center ${
-              selectedLevel ? 'bg-primary' : 'bg-gray-300'
-            }`}
             onPress={handleContinue}
             disabled={!selectedLevel}
-            activeOpacity={0.8}
+            activeOpacity={0.9}
           >
-            <Text
-              className={`text-lg font-bold ${
-                selectedLevel ? 'text-white' : 'text-gray-500'
-              }`}
+            <LinearGradient
+              colors={selectedLevel ? colors.gradients.primary : ['#4B5563', '#374151']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingVertical: spacing.lg,
+                borderRadius: borderRadius.xl,
+                shadowColor: selectedLevel ? colors.glow.primary : 'transparent',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.6,
+                shadowRadius: 16,
+                elevation: selectedLevel ? 8 : 0,
+              }}
             >
-              Continue
-            </Text>
+              <Text
+                style={{
+                  fontSize: typography.fontSize.xl,
+                  fontWeight: typography.fontWeight.bold,
+                  color: colors.text.primary,
+                  textAlign: 'center',
+                }}
+              >
+                Continue
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
-
-        <Text className="text-center text-gray-400 text-xs mt-3">
-          Step 2 of 3
-        </Text>
       </View>
-    </View>
+    </LinearGradient>
   );
 }

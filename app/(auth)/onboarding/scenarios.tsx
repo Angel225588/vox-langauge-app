@@ -128,17 +128,37 @@ export default function ScenariosScreen() {
       colors={[colors.background.primary, colors.background.secondary]}
       style={{ flex: 1 }}
     >
-      <ScrollView
-        contentContainerStyle={{
+      {/* Fixed Header: Back button + Progress */}
+      <View
+        style={{
           paddingHorizontal: spacing.xl,
           paddingTop: spacing['2xl'],
-          paddingBottom: spacing['4xl'],
+          paddingBottom: spacing.lg,
         }}
-        showsVerticalScrollIndicator={false}
       >
+        {/* Back Button */}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            position: 'absolute',
+            top: spacing['2xl'],
+            left: spacing.xl,
+            width: 40,
+            height: 40,
+            borderRadius: borderRadius.full,
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={{ fontSize: 20, color: colors.text.primary }}>←</Text>
+        </TouchableOpacity>
+
         {/* Progress Indicator */}
-        <Animated.View entering={FadeInDown.duration(400)} style={{ marginBottom: spacing.xl }}>
-          <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg }}>
+        <Animated.View entering={FadeInDown.duration(400)} style={{ marginTop: spacing.md }}>
+          <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
             {[1, 2, 3, 4].map((step) => (
               <View
                 key={step}
@@ -161,6 +181,17 @@ export default function ScenariosScreen() {
             Step 4 of 4
           </Text>
         </Animated.View>
+      </View>
+
+      {/* Scrollable Content - 70% of screen */}
+      <ScrollView
+        style={{ flex: 0.7 }}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.xl,
+          paddingBottom: spacing.lg,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* Header */}
         <Animated.View
@@ -272,7 +303,21 @@ export default function ScenariosScreen() {
           })}
         </View>
 
-        {/* Finish Button */}
+      </ScrollView>
+
+      {/* Fixed Bottom Button */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          paddingHorizontal: spacing.xl,
+          paddingBottom: spacing['2xl'],
+          paddingTop: spacing.lg,
+          backgroundColor: colors.background.primary,
+        }}
+      >
         <Animated.View entering={FadeInDown.duration(600).delay(800).springify()}>
           <TouchableOpacity
             onPress={handleFinish}
@@ -322,25 +367,8 @@ export default function ScenariosScreen() {
               </Text>
             </LinearGradient>
           </TouchableOpacity>
-
-          {!isGenerating && (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.md }}
-              activeOpacity={0.6}
-            >
-              <Text
-                style={{
-                  fontSize: typography.fontSize.sm,
-                  color: colors.text.secondary,
-                }}
-              >
-                Back
-              </Text>
-            </TouchableOpacity>
-          )}
         </Animated.View>
-      </ScrollView>
+      </View>
     </LinearGradient>
   );
 }
