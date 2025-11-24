@@ -61,7 +61,7 @@ export default function TimeCommitmentScreen() {
     if (!selectedTime) return;
 
     updateOnboardingData({ daily_time_minutes: selectedTime });
-    router.push('/(auth)/onboarding/scenarios');
+    router.push('/(auth)/onboarding/motivation');
   };
 
   return (

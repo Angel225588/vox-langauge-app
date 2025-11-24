@@ -159,7 +159,7 @@ export default function ScenariosScreen() {
         {/* Progress Indicator */}
         <Animated.View entering={FadeInDown.duration(400)} style={{ marginTop: spacing.md }}>
           <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
-            {[1, 2, 3, 4].map((step) => (
+            {[1, 2, 3, 4, 5].map((step) => (
               <View
                 key={step}
                 style={{
@@ -178,7 +178,7 @@ export default function ScenariosScreen() {
               textAlign: 'center',
             }}
           >
-            Step 4 of 4
+            Step 5 of 5
           </Text>
         </Animated.View>
       </View>
