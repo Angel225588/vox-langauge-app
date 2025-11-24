@@ -85,6 +85,10 @@ export default function HomeScreen() {
     router.push('/test-cards');
   };
 
+  const handleTestOnboarding = () => {
+    router.push('/(auth)/onboarding/goal-selection');
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={['top', 'bottom']}>
       <OnboardingRedirectModal
@@ -216,6 +220,49 @@ export default function HomeScreen() {
                   <Text className="text-white/80 text-xs mr-1">⭐</Text>
                   <Text className="text-white text-xs font-medium">Support role</Text>
                 </View>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Test Onboarding Button - Temporary for Development */}
+        <Animated.View
+          entering={FadeInDown.duration(600).delay(500).springify()}
+          className="mb-4"
+        >
+          <TouchableOpacity
+            onPress={handleTestOnboarding}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#8B5CF6', '#A78BFA']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              className="p-4 rounded-2xl"
+              style={{
+                shadowColor: '#8B5CF6',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 6,
+                borderRadius: 16,
+              }}
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                  <View className="w-10 h-10 bg-white/20 rounded-full items-center justify-center mr-3">
+                    <Text className="text-2xl">✨</Text>
+                  </View>
+                  <View>
+                    <Text className="text-white text-base font-bold">
+                      Test Onboarding Flow
+                    </Text>
+                    <Text className="text-white/80 text-xs">
+                      Preview new motivation screen (Step 4 of 5)
+                    </Text>
+                  </View>
+                </View>
+                <Text className="text-white text-lg">→</Text>
               </View>
             </LinearGradient>
           </TouchableOpacity>
