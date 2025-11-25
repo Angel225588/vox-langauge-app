@@ -1,0 +1,64 @@
+--  -- Create the learning_plans table
+--  CREATE TABLE learning_plans (
+--    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+--    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+--    title TEXT NOT NULL,
+--    description TEXT,
+--    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+--  );
+--
+--  -- Create the lessons table
+--  CREATE TABLE lessons (
+--    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+--    plan_id UUID REFERENCES learning_plans(id) ON DELETE CASCADE,
+--    title TEXT NOT NULL,
+--    description TEXT,
+--    "order" INTEGER NOT NULL,
+--    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+--  );
+--
+--  -- Create the lesson_activities table
+--  CREATE TABLE lesson_activities (
+--    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+--    lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
+--    activity_type TEXT NOT NULL,
+--    data JSONB NOT NULL,
+--    "order" INTEGER NOT NULL,
+--    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+--  );
+--
+--  --  -- Add foreign key constraints
+--  --  ALTER TABLE
+--  --    lessons
+--  --  ADD
+--  --    CONSTRAINT fk_plan FOREIGN KEY (plan_id) REFERENCES learning_plans(id);
+--  --
+--  --  ALTER TABLE
+--  --    lesson_activities
+--  --  ADD
+--  --    CONSTRAINT fk_lesson FOREIGN KEY (lesson_id) REFERENCES lessons(id);
+--
+--  --  -- Create a function to update the updated_at timestamp
+--  --  CREATE
+--  --  OR REPLACE FUNCTION update_updated_at_column() RETURNS TRIGGER AS $$
+--  --  BEGIN
+--  --  NEW.updated_at = NOW();
+--  --  RETURN NEW;
+--  --  END;
+--  --  $$ LANGUAGE plpgsql;
+--
+--  --  -- Add triggers to update the updated_at timestamp
+--  --  CREATE TRIGGER update_learning_plans_updated_at BEFORE
+--  --  UPDATE
+--  --    ON learning_plans FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+--  --
+--  --  CREATE TRIGGER update_lessons_updated_at BEFORE
+--  --  UPDATE
+--  --    ON lessons FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+--  --
+--  --  CREATE TRIGGER update_lesson_activities_updated_at BEFORE
+--  --  UPDATE
+--  --    ON lesson_activities FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
