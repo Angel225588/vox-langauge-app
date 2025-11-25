@@ -1,400 +1,595 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+/**
+ * Home Screen - Duolingo-Style Learning Path
+ *
+ * Vertical scrolling staircase showing user's personalized learning path
+ * This is the main homepage featuring the beautiful staircase design
+ */
+
+import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useProgress } from '@/hooks/useProgress';
-import { StreakDisplay } from '@/components/shared/StreakDisplay';
-import { ProgressCard } from '@/components/ui/ProgressCard';
-import { StatsCard } from '@/components/ui/StatsCard';
-import { OnboardingRedirectModal } from '@/components/OnboardingRedirectModal';
-import { supabase } from '@/lib/db/supabase';
+
+const { width, height } = Dimensions.get('window');
+
+// Mock medals data (achievements)
+const MOCK_MEDALS = [
+  {
+    id: 'medal_1',
+    emoji: '🥇',
+    title: 'First Stair Completed',
+    description: 'Completed your first learning stair',
+    tier: 'gold',
+    unlockedAt: new Date().toISOString(),
+  },
+  {
+    id: 'medal_2',
+    emoji: '🔥',
+    title: '7 Day Streak',
+    description: 'Maintained a 7-day learning streak',
+    tier: 'gold',
+    unlockedAt: new Date().toISOString(),
+  },
+  {
+    id: 'medal_3',
+    emoji: '📚',
+    title: 'Vocabulary Master',
+    description: 'Learned 100 new words',
+    tier: 'silver',
+    unlockedAt: null, // Locked
+  },
+];
+
+// Mock staircase data (will be replaced with real data from database)
+const MOCK_STAIRS = [
+  {
+    id: '1',
+    order: 1,
+    title: 'Professional Greetings',
+    emoji: '👋',
+    description: 'Master formal introductions for job interviews',
+    status: 'completed' as const,
+    vocabulary_count: 25,
+    estimated_days: 2,
+  },
+  {
+    id: '2',
+    order: 2,
+    title: 'Self Introduction',
+    emoji: '💼',
+    description: 'Present your background and experience confidently',
+    status: 'current' as const,
+    vocabulary_count: 35,
+    estimated_days: 3,
+  },
+  {
+    id: '3',
+    order: 3,
+    title: 'Discussing Experience',
+    emoji: '📊',
+    description: 'Talk about your work history and achievements',
+    status: 'locked' as const,
+    vocabulary_count: 45,
+    estimated_days: 4,
+  },
+  {
+    id: '4',
+    order: 4,
+    title: 'Strengths & Weaknesses',
+    emoji: '💪',
+    description: 'Answer common interview questions professionally',
+    status: 'locked' as const,
+    vocabulary_count: 40,
+    estimated_days: 3,
+  },
+  {
+    id: '5',
+    order: 5,
+    title: 'Salary Negotiation',
+    emoji: '💰',
+    description: 'Discuss compensation with confidence',
+    status: 'locked' as const,
+    vocabulary_count: 50,
+    estimated_days: 5,
+  },
+];
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { data: progressData, loading } = useProgress(user?.id);
-  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
-  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [weeklyPoints, setWeeklyPoints] = useState(1000);
+  const [streak, setStreak] = useState(8);
 
-  // Check if user has completed onboarding
-  useEffect(() => {
-    async function checkOnboarding() {
-      if (!user?.id) {
-        setCheckingOnboarding(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('user_onboarding_profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error || !data) {
-          // User hasn't completed onboarding, show modal
-          setShowOnboardingModal(true);
-        }
-      } catch (error) {
-        console.error('Error checking onboarding:', error);
-      } finally {
-        setCheckingOnboarding(false);
-      }
+  const handleStairPress = (stairId: string, status: string) => {
+    if (status === 'locked') {
+      // Show locked message
+      return;
     }
 
-    checkOnboarding();
-  }, [user?.id]);
-
-  const handleStartOnboarding = () => {
-    setShowOnboardingModal(false);
-    router.push('/(auth)/onboarding');
-  };
-
-  if (loading || !progressData || checkingOnboarding) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white" edges={['top', 'bottom']}>
-        <ActivityIndicator size="large" color="#2196F3" />
-      </SafeAreaView>
-    );
-  }
-
-  const handleContinueLesson = () => {
-    // TODO: Navigate to lesson flow
-    console.log('Continue lesson:', progressData.nextLesson.id);
-  };
-
-  const handleQuickPractice = (type: string) => {
-    // TODO: Navigate to practice type
-    console.log('Quick practice:', type);
-  };
-
-  const handleStoryPress = (storyId: string) => {
-    // TODO: Navigate to story reading
-    console.log('Open story:', storyId);
-  };
-
-  const handlePracticeWithOthers = () => {
-    // TODO: Navigate to practice matching screen
-    router.push('/practice-with-others');
-  };
-
-  const handleTestCards = () => {
-    router.push('/test-cards');
-  };
-
-  const handleTestOnboarding = () => {
-    router.push('/(auth)/onboarding/goal-selection');
+    // Navigate to lesson flow for this stair
+    console.log('Starting stair:', stairId);
+    router.push(`/lesson/${stairId}`);
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top', 'bottom']}>
-      <OnboardingRedirectModal
-        visible={showOnboardingModal}
-        onReady={handleStartOnboarding}
-      />
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-      {/* Top Bar */}
-      <View className="bg-white px-6 pt-16 pb-6 border-b border-gray-100">
-        <View className="flex-row items-center justify-between mb-4">
-          <View>
-            <Text className="text-sm text-gray-600 mb-1">Welcome back!</Text>
-            <Text className="text-2xl font-bold text-gray-900">
-              {user?.email?.split('@')[0] || 'Learner'}
-            </Text>
-          </View>
-          <TouchableOpacity className="w-12 h-12 bg-primary/10 rounded-full items-center justify-center">
-            <Text className="text-2xl">👤</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Streak and Points */}
-        <View className="flex-row items-center justify-between">
-          <StreakDisplay streak={progressData.streak} />
-          <View className="bg-primary/10 px-4 py-2 rounded-full flex-row items-center">
-            <Text className="text-2xl mr-2">⭐</Text>
-            <Text className="text-base font-bold text-gray-900">
-              {progressData.totalPoints}
-            </Text>
-            <Text className="text-sm text-gray-600 ml-1">pts</Text>
-          </View>
-        </View>
-      </View>
-
-      <View className="px-6 py-6">
-        {/* Next Lesson Card */}
-        <View className="mb-8">
-          <ProgressCard
-            title={progressData.nextLesson.title}
-            emoji={progressData.nextLesson.emoji}
-            progress={progressData.nextLesson.progress}
-            newWords={progressData.nextLesson.newWords}
-            games={progressData.nextLesson.games}
-            onPress={handleContinueLesson}
-          />
-        </View>
-
-        {/* Today's Progress */}
-        <Animated.View
-          entering={FadeInDown.duration(600).delay(200).springify()}
-          className="mb-8"
-        >
-          <Text className="text-xl font-bold text-gray-900 mb-4">
-            📊 Today's Progress
-          </Text>
-          <View className="gap-3">
-            <StatsCard
-              icon="📝"
-              value={progressData.todayStats.flashcardsReviewed}
-              label="Flashcards reviewed"
-              delay={300}
-            />
-            <StatsCard
-              icon="🎮"
-              value={progressData.todayStats.gamesCompleted}
-              label="Games completed"
-              delay={400}
-            />
-            <StatsCard
-              icon="⏱️"
-              value={`${progressData.todayStats.practiceMinutes} min`}
-              label="Practice time"
-              delay={500}
-            />
-          </View>
-        </Animated.View>
-
-        {/* Practice with Others - Featured Button */}
-        <Animated.View
-          entering={FadeInDown.duration(600).delay(500).springify()}
-          className="mb-8"
-        >
-          <TouchableOpacity
-            onPress={handlePracticeWithOthers}
-            activeOpacity={0.9}
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <LinearGradient
+        colors={[colors.background.primary, colors.background.secondary, '#1A1F3A']}
+        style={{ flex: 1 }}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Header with Weekly Points and Streaks */}
+          <Animated.View
+            entering={FadeIn.duration(600)}
+            style={{
+              paddingHorizontal: spacing.xl,
+              paddingTop: spacing.md,
+              paddingBottom: spacing.lg,
+            }}
           >
-            <LinearGradient
-              colors={['#8B5CF6', '#6366F1']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              className="p-6 rounded-3xl"
-              style={{
-                shadowColor: '#6366F1',
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.3,
-                shadowRadius: 16,
-                elevation: 8,
-                borderRadius: 24,
-              }}
-            >
-              <View className="flex-row items-center justify-between mb-3">
-                <View className="flex-row items-center">
-                  <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-3">
-                    <Text className="text-3xl">👥</Text>
-                  </View>
-                  <View>
-                    <Text className="text-white text-lg font-bold mb-1">
-                      Practice with Others
-                    </Text>
-                    <Text className="text-white/80 text-sm">
-                      Join weekly conversations
-                    </Text>
-                  </View>
-                </View>
-                <View className="w-8 h-8 bg-white/20 rounded-full items-center justify-center">
-                  <Text className="text-white text-lg">→</Text>
-                </View>
-              </View>
-              <View className="flex-row items-center gap-4 pt-3 border-t border-white/20">
-                <View className="flex-row items-center">
-                  <Text className="text-white/80 text-xs mr-1">🎯</Text>
-                  <Text className="text-white text-xs font-medium">Earn points</Text>
-                </View>
-                <View className="flex-row items-center">
-                  <Text className="text-white/80 text-xs mr-1">🌍</Text>
-                  <Text className="text-white text-xs font-medium">Meet learners</Text>
-                </View>
-                <View className="flex-row items-center">
-                  <Text className="text-white/80 text-xs mr-1">⭐</Text>
-                  <Text className="text-white text-xs font-medium">Support role</Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Test Onboarding Button - Temporary for Development */}
-        <Animated.View
-          entering={FadeInDown.duration(600).delay(500).springify()}
-          className="mb-4"
-        >
-          <TouchableOpacity
-            onPress={handleTestOnboarding}
-            activeOpacity={0.9}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: spacing.md,
+            }}
           >
-            <LinearGradient
-              colors={['#8B5CF6', '#A78BFA']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              className="p-4 rounded-2xl"
+            {/* Language Selector (left) */}
+            <TouchableOpacity
               style={{
-                shadowColor: '#8B5CF6',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 6,
-                borderRadius: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                borderRadius: borderRadius.full,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.2)',
               }}
+              activeOpacity={0.8}
             >
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                  <View className="w-10 h-10 bg-white/20 rounded-full items-center justify-center mr-3">
-                    <Text className="text-2xl">✨</Text>
-                  </View>
-                  <View>
-                    <Text className="text-white text-base font-bold">
-                      Test Onboarding Flow
-                    </Text>
-                    <Text className="text-white/80 text-xs">
-                      Preview new motivation screen (Step 4 of 5)
-                    </Text>
-                  </View>
-                </View>
-                <Text className="text-white text-lg">→</Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Test Cards Button - Temporary for Development */}
-        <Animated.View
-          entering={FadeInDown.duration(600).delay(550).springify()}
-          className="mb-8"
-        >
-          <TouchableOpacity
-            onPress={handleTestCards}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={['#06D6A0', '#4ECDC4']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              className="p-4 rounded-2xl"
-              style={{
-                shadowColor: '#06D6A0',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 6,
-                borderRadius: 16,
-              }}
-            >
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                  <View className="w-10 h-10 bg-white/20 rounded-full items-center justify-center mr-3">
-                    <Text className="text-2xl">🎨</Text>
-                  </View>
-                  <View>
-                    <Text className="text-white text-base font-bold">
-                      Test New Card Components
-                    </Text>
-                    <Text className="text-white/80 text-xs">
-                      Preview all 8 card types
-                    </Text>
-                  </View>
-                </View>
-                <Text className="text-white text-lg">→</Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Quick Practice */}
-        <Animated.View
-          entering={FadeInDown.duration(600).delay(600).springify()}
-          className="mb-8"
-        >
-          <Text className="text-xl font-bold text-gray-900 mb-4">
-            🎯 Quick Practice
-          </Text>
-          <View className="flex-row gap-3">
-            <TouchableOpacity
-              className="flex-1 bg-white p-4 rounded-2xl border border-gray-100 items-center"
-              onPress={() => handleQuickPractice('match')}
-              activeOpacity={0.7}
-            >
-              <Text className="text-3xl mb-2">🎯</Text>
-              <Text className="text-sm font-semibold text-gray-900">Match</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-1 bg-white p-4 rounded-2xl border border-gray-100 items-center"
-              onPress={() => handleQuickPractice('reading')}
-              activeOpacity={0.7}
-            >
-              <Text className="text-3xl mb-2">📖</Text>
-              <Text className="text-sm font-semibold text-gray-900">Reading</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-1 bg-white p-4 rounded-2xl border border-gray-100 items-center"
-              onPress={() => handleQuickPractice('listening')}
-              activeOpacity={0.7}
-            >
-              <Text className="text-3xl mb-2">🎧</Text>
-              <Text className="text-sm font-semibold text-gray-900">Listening</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        {/* Recent Stories */}
-        <Animated.View
-          entering={FadeInDown.duration(600).delay(700).springify()}
-          className="mb-8"
-        >
-          <Text className="text-xl font-bold text-gray-900 mb-4">
-            📚 Recent Stories
-          </Text>
-          <View className="gap-3">
-            {progressData.recentStories.map((story, index) => (
-              <TouchableOpacity
-                key={story.id}
-                className="bg-white p-4 rounded-2xl border border-gray-100 flex-row items-center"
-                onPress={() => handleStoryPress(story.id)}
-                activeOpacity={0.7}
+              <Text style={{ fontSize: 20, marginRight: spacing.xs }}>🇬🇧</Text>
+              <Text
+                style={{
+                  fontSize: typography.fontSize.sm,
+                  fontWeight: typography.fontWeight.semibold,
+                  color: colors.text.primary,
+                }}
               >
-                <View className="bg-primary/10 w-14 h-14 rounded-xl items-center justify-center mr-4">
-                  <Text className="text-3xl">{story.thumbnail}</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-base font-bold text-gray-900 mb-1">
-                    {story.title}
-                  </Text>
-                  <Text className="text-sm text-gray-600">
-                    {story.readingTime} min read
-                  </Text>
-                </View>
-                <Text className="text-gray-400">→</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Animated.View>
+                English
+              </Text>
+            </TouchableOpacity>
 
-        {/* Motivational Footer */}
-        <Animated.View
-          entering={FadeInDown.duration(600).delay(800).springify()}
-          className="bg-primary/5 p-6 rounded-3xl border border-primary/20"
-        >
-          <Text className="text-center text-base text-gray-700">
-            💪 <Text className="font-bold">Keep it up!</Text>
-            {
-              '\n' /* Explicitly escape newline for clarity if needed, though usually not required in JS strings */
-            }
-            You're building a great learning habit.
+            {/* Weekly Points (right) */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                borderRadius: borderRadius.full,
+                borderWidth: 1,
+                borderColor: colors.gradients.primary[0],
+              }}
+            >
+              <Text style={{ fontSize: 20, marginRight: spacing.xs }}>⚡</Text>
+              <Text
+                style={{
+                  fontSize: typography.fontSize.base,
+                  fontWeight: typography.fontWeight.bold,
+                  color: colors.text.primary,
+                }}
+              >
+                {weeklyPoints}
+              </Text>
+            </View>
+          </View>
+
+          {/* Streaks */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: spacing.sm,
+            }}
+          >
+            <Text style={{ fontSize: 24, marginRight: spacing.sm }}>🔥</Text>
+            <Text
+              style={{
+                fontSize: typography.fontSize.lg,
+                fontWeight: typography.fontWeight.bold,
+                color: colors.text.primary,
+              }}
+            >
+              {streak} Day Streak
+            </Text>
+          </View>
+
+          {/* Title */}
+          <Text
+            style={{
+              fontSize: typography.fontSize['2xl'],
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+              textAlign: 'center',
+              marginTop: spacing.lg,
+            }}
+          >
+            Your Learning Path
           </Text>
         </Animated.View>
-      </View>
-    </ScrollView>
+
+        {/* Medals Section (Latest Achievement) */}
+        <Animated.View
+          entering={FadeInDown.duration(600).delay(400).springify()}
+          style={{
+            paddingHorizontal: spacing.xl,
+            marginBottom: spacing.lg,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: spacing.md,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: typography.fontSize.lg,
+                fontWeight: typography.fontWeight.bold,
+                color: colors.text.primary,
+              }}
+            >
+              🏅 Latest Achievement
+            </Text>
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text
+                style={{
+                  fontSize: typography.fontSize.sm,
+                  color: colors.text.secondary,
+                }}
+              >
+                View All →
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Latest Medal (3D-style) */}
+          {MOCK_MEDALS.filter((m) => m.unlockedAt).map((medal, index) => {
+            if (index > 0) return null; // Show only latest medal
+
+            return (
+              <TouchableOpacity
+                key={medal.id}
+                activeOpacity={0.9}
+                style={{
+                  borderRadius: borderRadius.lg,
+                  overflow: 'hidden',
+                }}
+              >
+                <LinearGradient
+                  colors={['#FFD700', '#FFA500']} // Gold gradient for medal
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: spacing.md,
+                    shadowColor: '#FFD700',
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 12,
+                    elevation: 8,
+                  }}
+                >
+                  {/* 3D Medal Icon */}
+                  <View
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: borderRadius.full,
+                      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: spacing.md,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 6,
+                      elevation: 6,
+                    }}
+                  >
+                    <Text style={{ fontSize: 40 }}>{medal.emoji}</Text>
+                  </View>
+
+                  {/* Medal Info */}
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: typography.fontSize.base,
+                        fontWeight: typography.fontWeight.bold,
+                        color: '#000',
+                        marginBottom: 2,
+                      }}
+                    >
+                      {medal.title}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: typography.fontSize.sm,
+                        color: '#333',
+                      }}
+                    >
+                      {medal.description}
+                    </Text>
+                  </View>
+
+                  {/* Unlocked Badge */}
+                  <View
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      paddingHorizontal: spacing.sm,
+                      paddingVertical: 4,
+                      borderRadius: borderRadius.full,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: typography.fontSize.xs,
+                        fontWeight: typography.fontWeight.bold,
+                        color: '#FF6B00',
+                      }}
+                    >
+                      NEW!
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            );
+          })}
+        </Animated.View>
+
+        {/* Staircase (Vertical) */}
+        <View
+          style={{
+            paddingHorizontal: spacing.xl,
+            paddingBottom: spacing['4xl'],
+          }}
+        >
+          {MOCK_STAIRS.map((stair, index) => (
+            <StairCard
+              key={stair.id}
+              stair={stair}
+              index={index}
+              onPress={() => handleStairPress(stair.id, stair.status)}
+            />
+          ))}
+        </View>
+      </ScrollView>
+    </LinearGradient>
     </SafeAreaView>
+  );
+}
+
+function StairCard({
+  stair,
+  index,
+  onPress,
+}: {
+  stair: typeof MOCK_STAIRS[0];
+  index: number;
+  onPress: () => void;
+}) {
+  const getGradientColors = () => {
+    if (stair.status === 'completed') {
+      return colors.gradients.success;
+    }
+    if (stair.status === 'current') {
+      return colors.gradients.primary;
+    }
+    return ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)'];
+  };
+
+  const isLocked = stair.status === 'locked';
+  const isCurrent = stair.status === 'current';
+
+  return (
+    <Animated.View
+      entering={FadeInDown.duration(600).delay(200 + index * 150).springify()}
+      style={{
+        marginBottom: spacing.lg,
+      }}
+    >
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={isLocked}
+        activeOpacity={0.9}
+        style={{
+          borderRadius: borderRadius.xl,
+          borderWidth: isCurrent ? 3 : 1,
+          borderColor: isCurrent
+            ? colors.gradients.primary[0]
+            : isLocked
+            ? 'rgba(255, 255, 255, 0.1)'
+            : 'rgba(255, 255, 255, 0.2)',
+          overflow: 'hidden',
+          opacity: isLocked ? 0.5 : 1,
+        }}
+      >
+        <LinearGradient
+          colors={getGradientColors()}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            padding: spacing.lg,
+            shadowColor: isCurrent ? colors.glow.primary : 'transparent',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: isCurrent ? 0.6 : 0,
+            shadowRadius: isCurrent ? 20 : 0,
+            elevation: isCurrent ? 12 : 0,
+          }}
+        >
+          {/* Stair Number Badge */}
+          <View
+            style={{
+              position: 'absolute',
+              top: spacing.md,
+              right: spacing.md,
+              width: 32,
+              height: 32,
+              borderRadius: borderRadius.full,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: typography.fontSize.sm,
+                fontWeight: typography.fontWeight.bold,
+                color: colors.text.primary,
+              }}
+            >
+              {stair.order}
+            </Text>
+          </View>
+
+          {/* User Crown (for current stair) */}
+          {isCurrent && (
+            <View
+              style={{
+                position: 'absolute',
+                top: spacing.md,
+                left: spacing.md,
+                width: 40,
+                height: 40,
+                borderRadius: borderRadius.full,
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 24 }}>👑</Text>
+            </View>
+          )}
+
+          {/* Lock Icon (for locked stairs) */}
+          {isLocked && (
+            <View
+              style={{
+                position: 'absolute',
+                top: spacing.md,
+                left: spacing.md,
+                width: 40,
+                height: 40,
+                borderRadius: borderRadius.full,
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 24 }}>🔒</Text>
+            </View>
+          )}
+
+          {/* Content */}
+          <View style={{ marginTop: spacing.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+              <Text style={{ fontSize: 48, marginRight: spacing.md }}>{stair.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: typography.fontSize.xl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.text.primary,
+                    marginBottom: 4,
+                  }}
+                >
+                  {stair.title}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary,
+                  }}
+                >
+                  {stair.description}
+                </Text>
+              </View>
+            </View>
+
+            {/* Stats Row */}
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: spacing.lg,
+                marginTop: spacing.md,
+                paddingTop: spacing.md,
+                borderTopWidth: 1,
+                borderTopColor: 'rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, marginRight: spacing.xs }}>📝</Text>
+                <Text
+                  style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary,
+                  }}
+                >
+                  {stair.vocabulary_count} words
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, marginRight: spacing.xs }}>⏱️</Text>
+                <Text
+                  style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary,
+                  }}
+                >
+                  {stair.estimated_days} days
+                </Text>
+              </View>
+              {stair.status === 'current' && (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 16, marginRight: spacing.xs }}>🎯</Text>
+                  <Text
+                    style={{
+                      fontSize: typography.fontSize.sm,
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.text.primary,
+                    }}
+                  >
+                    In Progress
+                  </Text>
+                </View>
+              )}
+              {stair.status === 'completed' && (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 16, marginRight: spacing.xs }}>✅</Text>
+                  <Text
+                    style={{
+                      fontSize: typography.fontSize.sm,
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.text.primary,
+                    }}
+                  >
+                    Completed
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
