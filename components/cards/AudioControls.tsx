@@ -4,7 +4,6 @@ import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors, borderRadius, spacing } from '@/constants/designSystem';
 
 interface AudioControlsProps {
@@ -56,10 +55,10 @@ export function AudioControls({
       // For now, using a placeholder - you'll need to integrate Google Cloud TTS
       const rate = speed === 'normal' ? 1.0 : 0.75;
 
-      // TODO: Replace with actual Google TTS API call
+      // TODO: Integrate Google Cloud Text-to-Speech API for production
+      // Current: Using expo-speech as temporary solution (works offline but limited voices)
+      // Future: Implement getGoogleTTS(text, language, rate) for better quality voices
       // const audioUrl = await getGoogleTTS(text, language, rate);
-
-      // For demo purposes, using expo-speech as fallback
       await Speech.speak(text, {
         language,
         rate: speed === 'normal' ? 1.0 : 0.7,
@@ -93,16 +92,14 @@ export function AudioControls({
         disabled={isPlaying}
         activeOpacity={0.8}
       >
-        <LinearGradient
-          colors={gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
           style={[
             styles.button,
             {
               width: buttonSizes[size],
               height: buttonSizes[size],
               borderRadius: borderRadius.md,
+              backgroundColor: speed === 'normal' ? colors.secondary.DEFAULT : colors.primary.DEFAULT
             },
           ]}
         >
@@ -115,7 +112,7 @@ export function AudioControls({
               color={colors.text.primary}
             />
           )}
-        </LinearGradient>
+        </View>
         {/* Optional: Add speed label below
         <Text style={styles.label}>{label}</Text>
         */}

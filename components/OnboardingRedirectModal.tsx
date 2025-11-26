@@ -6,7 +6,6 @@
  */
 
 import { View, Text, TouchableOpacity, Modal, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
@@ -48,13 +47,10 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
           }}
         >
           {/* Card */}
-          <LinearGradient
-            colors={[colors.background.secondary, colors.background.elevated, '#1E2338']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <View
             style={{
-              borderRadius: borderRadius['2xl'],
-              padding: spacing['2xl'],
+              borderRadius: borderRadius.xl,
+              padding: spacing.xxl,
               borderWidth: 1,
               borderColor: 'rgba(99, 102, 241, 0.3)',
               shadowColor: colors.glow.primary,
@@ -62,6 +58,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
               shadowOpacity: 0.4,
               shadowRadius: 30,
               elevation: 20,
+              backgroundColor: colors.background.secondary
             }}
           >
             {/* Decorative Icon */}
@@ -110,7 +107,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
                 color: colors.text.secondary,
                 textAlign: 'center',
                 lineHeight: 24,
-                marginBottom: spacing['2xl'],
+                marginBottom: spacing.xxl,
               }}
             >
               Create a personalized learning experience tailored to your goals, interests, and
@@ -121,7 +118,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
             <Animated.View
               entering={FadeIn.duration(600).delay(600)}
               style={{
-                marginBottom: spacing['2xl'],
+                marginBottom: spacing.xxl,
                 gap: spacing.md,
               }}
             >
@@ -166,10 +163,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
             {/* Ready Button */}
             <Animated.View entering={FadeInDown.duration(600).delay(700).springify()}>
               <TouchableOpacity onPress={handleReady} activeOpacity={0.8}>
-                <LinearGradient
-                  colors={colors.gradients.primary}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                <View
                   style={{
                     paddingVertical: spacing.lg,
                     borderRadius: borderRadius.xl,
@@ -179,6 +173,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
                     shadowOpacity: 0.5,
                     shadowRadius: 16,
                     elevation: 8,
+                    backgroundColor: colors.primary.DEFAULT
                   }}
                 >
                   <Text
@@ -190,7 +185,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
                   >
                     I'm Ready! 🚀
                   </Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </Animated.View>
 
@@ -211,7 +206,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
                 Takes less than 1 minute
               </Text>
             </Animated.View>
-          </LinearGradient>
+          </View>
         </Animated.View>
       </View>
     </Modal>

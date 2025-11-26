@@ -8,7 +8,7 @@ This document provides a summary of the key development principles and procedure
 - **Offline-First**: Core features must be available without an internet connection.
 - **Incremental Development**: Build one screen at a time to ensure quality and focus.
 
-##  workflow
+## workflow
 
 We will follow a structured workflow to ensure code quality, consistency, and alignment with project goals.
 

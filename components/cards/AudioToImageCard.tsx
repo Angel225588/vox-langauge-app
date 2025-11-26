@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
 import Animated, {
   useSharedValue,
@@ -46,7 +45,7 @@ export function AudioToImageCard({
       setIsPlaying(true);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // TODO: Replace with Google TTS
+      // TODO: Integrate Google Cloud TTS for better voice quality (see AudioControls.tsx)
       await Speech.speak(audioText, {
         language,
         rate: 1.0,
@@ -127,16 +126,18 @@ export function AudioToImageCard({
               resizeMode="cover"
             />
             {showResult && (
-              <LinearGradient
-                colors={isCorrect ? colors.gradients.success : colors.gradients.error}
-                style={styles.resultOverlay}
+              <View
+                style={[
+                  styles.resultOverlay,
+                  { backgroundColor: isCorrect ? colors.success.DEFAULT : colors.error.DEFAULT }
+                ]}
               >
                 <Ionicons
                   name={isCorrect ? 'checkmark-circle' : 'close-circle'}
                   size={40}
                   color={colors.text.primary}
                 />
-              </LinearGradient>
+              </View>
             )}
           </View>
         </TouchableOpacity>
@@ -155,11 +156,11 @@ export function AudioToImageCard({
         activeOpacity={0.8}
         style={styles.audioButtonContainer}
       >
-        <LinearGradient
-          colors={colors.gradients.primary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.audioButton}
+        <View
+          style={[
+            styles.audioButton,
+            { backgroundColor: colors.primary.DEFAULT }
+          ]}
         >
           <Ionicons
             name={isPlaying ? 'volume-high' : 'play'}
@@ -169,7 +170,7 @@ export function AudioToImageCard({
           <Text style={styles.audioButtonText}>
             {isPlaying ? 'Playing...' : 'Tap to listen'}
           </Text>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
 
       {/* Image Options Grid */}

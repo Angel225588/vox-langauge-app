@@ -7,7 +7,6 @@
 
 import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
@@ -114,266 +113,99 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-      <LinearGradient
-        colors={[colors.background.primary, colors.background.secondary, '#1A1F3A']}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1F3A' }} edges={['top']}>
+      <View
         style={{ flex: 1 }}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Header with Weekly Points and Streaks */}
-          <Animated.View
-            entering={FadeIn.duration(600)}
-            style={{
-              paddingHorizontal: spacing.xl,
-              paddingTop: spacing.md,
-              paddingBottom: spacing.lg,
-            }}
-          >
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: spacing.md,
-            }}
-          >
-            {/* Language Selector (left) */}
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                borderRadius: borderRadius.full,
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={{ fontSize: 20, marginRight: spacing.xs }}>🇬🇧</Text>
-              <Text
-                style={{
-                  fontSize: typography.fontSize.sm,
-                  fontWeight: typography.fontWeight.semibold,
-                  color: colors.text.primary,
-                }}
-              >
-                English
-              </Text>
-            </TouchableOpacity>
-
-            {/* Weekly Points (right) */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                borderRadius: borderRadius.full,
-                borderWidth: 1,
-                borderColor: colors.gradients.primary[0],
-              }}
-            >
-              <Text style={{ fontSize: 20, marginRight: spacing.xs }}>⚡</Text>
-              <Text
-                style={{
-                  fontSize: typography.fontSize.base,
-                  fontWeight: typography.fontWeight.bold,
-                  color: colors.text.primary,
-                }}
-              >
-                {weeklyPoints}
-              </Text>
-            </View>
-          </View>
-
-          {/* Streaks */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginTop: spacing.sm,
-            }}
-          >
-            <Text style={{ fontSize: 24, marginRight: spacing.sm }}>🔥</Text>
-            <Text
-              style={{
-                fontSize: typography.fontSize.lg,
-                fontWeight: typography.fontWeight.bold,
-                color: colors.text.primary,
-              }}
-            >
-              {streak} Day Streak
-            </Text>
-          </View>
-
-          {/* Title */}
-          <Text
-            style={{
-              fontSize: typography.fontSize['2xl'],
-              fontWeight: typography.fontWeight.bold,
-              color: colors.text.primary,
-              textAlign: 'center',
-              marginTop: spacing.lg,
-            }}
-          >
-            Your Learning Path
-          </Text>
-        </Animated.View>
-
-        {/* Medals Section (Latest Achievement) */}
-        <Animated.View
-          entering={FadeInDown.duration(600).delay(400).springify()}
-          style={{
-            paddingHorizontal: spacing.xl,
-            marginBottom: spacing.lg,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: spacing.md,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: typography.fontSize.lg,
-                fontWeight: typography.fontWeight.bold,
-                color: colors.text.primary,
-              }}
-            >
-              🏅 Latest Achievement
-            </Text>
-            <TouchableOpacity activeOpacity={0.7}>
-              <Text
-                style={{
-                  fontSize: typography.fontSize.sm,
-                  color: colors.text.secondary,
-                }}
-              >
-                View All →
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Latest Medal (3D-style) */}
-          {MOCK_MEDALS.filter((m) => m.unlockedAt).map((medal, index) => {
-            if (index > 0) return null; // Show only latest medal
-
-            return (
-              <TouchableOpacity
-                key={medal.id}
-                activeOpacity={0.9}
-                style={{
-                  borderRadius: borderRadius.lg,
-                  overflow: 'hidden',
-                }}
-              >
-                <LinearGradient
-                  colors={['#FFD700', '#FFA500']} // Gold gradient for medal
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    padding: spacing.md,
-                    shadowColor: '#FFD700',
-                    shadowOffset: { width: 0, height: 8 },
-                    shadowOpacity: 0.4,
-                    shadowRadius: 12,
-                    elevation: 8,
-                  }}
-                >
-                  {/* 3D Medal Icon */}
-                  <View
-                    style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: borderRadius.full,
-                      backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: spacing.md,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 6,
-                      elevation: 6,
-                    }}
-                  >
-                    <Text style={{ fontSize: 40 }}>{medal.emoji}</Text>
-                  </View>
-
-                  {/* Medal Info */}
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        fontSize: typography.fontSize.base,
-                        fontWeight: typography.fontWeight.bold,
-                        color: '#000',
-                        marginBottom: 2,
-                      }}
-                    >
-                      {medal.title}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: typography.fontSize.sm,
-                        color: '#333',
-                      }}
-                    >
-                      {medal.description}
-                    </Text>
-                  </View>
-
-                  {/* Unlocked Badge */}
-                  <View
-                    style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      paddingHorizontal: spacing.sm,
-                      paddingVertical: 4,
-                      borderRadius: borderRadius.full,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: typography.fontSize.xs,
-                        fontWeight: typography.fontWeight.bold,
-                        color: '#FF6B00',
-                      }}
-                    >
-                      NEW!
-                    </Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            );
-          })}
-        </Animated.View>
-
-        {/* Staircase (Vertical) */}
+        {/* Sticky Header - Always Visible */}
         <View
           style={{
             paddingHorizontal: spacing.xl,
-            paddingBottom: spacing['4xl'],
+            paddingTop: spacing.md,
+            paddingBottom: spacing.md,
+            backgroundColor: 'transparent',
           }}
         >
-          {MOCK_STAIRS.map((stair, index) => (
-            <StairCard
-              key={stair.id}
-              stair={stair}
-              index={index}
-              onPress={() => handleStairPress(stair.id, stair.status)}
-            />
-          ))}
+          {/* Top Row: Flag, Points, Streak - No Bubbles */}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: spacing.md,
+            }}
+          >
+            {/* Language Flag (left) - Clean, no bubble */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text style={{ fontSize: 32 }}>🇬🇧</Text>
+            </TouchableOpacity>
+
+            {/* Points and Streak (right side) - Clean, no bubbles */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
+              {/* Points - Simple */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 20, marginRight: 4 }}>⚡</Text>
+                <Text
+                  style={{
+                    fontSize: typography.fontSize.lg,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.text.primary,
+                  }}
+                >
+                  {weeklyPoints}
+                </Text>
+              </View>
+
+              {/* Streak - Simple */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 20, marginRight: 4 }}>🔥</Text>
+                <Text
+                  style={{
+                    fontSize: typography.fontSize.lg,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.text.primary,
+                  }}
+                >
+                  {streak}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Title - My Roadmap */}
+          <Text
+            style={{
+              fontSize: 28,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+              textAlign: 'center',
+              letterSpacing: -0.5,
+            }}
+          >
+            My Roadmap
+          </Text>
         </View>
-      </ScrollView>
-    </LinearGradient>
+
+        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+
+          {/* Staircase (Vertical) */}
+          <View
+            style={{
+              paddingHorizontal: spacing.xl,
+              paddingBottom: spacing['4xl'],
+            }}
+          >
+            {MOCK_STAIRS.map((stair, index) => (
+              <StairCard
+                key={stair.id}
+                stair={stair}
+                index={index}
+                onPress={() => handleStairPress(stair.id, stair.status)}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -417,17 +249,15 @@ function StairCard({
           borderColor: isCurrent
             ? colors.gradients.primary[0]
             : isLocked
-            ? 'rgba(255, 255, 255, 0.1)'
-            : 'rgba(255, 255, 255, 0.2)',
+              ? 'rgba(255, 255, 255, 0.1)'
+              : 'rgba(255, 255, 255, 0.2)',
           overflow: 'hidden',
           opacity: isLocked ? 0.5 : 1,
         }}
       >
-        <LinearGradient
-          colors={getGradientColors()}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
           style={{
+            backgroundColor: isCurrent ? colors.gradients.primary[0] : 'rgba(255, 255, 255, 0.05)',
             padding: spacing.lg,
             shadowColor: isCurrent ? colors.glow.primary : 'transparent',
             shadowOffset: { width: 0, height: 8 },
@@ -560,35 +390,17 @@ function StairCard({
               </View>
               {stair.status === 'current' && (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 16, marginRight: spacing.xs }}>🎯</Text>
-                  <Text
-                    style={{
-                      fontSize: typography.fontSize.sm,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.text.primary,
-                    }}
-                  >
-                    In Progress
-                  </Text>
+                  <Text style={{ fontSize: 20 }}>🎯</Text>
                 </View>
               )}
               {stair.status === 'completed' && (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 16, marginRight: spacing.xs }}>✅</Text>
-                  <Text
-                    style={{
-                      fontSize: typography.fontSize.sm,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.text.primary,
-                    }}
-                  >
-                    Completed
-                  </Text>
+                  <Text style={{ fontSize: 20 }}>✅</Text>
                 </View>
               )}
             </View>
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );

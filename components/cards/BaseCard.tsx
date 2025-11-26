@@ -1,6 +1,5 @@
 import React, { ReactNode } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -55,8 +54,8 @@ export function BaseCard({
       return variant === 'primary'
         ? shadows.glow.primary
         : variant === 'secondary'
-        ? shadows.glow.primary
-        : shadows.md;
+          ? shadows.glow.primary
+          : shadows.md;
     }
     return shadows.md;
   };
@@ -70,13 +69,11 @@ export function BaseCard({
   return (
     <Animated.View style={[styles.container, animatedStyle, getShadowStyle(), style]}>
       {withGradient ? (
-        <LinearGradient
-          colors={getGradientColors()}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
           style={[
             styles.card,
             {
+              backgroundColor: getGradientColors()[0], // Use first color of gradient
               padding: cardPadding[size],
               borderRadius: borderRadius.xl,
             },
@@ -84,18 +81,18 @@ export function BaseCard({
         >
           {tag && (
             <View style={styles.tagContainer}>
-              <LinearGradient
-                colors={tagColor || colors.gradients.primary}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.tag}
+              <View
+                style={[
+                  styles.tag,
+                  { backgroundColor: (tagColor || colors.gradients.primary)[0] }
+                ]}
               >
                 <Animated.Text style={styles.tagText}>{tag}</Animated.Text>
-              </LinearGradient>
+              </View>
             </View>
           )}
           {children}
-        </LinearGradient>
+        </View>
       ) : (
         <View
           style={[
@@ -109,14 +106,14 @@ export function BaseCard({
         >
           {tag && (
             <View style={styles.tagContainer}>
-              <LinearGradient
-                colors={tagColor || colors.gradients.primary}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.tag}
+              <View
+                style={[
+                  styles.tag,
+                  { backgroundColor: (tagColor || colors.gradients.primary)[0] }
+                ]}
               >
                 <Animated.Text style={styles.tagText}>{tag}</Animated.Text>
-              </LinearGradient>
+              </View>
             </View>
           )}
           {children}

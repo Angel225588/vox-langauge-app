@@ -1,0 +1,75 @@
+# Vox Language App - Code Analysis Report
+Date: November 26, 2025
+
+## 1. Project Overview
+**Name:** Vox Language App
+**Type:** Mobile Application (Language Learning)
+**Core Tech Stack:**
+- **Framework:** Expo (React Native) ~54.0.25
+- **Language:** TypeScript
+- **Styling:** NativeWind (Tailwind CSS) & Tamagui (Hybrid approach)
+- **Backend/Auth:** Supabase
+- **Local Database:** Expo SQLite
+- **State Management:** Zustand, TanStack Query
+- **AI Integration:** Google Generative AI (Gemini) SDK installed
+
+## 2. Codebase Structure
+The project follows a standard Expo Router structure:
+- **/app**: Contains the file-based routing logic.
+  - `(auth)`: Authentication screens (Login, Signup, Onboarding).
+  - `(tabs)`: Main app tabs (Home, Practice, Profile, etc.).
+  - `flashcard`: Specific flows for flashcard sessions.
+- **/components**: Reusable UI components.
+  - `flashcards`: Specific components for the learning flow (LearningCard, ListeningCard, SpeakingCard).
+  - `ui`: Generic UI components (likely Tamagui or NativeWind based).
+- **/lib**: Utilities and core logic.
+  - `db`: Database setup and operations (SQLite, Supabase).
+  - `spaced-repetition`: SM-2 algorithm implementation.
+- **/assets**: Images and static resources.
+- **Configuration Files**: `app.json`, `package.json`, `tamagui.config.ts`, `tailwind.config.js`.
+
+## 3. Current State Analysis
+
+### ✅ What is Working (The Good)
+- **Foundation**: The project is well-structured with essential libraries installed and configured.
+- **Flashcard System**: This is the core feature and it appears robust.
+  - **Database**: SQLite singleton pattern is implemented for reliability.
+  - **Algorithm**: SM-2 spaced repetition algorithm is implemented (`/lib/spaced-repetition/sm2.ts`).
+  - **Flow**: A complete 3-card cycle (Learning -> Listening -> Speaking) is implemented.
+- **Authentication**: Basic flows (Login/Signup) are present, integrated with Supabase.
+
+### 🚧 What is In Progress (The "Messy" Middle)
+- **UI/UX Transition**: The project is in a transition phase between NativeWind and Tamagui.
+  - Existing screens largely use NativeWind (Tailwind classes).
+  - Tamagui has been installed and base components (Button, Card, Input, Stack) created but not yet fully adopted across the app.
+  - This creates a risk of inconsistent styling if not managed carefully.
+- **Authentication Polish**: Email confirmation is currently a blocker in Supabase settings. Google Sign-In is documented but not implemented.
+
+### ❌ What is Missing (The Opportunities)
+- **AI Features**: The Gemini SDK is installed, but the "killer features" (AI Chat, Pronunciation Feedback, Story Generation) are not yet built.
+- **Gamification**: Planned features like "TapToMatch" and "MultipleChoice" games are not yet implemented.
+- **Visual Polish**: While functional, the UI needs the "premium" feel mentioned in the goals.
+
+## 4. UI/UX Specific Analysis
+The user has expressed a strong desire to focus on UI/UX next. Here is the current situation:
+
+- **Design System**: A hybrid state. You have NativeWind for utility-first styling and Tamagui for more complex, themeable components.
+- **The Challenge**: Mixing two styling systems can lead to code bloat and visual inconsistency.
+- **The Opportunity**: Tamagui is excellent for high-performance, animated, and themeable UIs. NativeWind is great for rapid layout.
+- **Recommendation**:
+  1.  **Standardize**: Decide on a primary design language. If moving to Tamagui for a "premium" feel, we should start migrating core screens.
+  2.  **Theming**: Ensure the Dark/Light mode is consistent across both systems.
+  3.  **Animations**: Leverage Tamagui's animation capabilities or Reanimated (already installed) to add the "wow" factor (micro-interactions, smooth transitions).
+
+## 5. Recommendations for Next Steps
+1.  **Immediate UI/UX Focus**:
+    - Audit the current `(auth)` and `(tabs)` screens.
+    - Apply a consistent "Premium" design language (colors, typography, spacing).
+    - Implement the "Wow" factor: Add entry animations to the Home screen and Flashcard session.
+2.  **Technical Debt**:
+    - Resolve the Email Confirmation blocker in Supabase to ensure smooth testing.
+3.  **Feature Rollout**:
+    - Once UI is polished, proceed to implement the AI Chat feature as it's a high-value differentiator.
+
+## Conclusion
+The codebase is healthy and the core logic (Flashcards) is solid. The main gap right now is bridging the functional backend with a premium, engaging User Interface. The transition to a polished UI/UX is the right next step.

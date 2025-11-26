@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import Animated, {
@@ -164,7 +163,7 @@ export function SpeakingCard({
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // TODO: Replace with Google TTS
+      // TODO: Integrate Google Cloud TTS for better voice quality (see AudioControls.tsx)
       await Speech.speak(targetWord, {
         language,
         rate: 0.8,
@@ -184,15 +183,15 @@ export function SpeakingCard({
         {phonetic && <Text style={styles.phonetic}>{phonetic}</Text>}
 
         <TouchableOpacity onPress={playTargetAudio} activeOpacity={0.8}>
-          <LinearGradient
-            colors={colors.gradients.secondary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.listenButton}
+          <View
+            style={[
+              styles.listenButton,
+              { backgroundColor: colors.secondary.DEFAULT }
+            ]}
           >
             <Ionicons name="volume-high" size={24} color={colors.text.primary} />
             <Text style={styles.listenButtonText}>Listen</Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -214,18 +213,18 @@ export function SpeakingCard({
         style={styles.recordButtonContainer}
       >
         <Animated.View style={[animatedStyle]}>
-          <LinearGradient
-            colors={isRecording ? colors.gradients.error : colors.gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.recordButton}
+          <View
+            style={[
+              styles.recordButton,
+              { backgroundColor: isRecording ? colors.error.DEFAULT : colors.primary.DEFAULT }
+            ]}
           >
             <Ionicons
               name={isRecording ? 'stop-circle' : 'mic'}
               size={64}
               color={colors.text.primary}
             />
-          </LinearGradient>
+          </View>
         </Animated.View>
         <Text style={styles.recordButtonText}>
           {isRecording ? 'Tap to stop' : 'Tap to record'}
@@ -257,11 +256,11 @@ export function SpeakingCard({
           activeOpacity={0.8}
           style={styles.playbackButtonContainer}
         >
-          <LinearGradient
-            colors={colors.gradients.success}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.playbackButton}
+          <View
+            style={[
+              styles.playbackButton,
+              { backgroundColor: colors.success.DEFAULT }
+            ]}
           >
             <Ionicons
               name={isPlaying ? 'pause' : 'play'}
@@ -271,7 +270,7 @@ export function SpeakingCard({
             <Text style={styles.playbackButtonText}>
               {isPlaying ? 'Playing your recording...' : 'Listen to your recording'}
             </Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       )}
     </View>

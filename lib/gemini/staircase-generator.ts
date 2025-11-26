@@ -19,6 +19,12 @@ export interface UserProfile {
   proficiency_level: string;
   daily_time_minutes: number;
   scenarios: string[];
+  motivation_data?: {
+    why?: string;
+    fear?: string;
+    stakes?: string;
+    timeline?: string;
+  };
 }
 
 export interface Stair {

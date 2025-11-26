@@ -29,6 +29,11 @@ const customColors = {
   backgroundSecondary: '#F9FAFB',
   backgroundTertiary: '#F3F4F6',
 
+  // Glass tokens (Light)
+  glassBackground: 'rgba(255, 255, 255, 0.7)',
+  glassBorder: 'rgba(255, 255, 255, 0.5)',
+  glassShadow: 'rgba(0, 0, 0, 0.05)',
+
   // Text colors
   textPrimary: '#111827',
   textSecondary: '#6B7280',
@@ -57,6 +62,11 @@ const customColors = {
   backgroundDark: '#111827',
   backgroundSecondaryDark: '#1F2937',
   backgroundTertiaryDark: '#374151',
+
+  // Glass tokens (Dark)
+  glassBackgroundDark: 'rgba(31, 41, 55, 0.7)',
+  glassBorderDark: 'rgba(255, 255, 255, 0.1)',
+  glassShadowDark: 'rgba(0, 0, 0, 0.3)',
 
   textPrimaryDark: '#F9FAFB',
   textSecondaryDark: '#D1D5DB',
@@ -118,9 +128,138 @@ const customTokens = createTokens({
   },
 })
 
+// Create fonts
+const headingFont = {
+  family: 'System',
+  size: {
+    1: 11,
+    2: 12,
+    3: 13,
+    4: 14,
+    5: 16,
+    6: 18,
+    7: 20,
+    8: 22,
+    9: 30,
+    10: 42,
+    11: 52,
+    12: 62,
+    13: 72,
+    14: 92,
+    15: 114,
+    16: 124,
+    // Aliases
+    xs: 11,
+    sm: 14,
+    md: 16,
+    lg: 20,
+    xl: 30,
+    xxl: 42,
+    true: 16,
+  },
+  lineHeight: {
+    1: 17,
+    2: 22,
+    3: 25,
+    4: 30,
+    5: 31,
+    6: 35,
+    7: 39,
+    8: 43,
+    9: 60,
+    10: 78,
+    11: 82,
+    12: 92,
+    13: 102,
+    14: 127,
+    15: 154,
+    16: 174,
+  },
+  weight: {
+    1: '300',
+    3: '600',
+    4: '900',
+  },
+  letterSpacing: {
+    1: 0,
+    2: -1,
+  },
+  face: {
+    300: { normal: 'System' },
+    600: { normal: 'System' },
+    900: { normal: 'System' },
+  },
+}
+
+const bodyFont = {
+  family: 'System',
+  size: {
+    1: 11,
+    2: 12,
+    3: 13,
+    4: 14,
+    5: 16,
+    6: 18,
+    7: 20,
+    8: 22,
+    9: 30,
+    10: 42,
+    11: 52,
+    12: 62,
+    13: 72,
+    14: 92,
+    15: 114,
+    16: 124,
+    // Aliases
+    xs: 11,
+    sm: 14,
+    md: 16,
+    lg: 20,
+    xl: 30,
+    xxl: 42,
+    true: 16,
+  },
+  lineHeight: {
+    1: 17,
+    2: 22,
+    3: 25,
+    4: 30,
+    5: 31,
+    6: 35,
+    7: 39,
+    8: 43,
+    9: 60,
+    10: 78,
+    11: 82,
+    12: 92,
+    13: 102,
+    14: 127,
+    15: 154,
+    16: 174,
+  },
+  weight: {
+    1: '300',
+    3: '600',
+    4: '900',
+  },
+  letterSpacing: {
+    1: 0,
+    2: -1,
+  },
+  face: {
+    300: { normal: 'System' },
+    600: { normal: 'System' },
+    900: { normal: 'System' },
+  },
+}
+
 // Custom theme configuration
 const customConfig = {
   tokens: customTokens,
+  fonts: {
+    heading: headingFont,
+    body: bodyFont,
+  },
   shorthands,
 
   themes: {
@@ -250,7 +389,7 @@ export const tamaguiConfig = createTamagui(customConfig)
 export type TamaguiConfig = typeof tamaguiConfig
 
 declare module '@tamagui/core' {
-  interface TamaguiCustomConfig extends TamaguiConfig {}
+  interface TamaguiCustomConfig extends TamaguiConfig { }
 }
 
 export default tamaguiConfig

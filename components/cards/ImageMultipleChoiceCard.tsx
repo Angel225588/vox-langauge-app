@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -96,11 +95,11 @@ export function ImageMultipleChoiceCard({
           disabled={isAnswered}
           activeOpacity={0.8}
         >
-          <LinearGradient
-            colors={getGradient()}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.optionButton}
+          <View
+            style={[
+              styles.optionButton,
+              { backgroundColor: getGradient()[0] }
+            ]}
           >
             <Text style={styles.optionText}>{option}</Text>
             {showResult && (
@@ -110,7 +109,7 @@ export function ImageMultipleChoiceCard({
                 color={colors.text.primary}
               />
             )}
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       </Animated.View>
     );

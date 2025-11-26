@@ -8,7 +8,6 @@ import {
   Image,
   Keyboard,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -119,17 +118,17 @@ export function TextInputCard({
 
       {/* Text Input */}
       <Animated.View style={[styles.inputContainer, animatedStyle]}>
-        <LinearGradient
-          colors={
-            isAnswered
-              ? isCorrect
-                ? colors.gradients.success
-                : colors.gradients.error
-              : colors.gradients.dark
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.inputGradient}
+        <View
+          style={[
+            styles.inputGradient,
+            {
+              backgroundColor: isAnswered
+                ? isCorrect
+                  ? colors.success.DEFAULT
+                  : colors.error.DEFAULT
+                : colors.background.elevated
+            }
+          ]}
         >
           <TextInput
             value={userInput}
@@ -150,7 +149,7 @@ export function TextInputCard({
               color={colors.text.primary}
             />
           )}
-        </LinearGradient>
+        </View>
       </Animated.View>
 
       {/* Feedback */}
@@ -169,17 +168,17 @@ export function TextInputCard({
         activeOpacity={0.8}
         style={styles.buttonContainer}
       >
-        <LinearGradient
-          colors={
-            !userInput.trim()
-              ? [colors.text.disabled, colors.text.disabled]
-              : isAnswered
-              ? colors.gradients.warning
-              : colors.gradients.primary
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.button}
+        <View
+          style={[
+            styles.button,
+            {
+              backgroundColor: !userInput.trim()
+                ? colors.text.disabled
+                : isAnswered
+                  ? colors.warning.DEFAULT
+                  : colors.primary.DEFAULT
+            }
+          ]}
         >
           <Text style={styles.buttonText}>
             {isAnswered ? 'Try Again' : 'Check Answer'}
@@ -189,7 +188,7 @@ export function TextInputCard({
             size={24}
             color={colors.text.primary}
           />
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     </View>
   );

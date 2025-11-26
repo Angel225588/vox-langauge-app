@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,7 +29,7 @@ export function ComparisonCard({
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // TODO: Replace with Google TTS
+      // TODO: Integrate Google Cloud TTS for better voice quality (see AudioControls.tsx)
       await Speech.speak(text, {
         language,
         rate: speed === 'normal' ? 1.0 : 0.7,
@@ -43,21 +42,21 @@ export function ComparisonCard({
   const ComparisonItemCard = ({ item, index }: { item: ComparisonItem; index: number }) => (
     <View style={styles.itemContainer}>
       {/* Label Tag */}
-      <LinearGradient
-        colors={item.tagColor || (index === 0 ? colors.gradients.primary : colors.gradients.secondary)}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.label}
+      <View
+        style={[
+          styles.label,
+          { backgroundColor: (item.tagColor || (index === 0 ? colors.gradients.primary : colors.gradients.secondary))[0] }
+        ]}
       >
         <Text style={styles.labelText}>{item.label}</Text>
-      </LinearGradient>
+      </View>
 
       {/* Word Card */}
-      <LinearGradient
-        colors={colors.gradients.dark}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.wordCard}
+      <View
+        style={[
+          styles.wordCard,
+          { backgroundColor: colors.background.elevated }
+        ]}
       >
         <Text style={styles.word}>{item.word}</Text>
         {item.phonetic && <Text style={styles.phonetic}>{item.phonetic}</Text>}
@@ -68,31 +67,31 @@ export function ComparisonCard({
             onPress={() => playAudio(item.word, 'slow')}
             style={styles.audioButton}
           >
-            <LinearGradient
-              colors={colors.gradients.secondary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.audioButtonGradient}
+            <View
+              style={[
+                styles.audioButtonGradient,
+                { backgroundColor: colors.secondary.DEFAULT }
+              ]}
             >
               <Ionicons name="play-forward" size={24} color={colors.text.primary} />
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => playAudio(item.word, 'normal')}
             style={styles.audioButton}
           >
-            <LinearGradient
-              colors={colors.gradients.success}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.audioButtonGradient}
+            <View
+              style={[
+                styles.audioButtonGradient,
+                { backgroundColor: colors.success.DEFAULT }
+              ]}
             >
               <Ionicons name="play" size={28} color={colors.text.primary} />
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 
@@ -106,14 +105,14 @@ export function ComparisonCard({
         {/* Separator with icon */}
         <View style={styles.separator}>
           <View style={styles.separatorLine} />
-          <LinearGradient
-            colors={colors.gradients.accent}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.separatorIcon}
+          <View
+            style={[
+              styles.separatorIcon,
+              { backgroundColor: colors.secondary.DEFAULT }
+            ]}
           >
             <Ionicons name="swap-vertical" size={20} color={colors.text.primary} />
-          </LinearGradient>
+          </View>
           <View style={styles.separatorLine} />
         </View>
 
