@@ -96,7 +96,7 @@ const CARD_SAMPLES = {
     { words: ['a', 'good', 'This', 'is', 'example'], correctOrder: ['This', 'is', 'a', 'good', 'example'], targetSentence: 'This is a good example', hint: 'Group the adjectives.', difficulty: 'hard' },
   ],
   'describe-image': [
-    { imageUrl: IMAGES.beach, keywords: ['beach', 'water', 'sky'], minLength: 25, difficulty: 'easy' },
+    { imageUrl: IMAGES.water, keywords: ['water', 'nature', 'sky'], minLength: 25, difficulty: 'easy' },
     { imageUrl: IMAGES.mountain, keywords: ['mountain', 'snow', 'sky'], minLength: 30, difficulty: 'medium' },
     { imageUrl: IMAGES.cat, keywords: ['cat', 'animal', 'looking'], minLength: 20, difficulty: 'hard' },
   ],
