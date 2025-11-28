@@ -20,12 +20,15 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-export { SentenceScrambleCard } from './SentenceScrambleCard';
+// Working new card
 export { FillInBlankCard } from './FillInBlankCard';
-export { DescribeImageCard } from './DescribeImageCard';
-export { StorytellingCard } from './StorytellingCard';
-export { QuestionGameCard } from './QuestionGameCard';
-export { RolePlayCard } from './RolePlayCard';
+
+// TODO: Fix these cards - they import deleted BaseCard component
+// export { SentenceScrambleCard } from './SentenceScrambleCard';
+// export { DescribeImageCard } from './DescribeImageCard';
+// export { StorytellingCard } from './StorytellingCard';
+// export { QuestionGameCard } from './QuestionGameCard';
+// export { RolePlayCard } from './RolePlayCard';
 
 interface CardProps {
   onNext: (answer?: any) => void;

@@ -16,11 +16,12 @@ import {
   TextInputCard,
   SpeakingCard,
   FillInBlankCard,
-  SentenceScrambleCard,
-  DescribeImageCard,
-  StorytellingCard,
-  QuestionGameCard,
-  RolePlayCard,
+  // TODO: Uncomment when these cards are fixed (they import deleted BaseCard)
+  // SentenceScrambleCard,
+  // DescribeImageCard,
+  // StorytellingCard,
+  // QuestionGameCard,
+  // RolePlayCard,
 } from '@/components/cards';
 import { colors, spacing, typography } from '@/constants/designSystem';
 
@@ -191,11 +192,12 @@ export default function TestCardsScreen() {
       case 'text-input': return <TextInputCard {...currentSample} onNext={handleNext} />;
       case 'speaking': return <SpeakingCard {...currentSample} onComplete={handleNext} />;
       case 'fill-in-blank': return <FillInBlankCard {...currentSample} onNext={handleNext} />;
-      case 'sentence-scramble': return <SentenceScrambleCard {...currentSample} onComplete={handleNext} />;
-      case 'describe-image': return <DescribeImageCard {...currentSample} onComplete={handleNext} />;
-      case 'question-game': return <QuestionGameCard {...currentSample} onComplete={handleNext} />;
-      case 'role-play': return <RolePlayCard {...currentSample} onComplete={handleNext} />;
-      case 'storytelling': return <StorytellingCard {...currentSample} onComplete={handleNext} />;
+      // TODO: Uncomment when cards are fixed
+      // case 'sentence-scramble': return <SentenceScrambleCard {...currentSample} onComplete={handleNext} />;
+      // case 'describe-image': return <DescribeImageCard {...currentSample} onComplete={handleNext} />;
+      // case 'question-game': return <QuestionGameCard {...currentSample} onComplete={handleNext} />;
+      // case 'role-play': return <RolePlayCard {...currentSample} onComplete={handleNext} />;
+      // case 'storytelling': return <StorytellingCard {...currentSample} onComplete={handleNext} />;
       default:
         return (
           <View style={styles.errorCard}>
