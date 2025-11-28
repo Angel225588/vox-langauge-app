@@ -17,13 +17,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { colors } from '@/constants/designSystem';
 import { updateStepProgress, completeStep } from '@/lib/api/staircases';
 
-// Import card components
-import { SingleVocabCard } from '@/components/cards/SingleVocabCard';
-import { ImageMultipleChoiceCard } from '@/components/cards/ImageMultipleChoiceCard';
-import { TextInputCard } from '@/components/cards/TextInputCard';
-import { SpeakingCard } from '@/components/cards/SpeakingCard';
-import { ComparisonCard } from '@/components/cards/ComparisonCard';
-import { AudioToImageCard } from '@/components/cards/AudioToImageCard';
+// Import card components from index
+import {
+  SingleVocabCard,
+  MultipleChoiceCard,
+  ImageQuizCard,
+  TextInputCard,
+  SpeakingCard,
+  AudioCard,
+} from '@/components/cards';
 
 interface VocabularyItem {
   id: string;

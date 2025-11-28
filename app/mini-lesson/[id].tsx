@@ -173,10 +173,10 @@ export default function MiniLessonFlowScreen() {
             }}
           >
             <TouchableOpacity onPress={handleBack}>
-              <Text style={{ fontSize: 24, color: colors.text.primary }}>ê</Text>
+              <Text style={{ fontSize: 24, color: colors.text.primary }}>{'<'}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.back()}>
-              <Text style={{ fontSize: 24, color: colors.text.secondary }}></Text>
+              <Text style={{ fontSize: 24, color: colors.text.secondary }}>{'√ó'}</Text>
             </TouchableOpacity>
           </View>
 

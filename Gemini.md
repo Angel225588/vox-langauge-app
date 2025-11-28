@@ -38,6 +38,19 @@ Before making any changes to a file:
   ```
 - **Document "Why"**: When changes are made, the primary focus of documentation (in commit messages or code comments) should be on *why* the change was necessary, not just *what* was changed.
 
+## 📝 Task Management
+
+To ensure clarity and effective tracking of development work, all tasks assigned to Gemini are documented in `GEMINI_TASKS.md`.
+
+### Task Timestamping
+
+For better documentation and to track the age of tasks, every task listed in `GEMINI_TASKS.md` must include a creation timestamp.
+
+- **Format**: `Created: YYYY-MM-DD`
+- **Placement**: The timestamp should be placed directly under the task's title.
+
+This practice helps in prioritizing tasks and provides a clear history of the project's development.
+
 ## 📱 Environment Setup
 
 The project is built with Expo, allowing for a single codebase for both iOS and Android.

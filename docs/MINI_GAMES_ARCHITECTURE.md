@@ -255,7 +255,45 @@ Vox Language App uses a **card-based mini-game system** where each "card" is a s
   - Validate question format (starts with "Is it...", "Does it...", etc.)
   - Provide hints after 5 questions
 
-#### 6. **RealWorldAudioCard** (Future)
+#### 6. **FluencyReadingCard** (HIGH PRIORITY - Weakness Detection) ⭐ NEW
+- **Purpose**: Read text aloud with AI-powered pronunciation analysis
+- **Learning Objective**: Improve fluency, identify pronunciation weaknesses, automatic vocabulary reinforcement
+- **Core Innovation**: Uses Google Speech-to-Text to compare user's pronunciation with the target text, automatically creating flashcards for mispronounced words/phrases
+- **Features**:
+  - **Teleprompter Mode**: Static paragraph or scrolling text
+  - **Voice Recording**: User reads text aloud
+  - **AI Analysis**: Google Speech-to-Text transcribes user's speech
+  - **Word-Level Comparison**: Compares transcription with target text
+  - **Weakness Detection**: Identifies mispronounced or skipped words
+  - **Auto-Flashcard Generation**: Adds problematic words/phrases to weekly review deck
+  - **Progress Tracking**: Shows improvement in pronunciation accuracy over time
+  - **Visual Feedback**: Highlights correctly vs. incorrectly pronounced words
+  - **Retry Option**: Let user re-record specific sentences
+- **Difficulty Levels**:
+  - Easy: Short sentences (5-8 words), common vocabulary, slow speed
+  - Medium: Paragraphs (50-100 words), moderate vocabulary, normal speed
+  - Hard: Long passages (150+ words), complex vocabulary, fast speed
+- **Fluency Metrics**:
+  - Words per minute (WPM)
+  - Pronunciation accuracy (% correct)
+  - Fluency score (smoothness, pauses)
+  - Improvement over time graph
+- **Gamification Ideas** (from Gemini brainstorm):
+  - **Model Robot Reading/Silly Voices**: Read in different fun voices (robot, mouse, monster) to practice expression
+  - **Beat the Timer**: See how many words/phrases can be read correctly before timer runs out
+  - **Reader's Theater**: Assign parts to read a script, encourages expressive and repeated reading
+  - **Reading Contests (Against Themselves)**: Re-read passage and track last word reached to see improvement
+  - **Practice with Punctuation**: Emphasize how punctuation affects reading and expression
+- **Implementation Notes**:
+  - Integrate Google Cloud Speech-to-Text API for transcription
+  - Use word-level alignment to detect exact mispronunciations
+  - Create flashcard schema: `{ word, context_sentence, pronunciation_error, user_said, correct_pronunciation }`
+  - Store recordings locally for progress comparison
+  - Weekly report: "You struggled with these 12 words this week"
+  - Auto-add to spaced repetition system with high priority
+  - Privacy: Keep recordings on-device unless user opts to share
+
+#### 7. **RealWorldAudioCard** (Future)
 - **Purpose**: Understand speech with background noise
 - **Learning Objective**: Train ear for natural, fast speech
 - **Features**:
@@ -273,7 +311,7 @@ Vox Language App uses a **card-based mini-game system** where each "card" is a s
 
 ### Priority 3: Community-Ready Exercises
 
-#### 7. **RolePlayCard** (In Development by Gemini)
+#### 8. **RolePlayCard** (In Development by Gemini)
 - **Purpose**: Practice conversation with AI or human partner
 - **Learning Objective**: Practical dialogue, spontaneous responses
 - **Features**:
@@ -293,7 +331,7 @@ Vox Language App uses a **card-based mini-game system** where each "card" is a s
   - Detect when user is stuck, offer suggestions
   - Allow human-to-human mode for community practice
 
-#### 8. **CollaborativeStoryCard** (Future)
+#### 9. **CollaborativeStoryCard** (Future)
 - **Purpose**: Build a story with a partner (turn-based)
 - **Learning Objective**: Creative language, listening, sentence building
 - **Features**:
