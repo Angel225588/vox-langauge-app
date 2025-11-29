@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { Ionicons } from '@expo/vector-icons';
-import { BaseCard } from './BaseCard';
 import { colors, borderRadius, spacing, shadows, typography } from '@/constants/designSystem';
-import LottieSuccess from '../animations/LottieSuccess';
-import LottieError from '../animations/LottieError';
+import { LottieSuccess } from '../animations/LottieSuccess';
+import { LottieError } from '../animations/LottieError';
 
 interface RolePlayCardProps {
   scenario: {
@@ -267,7 +266,7 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
   const userCanInteract = !isConversationEnded && turnsTaken < maxTurns;
 
   return (
-    <BaseCard {...baseCardProps} style={styles.cardContainer}>
+    <View style={[styles.cardContainer, baseCardProps.style]}>
       {showResultAnimation && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.lottieOverlay}>
           {showResultAnimation === 'success' ? <LottieSuccess /> : <LottieError />}
@@ -326,13 +325,16 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
           <Text style={styles.endConversationButtonText}>End Conversation (Out of Turns)</Text>
         </TouchableOpacity>
       )}
-    </BaseCard>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   cardContainer: {
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.xl,
     padding: spacing.lg,
+    ...shadows.md,
     minHeight: 550,
     justifyContent: 'space-between',
   },

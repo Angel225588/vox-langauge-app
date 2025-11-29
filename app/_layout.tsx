@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TamaguiProvider } from 'tamagui';
 import { validateEnvironment, logEnvironmentStatus } from '@/lib/config/env';
 import { initializeFlashcardDB, insertSampleFlashcards } from '@/lib/db/flashcards';
@@ -76,23 +77,25 @@ export default function RootLayout() {
 
   // App is ready, show normal navigation
   return (
-    <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}>
-      <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#2196F3',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      >
-        <Stack.Screen name="index" options={{ title: 'Vox Language' }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="test-cards" options={{ headerShown: false, presentation: 'modal' }} />
-      </Stack>
-    </TamaguiProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}>
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: '#2196F3',
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        >
+          <Stack.Screen name="index" options={{ title: 'Vox Language' }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="test-cards" options={{ headerShown: false, presentation: 'modal' }} />
+        </Stack>
+      </TamaguiProvider>
+    </GestureHandlerRootView>
   );
 }

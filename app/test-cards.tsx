@@ -16,12 +16,12 @@ import {
   TextInputCard,
   SpeakingCard,
   FillInBlankCard,
-  // TODO: Uncomment when these cards are fixed (they import deleted BaseCard)
-  // SentenceScrambleCard,
-  // DescribeImageCard,
-  // StorytellingCard,
-  // QuestionGameCard,
-  // RolePlayCard,
+  SentenceScrambleCard,
+  DescribeImageCard,
+  StorytellingCard,
+  QuestionGameCard,
+  RolePlayCard,
+  ComparisonCard,
 } from '@/components/cards';
 import { colors, spacing, typography } from '@/constants/designSystem';
 
@@ -47,44 +47,122 @@ const IMAGES = {
 // Sample data for each card type (3 samples each)
 const CARD_SAMPLES = {
   'single-vocab': [
-    { word: 'apple', phonetic: '/ˈæp.əl/', translation: 'manzana', image_url: IMAGES.apple },
-    { word: 'coffee', phonetic: '/ˈkɒf.i/', translation: 'café', image_url: IMAGES.coffee },
-    { word: 'flower', phonetic: '/ˈflaʊ.ər/', translation: 'flor', image_url: IMAGES.flower },
+    {
+      word: 'apple',
+      phonetic: '/ˈæp.əl/',
+      translation: 'manzana',
+      image_url: IMAGES.apple,
+      example_sentence: 'I eat an apple every day for breakfast.'
+    },
+    {
+      word: 'coffee',
+      phonetic: '/ˈkɒf.i/',
+      translation: 'café',
+      image_url: IMAGES.coffee,
+      example_sentence: 'She drinks coffee in the morning.'
+    },
+    {
+      word: 'flower',
+      phonetic: '/ˈflaʊ.ər/',
+      translation: 'flor',
+      image_url: IMAGES.flower,
+      example_sentence: 'The flower smells beautiful in the garden.'
+    },
   ],
   'multiple-choice': [
     {
       word: 'dog',
       translation: 'perro',
+      image_url: IMAGES.dog,
       options: ['dog', 'cat', 'house', 'car'],
       correct_answer: 0,
+      explanation: '"Perro" is Spanish for dog, a domestic animal. "Gato" (cat), "casa" (house), and "coche" (car) are different words.',
     },
     {
       word: 'book',
       translation: 'libro',
+      image_url: IMAGES.book,
       options: ['phone', 'book', 'coffee', 'apple'],
       correct_answer: 1,
+      explanation: '"Libro" means book in Spanish. "Teléfono" (phone), "café" (coffee), and "manzana" (apple) are incorrect.',
     },
     {
       word: 'tree',
       translation: 'árbol',
+      image_url: IMAGES.tree,
       options: ['flower', 'house', 'tree', 'water'],
       correct_answer: 2,
+      explanation: '"Árbol" is Spanish for tree. "Flor" (flower), "casa" (house), and "agua" (water) are different vocabulary words.',
     },
   ],
   'image-quiz': [
-    { word: 'dog', image_url: IMAGES.dog, options: ['dog', 'cat', 'house', 'car'], correct_answer: 0 },
-    { word: 'coffee', image_url: IMAGES.coffee, options: ['water', 'coffee', 'flower', 'apple'], correct_answer: 1 },
-    { word: 'house', image_url: IMAGES.house, options: ['car', 'tree', 'house', 'book'], correct_answer: 2 },
+    {
+      word: 'dog',
+      image_url: IMAGES.dog,
+      options: ['dog', 'cat', 'house', 'car'],
+      correct_answer: 0,
+      explanation: 'The image shows a dog (perro in Spanish). Remember the furry tail and friendly face!'
+    },
+    {
+      word: 'coffee',
+      image_url: IMAGES.coffee,
+      options: ['water', 'coffee', 'flower', 'apple'],
+      correct_answer: 1,
+      explanation: 'Look for the coffee cup (café). Coffee is usually served in a mug or cup.'
+    },
+    {
+      word: 'house',
+      image_url: IMAGES.house,
+      options: ['car', 'tree', 'house', 'book'],
+      correct_answer: 2,
+      explanation: 'This is a house (casa), a building where people live. Notice the roof and walls.'
+    },
   ],
   'audio-to-image': [
-    { word: 'apple', translation: 'manzana', options: ['apple', 'coffee', 'water', 'flower'], correct_answer: 0 },
-    { word: 'cat', translation: 'gato', options: ['dog', 'cat', 'house', 'tree'], correct_answer: 1 },
-    { word: 'car', translation: 'coche', options: ['house', 'book', 'car', 'dog'], correct_answer: 2 },
+    {
+      word: 'apple',
+      translation: 'manzana',
+      options: ['apple', 'coffee', 'water', 'flower'],
+      correct_answer: 0,
+      explanation: 'Listen carefully to the "a" sound at the beginning. Apple starts with /æ/ as in "app".'
+    },
+    {
+      word: 'cat',
+      translation: 'gato',
+      options: ['dog', 'cat', 'house', 'tree'],
+      correct_answer: 1,
+      explanation: 'The word "cat" has a short "a" sound and ends with a "t". Listen for the /æ/ vowel.'
+    },
+    {
+      word: 'car',
+      translation: 'coche',
+      options: ['house', 'book', 'car', 'dog'],
+      correct_answer: 2,
+      explanation: 'Car has an "ar" sound like "far" or "star". The /r/ sound is pronounced clearly.'
+    },
   ],
   'text-input': [
-    { word: 'flower', translation: 'flor', correct_answer: 'flower' },
-    { word: 'coffee', translation: 'café', correct_answer: 'coffee' },
-    { word: 'water', translation: 'agua', correct_answer: 'water' },
+    {
+      word: 'flower',
+      translation: 'flor',
+      correct_answer: 'flower',
+      image_url: IMAGES.flower,
+      explanation: 'Remember: "flow" + "er" = flower. The "ow" sounds like "oh".'
+    },
+    {
+      word: 'coffee',
+      translation: 'café',
+      correct_answer: 'coffee',
+      image_url: IMAGES.coffee,
+      explanation: 'Coffee has double "f" and double "e". Think: "cof-fee" with two syllables.'
+    },
+    {
+      word: 'water',
+      translation: 'agua',
+      correct_answer: 'water',
+      image_url: IMAGES.water,
+      explanation: 'Water ends with "-ter" not "-tor". The "a" is pronounced like "awe".'
+    },
   ],
   speaking: [
     { question: 'How do you say "apple" in Spanish?', targetWord: 'apple', phonetic: '/ˈæp.əl/' },
@@ -97,14 +175,32 @@ const CARD_SAMPLES = {
     { words: ['a', 'good', 'This', 'is', 'example'], correctOrder: ['This', 'is', 'a', 'good', 'example'], targetSentence: 'This is a good example', hint: 'Group the adjectives.', difficulty: 'hard' },
   ],
   'describe-image': [
-    { imageUrl: IMAGES.water, keywords: ['water', 'nature', 'sky'], minLength: 25, difficulty: 'easy' },
-    { imageUrl: IMAGES.mountain, keywords: ['mountain', 'snow', 'sky'], minLength: 30, difficulty: 'medium' },
-    { imageUrl: IMAGES.cat, keywords: ['cat', 'animal', 'looking'], minLength: 20, difficulty: 'hard' },
+    {
+      imageUrl: IMAGES.water,
+      keywords: ['water', 'nature', 'sky'],
+      minLength: 25,
+      difficulty: 'easy',
+      referenceDescription: 'A serene body of water reflects the clear blue sky. The calm surface creates a peaceful natural scene with gentle ripples visible across the water.'
+    },
+    {
+      imageUrl: IMAGES.mountain,
+      keywords: ['mountain', 'snow', 'sky'],
+      minLength: 30,
+      difficulty: 'medium',
+      referenceDescription: 'A majestic snow-capped mountain peak rises dramatically against a clear blue sky. The white summit contrasts beautifully with the darker rocky slopes below.'
+    },
+    {
+      imageUrl: IMAGES.cat,
+      keywords: ['cat', 'animal', 'looking'],
+      minLength: 20,
+      difficulty: 'hard',
+      referenceDescription: 'A curious cat gazes intently with alert eyes. The feline appears focused and attentive, showcasing typical cat behavior and posture.'
+    },
   ],
   'question-game': [
-    { secretWord: 'apple', category: 'fruit', difficulty: 'easy', maxQuestions: 5 },
-    { secretWord: 'dog', category: 'animal', difficulty: 'medium', maxQuestions: 7 },
-    { secretWord: 'car', category: 'vehicle', difficulty: 'hard', maxQuestions: 10 },
+    { secretWord: 'pizza', category: 'food', difficulty: 'easy', maxQuestions: 8 },
+    { secretWord: 'elephant', category: 'animal', difficulty: 'medium', maxQuestions: 10 },
+    { secretWord: 'airplane', category: 'vehicle', difficulty: 'hard', maxQuestions: 12 },
   ],
   'role-play': [
     { scenario: { title: 'Ordering at a Restaurant', role: 'waiter', goal: 'Order a meal', difficulty: 'easy' }, userRole: 'customer', scriptId: 'restaurant_order', maxTurns: 5 },
@@ -159,6 +255,32 @@ const CARD_SAMPLES = {
       correct_answer: 1,
     },
   ],
+  comparison: [
+    {
+      items: [
+        { label: 'English', word: 'apple', phonetic: '/ˈæp.əl/' },
+        { label: 'Spanish', word: 'manzana', phonetic: '/manˈθana/' },
+      ],
+      title: 'Apple',
+      language: 'en-US',
+    },
+    {
+      items: [
+        { label: 'English', word: 'water', phonetic: '/ˈwɔː.tər/' },
+        { label: 'Spanish', word: 'agua', phonetic: '/ˈa.ɣwa/' },
+      ],
+      title: 'Water',
+      language: 'en-US',
+    },
+    {
+      items: [
+        { label: 'English', word: 'coffee', phonetic: '/ˈkɒf.i/' },
+        { label: 'Spanish', word: 'café', phonetic: '/kaˈfe/' },
+      ],
+      title: 'Coffee',
+      language: 'en-US',
+    },
+  ],
 };
 
 export default function TestCardsScreen() {
@@ -192,12 +314,12 @@ export default function TestCardsScreen() {
       case 'text-input': return <TextInputCard {...currentSample} onNext={handleNext} />;
       case 'speaking': return <SpeakingCard {...currentSample} onComplete={handleNext} />;
       case 'fill-in-blank': return <FillInBlankCard {...currentSample} onNext={handleNext} />;
-      // TODO: Uncomment when cards are fixed
-      // case 'sentence-scramble': return <SentenceScrambleCard {...currentSample} onComplete={handleNext} />;
-      // case 'describe-image': return <DescribeImageCard {...currentSample} onComplete={handleNext} />;
-      // case 'question-game': return <QuestionGameCard {...currentSample} onComplete={handleNext} />;
-      // case 'role-play': return <RolePlayCard {...currentSample} onComplete={handleNext} />;
-      // case 'storytelling': return <StorytellingCard {...currentSample} onComplete={handleNext} />;
+      case 'sentence-scramble': return <SentenceScrambleCard {...currentSample} onComplete={handleNext} />;
+      case 'describe-image': return <DescribeImageCard {...currentSample} onComplete={handleNext} />;
+      case 'question-game': return <QuestionGameCard {...currentSample} onComplete={handleNext} />;
+      case 'role-play': return <RolePlayCard {...currentSample} onComplete={handleNext} />;
+      case 'storytelling': return <StorytellingCard {...currentSample} onComplete={handleNext} />;
+      case 'comparison': return <ComparisonCard {...currentSample} />;
       default:
         return (
           <View style={styles.errorCard}>

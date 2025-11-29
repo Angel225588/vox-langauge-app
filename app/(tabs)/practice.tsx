@@ -131,6 +131,15 @@ const CARD_COMPONENTS = [
     borderColor: 'border-rose-200',
     isNew: true,
   },
+  {
+    id: 'comparison',
+    emoji: '⚖️',
+    name: 'Comparison',
+    time: '1 min',
+    color: ['#22C55E', '#4ADE80'],
+    bgColor: 'bg-green-50',
+    borderColor: 'border-green-200',
+  },
 ];
 
 export default function PracticeScreen() {
