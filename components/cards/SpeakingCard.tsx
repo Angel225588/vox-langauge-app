@@ -294,6 +294,43 @@ export function SpeakingCard({
       >
         {isRecording ? '🔴 Recording... Tap to stop' : 'Tap to record'}
       </Animated.Text>
+
+      {/* "I Can Speak" skip option */}
+      {!isRecording && (
+        <Animated.View entering={FadeIn.duration(400).delay(700)}>
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (onComplete) {
+                onComplete(null);
+              } else if (onNext) {
+                onNext(null);
+              }
+            }}
+            activeOpacity={0.7}
+            style={{
+              marginTop: spacing.xl,
+              paddingVertical: spacing.md,
+              paddingHorizontal: spacing.xl,
+              borderRadius: borderRadius.xl,
+              borderWidth: 2,
+              borderColor: colors.text.tertiary,
+              backgroundColor: 'transparent',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: typography.fontSize.md,
+                fontWeight: typography.fontWeight.medium,
+                color: colors.text.secondary,
+                textAlign: 'center',
+              }}
+            >
+              I can speak this ✓
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
     </View>
   );
 }

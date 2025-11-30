@@ -109,7 +109,7 @@ export default function LevelAssessmentScreen() {
         {/* Progress Indicator */}
         <Animated.View entering={FadeInDown.duration(400)} style={{ marginTop: spacing.md }}>
           <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
-            {[1, 2, 3, 4].map((step) => (
+            {[1, 2, 3, 4, 5].map((step) => (
               <View
                 key={step}
                 style={{
@@ -128,7 +128,7 @@ export default function LevelAssessmentScreen() {
               textAlign: 'center',
             }}
           >
-            Step 2 of 4
+            Step 2 of 5
           </Text>
         </Animated.View>
       </View>
