@@ -55,6 +55,7 @@ export const colors = {
   },
 
   accent: {
+    primary: '#6366F1',      // Match primary color
     purple: '#8B5CF6',
     pink: '#EC4899',
     orange: '#F97316',
@@ -92,7 +93,8 @@ export const spacing = {
   md: 16,
   lg: 24,
   xl: 32,
-  xxl: 48,
+  '2xl': 48,
+  '3xl': 64,
 };
 
 export const borderRadius = {
@@ -100,6 +102,8 @@ export const borderRadius = {
   md: 12,
   lg: 16,
   xl: 24,
+  '2xl': 32,
+  '3xl': 40,
   full: 9999,
 };
 

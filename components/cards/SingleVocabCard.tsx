@@ -264,7 +264,7 @@ export function SingleVocabCard({
   });
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: spacing['2xl'] }} {...panResponder.panHandlers}>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.lg }} {...panResponder.panHandlers}>
       {/* Confetti Celebration */}
       {showConfetti && (
         <Animated.View
@@ -290,7 +290,8 @@ export function SingleVocabCard({
         style={[
           {
             width: '100%',
-            padding: spacing['2xl'],
+            maxWidth: 500,
+            padding: spacing.xl,
             borderRadius: borderRadius['2xl'],
             alignItems: 'center',
             backgroundColor: colors.background.card,
@@ -330,10 +331,9 @@ export function SingleVocabCard({
           <Animated.View
             entering={ZoomIn.duration(600).delay(200)}
             style={{
-              borderRadius: borderRadius['2xl'],
+              borderRadius: borderRadius.xl,
               overflow: 'hidden',
-              marginTop: spacing.lg,
-              marginBottom: spacing.xl,
+              marginBottom: spacing.lg,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: 0.25,
@@ -344,8 +344,8 @@ export function SingleVocabCard({
             <Image
               source={{ uri: image_url }}
               style={{
-                width: 280,
-                height: 280,
+                width: 240,
+                height: 240,
                 borderRadius: borderRadius.xl,
               }}
               resizeMode="cover"
@@ -357,10 +357,10 @@ export function SingleVocabCard({
         <Animated.Text
           entering={SlideInRight.duration(500).delay(400)}
           style={{
-            fontSize: 52,
+            fontSize: 48,
             fontWeight: typography.fontWeight.bold,
             color: colors.text.primary,
-            marginBottom: spacing.lg,
+            marginBottom: spacing.md,
             textAlign: 'center',
           }}
         >
@@ -371,7 +371,7 @@ export function SingleVocabCard({
         {phonetic && (
           <Animated.View
             entering={FadeIn.duration(500).delay(600)}
-            style={[phoneticAnimatedStyle, { marginBottom: spacing.xl }]}
+            style={[phoneticAnimatedStyle, { marginBottom: spacing.lg, width: '100%', maxWidth: 320 }]}
           >
             <Pressable
               onPress={() => handlePlayAudio('normal')}
@@ -379,7 +379,7 @@ export function SingleVocabCard({
               delayLongPress={500}
             >
               <LinearGradient
-                colors={[colors.accent.purple + 'DD', colors.accent.primary + 'DD']}
+                colors={['#8B5CF6', '#6366F1']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{
@@ -437,7 +437,7 @@ export function SingleVocabCard({
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={colors.gradients.success}
+                  colors={['#10B981', '#34D399']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={{
@@ -447,7 +447,7 @@ export function SingleVocabCard({
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: spacing.sm,
-                    shadowColor: colors.accent.primary,
+                    shadowColor: colors.success.DEFAULT,
                     shadowOffset: { width: 0, height: 6 },
                     shadowOpacity: 0.5,
                     shadowRadius: 12,
@@ -549,7 +549,8 @@ export function SingleVocabCard({
           style={[
             {
               width: '100%',
-              padding: spacing['2xl'],
+              maxWidth: 500,
+              padding: spacing.xl,
               borderRadius: borderRadius['2xl'],
               backgroundColor: colors.background.card,
               shadowColor: '#000',
@@ -654,7 +655,7 @@ export function SingleVocabCard({
       {/* Continue Button */}
       <Animated.View
         entering={FadeInDown.duration(500).delay(1000)}
-        style={{ width: '100%', marginTop: spacing.xl }}
+        style={{ width: '100%', maxWidth: 500, marginTop: spacing.xl, paddingHorizontal: spacing.lg }}
       >
         <Animated.View style={buttonAnimatedStyle}>
           <TouchableOpacity
@@ -667,7 +668,6 @@ export function SingleVocabCard({
             }}
             style={{
               backgroundColor: colors.accent.primary,
-              paddingHorizontal: spacing['2xl'],
               paddingVertical: spacing.lg,
               borderRadius: borderRadius.xl,
               width: '100%',
