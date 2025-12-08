@@ -1,12 +1,19 @@
+/**
+ * Describe Image Card Component
+ *
+ * REFACTORED: Now uses shared UI components for consistency
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import Animated, { FadeIn, FadeOut, withTiming, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, borderRadius, spacing, shadows, typography } from '@/constants/designSystem';
-import { LottieSuccess } from '../animations/LottieSuccess';
-import { LottieError } from '../animations/LottieError';
+
+// Shared UI components
+import { ResultAnimation } from '@/components/ui';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface DescribeImageCardProps {
   imageUrl: string;
@@ -37,6 +44,7 @@ export const DescribeImageCard: React.FC<DescribeImageCardProps> = ({
   onComplete,
   ...baseCardProps
 }) => {
+  const haptics = useHaptics();
   const [description, setDescription] = useState('');
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -89,7 +97,7 @@ export const DescribeImageCard: React.FC<DescribeImageCardProps> = ({
       setIsRecording(true);
       setRecordingDuration(0);
 
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      haptics.heavy();
 
       recordingInterval.current = setInterval(() => {
         setRecordingDuration(prev => prev + 1);
@@ -110,7 +118,7 @@ export const DescribeImageCard: React.FC<DescribeImageCardProps> = ({
     const uri = recording.getURI();
     setAudioUri(uri); // Save URI for submission
     setRecording(null);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptics.light();
     
     // For MVP, we don't transcribe. We submit the audio directly.
     // If there was transcription, it would be: setDescription(transcribedText);
@@ -122,7 +130,7 @@ export const DescribeImageCard: React.FC<DescribeImageCardProps> = ({
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptics.medium();
 
     // Store the reference description at submission time
     setSubmittedReference(referenceDescription);
@@ -153,10 +161,10 @@ export const DescribeImageCard: React.FC<DescribeImageCardProps> = ({
 
     if (isCorrect) {
       setShowResultAnimation('success');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
     } else {
       setShowResultAnimation('error');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptics.error();
     }
 
     setIsSubmitting(false);
@@ -172,11 +180,12 @@ export const DescribeImageCard: React.FC<DescribeImageCardProps> = ({
 
   return (
     <View style={[styles.cardContainer, baseCardProps.style]}>
-      {showResultAnimation && (
-        <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.lottieOverlay}>
-          {showResultAnimation === 'success' ? <LottieSuccess /> : <LottieError />}
-        </Animated.View>
-      )}
+      {/* NEW: Using ResultAnimation component */}
+      <ResultAnimation
+        result={showResultAnimation}
+        onComplete={() => setShowResultAnimation(null)}
+        autoDismiss={false}
+      />
 
       <Text style={styles.instructionText}>Describe what you see in the image.</Text>
       <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
@@ -445,12 +454,4 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
   },
-  lottieOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-    borderRadius: borderRadius.xl,
-  },
-});
+  });

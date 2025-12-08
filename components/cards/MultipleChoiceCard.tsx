@@ -14,20 +14,17 @@
  *
  * Learning Objective: Test comprehension with explanatory feedback to reinforce learning
  *
- * UX Research: Immediate feedback with explanation strengthens memory correction
- * Source: https://medium.com/design-bootcamp/ux-research-duolingo-app-case-study-54230f0aa4f7
+ * REFACTORED: Now uses shared UI components for consistency
  */
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
-import Animated, {
-  FadeInDown,
-  FadeIn,
-  ZoomIn,
-} from 'react-native-reanimated';
-import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
+
+// Shared UI components
+import { DarkOverlay, AnswerOption, AnswerFeedbackOverlay } from '@/components/ui';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface CardProps {
   onNext: (answer?: any) => void;
@@ -36,10 +33,10 @@ interface CardProps {
 interface MultipleChoiceCardProps extends CardProps {
   word?: string;
   translation?: string;
-  image_url?: string; // Optional image for visual context
+  image_url?: string;
   options?: string[];
   correct_answer?: number;
-  explanation?: string; // Explanation shown when user answers incorrectly
+  explanation?: string;
 }
 
 export function MultipleChoiceCard({
@@ -51,6 +48,7 @@ export function MultipleChoiceCard({
   explanation,
   onNext,
 }: MultipleChoiceCardProps) {
+  const haptics = useHaptics();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
 
@@ -58,32 +56,24 @@ export function MultipleChoiceCard({
     const isCorrect = correct_answer === index;
 
     if (isCorrect) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
     } else {
-      // Strong vibration for wrong answer
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      // Additional heavy impact for emphasis
-      setTimeout(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      }, 100);
+      haptics.doubleError();
     }
 
     setSelectedIndex(index);
     setShowResult(true);
 
-    // Smart timing: auto-advance for correct, manual Continue for incorrect
     if (isCorrect) {
       setTimeout(() => {
         onNext(index);
         setSelectedIndex(null);
         setShowResult(false);
-      }, 2000); // 2s to see green feedback
+      }, 2000);
     }
-    // If incorrect, user must tap Continue button (no auto-advance)
   };
 
   const handleContinue = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onNext(selectedIndex);
     setSelectedIndex(null);
     setShowResult(false);
@@ -91,227 +81,99 @@ export function MultipleChoiceCard({
 
   const showWrongAnswer = showResult && selectedIndex !== correct_answer;
 
+  const getOptionState = (index: number) => {
+    if (!showResult) return 'default';
+    if (correct_answer === index) return 'correct';
+    if (selectedIndex === index) return 'wrong';
+    return 'default';
+  };
+
   return (
-    <View style={{ flex: 1 }}>
-      {/* Scrollable content area */}
-      <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: spacing.lg }}>
-        {/* Optional Image for Visual Context */}
+    <View style={styles.container}>
+      <View style={styles.content}>
+        {/* Optional Image */}
         {image_url && (
           <Animated.View
             entering={ZoomIn.duration(500).delay(100)}
-            style={{
-              alignSelf: 'center',
-              borderRadius: borderRadius['2xl'],
-              overflow: 'hidden',
-              marginBottom: spacing.xl,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.2,
-              shadowRadius: 8,
-              elevation: 4,
-            }}
+            style={styles.imageContainer}
           >
             <Image
               source={{ uri: image_url }}
-              style={{
-                width: 200,
-                height: 200,
-                borderRadius: borderRadius.xl,
-              }}
+              style={styles.image}
               resizeMode="cover"
             />
           </Animated.View>
         )}
 
+        {/* Question */}
         <Animated.Text
           entering={FadeInDown.duration(400).delay(200)}
-          style={{
-            fontSize: typography.fontSize['2xl'],
-            fontWeight: typography.fontWeight.bold,
-            color: colors.text.primary,
-            textAlign: 'center',
-            marginBottom: spacing['2xl'] + spacing.lg,
-          }}
+          style={styles.question}
         >
           Which word means "{translation}"?
         </Animated.Text>
 
-        {/* Full width options */}
-        <View style={{ width: '100%' }}>
-          {options?.map((option, index) => {
-            const isSelected = selectedIndex === index;
-            const isCorrect = correct_answer === index;
-            const showAsCorrect = showResult && isCorrect;
-            const showAsWrong = showResult && isSelected && !isCorrect;
-
-            return (
-              <Animated.View
-                key={index}
-                entering={FadeInDown.duration(400).delay(100 * (index + 1)).springify()}
-                style={{
-                  width: '100%',
-                  marginBottom: spacing.md,
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() => !showResult && handleSelect(index)}
-                  disabled={showResult}
-                  activeOpacity={0.8}
-                  style={{
-                    backgroundColor: showAsCorrect
-                      ? colors.success.DEFAULT
-                      : showAsWrong
-                        ? colors.error.DEFAULT
-                        : colors.background.card,
-                    paddingVertical: spacing.lg,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: borderRadius.xl,
-                    borderWidth: 2,
-                    borderColor: showAsCorrect || showAsWrong
-                      ? 'transparent'
-                      : colors.border.light,
-                    shadowColor: showAsCorrect
-                      ? colors.success.DEFAULT
-                      : showAsWrong
-                        ? colors.error.DEFAULT
-                        : '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: showAsCorrect || showAsWrong ? 0.4 : 0.1,
-                    shadowRadius: 4,
-                    elevation: showAsCorrect || showAsWrong ? 4 : 2,
-                    minHeight: 60,
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}>
-                    {showAsCorrect && <Text style={{ fontSize: 20 }}>✓</Text>}
-                    {showAsWrong && <Text style={{ fontSize: 20 }}>✗</Text>}
-                    <Text
-                      style={{
-                        fontSize: typography.fontSize.lg,
-                        fontWeight: typography.fontWeight.semibold,
-                        color: colors.text.primary,
-                        textAlign: 'center',
-                        flexShrink: 1,
-                      }}
-                    >
-                      {option}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </Animated.View>
-            );
-          })}
+        {/* Options */}
+        <View style={styles.optionsContainer}>
+          {options?.map((option, index) => (
+            <AnswerOption
+              key={index}
+              text={option}
+              onPress={() => handleSelect(index)}
+              disabled={showResult}
+              state={getOptionState(index)}
+              entranceDelay={100 * (index + 1)}
+              hapticFeedback={false}
+            />
+          ))}
         </View>
       </View>
 
-      {/* Blur overlay when wrong answer is shown */}
-      {showWrongAnswer && (
-        <Animated.View
-          entering={FadeIn.duration(300)}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-          }}
-          pointerEvents="none"
-        />
-      )}
+      <DarkOverlay visible={showWrongAnswer} />
 
-      {/* Bottom section with Translation Tip and Continue - Fixed at bottom */}
-      {showWrongAnswer && (
-        <Animated.View
-          entering={FadeIn.duration(400).delay(200)}
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-          }}
-        >
-          {/* Unified card container */}
-          <View
-            style={{
-              marginHorizontal: spacing.lg,
-              backgroundColor: '#2D1B1E',
-              borderRadius: borderRadius.xl,
-              borderLeftWidth: 4,
-              borderLeftColor: colors.error.DEFAULT,
-              overflow: 'hidden',
-            }}
-          >
-            {/* Translation Tip */}
-            {explanation && (
-              <View
-                style={{
-                  padding: spacing.lg,
-                  paddingBottom: spacing.md,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.md,
-                    fontWeight: typography.fontWeight.bold,
-                    color: colors.error.light,
-                    marginBottom: spacing.sm,
-                  }}
-                >
-                  Translation Tip
-                </Text>
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.lg,
-                    color: colors.text.primary,
-                    lineHeight: 26,
-                  }}
-                >
-                  {explanation}
-                </Text>
-              </View>
-            )}
-
-            {/* Continue Button */}
-            <View
-              style={{
-                paddingHorizontal: spacing.lg,
-                paddingTop: explanation ? 0 : spacing.lg,
-                paddingBottom: spacing.xl,
-              }}
-            >
-            <TouchableOpacity
-              onPress={handleContinue}
-              activeOpacity={0.8}
-              style={{
-                backgroundColor: colors.error.DEFAULT,
-                borderWidth: 2,
-                borderColor: colors.error.light,
-                paddingVertical: spacing.lg,
-                paddingHorizontal: spacing['2xl'],
-                borderRadius: borderRadius.xl,
-                shadowColor: colors.error.DEFAULT,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.4,
-                shadowRadius: 8,
-                elevation: 4,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: typography.fontSize.lg,
-                  fontWeight: typography.fontWeight.bold,
-                  color: colors.text.primary,
-                  textAlign: 'center',
-                }}
-              >
-                Continue
-              </Text>
-            </TouchableOpacity>
-            </View>
-          </View>
-        </Animated.View>
-      )}
+      <AnswerFeedbackOverlay
+        visible={showWrongAnswer}
+        title="Translation Tip"
+        explanation={explanation}
+        onContinue={handleContinue}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  imageContainer: {
+    alignSelf: 'center',
+    borderRadius: borderRadius['2xl'],
+    overflow: 'hidden',
+    marginBottom: spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  image: {
+    width: 200,
+    height: 200,
+    borderRadius: borderRadius.xl,
+  },
+  question: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginBottom: spacing['2xl'] + spacing.lg,
+  },
+  optionsContainer: {
+    width: '100%',
+  },
+});

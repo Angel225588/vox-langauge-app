@@ -1,11 +1,15 @@
+/**
+ * Question Game Card Component (20 Questions)
+ * REFACTORED: Now uses shared UI components for consistency
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Keyboard } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, borderRadius, spacing, shadows, typography } from '@/constants/designSystem';
-import { LottieSuccess } from '../animations/LottieSuccess';
-import { LottieError } from '../animations/LottieError';
+import { ResultAnimation } from '@/components/ui';
+import { LottieSuccess, LottieError } from '@/components/animations';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface QuestionGameCardProps {
   secretWord: string;

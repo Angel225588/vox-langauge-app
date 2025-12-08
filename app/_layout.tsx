@@ -5,6 +5,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TamaguiProvider } from 'tamagui';
 import { validateEnvironment, logEnvironmentStatus } from '@/lib/config/env';
 import { initializeFlashcardDB, insertSampleFlashcards } from '@/lib/db/flashcards';
+import { initializeWordBankDatabase } from '@/lib/word-bank';
+import { initializeReadingSessionsTable } from '@/lib/reading';
+import { dbManager } from '@/lib/db/database';
 import tamaguiConfig from '../tamagui.config';
 import '../global.css';
 
@@ -30,6 +33,15 @@ export default function RootLayout() {
         // Initialize flashcard database
         console.log('📦 Initializing database...');
         await initializeFlashcardDB();
+
+        // Initialize Word Bank database
+        console.log('📚 Initializing Word Bank...');
+        const db = await dbManager.initialize();
+        await initializeWordBankDatabase(db);
+
+        // Initialize Reading Sessions table
+        console.log('🎤 Initializing Reading Sessions...');
+        await initializeReadingSessionsTable(db);
 
         // Insert sample flashcards
         console.log('📚 Loading vocabulary...');
@@ -77,23 +89,27 @@ export default function RootLayout() {
 
   // App is ready, show normal navigation
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0A0E1A' }}>
       <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}>
         <Stack
           screenOptions={{
-            headerStyle: {
-              backgroundColor: '#2196F3',
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: '#0A0E1A', // Deep space blue-black (matches design system)
             },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
+            animation: 'slide_from_right',
           }}
         >
-          <Stack.Screen name="index" options={{ title: 'Vox Language' }} />
+          <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="test-cards" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="reading-practice" options={{ headerShown: false }} />
+          <Stack.Screen name="library" options={{ headerShown: false }} />
+          <Stack.Screen name="about-lecture" options={{ headerShown: false }} />
+          <Stack.Screen name="teleprompter" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="recordings" options={{ headerShown: false }} />
+          <Stack.Screen name="completion" options={{ headerShown: false }} />
         </Stack>
       </TamaguiProvider>
     </GestureHandlerRootView>

@@ -12,15 +12,15 @@ export const colors = {
     elevated: '#222845',     // Elevated elements
   },
 
-  // Gradient definitions
+  // Gradient definitions (as const for LinearGradient compatibility)
   gradients: {
-    primary: ['#6366F1', '#8B5CF6'],      // Indigo to purple
-    secondary: ['#06D6A0', '#4ECDC4'],    // Teal to turquoise
-    success: ['#10B981', '#34D399'],      // Green
-    warning: ['#F59E0B', '#FBBF24'],      // Amber
-    error: ['#EF4444', '#F87171'],        // Red
-    accent: ['#EC4899', '#F472B6'],       // Pink
-    dark: ['#1A1F3A', '#0F1729'],         // Dark card gradient
+    primary: ['#6366F1', '#8B5CF6'] as const,      // Indigo to purple
+    secondary: ['#06D6A0', '#4ECDC4'] as const,    // Teal to turquoise
+    success: ['#10B981', '#34D399'] as const,      // Green
+    warning: ['#F59E0B', '#FBBF24'] as const,      // Amber
+    error: ['#EF4444', '#F87171'] as const,        // Red
+    accent: ['#EC4899', '#F472B6'] as const,       // Pink
+    dark: ['#1A1F3A', '#0F1729'] as const,         // Dark card gradient
   },
 
   // Solid colors
@@ -224,3 +224,130 @@ export const haptics = {
   // Error vibration
   error: 'error',
 } as const;
+
+/**
+ * Neomorphism Design System
+ * Purple/Indigo accent to match the app's primary color scheme
+ */
+export const neomorphism = {
+  // Base background - matches app's deep space blue-black
+  background: '#0A0E1A',
+
+  // Accent color - Purple/Indigo (matching primary)
+  accent: '#6366F1',
+  accentLight: '#818CF8',
+  accentGlow: 'rgba(99, 102, 241, 0.5)',
+
+  // Text colors for neomorphic context
+  text: {
+    primary: '#F9FAFB',      // Almost white for primary text
+    secondary: '#9CA3AF',    // Medium gray for secondary text
+    inactive: '#6B7280',     // Darker for disabled/inactive states
+    accent: '#818CF8',       // Light purple for accent text
+  },
+
+  // Shadow configurations for raised (convex) elements
+  raised: {
+    light: {
+      shadowColor: '#1A1F3A',
+      shadowOffset: { width: -4, height: -4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+    },
+    dark: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 4, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+    },
+  },
+
+  // Shadow configurations for pressed (concave/inset) elements
+  pressed: {
+    backgroundColor: '#0F1729',
+    borderColor: '#1A1F3A',
+    innerGlow: 'rgba(99, 102, 241, 0.1)',
+  },
+
+  // Button variants
+  button: {
+    // Primary raised button (purple/indigo)
+    primary: {
+      backgroundColor: '#6366F1',
+      textColor: '#FFFFFF',
+      shadowLight: '#818CF8',
+      shadowDark: '#4F46E5',
+    },
+    // Secondary raised button (dark card)
+    secondary: {
+      backgroundColor: '#1A1F3A',
+      textColor: '#818CF8',
+      shadowLight: '#222845',
+      shadowDark: '#0A0E1A',
+    },
+    // Pressed/inset button
+    pressed: {
+      backgroundColor: '#0F1729',
+      textColor: '#6B7280',
+      borderColor: '#1A1F3A',
+    },
+  },
+
+  // Toggle/Switch
+  toggle: {
+    track: {
+      off: '#1A1F3A',
+      on: '#6366F1',
+    },
+    thumb: '#F9FAFB',
+  },
+
+  // Slider
+  slider: {
+    track: '#1A1F3A',
+    fill: '#6366F1',
+    thumb: '#F9FAFB',
+    thumbBorder: '#6366F1',
+  },
+
+  // Input fields
+  input: {
+    background: '#0F1729',
+    border: '#1A1F3A',
+    placeholder: '#6B7280',
+    text: '#F9FAFB',
+  },
+
+  // Icon buttons (circular)
+  iconButton: {
+    background: '#1A1F3A',
+    iconColor: '#818CF8',
+    iconColorInactive: '#6B7280',
+    size: {
+      sm: 40,
+      md: 48,
+      lg: 56,
+    },
+  },
+
+  // Radio/Checkbox
+  radio: {
+    background: '#1A1F3A',
+    border: '#222845',
+    active: '#6366F1',
+    inactive: '#6B7280',
+  },
+
+  // Card
+  card: {
+    background: '#1A1F3A',
+    border: 'rgba(99, 102, 241, 0.15)',
+  },
+
+  // Gradients
+  gradients: {
+    primary: ['#6366F1', '#8B5CF6'] as const,
+    card: ['#1A1F3A', '#0F1729'] as const,
+    fadeBottom: ['transparent', '#0A0E1A'] as const,
+  },
+};

@@ -1,10 +1,11 @@
 /**
- * Tab Layout - Clean 4-Tab Structure
+ * Tab Layout - 5-Tab Structure
  *
  * Tab 1: Home - Duolingo-style learning path with staircase
- * Tab 2: Practice - Independent tools, games, and exercises
- * Tab 3: Community - Social features and practice with others
- * Tab 4: Profile - User settings, stats, and achievements
+ * Tab 2: Vocabulary - Word Bank with all learned words
+ * Tab 3: Practice - Independent tools, games, and exercises
+ * Tab 4: Community - Social features and practice with others
+ * Tab 5: Profile - User settings, stats, and achievements
  */
 
 import { Tabs } from 'expo-router';
@@ -29,6 +30,13 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 24 }}>🏠</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="vocabulary"
+        options={{
+          title: 'Words',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 24 }}>📚</Text>,
         }}
       />
       <Tabs.Screen

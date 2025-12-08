@@ -32,6 +32,9 @@ export const ENV = {
   // Gemini AI (optional for now)
   GEMINI_API_KEY: getEnvVar('EXPO_PUBLIC_GEMINI_API_KEY', false),
 
+  // OpenAI (optional - for speech-to-text with Whisper)
+  OPENAI_API_KEY: getEnvVar('EXPO_PUBLIC_OPENAI_API_KEY', false),
+
   // Helpers
   get isSupabaseConfigured() {
     return !!(this.SUPABASE_URL && this.SUPABASE_ANON_KEY);
@@ -39,6 +42,10 @@ export const ENV = {
 
   get isGeminiConfigured() {
     return !!this.GEMINI_API_KEY;
+  },
+
+  get isOpenAIConfigured() {
+    return !!this.OPENAI_API_KEY;
   },
 } as const;
 
@@ -66,6 +73,11 @@ export function validateEnvironment(): { valid: boolean; errors: string[] } {
     console.warn('⚠️  EXPO_PUBLIC_GEMINI_API_KEY is not set. AI features will be disabled.');
   }
 
+  // OpenAI is optional, so just warn if not set
+  if (!ENV.OPENAI_API_KEY) {
+    console.warn('⚠️  EXPO_PUBLIC_OPENAI_API_KEY is not set. Speech-to-text features will be disabled.');
+  }
+
   return {
     valid: errors.length === 0,
     errors,
@@ -80,4 +92,5 @@ export function logEnvironmentStatus(): void {
   console.log('  Supabase URL:', ENV.SUPABASE_URL ? '✅ Set' : '❌ Missing');
   console.log('  Supabase Key:', ENV.SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
   console.log('  Gemini API:', ENV.GEMINI_API_KEY ? '✅ Set' : '⚠️  Not set (optional)');
+  console.log('  OpenAI API:', ENV.OPENAI_API_KEY ? '✅ Set' : '⚠️  Not set (optional)');
 }

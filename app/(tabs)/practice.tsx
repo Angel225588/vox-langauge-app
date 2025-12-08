@@ -140,6 +140,37 @@ const CARD_COMPONENTS = [
     bgColor: 'bg-green-50',
     borderColor: 'border-green-200',
   },
+  // NEW: Premium Vocabulary Cards
+  {
+    id: 'vocab-introduction',
+    emoji: '📚',
+    name: 'New Word',
+    time: '1 min',
+    color: ['#8B5CF6', '#A78BFA'],
+    bgColor: 'bg-violet-50',
+    borderColor: 'border-violet-200',
+    isNew: true,
+  },
+  {
+    id: 'vocab-listening',
+    emoji: '🎧',
+    name: 'Listen & Write',
+    time: '2 min',
+    color: ['#06B6D4', '#22D3EE'],
+    bgColor: 'bg-cyan-50',
+    borderColor: 'border-cyan-200',
+    isNew: true,
+  },
+  {
+    id: 'vocab-typing',
+    emoji: '✍️',
+    name: 'Translation',
+    time: '2 min',
+    color: ['#F59E0B', '#FBBF24'],
+    bgColor: 'bg-amber-50',
+    borderColor: 'border-amber-200',
+    isNew: true,
+  },
 ];
 
 export default function PracticeScreen() {
@@ -148,6 +179,10 @@ export default function PracticeScreen() {
   const handleCardPress = (cardId: string) => {
     console.log('[Practice] Testing card:', cardId);
     router.push(`/test-cards?type=${cardId}`);
+  };
+
+  const handleReadingPractice = () => {
+    router.push('/reading-practice');
   };
 
   return (
@@ -166,6 +201,75 @@ export default function PracticeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 16 }}
       >
+        {/* Reading Practice Button */}
+        <Animated.View
+          entering={FadeInDown.duration(400).springify()}
+          style={{ marginBottom: 16 }}
+        >
+          <TouchableOpacity
+            onPress={handleReadingPractice}
+            activeOpacity={0.9}
+            style={{
+              borderRadius: 20,
+              overflow: 'hidden',
+              shadowColor: '#6366F1',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.4,
+              shadowRadius: 12,
+              elevation: 8,
+            }}
+          >
+            <LinearGradient
+              colors={['#6366F1', '#8B5CF6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                padding: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 20,
+              }}
+            >
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 16,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 16,
+                }}
+              >
+                <Text style={{ fontSize: 28 }}>📖</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={{ color: '#F9FAFB', fontSize: 18, fontWeight: '700' }}>
+                    Reading Practice
+                  </Text>
+                  <View
+                    style={{
+                      backgroundColor: '#FF006E',
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: 6,
+                      marginLeft: 8,
+                    }}
+                  >
+                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>NEW</Text>
+                  </View>
+                </View>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: 14 }}>
+                  Teleprompter & pronunciation training
+                </Text>
+              </View>
+              <Text style={{ color: '#F9FAFB', fontSize: 24, fontWeight: '700' }}>→</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
         {/* 2-Column Grid */}
         <View
           style={{

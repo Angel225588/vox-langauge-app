@@ -22,7 +22,12 @@ import {
   QuestionGameCard,
   RolePlayCard,
   ComparisonCard,
+  // NEW: Vocabulary Cards (Premium)
+  IntroductionCard,
+  VocabListeningCard,
+  VocabTypingCard,
 } from '@/components/cards';
+import type { VocabularyItem, VocabCardResult } from '@/components/cards';
 import { colors, spacing, typography } from '@/constants/designSystem';
 
 // Placeholder images
@@ -281,6 +286,229 @@ const CARD_SAMPLES = {
       language: 'en-US',
     },
   ],
+  // NEW: Vocabulary Cards (Premium)
+  'vocab-introduction': [
+    {
+      id: 'vocab-1',
+      word: 'Wait and see',
+      translation: 'Attendre et voir',
+      phonetic: 'weɪt ænd siː',
+      category: 'Expressions',
+      cefrLevel: 'B1',
+      partOfSpeech: 'phrase',
+      masteryScore: 0,
+      priority: 5,
+      timesCorrect: 0,
+      timesIncorrect: 0,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 0,
+      repetitions: 0,
+      cardVariantsCompleted: { introduction: false, listening: false, typing: false },
+      lastVariantShown: null,
+      examples: [
+        { text: "Let's wait and see what happens.", translation: 'Attendons et voyons ce qui se passe.' },
+        { text: 'We should wait and see the results.', translation: 'Nous devrions attendre et voir les résultats.' },
+      ],
+    },
+    {
+      id: 'vocab-2',
+      word: 'Hello',
+      translation: 'Bonjour',
+      phonetic: 'həˈloʊ',
+      category: 'Greeting',
+      cefrLevel: 'A1',
+      partOfSpeech: 'interjection',
+      masteryScore: 0,
+      priority: 5,
+      timesCorrect: 0,
+      timesIncorrect: 0,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 0,
+      repetitions: 0,
+      cardVariantsCompleted: { introduction: false, listening: false, typing: false },
+      lastVariantShown: null,
+      examples: [
+        { text: 'Hello, how are you?', translation: 'Bonjour, comment allez-vous?' },
+        { text: 'Hello there!', translation: 'Bonjour!' },
+      ],
+    },
+    {
+      id: 'vocab-3',
+      word: 'Beautiful',
+      translation: 'Beau / Belle',
+      phonetic: 'ˈbjuː.tɪ.fəl',
+      category: 'Adjectives',
+      cefrLevel: 'A2',
+      partOfSpeech: 'adjective',
+      masteryScore: 0,
+      priority: 5,
+      timesCorrect: 0,
+      timesIncorrect: 0,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 0,
+      repetitions: 0,
+      cardVariantsCompleted: { introduction: false, listening: false, typing: false },
+      lastVariantShown: null,
+      examples: [
+        { text: 'What a beautiful day!', translation: 'Quelle belle journée!' },
+        { text: 'She has a beautiful smile.', translation: 'Elle a un beau sourire.' },
+      ],
+    },
+  ],
+  'vocab-listening': [
+    {
+      id: 'vocab-listen-1',
+      word: 'Apple',
+      translation: 'Pomme',
+      phonetic: 'ˈæp.əl',
+      category: 'Food',
+      cefrLevel: 'A1',
+      partOfSpeech: 'noun',
+      masteryScore: 30,
+      priority: 5,
+      timesCorrect: 2,
+      timesIncorrect: 1,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 1,
+      repetitions: 1,
+      cardVariantsCompleted: { introduction: true, listening: false, typing: false },
+      lastVariantShown: 'introduction',
+      examples: [],
+    },
+    {
+      id: 'vocab-listen-2',
+      word: 'Coffee',
+      translation: 'Café',
+      phonetic: 'ˈkɒf.i',
+      category: 'Drinks',
+      cefrLevel: 'A1',
+      partOfSpeech: 'noun',
+      masteryScore: 40,
+      priority: 5,
+      timesCorrect: 3,
+      timesIncorrect: 1,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 2,
+      repetitions: 2,
+      cardVariantsCompleted: { introduction: true, listening: false, typing: false },
+      lastVariantShown: 'introduction',
+      examples: [],
+    },
+    {
+      id: 'vocab-listen-3',
+      word: 'Book',
+      translation: 'Livre',
+      phonetic: 'bʊk',
+      category: 'Objects',
+      cefrLevel: 'A1',
+      partOfSpeech: 'noun',
+      masteryScore: 50,
+      priority: 5,
+      timesCorrect: 4,
+      timesIncorrect: 1,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 3,
+      repetitions: 3,
+      cardVariantsCompleted: { introduction: true, listening: false, typing: false },
+      lastVariantShown: 'introduction',
+      examples: [],
+    },
+  ],
+  'vocab-typing': [
+    {
+      id: 'vocab-type-1',
+      word: 'Water',
+      translation: 'Eau',
+      phonetic: 'ˈwɔː.tər',
+      category: 'Drinks',
+      cefrLevel: 'A1',
+      partOfSpeech: 'noun',
+      masteryScore: 60,
+      priority: 5,
+      timesCorrect: 5,
+      timesIncorrect: 1,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 5,
+      repetitions: 4,
+      cardVariantsCompleted: { introduction: true, listening: true, typing: false },
+      lastVariantShown: 'listening',
+      examples: [],
+    },
+    {
+      id: 'vocab-type-2',
+      word: 'House',
+      translation: 'Maison',
+      phonetic: 'haʊs',
+      category: 'Places',
+      cefrLevel: 'A1',
+      partOfSpeech: 'noun',
+      masteryScore: 55,
+      priority: 5,
+      timesCorrect: 4,
+      timesIncorrect: 2,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 4,
+      repetitions: 3,
+      cardVariantsCompleted: { introduction: true, listening: true, typing: false },
+      lastVariantShown: 'listening',
+      examples: [],
+    },
+    {
+      id: 'vocab-type-3',
+      word: 'Flower',
+      translation: 'Fleur',
+      phonetic: 'ˈflaʊ.ər',
+      category: 'Nature',
+      cefrLevel: 'A2',
+      partOfSpeech: 'noun',
+      masteryScore: 45,
+      priority: 5,
+      timesCorrect: 3,
+      timesIncorrect: 2,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 3,
+      repetitions: 2,
+      cardVariantsCompleted: { introduction: true, listening: true, typing: false },
+      lastVariantShown: 'listening',
+      examples: [],
+    },
+  ],
 };
 
 export default function TestCardsScreen() {
@@ -320,6 +548,31 @@ export default function TestCardsScreen() {
       case 'role-play': return <RolePlayCard {...currentSample} onComplete={handleNext} />;
       case 'storytelling': return <StorytellingCard {...currentSample} onComplete={handleNext} />;
       case 'comparison': return <ComparisonCard {...currentSample} />;
+      // NEW: Vocabulary Cards (Premium)
+      case 'vocab-introduction':
+        return (
+          <IntroductionCard
+            item={currentSample as VocabularyItem}
+            onComplete={(result: VocabCardResult) => handleNext(result)}
+            onSkip={() => handleNext()}
+          />
+        );
+      case 'vocab-listening':
+        return (
+          <VocabListeningCard
+            item={currentSample as VocabularyItem}
+            onComplete={(result: VocabCardResult) => handleNext(result)}
+            mode="type"
+          />
+        );
+      case 'vocab-typing':
+        return (
+          <VocabTypingCard
+            item={currentSample as VocabularyItem}
+            onComplete={(result: VocabCardResult) => handleNext(result)}
+            onSkip={() => handleNext()}
+          />
+        );
       default:
         return (
           <View style={styles.errorCard}>
@@ -332,41 +585,67 @@ export default function TestCardsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}><Text style={styles.backText}>✕</Text></TouchableOpacity>
-        <View style={styles.headerInfo}>
-          <Text style={styles.title}>{cardType.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</Text>
-          <Text style={styles.subtitle}>Sample {currentIndex + 1} of {samples.length}</Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </View>
-      <View style={styles.progressContainer}>
-        {samples.map((_, index) => (
-          <View key={index} style={[styles.progressDot, index === currentIndex && styles.progressDotActive, index < currentIndex && styles.progressDotCompleted]} />
-        ))}
-      </View>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Minimal close button - floating top left */}
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={styles.closeButton}
+      >
+        <Text style={styles.closeText}>✕</Text>
+      </TouchableOpacity>
+
+      {/* Fullscreen card content */}
+      <View style={styles.cardContainer}>
         {renderCard()}
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background.primary },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border.dark },
-  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: colors.background.elevated },
-  backText: { fontSize: 24, color: colors.text.primary, fontWeight: typography.fontWeight.bold },
-  headerInfo: { flex: 1, alignItems: 'center', gap: spacing.xs },
-  title: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.text.primary, textAlign: 'center' },
-  subtitle: { fontSize: typography.fontSize.sm, color: colors.text.tertiary },
-  progressContainer: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md },
-  progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border.light },
-  progressDotActive: { width: 24, backgroundColor: colors.primary.DEFAULT },
-  progressDotCompleted: { backgroundColor: colors.success.DEFAULT },
-  scrollView: { flex: 1 },
-  content: { padding: spacing.lg, flexGrow: 1 },
-  errorCard: { backgroundColor: colors.background.card, padding: spacing.xxl, borderRadius: 16, alignItems: 'center', gap: spacing.md, borderWidth: 2, borderColor: colors.warning.DEFAULT },
-  errorText: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.text.primary, textAlign: 'center' },
-  errorSubtext: { fontSize: typography.fontSize.base, color: colors.text.tertiary, textAlign: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: colors.background.elevated,
+    zIndex: 10,
+  },
+  closeText: {
+    fontSize: 20,
+    color: colors.text.primary,
+    fontWeight: typography.fontWeight.bold,
+  },
+  cardContainer: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  errorCard: {
+    backgroundColor: colors.background.card,
+    padding: spacing['2xl'],
+    borderRadius: 16,
+    alignItems: 'center',
+    gap: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.warning.DEFAULT,
+  },
+  errorText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+  },
 });

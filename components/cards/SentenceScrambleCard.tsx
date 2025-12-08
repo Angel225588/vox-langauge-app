@@ -1,3 +1,7 @@
+/**
+ * Sentence Scramble Card Component
+ * REFACTORED: Now uses shared UI components for consistency
+ */
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import Animated, {
@@ -9,7 +13,6 @@ import Animated, {
   SlideInDown,
   SlideInUp,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -20,8 +23,9 @@ import {
   typography,
   animation,
 } from '@/constants/designSystem';
-import { LottieSuccess } from '../animations/LottieSuccess';
-import { LottieError } from '../animations/LottieError';
+import { ResultAnimation } from '@/components/ui';
+import { LottieSuccess, LottieError } from '@/components/animations';
+import { useHaptics } from '@/hooks/useHaptics';
 
 // --- CONSTANTS ---
 const WORD_HEIGHT = 50;
@@ -47,6 +51,7 @@ export const SentenceScrambleCard: React.FC<SentenceScrambleCardProps> = ({
   onComplete,
   ...baseCardProps
 }) => {
+  const haptics = useHaptics();
   // State for word bank (available words)
   const [wordBank, setWordBank] = useState<string[]>([]);
   // State for answer area (selected words)
@@ -65,7 +70,7 @@ export const SentenceScrambleCard: React.FC<SentenceScrambleCardProps> = ({
 
   // Move word from bank to answer area
   const handleWordFromBank = (word: string, index: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptics.light();
     const newBank = [...wordBank];
     newBank.splice(index, 1);
     setWordBank(newBank);
@@ -75,7 +80,7 @@ export const SentenceScrambleCard: React.FC<SentenceScrambleCardProps> = ({
 
   // Move word from answer back to bank
   const handleWordFromAnswer = (word: string, index: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptics.light();
     const newAnswer = [...answerWords];
     newAnswer.splice(index, 1);
     setAnswerWords(newAnswer);
@@ -85,7 +90,7 @@ export const SentenceScrambleCard: React.FC<SentenceScrambleCardProps> = ({
 
   // Clear all words back to bank
   const handleClear = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptics.medium();
     setWordBank([...wordBank, ...answerWords]);
     setAnswerWords([]);
     setIsChecked(false);
@@ -102,7 +107,7 @@ export const SentenceScrambleCard: React.FC<SentenceScrambleCardProps> = ({
     setIsCorrect(correct);
 
     if (correct) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
       setShowResultAnimation('success');
       Speech.speak(targetSentence, { language: 'en-US' });
       setTimeout(() => {
@@ -110,7 +115,7 @@ export const SentenceScrambleCard: React.FC<SentenceScrambleCardProps> = ({
         onComplete(true);
       }, 2500);
     } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptics.error();
       setShowResultAnimation('error');
       setTimeout(() => {
         setShowResultAnimation(null);

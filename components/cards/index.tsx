@@ -37,3 +37,24 @@ export { DescribeImageCard } from './DescribeImageCard';
 export { StorytellingCard } from './StorytellingCard';
 export { QuestionGameCard } from './QuestionGameCard';
 export { RolePlayCard } from './RolePlayCard';
+
+// Reading Practice cards
+export { TeleprompterCard } from './TeleprompterCard';
+export type { TeleprompterResults, RecordingState, FontSize, ScrollSpeed } from './TeleprompterCard';
+export { ReadingResultsCard } from './ReadingResultsCard';
+
+// Vocabulary cards (Premium)
+export {
+  VocabCardBase,
+  IntroductionCard,
+  ListeningCard as VocabListeningCard,
+  TypingCard as VocabTypingCard,
+  useVocabCard,
+} from './vocabulary';
+export type {
+  VocabularyItem,
+  VocabCardVariant,
+  VocabCardResult,
+  VocabCardProps,
+  ExampleSentence,
+} from './vocabulary';

@@ -1,13 +1,17 @@
+/**
+ * Storytelling Card Component
+ * REFACTORED: Now uses shared UI components for consistency
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, borderRadius, spacing, shadows, typography } from '@/constants/designSystem';
-import { LottieSuccess } from '../animations/LottieSuccess';
-import { LottieError } from '../animations/LottieError';
+import { ResultAnimation } from '@/components/ui';
+import { LottieSuccess, LottieError } from '@/components/animations';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface StoryImage {
   id: string;
@@ -34,6 +38,7 @@ export const StorytellingCard: React.FC<StorytellingCardProps> = ({
   onComplete,
   ...baseCardProps
 }) => {
+  const haptics = useHaptics();
   const [story, setStory] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [wordCount, setWordCount] = useState(0);
@@ -72,7 +77,7 @@ export const StorytellingCard: React.FC<StorytellingCardProps> = ({
       setIsRecording(true);
       setRecordingDuration(0);
 
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      haptics.heavy();
 
       recordingInterval.current = setInterval(() => {
         setRecordingDuration(prev => prev + 1);
@@ -91,7 +96,7 @@ export const StorytellingCard: React.FC<StorytellingCardProps> = ({
     setIsRecording(false);
     await recording.stopAndUnloadAsync();
     const uri = recording.getURI();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptics.light();
 
     setRecording(null);
 
@@ -129,7 +134,7 @@ export const StorytellingCard: React.FC<StorytellingCardProps> = ({
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptics.medium();
 
     let currentScore = 0;
     const feedback: string[] = [];
@@ -175,10 +180,10 @@ export const StorytellingCard: React.FC<StorytellingCardProps> = ({
     const isSuccess = currentScore > 50; // Simple success threshold for MVP
 
     if (isSuccess) {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
       setShowResultAnimation('success');
     } else {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptics.error();
       setShowResultAnimation('error');
     }
 

@@ -19,22 +19,26 @@
  * Learning Objective: Train listening comprehension and word recognition
  *
  * UX Research: Audio-based learning enhances auditory memory and pronunciation
+ *
+ * REFACTORED: Now uses shared UI components for consistency
  */
 
 import React, { useState, useEffect } from 'react';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, {
-  FadeInDown,
   FadeIn,
   ZoomIn,
   useAnimatedStyle,
   withSpring,
   useSharedValue,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
+
+// NEW: Import shared UI components
+import { DarkOverlay, AnswerOption, AnswerFeedbackOverlay } from '@/components/ui';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface CardProps {
   onNext: (answer?: any) => void;
@@ -46,7 +50,7 @@ interface AudioCardProps extends CardProps {
   audio_url?: string;
   options?: string[];
   correct_answer?: number;
-  explanation?: string; // Listening tip shown when incorrect
+  explanation?: string;
 }
 
 export function AudioCard({
@@ -58,12 +62,15 @@ export function AudioCard({
   explanation,
   onNext,
 }: AudioCardProps) {
+  // NEW: Use haptics hook instead of direct Haptics calls
+  const haptics = useHaptics();
+
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [playbackRate, setPlaybackRate] = useState(1.0); // 1.0 = normal, 0.75 = slow
+  const [playbackRate, setPlaybackRate] = useState(1.0);
   const audioButtonScale = useSharedValue(1);
 
   // Cleanup sound on unmount
@@ -78,21 +85,16 @@ export function AudioCard({
   const handleSelect = (index: number) => {
     const isCorrect = correct_answer === index;
 
+    // NEW: Clean haptic calls
     if (isCorrect) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
     } else {
-      // Strong vibration for wrong answer
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      // Additional heavy impact for emphasis
-      setTimeout(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      }, 100);
+      haptics.doubleError();
     }
 
     setSelectedIndex(index);
     setShowResult(true);
 
-    // Auto-advance for correct, manual Continue for incorrect
     if (isCorrect) {
       setTimeout(() => {
         onNext(index);
@@ -103,19 +105,17 @@ export function AudioCard({
   };
 
   const handleContinue = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onNext(selectedIndex);
     setSelectedIndex(null);
     setShowResult(false);
   };
 
   const handlePlayAudio = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptics.light();
     audioButtonScale.value = withSpring(0.9, {}, () => {
       audioButtonScale.value = withSpring(1);
     });
 
-    // If already playing, stop it
     if (isPlaying && sound) {
       await sound.stopAsync();
       setIsPlaying(false);
@@ -124,12 +124,10 @@ export function AudioCard({
 
     setIsPlaying(true);
 
-    // If audio_url is provided, use expo-av
     if (audio_url) {
       try {
         setIsLoading(true);
 
-        // Unload previous sound if exists
         if (sound) {
           await sound.unloadAsync();
         }
@@ -151,7 +149,6 @@ export function AudioCard({
         setIsLoading(false);
         setIsPlaying(false);
 
-        // Fallback to TTS if audio fails
         if (word) {
           Speech.speak(word, {
             onDone: () => setIsPlaying(false),
@@ -160,7 +157,6 @@ export function AudioCard({
         }
       }
     } else if (word) {
-      // Fallback to expo-speech if no audio_url
       Speech.speak(word, {
         onDone: () => setIsPlaying(false),
         onError: () => setIsPlaying(false),
@@ -170,260 +166,161 @@ export function AudioCard({
     }
   };
 
-  const audioButtonStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: audioButtonScale.value }],
-    };
-  });
+  const audioButtonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: audioButtonScale.value }],
+  }));
 
   const showWrongAnswer = showResult && selectedIndex !== correct_answer;
 
+  // NEW: Helper function to determine option state
+  const getOptionState = (index: number) => {
+    if (!showResult) return 'default';
+    if (correct_answer === index) return 'correct';
+    if (selectedIndex === index) return 'wrong';
+    return 'default';
+  };
+
   return (
-    <View style={{ flex: 1 }}>
-      <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: spacing.lg }}>
-      <Animated.View
-        entering={ZoomIn.duration(500).springify()}
-        style={{
-          alignSelf: 'center',
-          marginBottom: spacing['2xl'],
-        }}
-      >
-        <Animated.View style={audioButtonStyle}>
-          <TouchableOpacity
-          onPress={handlePlayAudio}
-          activeOpacity={0.8}
-          disabled={isLoading}
-          style={{
-            width: 120,
-            height: 120,
-            borderRadius: borderRadius.full,
-            backgroundColor: isPlaying ? colors.success.DEFAULT : colors.primary.DEFAULT,
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: isPlaying ? colors.success.DEFAULT : colors.primary.DEFAULT,
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.4,
-            shadowRadius: 16,
-            elevation: 8,
-            opacity: isLoading ? 0.6 : 1,
-          }}
-        >
-          <Text style={{ fontSize: 48 }}>
-            {isLoading ? '⏳' : isPlaying ? '🔊' : '🔉'}
-          </Text>
-        </TouchableOpacity>
-        </Animated.View>
-      </Animated.View>
-
-      {/* Speed Toggle Button - Aligned to right */}
-      <Animated.View entering={FadeIn.duration(400).delay(350)}>
-        <TouchableOpacity
-          onPress={() => setPlaybackRate(playbackRate === 1.0 ? 0.75 : 1.0)}
-          activeOpacity={0.8}
-          style={{
-            alignSelf: 'flex-end',
-            marginTop: spacing.md,
-            marginBottom: spacing.lg,
-            marginRight: spacing.lg,
-            paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.sm,
-            borderRadius: borderRadius.full,
-            backgroundColor: playbackRate === 0.75 ? colors.accent.purple : colors.background.elevated,
-            borderWidth: 1,
-            borderColor: colors.border.light,
-          }}
-        >
-          <Text style={{
-            fontSize: typography.fontSize.sm,
-            color: playbackRate === 0.75 ? colors.text.primary : colors.text.secondary,
-            fontWeight: playbackRate === 0.75 ? typography.fontWeight.semibold : typography.fontWeight.normal,
-          }}>
-            🐌 Slow Speed {playbackRate === 0.75 ? '(Active)' : ''}
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
-
-      <Animated.Text
-        entering={FadeIn.duration(400).delay(300)}
-        style={{
-          fontSize: typography.fontSize.xl,
-          fontWeight: typography.fontWeight.bold,
-          color: colors.text.primary,
-          textAlign: 'center',
-          marginBottom: spacing.xl,
-        }}
-      >
-        What did you hear?
-      </Animated.Text>
-
-      {options?.map((option, index) => {
-        const isSelected = selectedIndex === index;
-        const isCorrect = correct_answer === index;
-        const showAsCorrect = showResult && isCorrect;
-        const showAsWrong = showResult && isSelected && !isCorrect;
-
-        return (
-          <Animated.View
-            key={index}
-            entering={FadeInDown.duration(400).delay(100 * (index + 1) + 400).springify()}
-          >
-            <TouchableOpacity
-              onPress={() => !showResult && handleSelect(index)}
-              disabled={showResult}
-              activeOpacity={0.8}
-              style={{
-                backgroundColor: showAsCorrect
-                  ? colors.success.DEFAULT
-                  : showAsWrong
-                    ? colors.error.DEFAULT
-                    : colors.background.card,
-                paddingVertical: spacing.lg,
-                paddingHorizontal: spacing.xl,
-                borderRadius: borderRadius.xl,
-                marginBottom: spacing.md,
-                borderWidth: 2,
-                borderColor: showAsCorrect || showAsWrong
-                  ? 'transparent'
-                  : colors.border.light,
-                shadowColor: showAsCorrect
-                  ? colors.success.DEFAULT
-                  : showAsWrong
-                    ? colors.error.DEFAULT
-                    : '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: showAsCorrect || showAsWrong ? 0.4 : 0.1,
-                shadowRadius: 4,
-                elevation: showAsCorrect || showAsWrong ? 4 : 2,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}>
-                {showAsCorrect && <Text style={{ fontSize: 20 }}>✓</Text>}
-                {showAsWrong && <Text style={{ fontSize: 20 }}>✗</Text>}
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.semibold,
-                    color: colors.text.primary,
-                    textAlign: 'center',
-                  }}
-                >
-                  {option}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </Animated.View>
-        );
-      })}
-      </View>
-
-      {/* Blur overlay when wrong answer is shown */}
-      {showWrongAnswer && (
+    <View style={styles.container}>
+      <View style={styles.content}>
+        {/* Audio Play Button */}
         <Animated.View
-          entering={FadeIn.duration(300)}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-          }}
-          pointerEvents="none"
-        />
-      )}
-
-      {/* Bottom section with Listening Tip and Continue - Fixed at bottom */}
-      {showWrongAnswer && (
-        <Animated.View
-          entering={FadeIn.duration(400).delay(200)}
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-          }}
+          entering={ZoomIn.duration(500).springify()}
+          style={styles.audioButtonContainer}
         >
-          {/* Unified card container */}
-          <View
-            style={{
-              marginHorizontal: spacing.lg,
-              backgroundColor: '#2D1B1E',
-              borderRadius: borderRadius.xl,
-              borderLeftWidth: 4,
-              borderLeftColor: colors.error.DEFAULT,
-              overflow: 'hidden',
-            }}
-          >
-            {/* Listening Tip */}
-            {explanation && (
-              <View
-                style={{
-                  padding: spacing.lg,
-                  paddingBottom: spacing.md,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.md,
-                    fontWeight: typography.fontWeight.bold,
-                    color: colors.error.light,
-                    marginBottom: spacing.sm,
-                  }}
-                >
-                  Listening Tip
-                </Text>
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.lg,
-                    color: colors.text.primary,
-                    lineHeight: 26,
-                  }}
-                >
-                  {explanation}
-                </Text>
-              </View>
-            )}
-
-            {/* Continue Button */}
-            <View
-              style={{
-                paddingHorizontal: spacing.lg,
-                paddingTop: explanation ? 0 : spacing.lg,
-                paddingBottom: spacing.xl,
-              }}
-            >
+          <Animated.View style={audioButtonStyle}>
             <TouchableOpacity
-              onPress={handleContinue}
+              onPress={handlePlayAudio}
               activeOpacity={0.8}
-              style={{
-                backgroundColor: colors.error.DEFAULT,
-                borderWidth: 2,
-                borderColor: colors.error.light,
-                paddingVertical: spacing.lg,
-                paddingHorizontal: spacing['2xl'],
-                borderRadius: borderRadius.xl,
-                shadowColor: colors.error.DEFAULT,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.4,
-                shadowRadius: 8,
-                elevation: 4,
-              }}
+              disabled={isLoading}
+              style={[
+                styles.audioButton,
+                {
+                  backgroundColor: isPlaying ? colors.success.DEFAULT : colors.primary.DEFAULT,
+                  shadowColor: isPlaying ? colors.success.DEFAULT : colors.primary.DEFAULT,
+                  opacity: isLoading ? 0.6 : 1,
+                },
+              ]}
             >
-              <Text
-                style={{
-                  fontSize: typography.fontSize.lg,
-                  fontWeight: typography.fontWeight.bold,
-                  color: colors.text.primary,
-                  textAlign: 'center',
-                }}
-              >
-                Continue
+              <Text style={styles.audioIcon}>
+                {isLoading ? '⏳' : isPlaying ? '🔊' : '🔉'}
               </Text>
             </TouchableOpacity>
-            </View>
-          </View>
+          </Animated.View>
         </Animated.View>
-      )}
+
+        {/* Speed Toggle */}
+        <Animated.View entering={FadeIn.duration(400).delay(350)}>
+          <TouchableOpacity
+            onPress={() => setPlaybackRate(playbackRate === 1.0 ? 0.75 : 1.0)}
+            activeOpacity={0.8}
+            style={[
+              styles.speedToggle,
+              playbackRate === 0.75 && styles.speedToggleActive,
+            ]}
+          >
+            <Text style={[
+              styles.speedToggleText,
+              playbackRate === 0.75 && styles.speedToggleTextActive,
+            ]}>
+              🐌 Slow Speed {playbackRate === 0.75 ? '(Active)' : ''}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Question */}
+        <Animated.Text
+          entering={FadeIn.duration(400).delay(300)}
+          style={styles.question}
+        >
+          What did you hear?
+        </Animated.Text>
+
+        {/* NEW: Using AnswerOption component instead of inline TouchableOpacity */}
+        {options?.map((option, index) => (
+          <AnswerOption
+            key={index}
+            text={option}
+            onPress={() => handleSelect(index)}
+            disabled={showResult}
+            state={getOptionState(index)}
+            entranceDelay={100 * (index + 1) + 400}
+            hapticFeedback={false} // We handle haptics in handleSelect
+          />
+        ))}
+      </View>
+
+      {/* NEW: Using DarkOverlay component */}
+      <DarkOverlay visible={showWrongAnswer} />
+
+      {/* NEW: Using AnswerFeedbackOverlay component */}
+      <AnswerFeedbackOverlay
+        visible={showWrongAnswer}
+        title="Listening Tip"
+        explanation={explanation}
+        onContinue={handleContinue}
+      />
     </View>
   );
 }
+
+// NEW: Extracted styles for cleaner code
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  audioButtonContainer: {
+    alignSelf: 'center',
+    marginBottom: spacing['2xl'],
+  },
+  audioButton: {
+    width: 120,
+    height: 120,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  audioIcon: {
+    fontSize: 48,
+  },
+  speedToggle: {
+    alignSelf: 'flex-end',
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+    marginRight: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background.elevated,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  speedToggleActive: {
+    backgroundColor: colors.accent.purple,
+  },
+  speedToggleText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontWeight: typography.fontWeight.normal,
+  },
+  speedToggleTextActive: {
+    color: colors.text.primary,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  question: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+});

@@ -4,6 +4,49 @@
 **Primary Device:** iPhone with notch/Dynamic Island support
 **Safe Area:** Always account for iOS safe areas (notch, home indicator, dock)
 
+---
+
+## 🎯 CRITICAL: Project Management Documents
+
+**ALWAYS READ THESE BEFORE STARTING ANY WORK SESSION:**
+
+| Document | Purpose | Priority |
+|----------|---------|----------|
+| **[VOX_MASTER_FEATURES.md](./VOX_MASTER_FEATURES.md)** | Complete feature inventory from user research | 🔴 CRITICAL |
+| **[VOX_PRIORITY_MATRIX.md](./VOX_PRIORITY_MATRIX.md)** | Prioritized roadmap with P0-P3 features | 🔴 CRITICAL |
+| **[VOX_FEATURE_SPECS.md](./VOX_FEATURE_SPECS.md)** | Technical specifications for implementation | 🟡 REFERENCE |
+| **[PROJECT_STATUS.md](./PROJECT_STATUS.md)** | Current phase and sprint status | 🟡 REFERENCE |
+
+### Quick Reference: Current Priorities
+
+**Target User**: "Frustrated Intermediate" learners (used Duolingo 6+ months, hit plateau)
+
+**P0 (Current Sprint)**:
+1. 3-Card Flashcard Cycle
+2. SM-2 Spaced Repetition ✅
+3. Tap-to-Match Game
+4. Multiple Choice Game
+5. Points System
+6. Session Flow (10/20 min)
+
+**P1 (MVP Launch Differentiators)**:
+1. Grammar Explanation System (9.2/10 priority)
+2. Word Detail Popups (9.0/10)
+3. AI Conversation Partner (9.5/10)
+4. Vocabulary Dashboard (8.5/10)
+5. Writing Practice Module (8.0/10)
+6. Optional Gamification Toggles (8.5/10)
+
+### Key Research Insights
+
+- **Grammar gaps** = Duolingo's #1 weakness we must solve
+- **AI conversation with 5-10s hint delay** = Highest user demand
+- **Optional gamification** = 40% of users hate streaks/badges
+- **Vocabulary transparency** = Users want to see all learned words
+- **Offline-first** = Critical for retention
+
+---
+
 ## Vision
 
 Vox Language is a mobile language learning application that creates a **safe space for learners to practice through trials, not perfection**. We reward practice attempts and effort rather than accuracy, fostering a supportive community where making mistakes is part of the learning process.

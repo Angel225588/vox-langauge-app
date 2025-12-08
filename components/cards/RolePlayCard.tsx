@@ -1,12 +1,16 @@
+/**
+ * Role Play Card Component
+ * REFACTORED: Now uses shared UI components for consistency
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, borderRadius, spacing, shadows, typography } from '@/constants/designSystem';
-import { LottieSuccess } from '../animations/LottieSuccess';
-import { LottieError } from '../animations/LottieError';
+import { ResultAnimation } from '@/components/ui';
+import { LottieSuccess, LottieError } from '@/components/animations';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface RolePlayCardProps {
   scenario: {
@@ -186,6 +190,7 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
   ...baseCardProps
 }) => {
   const script = CONVERSATION_SCRIPTS[scriptId];
+  const haptics = useHaptics();
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [turnsTaken, setTurnsTaken] = useState(0);
@@ -218,7 +223,7 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
     const selectedOption = currentDialogue.userOptions[optionIndex];
     if (!selectedOption) return;
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptics.light();
 
     // Add user's message to history
     setMessages(prev => [...prev, { id: `user_${turnsTaken}`, sender: 'user', text: selectedOption.text }]);
@@ -250,10 +255,10 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
     onComplete(finalSuccess, turnsTaken);
 
     if (finalSuccess) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
       setShowResultAnimation('success');
     } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptics.error();
       setShowResultAnimation('error');
     }
 
