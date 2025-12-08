@@ -33,7 +33,6 @@ import {
   Dimensions,
   StatusBar,
   LayoutChangeEvent,
-  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -81,13 +80,6 @@ interface TeleprompterCardProps {
   onBack?: () => void;
 }
 
-// Line measurement for accurate scroll calculations
-interface LineMeasurement {
-  index: number;
-  height: number;
-  cumulativeTop: number;
-}
-
 // Speed configurations (no emojis)
 const SPEED_CONFIGS = [
   { label: '0.5x', wpm: 80 },
@@ -121,9 +113,8 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
 
-  // Line measurement state for accurate scroll calculations
-  const [lineMeasurements, setLineMeasurements] = useState<LineMeasurement[]>([]);
-  const [isMeasured, setIsMeasured] = useState(false);
+  // Actual measured content height (updated after layout)
+  const [actualContentHeight, setActualContentHeight] = useState(0);
 
   // Refs
   const scrollAnimationRef = useRef<number | null>(null);
@@ -138,6 +129,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
   const controlsOpacity = useSharedValue(1);
   const progressWidth = useSharedValue(0);
   const isManualScrolling = useSharedValue(false);
+  const maxScrollShared = useSharedValue(0);
 
   // Typography
   const fontSize = 28;
@@ -154,94 +146,45 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     passage.text.split(/\s+/).filter(w => w.trim().length > 0).length,
     [passage.text]
   );
-  const totalContentHeight = totalLines * totalLineHeight;
 
-  // Handle layout measurement for each line
-  const handleLineLayout = useCallback((index: number, event: LayoutChangeEvent) => {
+  // Estimate total content height (paragraphs * estimated height per paragraph)
+  // We estimate each paragraph may wrap to ~2 lines on average
+  const estimatedContentHeight = useMemo(() => {
+    // Estimate chars per visual line based on screen width and font size
+    const charsPerLine = Math.floor(SCREEN_WIDTH / (fontSize * 0.55));
+    let totalHeight = 0;
+
+    lines.forEach(line => {
+      // Estimate how many visual lines this paragraph will wrap to
+      const visualLines = Math.max(1, Math.ceil(line.length / charsPerLine));
+      // First line gets full spacing, additional wrapped lines just get lineHeight
+      totalHeight += totalLineHeight + (visualLines - 1) * lineHeight;
+    });
+
+    return totalHeight;
+  }, [lines, fontSize, totalLineHeight, lineHeight]);
+
+  // Use actual measured height if available, otherwise use estimate
+  const totalContentHeight = actualContentHeight > 0 ? actualContentHeight : estimatedContentHeight;
+
+  // Handle content layout to get actual height
+  const handleContentLayout = useCallback((event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout;
+    if (height > 0 && Math.abs(height - actualContentHeight) > 10) {
+      setActualContentHeight(height);
+    }
+  }, [actualContentHeight]);
 
-    setLineMeasurements(prev => {
-      // Only update if height changed significantly (avoid minor re-layouts)
-      if (prev[index]?.height === height) return prev;
+  // Calculate max scroll - allow scrolling until last line reaches reading zone
+  const maxScroll = useMemo(() => {
+    // maxScroll = total content height - one line height (so last line reaches top)
+    return Math.max(0, totalContentHeight - totalLineHeight);
+  }, [totalContentHeight, totalLineHeight]);
 
-      const updated = [...prev];
-      updated[index] = { index, height, cumulativeTop: 0 };
-      return updated;
-    });
-  }, []);
-
-  // Calculate cumulative heights once all lines are measured
+  // Sync maxScroll to shared value for worklet access
   useEffect(() => {
-    // Wait until we have measurements for all lines
-    if (lineMeasurements.length !== totalLines) return;
-
-    // Check that all measurements are valid
-    const allMeasured = lineMeasurements.every((m, i) =>
-      m !== undefined && m.height > 0 && m.index === i
-    );
-
-    if (!allMeasured) return;
-
-    // Calculate cumulative tops
-    let runningTotal = 0;
-    const withCumulativeTops = lineMeasurements.map((m) => {
-      const result = { ...m, cumulativeTop: runningTotal };
-      runningTotal += m.height;
-      return result;
-    });
-
-    // Only update if cumulative tops have changed
-    const needsUpdate = withCumulativeTops.some((m, i) =>
-      m.cumulativeTop !== lineMeasurements[i]?.cumulativeTop
-    );
-
-    if (needsUpdate) {
-      setLineMeasurements(withCumulativeTops);
-      setIsMeasured(true);
-    } else if (!isMeasured) {
-      setIsMeasured(true);
-    }
-  }, [lineMeasurements.length, totalLines, isMeasured]);
-
-  // Compute accurate maxScroll based on measurements
-  const measuredMaxScroll = useMemo(() => {
-    if (!isMeasured || lineMeasurements.length === 0) {
-      // Fallback to estimate while measuring
-      return Math.max(0, (totalLines - 1) * totalLineHeight);
-    }
-
-    // maxScroll should position the LAST line at the reading zone
-    const lastLine = lineMeasurements[lineMeasurements.length - 1];
-    return lastLine ? lastLine.cumulativeTop : 0;
-  }, [isMeasured, lineMeasurements, totalLines, totalLineHeight]);
-
-  // Binary search to find current line from scroll position
-  const findCurrentLineIndex = useCallback((scrollPosition: number): number => {
-    if (!isMeasured || lineMeasurements.length === 0) {
-      // Fallback to simple division while not measured
-      return Math.max(0, Math.min(
-        Math.floor(scrollPosition / totalLineHeight),
-        totalLines - 1
-      ));
-    }
-
-    // Binary search for the line whose cumulative range contains scrollPosition
-    let low = 0;
-    let high = lineMeasurements.length - 1;
-
-    while (low < high) {
-      const mid = Math.floor((low + high + 1) / 2);
-      const measurement = lineMeasurements[mid];
-
-      if (measurement.cumulativeTop <= scrollPosition) {
-        low = mid;
-      } else {
-        high = mid - 1;
-      }
-    }
-
-    return Math.max(0, Math.min(low, lineMeasurements.length - 1));
-  }, [isMeasured, lineMeasurements, totalLineHeight, totalLines]);
+    maxScrollShared.value = maxScroll;
+  }, [maxScroll]);
 
   // Calculate scroll speed based on WPM
   const getScrollSpeed = useCallback(() => {
@@ -285,8 +228,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
       cancelAnimationFrame(scrollAnimationRef.current);
     }
 
-    // Use measured maxScroll for accurate scrolling
-    const targetMaxScroll = measuredMaxScroll;
+    const targetMaxScroll = maxScroll;
     let lastTime = performance.now();
 
     const animate = (currentTime: number) => {
@@ -298,8 +240,9 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
       const pixelsPerSecond = getScrollSpeed();
       const newScrollY = scrollY.value + (pixelsPerSecond * deltaTime);
 
-      // Update progress based on measured max
-      progressWidth.value = Math.min(100, (newScrollY / targetMaxScroll) * 100);
+      // Update progress - handle division by zero
+      const progress = targetMaxScroll > 0 ? (newScrollY / targetMaxScroll) * 100 : 0;
+      progressWidth.value = Math.min(100, progress);
 
       if (newScrollY >= targetMaxScroll) {
         scrollY.value = targetMaxScroll;
@@ -308,7 +251,6 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
         // Add delay before finishing to let user read the last line
         if (!hasReachedEnd.current) {
           hasReachedEnd.current = true;
-          // Calculate delay based on last line word count (3-6 seconds)
           const lastLineWords = lines[lines.length - 1]?.split(/\s+/).length || 5;
           const wpm = SPEED_CONFIGS[speedIndex].wpm;
           const readingTime = (lastLineWords / wpm) * 60 * 1000;
@@ -327,7 +269,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     };
 
     scrollAnimationRef.current = requestAnimationFrame(animate);
-  }, [getScrollSpeed, measuredMaxScroll, isPlaying, scrollY, progressWidth, manualScrollOffset, lines]);
+  }, [getScrollSpeed, maxScroll, isPlaying, scrollY, progressWidth, manualScrollOffset, lines, speedIndex]);
 
   const stopSmoothScroll = useCallback(() => {
     if (scrollAnimationRef.current) {
@@ -336,17 +278,22 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     }
   }, []);
 
-  // Track current line using measured positions
+  // Track current line based on scroll position
+  const updateCurrentLine = useCallback((scroll: number) => {
+    // Simple calculation: which paragraph are we at based on scroll position
+    // This is an approximation since paragraphs have variable heights
+    const lineIndex = Math.floor(scroll / totalLineHeight);
+    const clampedIndex = Math.max(0, Math.min(lineIndex, totalLines - 1));
+    setCurrentLineIndex(clampedIndex);
+  }, [totalLineHeight, totalLines]);
+
+  // Track current line using animated reaction
   useAnimatedReaction(
     () => scrollY.value,
     (currentScroll) => {
-      // Use runOnJS to call findCurrentLineIndex which reads React state
-      runOnJS((scroll: number) => {
-        const lineIndex = findCurrentLineIndex(scroll);
-        setCurrentLineIndex(lineIndex);
-      })(currentScroll);
+      runOnJS(updateCurrentLine)(currentScroll);
     },
-    [findCurrentLineIndex]
+    []
   );
 
   // Handle play/pause/start
@@ -381,40 +328,36 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     };
   }, []);
 
-  // Pan gesture for manual scrolling - uses measured maxScroll
+  // Pan gesture for manual scrolling
   const panStartOffset = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
+      'worklet';
       isManualScrolling.value = true;
-      // Store the current scroll position when pan starts
       panStartOffset.value = scrollY.value;
     })
     .onUpdate((event) => {
-      // translationY is cumulative from gesture start
-      // Drag up (negative translationY) = scroll down in content (positive offset)
+      'worklet';
       const newOffset = panStartOffset.value - event.translationY;
-      // Clamp between 0 and measuredMaxScroll
-      manualScrollOffset.value = Math.max(0, Math.min(measuredMaxScroll, newOffset));
+      manualScrollOffset.value = Math.max(0, Math.min(maxScrollShared.value, newOffset));
     })
     .onEnd(() => {
+      'worklet';
       isManualScrolling.value = false;
-      // Sync manual offset back to scrollY for seamless auto-scroll resume
       scrollY.value = manualScrollOffset.value;
     });
 
   const tapGesture = Gesture.Tap()
     .onEnd(() => {
-      if (hasStarted) {
-        runOnJS(toggleControls)();
-      }
+      'worklet';
+      runOnJS(toggleControls)();
     });
 
   const composedGesture = Gesture.Simultaneous(panGesture, tapGesture);
 
   // Animated styles
   const contentAnimatedStyle = useAnimatedStyle(() => {
-    // Use manual offset when manually scrolling, otherwise use auto scrollY
     const currentScroll = isManualScrolling.value ? manualScrollOffset.value : scrollY.value;
     return {
       transform: [{ translateY: -currentScroll }],
@@ -518,10 +461,8 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     if (isCurrentLine) {
       opacity = 1;
     } else if (isPastLine) {
-      // Past lines stay moderately visible (can glance back)
       opacity = distance === 1 ? 0.5 : 0.35;
     } else if (isFutureLine) {
-      // Future lines fade progressively toward bottom
       if (distance === 1) {
         opacity = 0.6;
       } else if (distance === 2) {
@@ -534,9 +475,8 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     }
 
     return (
-      <Animated.View
+      <View
         key={lineIndex}
-        onLayout={(e) => handleLineLayout(lineIndex, e)}
         style={[
           styles.lineContainer,
           { minHeight: totalLineHeight },
@@ -565,9 +505,9 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
             style={styles.lineGlow}
           />
         )}
-      </Animated.View>
+      </View>
     );
-  }, [currentLineIndex, fontSize, lineHeight, totalLineHeight, handleLineLayout]);
+  }, [currentLineIndex, fontSize, lineHeight, totalLineHeight]);
 
   return (
     <View style={styles.container}>
@@ -611,9 +551,12 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
               {/* Top padding */}
               <View style={{ height: READING_ZONE_TOP }} />
 
-              {lines.map((line, index) => renderLine(line, index))}
+              {/* Content wrapper for measuring actual height */}
+              <View onLayout={handleContentLayout}>
+                {lines.map((line, index) => renderLine(line, index))}
+              </View>
 
-              {/* Bottom padding */}
+              {/* Bottom padding - extra space to allow last line to scroll to reading zone */}
               <View style={{ height: SCREEN_HEIGHT }} />
             </Animated.View>
           </View>
@@ -693,8 +636,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
               <TouchableOpacity
                 onPress={handleStart}
                 activeOpacity={0.9}
-                disabled={!isMeasured}
-                style={[styles.startButton, !isMeasured && styles.startButtonDisabled]}
+                style={styles.startButton}
               >
                 <LinearGradient
                   colors={mode === 'record' ? ['#EF4444', '#DC2626'] : colors.gradients.primary}
@@ -702,22 +644,16 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
                   end={{ x: 1, y: 0 }}
                   style={styles.startButtonGradient}
                 >
-                  {!isMeasured ? (
-                    <ActivityIndicator size="small" color={colors.text.primary} />
-                  ) : (
-                    <>
-                      <View style={styles.startButtonIcon}>
-                        {mode === 'record' ? (
-                          <View style={styles.recordIcon} />
-                        ) : (
-                          <View style={styles.playIcon} />
-                        )}
-                      </View>
-                      <Text style={styles.startButtonText}>
-                        {mode === 'record' ? 'Start Recording' : 'Start Reading'}
-                      </Text>
-                    </>
-                  )}
+                  <View style={styles.startButtonIcon}>
+                    {mode === 'record' ? (
+                      <View style={styles.recordIcon} />
+                    ) : (
+                      <View style={styles.playIcon} />
+                    )}
+                  </View>
+                  <Text style={styles.startButtonText}>
+                    {mode === 'record' ? 'Start Recording' : 'Start Reading'}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
             </Animated.View>
@@ -759,7 +695,6 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
               {/* Speed control - tap to cycle through speeds */}
               <TouchableOpacity
                 onPress={() => {
-                  // Cycle to next speed
                   const nextIndex = (speedIndex + 1) % SPEED_CONFIGS.length;
                   handleSpeedChange(nextIndex);
                 }}
@@ -949,9 +884,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 8,
-  },
-  startButtonDisabled: {
-    opacity: 0.6,
   },
   startButtonGradient: {
     flexDirection: 'row',

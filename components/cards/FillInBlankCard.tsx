@@ -2,27 +2,22 @@
  * Fill In Blank Card Component
  *
  * Grammar-in-context exercise where users select the correct word to complete a sentence.
+ * Button fixed at bottom.
  *
  * Features:
  * - Displays sentence with [BLANK] placeholder
  * - Shows selected word inline in the sentence
  * - Multiple choice options
  * - Grammar explanation when incorrect
- * - Dual highlighting (correct in green, incorrect in red)
  * - Visual feedback and haptic responses
- * - Auto-advances after selection (1.5s delay)
- *
- * Learning Objective: Reinforce grammar in authentic sentence context
- *
- * REFACTORED: Now uses shared UI components for consistency
+ * - Fixed button at bottom
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
-
-// Shared UI components
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
 import { DarkOverlay, AnswerOption, AnswerFeedbackOverlay } from '@/components/ui';
 import { useHaptics } from '@/hooks/useHaptics';
 
@@ -46,7 +41,13 @@ export function FillInBlankCard({
   const [showResult, setShowResult] = useState(false);
 
   const handleSelect = (index: number) => {
-    const isCorrect = correct_answer === index;
+    setSelectedIndex(index);
+  };
+
+  const handleConfirm = () => {
+    if (selectedIndex === null) return;
+
+    const isCorrect = correct_answer === selectedIndex;
 
     if (isCorrect) {
       haptics.success();
@@ -54,7 +55,6 @@ export function FillInBlankCard({
       haptics.doubleError();
     }
 
-    setSelectedIndex(index);
     setShowResult(true);
 
     if (isCorrect) {
@@ -77,13 +77,14 @@ export function FillInBlankCard({
   const showWrongAnswer = showResult && selectedIndex !== correct_answer;
 
   const getOptionState = (index: number) => {
-    if (!showResult) return 'default';
+    if (!showResult) {
+      return selectedIndex === index ? 'selected' : 'default';
+    }
     if (correct_answer === index) return 'correct';
     if (selectedIndex === index) return 'wrong';
     return 'default';
   };
 
-  // Determine the color for the selected word
   const getSelectedWordColor = () => {
     if (!showResult) return colors.accent.purple;
     return correct_answer === selectedIndex ? colors.success.DEFAULT : colors.error.DEFAULT;
@@ -93,7 +94,8 @@ export function FillInBlankCard({
     <View style={styles.container}>
       <DarkOverlay visible={showWrongAnswer} zIndex={1} />
 
-      <View style={[styles.content, showWrongAnswer && styles.contentDimmed]}>
+      {/* Content Area */}
+      <View style={[styles.contentArea, showWrongAnswer && styles.contentDimmed]}>
         {/* Header */}
         <Animated.Text
           entering={FadeInDown.duration(400)}
@@ -121,24 +123,67 @@ export function FillInBlankCard({
         </Animated.View>
 
         {/* Options */}
-        {options.map((option, index) => (
-          <AnswerOption
-            key={index}
-            text={option}
-            onPress={() => handleSelect(index)}
-            disabled={showResult}
-            state={getOptionState(index)}
-            entranceDelay={100 * (index + 1) + 300}
-            hapticFeedback={false}
-          />
-        ))}
+        <View style={styles.optionsContainer}>
+          {options.map((option, index) => (
+            <AnswerOption
+              key={index}
+              text={option}
+              onPress={() => handleSelect(index)}
+              disabled={showResult}
+              state={getOptionState(index)}
+              entranceDelay={100 * (index + 1) + 300}
+              hapticFeedback={true}
+            />
+          ))}
+        </View>
+      </View>
+
+      {/* Fixed Bottom Button */}
+      <View style={styles.bottomActions}>
+        {!showWrongAnswer && (
+          <TouchableOpacity
+            onPress={handleConfirm}
+            disabled={selectedIndex === null || (showResult && selectedIndex === correct_answer)}
+            activeOpacity={0.8}
+            style={[
+              styles.confirmButton,
+              (selectedIndex === null || (showResult && selectedIndex === correct_answer)) &&
+                styles.confirmButtonDisabled,
+            ]}
+          >
+            <LinearGradient
+              colors={
+                selectedIndex === null || (showResult && selectedIndex === correct_answer)
+                  ? [colors.background.elevated, colors.background.card]
+                  : colors.gradients.primary
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.confirmButtonGradient}
+            >
+              {showResult && selectedIndex === correct_answer && (
+                <Text style={styles.checkIcon}>✓</Text>
+              )}
+              <Text
+                style={[
+                  styles.confirmButtonText,
+                  (selectedIndex === null || (showResult && selectedIndex === correct_answer)) &&
+                    styles.confirmButtonTextDisabled,
+                ]}
+              >
+                {showResult && selectedIndex === correct_answer ? 'Correct!' : 'Confirm'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Feedback overlay */}
       <AnswerFeedbackOverlay
         visible={showWrongAnswer}
         title="Grammar Tip"
-        explanation={explanation}
+        explanation={explanation || `The correct answer is "${options[correct_answer]}"`}
+        correctAnswer={options[correct_answer]}
         onContinue={handleContinue}
       />
     </View>
@@ -149,9 +194,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  contentArea: {
     flex: 1,
     justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
   },
   contentDimmed: {
     opacity: 0.5,
@@ -161,18 +207,16 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
     textAlign: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   sentenceCard: {
     backgroundColor: colors.background.card,
     padding: spacing.xl,
     borderRadius: borderRadius.xl,
-    marginBottom: spacing.xl + spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: spacing.xl,
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
   sentenceText: {
     fontSize: typography.fontSize.lg,
@@ -187,5 +231,40 @@ const styles = StyleSheet.create({
   blankPlaceholder: {
     color: colors.text.tertiary,
     textDecorationLine: 'underline',
+  },
+  optionsContainer: {
+    gap: spacing.sm,
+  },
+  bottomActions: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    paddingTop: spacing.md,
+  },
+  confirmButton: {
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    ...shadows.md,
+  },
+  confirmButtonDisabled: {
+    opacity: 0.7,
+  },
+  confirmButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
+  },
+  checkIcon: {
+    fontSize: 20,
+    color: colors.text.primary,
+  },
+  confirmButtonText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+  },
+  confirmButtonTextDisabled: {
+    color: colors.text.tertiary,
   },
 });

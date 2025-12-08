@@ -1,16 +1,22 @@
 /**
- * Role Play Card Component
- * REFACTORED: Now uses shared UI components for consistency
+ * Role Play Card Component - WhatsApp Style Chat
+ *
+ * Premium chat interface inspired by WhatsApp for language role-play.
+ * Features:
+ * - WhatsApp-style chat bubbles with tails
+ * - Minimal header with scenario info
+ * - User options at bottom as quick replies
+ * - Smooth animations and haptic feedback
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import Animated, { FadeIn, FadeOut, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Speech from 'expo-speech';
-import { Ionicons } from '@expo/vector-icons';
 import { colors, borderRadius, spacing, shadows, typography } from '@/constants/designSystem';
 import { ResultAnimation } from '@/components/ui';
 import { LottieSuccess, LottieError } from '@/components/animations';
 import { useHaptics } from '@/hooks/useHaptics';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface RolePlayCardProps {
   scenario: {
@@ -30,19 +36,21 @@ interface ConversationMessage {
   id: string;
   sender: 'user' | 'ai';
   text: string;
+  timestamp?: string;
 }
 
 interface ConversationTurn {
   aiMessage: string;
   userOptions: { text: string; nextTurnIndex: number; isSuccess?: boolean }[];
-  maxTurnsForThisDialogue?: number; // Override global maxTurns for specific dialogue points
-  dialogueId: string; // Unique ID for this turn
+  maxTurnsForThisDialogue?: number;
+  dialogueId: string;
+  isEnd?: boolean;
+  isSuccess?: boolean;
 }
 
 // Pre-scripted conversations
 const CONVERSATION_SCRIPTS: { [key: string]: ConversationTurn[] } = {
   'restaurant_order': [
-    // Turn 0 (AI initiates)
     {
       dialogueId: 'restaurant_0',
       aiMessage: "Hello! Welcome to our restaurant. What can I get you?",
@@ -52,7 +60,6 @@ const CONVERSATION_SCRIPTS: { [key: string]: ConversationTurn[] } = {
         { text: "Just water for now, please.", nextTurnIndex: 3 },
       ],
     },
-    // Turn 1 (User asks for menu)
     {
       dialogueId: 'restaurant_1',
       aiMessage: "Certainly, here is our menu. Would you like a moment to look it over?",
@@ -61,7 +68,6 @@ const CONVERSATION_SCRIPTS: { [key: string]: ConversationTurn[] } = {
         { text: "No, I'm ready to order.", nextTurnIndex: 5 },
       ],
     },
-    // Turn 2 (User asks for specials)
     {
       dialogueId: 'restaurant_2',
       aiMessage: "Today's special is grilled salmon with asparagus. It's very popular!",
@@ -70,7 +76,6 @@ const CONVERSATION_SCRIPTS: { [key: string]: ConversationTurn[] } = {
         { text: "I'll take the menu, please.", nextTurnIndex: 1 },
       ],
     },
-    // Turn 3 (User asks for water)
     {
       dialogueId: 'restaurant_3',
       aiMessage: "Coming right up! Can I get you anything else?",
@@ -79,7 +84,6 @@ const CONVERSATION_SCRIPTS: { [key: string]: ConversationTurn[] } = {
         { text: "I'd like to see the menu.", nextTurnIndex: 1 },
       ],
     },
-    // Turn 4 (User takes moment to look at menu) - Leads to ordering or asking questions
     {
       dialogueId: 'restaurant_4',
       aiMessage: "Take your time. Let me know when you're ready.",
@@ -88,7 +92,6 @@ const CONVERSATION_SCRIPTS: { [key: string]: ConversationTurn[] } = {
         { text: "What do you recommend?", nextTurnIndex: 2 },
       ],
     },
-    // Turn 5 (User is ready to order) - Direct order (assuming they saw menu or know)
     {
       dialogueId: 'restaurant_5',
       aiMessage: "Great! What can I get for you?",
@@ -97,7 +100,6 @@ const CONVERSATION_SCRIPTS: { [key: string]: ConversationTurn[] } = {
         { text: "What do you recommend?", nextTurnIndex: 2 },
       ],
     },
-    // Turn 6 (Order placed - Success scenario)
     {
       dialogueId: 'restaurant_6',
       aiMessage: "Excellent choice! Your order will be ready shortly. Enjoy your meal!",
@@ -105,7 +107,6 @@ const CONVERSATION_SCRIPTS: { [key: string]: ConversationTurn[] } = {
       isEnd: true,
       isSuccess: true,
     },
-    // Turn 7 (Water only - Success scenario)
     {
       dialogueId: 'restaurant_7',
       aiMessage: "Alright, enjoy your water! I'll be back to check on you.",
@@ -113,53 +114,46 @@ const CONVERSATION_SCRIPTS: { [key: string]: ConversationTurn[] } = {
       isEnd: true,
       isSuccess: true,
     },
-    // Failures/Loops - Can add more complex branching here
   ],
   'directions': [
-    // Turn 0
     {
       dialogueId: 'directions_0',
       aiMessage: "Excuse me, can I help you?",
       userOptions: [
-        { text: "Yes, I'm a bit lost. Can you tell me how to get to the museum?", nextTurnIndex: 1 },
-        { text: "No, thank you, I'm fine.", nextTurnIndex: 99, isSuccess: false }, // End, not helpful
+        { text: "Yes, I'm looking for the museum.", nextTurnIndex: 1 },
+        { text: "No, thank you.", nextTurnIndex: 99, isSuccess: false },
       ],
     },
-    // Turn 1
     {
       dialogueId: 'directions_1',
-      aiMessage: "The museum? Of course. It's about a ten-minute walk from here. Go straight down this street...",
+      aiMessage: "The museum? It's about a ten-minute walk. Go straight down this street...",
       userOptions: [
-        { text: "Go straight, got it. Then what?", nextTurnIndex: 2 },
-        { text: "Is it far?", nextTurnIndex: 100, isSuccess: false }, // User not following
+        { text: "Go straight, got it. Then?", nextTurnIndex: 2 },
+        { text: "Is it far?", nextTurnIndex: 100, isSuccess: false },
       ],
     },
-    // Turn 2
     {
       dialogueId: 'directions_2',
-      aiMessage: "Then you'll see a large park on your left. Turn right after the park.",
+      aiMessage: "You'll see a park on your left. Turn right after the park.",
       userOptions: [
-        { text: "Right after the park. And after that?", nextTurnIndex: 3 },
-        { text: "Left at the park?", nextTurnIndex: 101, isSuccess: false }, // User confused
+        { text: "Right after the park. Then?", nextTurnIndex: 3 },
+        { text: "Left at the park?", nextTurnIndex: 101, isSuccess: false },
       ],
     },
-    // Turn 3
     {
       dialogueId: 'directions_3',
-      aiMessage: "After turning right, you'll see the museum directly in front of you.",
+      aiMessage: "After turning right, you'll see the museum directly ahead.",
       userOptions: [
-        { text: "Thank you so much! You've been very helpful.", nextTurnIndex: 4, isSuccess: true },
+        { text: "Thank you so much!", nextTurnIndex: 4, isSuccess: true },
       ],
     },
-    // Turn 4 (Success)
     {
       dialogueId: 'directions_4',
-      aiMessage: "You're very welcome! Have a great day.",
+      aiMessage: "You're welcome! Have a great day.",
       userOptions: [],
       isEnd: true,
       isSuccess: true,
     },
-    // Failure points
     {
       dialogueId: 'directions_99',
       aiMessage: "Alright, let me know if you change your mind.",
@@ -170,16 +164,20 @@ const CONVERSATION_SCRIPTS: { [key: string]: ConversationTurn[] } = {
     {
       dialogueId: 'directions_100',
       aiMessage: "As I said, about ten minutes. Are you listening?",
-      userOptions: [{ text: "Sorry, what was that again?", nextTurnIndex: 1 }],
+      userOptions: [{ text: "Sorry, what was that?", nextTurnIndex: 1 }],
     },
     {
       dialogueId: 'directions_101',
-      aiMessage: "No, no, turn RIGHT after the park.",
+      aiMessage: "No, turn RIGHT after the park.",
       userOptions: [{ text: "Oh, right! Then?", nextTurnIndex: 3 }],
     },
   ],
 };
 
+function formatTime(): string {
+  const now = new Date();
+  return now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
 
 export const RolePlayCard: React.FC<RolePlayCardProps> = ({
   scenario,
@@ -196,22 +194,29 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
   const [turnsTaken, setTurnsTaken] = useState(0);
   const [isConversationEnded, setIsConversationEnded] = useState(false);
   const [showResultAnimation, setShowResultAnimation] = useState<'success' | 'error' | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (!script || script.length === 0) {
-      Alert.alert('Error', 'Conversation script not found or empty.');
+      Alert.alert('Error', 'Conversation script not found.');
       onComplete(false, 0);
       return;
     }
-    // Start with the AI's first message from the script
     const starterTurn = script[0];
-    setMessages([{ id: starterTurn.dialogueId, sender: 'ai', text: starterTurn.aiMessage }]);
-    Speech.speak(starterTurn.aiMessage, { language: 'en-US' });
+    setMessages([{
+      id: starterTurn.dialogueId,
+      sender: 'ai',
+      text: starterTurn.aiMessage,
+      timestamp: formatTime(),
+    }]);
+    Speech.speak(starterTurn.aiMessage, { language: 'en-US', rate: 0.9 });
   }, [scriptId]);
 
   useEffect(() => {
-    scrollViewRef.current?.scrollToEnd({ animated: true });
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   }, [messages]);
 
   const handleUserOptionSelect = async (optionIndex: number) => {
@@ -225,36 +230,47 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
 
     haptics.light();
 
-    // Add user's message to history
-    setMessages(prev => [...prev, { id: `user_${turnsTaken}`, sender: 'user', text: selectedOption.text }]);
+    // Add user message
+    setMessages(prev => [...prev, {
+      id: `user_${turnsTaken}`,
+      sender: 'user',
+      text: selectedOption.text,
+      timestamp: formatTime(),
+    }]);
     setTurnsTaken(prev => prev + 1);
 
-    // Determine next AI message
-    const nextTurn = script[selectedOption.nextTurnIndex];
+    // Show typing indicator
+    setIsTyping(true);
 
+    // Simulate AI response delay
     setTimeout(() => {
+      setIsTyping(false);
+      const nextTurn = script[selectedOption.nextTurnIndex];
+
       if (nextTurn) {
-        setMessages(prev => [...prev, { id: nextTurn.dialogueId, sender: 'ai', text: nextTurn.aiMessage }]);
-        Speech.speak(nextTurn.aiMessage, { language: 'en-US' });
+        setMessages(prev => [...prev, {
+          id: nextTurn.dialogueId,
+          sender: 'ai',
+          text: nextTurn.aiMessage,
+          timestamp: formatTime(),
+        }]);
+        Speech.speak(nextTurn.aiMessage, { language: 'en-US', rate: 0.9 });
         setCurrentTurnIndex(selectedOption.nextTurnIndex);
 
         if (nextTurn.isEnd || (turnsTaken + 1 >= maxTurns)) {
-          handleEndConversation(selectedOption.isSuccess || false); // Pass success from selected option if end
+          handleEndConversation(selectedOption.isSuccess || nextTurn.isSuccess || false);
         }
       } else {
-        // Fallback if nextTurnIndex is invalid (e.g., end of an unexpected branch)
         handleEndConversation(false);
       }
-    }, 1000); // Simulate AI thinking time
+    }, 1200);
   };
 
   const handleEndConversation = (isSuccessFromScript: boolean) => {
     setIsConversationEnded(true);
-    // Determine overall success, possibly combining script-defined success with other metrics
-    const finalSuccess = isSuccessFromScript; // For MVP, rely on script success
-    onComplete(finalSuccess, turnsTaken);
+    onComplete(isSuccessFromScript, turnsTaken);
 
-    if (finalSuccess) {
+    if (isSuccessFromScript) {
       haptics.success();
       setShowResultAnimation('success');
     } else {
@@ -268,182 +284,331 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
   };
 
   const currentDialogue = script ? script[currentTurnIndex] : null;
-  const userCanInteract = !isConversationEnded && turnsTaken < maxTurns;
+  const userCanInteract = !isConversationEnded && turnsTaken < maxTurns && !isTyping;
 
   return (
-    <View style={[styles.cardContainer, baseCardProps.style]}>
+    <View style={styles.container}>
       {showResultAnimation && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.lottieOverlay}>
           {showResultAnimation === 'success' ? <LottieSuccess /> : <LottieError />}
         </Animated.View>
       )}
 
-      <View style={styles.header}>
-        <Text style={styles.difficultyText}>Difficulty: {scenario.difficulty}</Text>
-        <Text style={styles.scenarioText}>Scenario: {scenario.title}</Text>
-        <Text style={styles.roleText}>Your role: {userRole}. Partner's role: {scenario.role}.</Text>
-        <Text style={styles.goalText}>Goal: {scenario.goal}.</Text>
-        <Text style={styles.turnsText}>Turns left: {maxTurns - turnsTaken}</Text>
+      {/* Minimal Header */}
+      <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
+        <View style={styles.headerContent}>
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatarEmoji}>🧑‍💼</Text>
+          </View>
+          <View style={styles.headerText}>
+            <Text style={styles.partnerName}>{scenario.role}</Text>
+            <Text style={styles.scenarioTitle}>{scenario.title}</Text>
+          </View>
+        </View>
+        <View style={styles.turnsCounter}>
+          <Text style={styles.turnsText}>{maxTurns - turnsTaken}</Text>
+        </View>
+      </Animated.View>
+
+      {/* Chat Messages - WhatsApp Style */}
+      <View style={styles.chatBackground}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.chatContainer}
+          contentContainerStyle={styles.chatContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {messages.map((message, index) => (
+            <Animated.View
+              key={message.id}
+              entering={FadeInUp.duration(300).delay(index === messages.length - 1 ? 0 : 0)}
+              style={[
+                styles.messageRow,
+                message.sender === 'user' ? styles.messageRowUser : styles.messageRowAi,
+              ]}
+            >
+              <View style={[
+                styles.messageBubble,
+                message.sender === 'user' ? styles.userBubble : styles.aiBubble,
+              ]}>
+                <Text style={styles.messageText}>{message.text}</Text>
+                <Text style={styles.messageTime}>{message.timestamp}</Text>
+                {/* Bubble tail */}
+                <View style={[
+                  styles.bubbleTail,
+                  message.sender === 'user' ? styles.userTail : styles.aiTail,
+                ]} />
+              </View>
+            </Animated.View>
+          ))}
+
+          {/* Typing indicator */}
+          {isTyping && (
+            <Animated.View
+              entering={FadeIn.duration(200)}
+              style={[styles.messageRow, styles.messageRowAi]}
+            >
+              <View style={[styles.messageBubble, styles.aiBubble, styles.typingBubble]}>
+                <View style={styles.typingDots}>
+                  <View style={[styles.dot, styles.dot1]} />
+                  <View style={[styles.dot, styles.dot2]} />
+                  <View style={[styles.dot, styles.dot3]} />
+                </View>
+              </View>
+            </Animated.View>
+          )}
+        </ScrollView>
       </View>
 
-      <ScrollView style={styles.chatHistoryContainer} ref={scrollViewRef}>
-        {messages.map((message) => (
-          <View
-            key={message.id}
-            style={[
-              styles.messageBubble,
-              message.sender === 'user' ? styles.userBubble : styles.aiBubble,
-            ]}
+      {/* Quick Reply Options - Fixed at Bottom */}
+      <View style={styles.bottomContainer}>
+        {userCanInteract && currentDialogue && currentDialogue.userOptions.length > 0 ? (
+          <Animated.View
+            entering={FadeInDown.duration(300)}
+            style={styles.optionsContainer}
           >
-            <Text style={styles.messageSender}>{message.sender === 'user' ? userRole : scenario.role}:</Text>
-            <Text style={styles.messageText}>{message.text}</Text>
-          </View>
-        ))}
-        {userCanInteract && currentDialogue && currentDialogue.userOptions.length > 0 && (
-          <View style={[styles.messageBubble, styles.aiBubble]}>
-            <Text style={styles.messageSender}>{scenario.role}:</Text>
-            <ActivityIndicator size="small" color={colors.text.secondary} />
-          </View>
-        )}
-        {!userCanInteract && !showResultAnimation && (
-          <Text style={styles.conversationEndedText}>Conversation Ended. Tap Next to continue.</Text>
-        )}
-      </ScrollView>
-
-      {userCanInteract && currentDialogue && currentDialogue.userOptions.length > 0 && (
-        <View style={styles.userOptionsContainer}>
-          {currentDialogue.userOptions.map((option, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.optionButton}
-              onPress={() => handleUserOptionSelect(index)}
-              disabled={!userCanInteract}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.optionsScroll}
             >
-              <Text style={styles.optionButtonText}>{option.text}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-      
-      {turnsTaken >= maxTurns && !isConversationEnded && (
-        <TouchableOpacity style={styles.endConversationButton} onPress={() => handleEndConversation(false)}>
-          <Text style={styles.endConversationButtonText}>End Conversation (Out of Turns)</Text>
-        </TouchableOpacity>
-      )}
+              {currentDialogue.userOptions.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.optionChip}
+                  onPress={() => handleUserOptionSelect(index)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.optionText}>{option.text}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        ) : isConversationEnded && !showResultAnimation ? (
+          <View style={styles.endedContainer}>
+            <Text style={styles.endedText}>Conversation ended</Text>
+          </View>
+        ) : null}
+
+        {turnsTaken >= maxTurns && !isConversationEnded && (
+          <TouchableOpacity
+            style={styles.endButton}
+            onPress={() => handleEndConversation(false)}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={colors.gradients.primary}
+              style={styles.endButtonGradient}
+            >
+              <Text style={styles.endButtonText}>End Conversation</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    ...shadows.md,
-    minHeight: 550,
-    justifyContent: 'space-between',
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
   },
   header: {
-    marginBottom: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
   },
-  difficultyText: {
-    color: colors.text.tertiary,
-    fontSize: typography.fontSize.sm,
-    marginBottom: spacing.xs,
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-  scenarioText: {
+  avatarContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.background.elevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.primary.DEFAULT,
+  },
+  avatarEmoji: {
+    fontSize: 24,
+  },
+  headerText: {
+    gap: 2,
+  },
+  partnerName: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
-    marginBottom: spacing.xs,
   },
-  roleText: {
-    color: colors.text.secondary,
-    fontSize: typography.fontSize.base,
-    fontStyle: 'italic',
-    marginBottom: spacing.xs,
+  scenarioTitle: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
   },
-  goalText: {
-    color: colors.secondary.light,
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.medium,
-    marginBottom: spacing.sm,
+  turnsCounter: {
+    backgroundColor: colors.primary.DEFAULT,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   turnsText: {
-    color: colors.text.tertiary,
     fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
   },
-  chatHistoryContainer: {
-    flexGrow: 1,
+  chatBackground: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+  },
+  chatContainer: {
+    flex: 1,
+  },
+  chatContent: {
     paddingVertical: spacing.md,
-    marginBottom: spacing.md,
-    backgroundColor: colors.background.elevated,
-    borderRadius: borderRadius.md,
-    ...shadows.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  messageRow: {
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
+  messageRowUser: {
+    alignItems: 'flex-end',
+  },
+  messageRowAi: {
+    alignItems: 'flex-start',
   },
   messageBubble: {
     maxWidth: '80%',
-    padding: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingBottom: spacing.xs,
     borderRadius: borderRadius.lg,
-    marginBottom: spacing.sm,
-    ...shadows.sm,
+    position: 'relative',
   },
   userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: colors.primary.dark,
-    borderBottomRightRadius: borderRadius.sm,
+    backgroundColor: colors.primary.DEFAULT,
+    borderBottomRightRadius: borderRadius.xs,
   },
   aiBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.background.secondary,
-    borderBottomLeftRadius: borderRadius.sm,
-  },
-  messageSender: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.tertiary,
-    marginBottom: spacing.xs / 2,
-    fontWeight: typography.fontWeight.bold,
+    backgroundColor: colors.background.card,
+    borderBottomLeftRadius: borderRadius.xs,
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
   messageText: {
-    color: colors.text.primary,
     fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    lineHeight: typography.fontSize.base * 1.4,
   },
-  conversationEndedText: {
-    color: colors.text.secondary,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    marginTop: spacing.md,
+  messageTime: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    marginTop: spacing.xs,
+    alignSelf: 'flex-end',
   },
-  userOptionsContainer: {
-    marginTop: spacing.md,
+  bubbleTail: {
+    position: 'absolute',
+    bottom: 0,
+    width: 12,
+    height: 12,
+  },
+  userTail: {
+    right: -6,
+    borderLeftWidth: 12,
+    borderLeftColor: colors.primary.DEFAULT,
+    borderTopWidth: 12,
+    borderTopColor: 'transparent',
+  },
+  aiTail: {
+    left: -6,
+    borderRightWidth: 12,
+    borderRightColor: colors.background.card,
+    borderTopWidth: 12,
+    borderTopColor: 'transparent',
+  },
+  typingBubble: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  typingDots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.text.tertiary,
+  },
+  dot1: {
+    opacity: 0.4,
+  },
+  dot2: {
+    opacity: 0.6,
+  },
+  dot3: {
+    opacity: 0.8,
+  },
+  bottomContainer: {
+    paddingBottom: spacing.xl,
+    paddingTop: spacing.md,
+    backgroundColor: colors.background.primary,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  optionsContainer: {
+    paddingHorizontal: spacing.sm,
+  },
+  optionsScroll: {
     gap: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
-  optionButton: {
-    backgroundColor: colors.primary.DEFAULT,
+  optionChip: {
+    backgroundColor: colors.background.card,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.md,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.primary.DEFAULT,
   },
-  optionButtonText: {
+  optionText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
     color: colors.text.primary,
+  },
+  endedContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+  },
+  endedText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    fontStyle: 'italic',
+  },
+  endButton: {
+    marginHorizontal: spacing.lg,
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+  },
+  endButtonGradient: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  endButtonText: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
-  },
-  endConversationButton: {
-    marginTop: spacing.md,
-    backgroundColor: colors.accent.purple,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.md,
-  },
-  endConversationButtonText: {
     color: colors.text.primary,
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.bold,
   },
   lottieOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -451,6 +616,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
-    borderRadius: borderRadius.xl,
   },
 });

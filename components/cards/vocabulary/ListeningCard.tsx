@@ -1,24 +1,20 @@
 /**
  * ListeningCard - Audio Recognition Card
  *
- * "Listen & Write" or "Listen & Select" card for audio comprehension.
+ * "Listen & Write" card for audio comprehension.
  * Based on Listen card.png reference.
- *
- * Modes:
- * - Quiz mode: Multiple choice options
- * - Type mode: Text input (like existing TextInputCard)
- * - Passive mode: Just reveal the answer
+ * Button fixed at bottom, branded icon colors.
  *
  * Features:
  * - Large audio play button with pulse animation
- * - Speed toggle (normal/slow)
- * - Multiple choice OR text input
- * - Immediate feedback with haptics
- * - Typo tolerance for typing mode
+ * - Speed toggle (normal/slow) with brand colors
+ * - Text input for typing
+ * - Typo tolerance
+ * - Fixed button at bottom
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -32,9 +28,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
 import { useHaptics } from '@/hooks/useHaptics';
-import { DarkOverlay, AnswerFeedbackOverlay, AnswerOption } from '@/components/ui';
+import { DarkOverlay, AnswerFeedbackOverlay } from '@/components/ui';
 import { useVocabCard } from './hooks/useVocabCard';
 import type { VocabCardProps } from '@/types/vocabulary';
 
@@ -59,25 +56,13 @@ function levenshteinDistance(a: string, b: string): number {
   return matrix[b.length][a.length];
 }
 
-type ListeningMode = 'quiz' | 'type';
-
 interface ListeningCardProps extends VocabCardProps {
-  mode?: ListeningMode;
-  options?: string[]; // For quiz mode
-  correctAnswerIndex?: number; // For quiz mode
+  mode?: 'type' | 'quiz';
 }
 
-export function ListeningCard({
-  item,
-  onComplete,
-  onSkip,
-  mode = 'type',
-  options,
-  correctAnswerIndex = 0,
-}: ListeningCardProps) {
+export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCardProps) {
   const haptics = useHaptics();
   const [input, setInput] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -99,7 +84,7 @@ export function ListeningCard({
   React.useEffect(() => {
     if (isPlaying) {
       pulseScale.value = withRepeat(
-        withTiming(1.2, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1.3, { duration: 800, easing: Easing.inOut(Easing.ease) }),
         -1,
         true
       );
@@ -166,26 +151,6 @@ export function ListeningCard({
     setShowHint(true);
   }, [haptics, trackHintUsed]);
 
-  const handleSelectOption = useCallback((index: number) => {
-    const correct = index === correctAnswerIndex;
-
-    if (correct) {
-      haptics.success();
-    } else {
-      haptics.doubleError();
-    }
-
-    setSelectedIndex(index);
-    setIsCorrect(correct);
-    setShowResult(true);
-
-    if (correct) {
-      setTimeout(() => {
-        complete(true);
-      }, 1500);
-    }
-  }, [correctAnswerIndex, haptics, complete]);
-
   const handleSubmitTyping = useCallback(() => {
     const userAnswer = input.toLowerCase().trim();
     const correctAnswer = item.word.toLowerCase().trim();
@@ -208,8 +173,8 @@ export function ListeningCard({
   }, [input, item.word, haptics, complete]);
 
   const handleContinue = useCallback(() => {
-    complete(false, mode === 'type' ? input : undefined);
-  }, [complete, mode, input]);
+    complete(false, input);
+  }, [complete, input]);
 
   const audioButtonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: audioButtonScale.value }],
@@ -226,15 +191,11 @@ export function ListeningCard({
 
   const showWrongAnswer = showResult && !isCorrect;
 
-  const getOptionState = (index: number) => {
-    if (!showResult) return 'default';
-    if (correctAnswerIndex === index) return 'correct';
-    if (selectedIndex === index) return 'wrong';
-    return 'default';
-  };
-
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {/* Header */}
       <Animated.View
         entering={FadeInDown.duration(400)}
@@ -247,68 +208,55 @@ export function ListeningCard({
         </View>
       </Animated.View>
 
-      {/* Audio Controls */}
-      <Animated.View
-        entering={ZoomIn.duration(500).delay(200)}
-        style={styles.audioSection}
-      >
-        {/* Pulse background */}
-        <Animated.View style={[styles.pulseBg, pulseStyle]} />
+      {/* Content Area */}
+      <View style={styles.contentArea}>
+        {/* Audio Controls */}
+        <Animated.View
+          entering={ZoomIn.duration(500).delay(200)}
+          style={styles.audioSection}
+        >
+          {/* Pulse background */}
+          <Animated.View style={[styles.pulseBg, pulseStyle]} />
 
-        <View style={styles.audioControls}>
-          {/* Normal speed */}
-          <Animated.View style={audioButtonStyle}>
+          <View style={styles.audioControls}>
+            {/* Normal speed */}
+            <Animated.View style={audioButtonStyle}>
+              <TouchableOpacity
+                onPress={() => handlePlayAudio(false)}
+                activeOpacity={0.8}
+                style={[
+                  styles.audioButton,
+                  isPlaying && playbackRate === 1.0 && styles.audioButtonActive,
+                ]}
+              >
+                <Text style={[
+                  styles.playIcon,
+                  isPlaying && playbackRate === 1.0 && styles.playIconActive,
+                ]}>▶</Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* Slow speed */}
             <TouchableOpacity
-              onPress={() => handlePlayAudio(false)}
+              onPress={() => handlePlayAudio(true)}
               activeOpacity={0.8}
               style={[
                 styles.audioButton,
-                isPlaying && playbackRate === 1.0 && styles.audioButtonActive,
+                isPlaying && playbackRate < 1.0 && styles.audioButtonActive,
               ]}
             >
-              <Text style={styles.audioButtonIcon}>▶️</Text>
+              <Text style={[
+                styles.playIcon,
+                isPlaying && playbackRate < 1.0 && styles.playIconActive,
+              ]}>▶</Text>
+              <View style={styles.slowBadge}>
+                <Text style={styles.slowBadgeText}>🐢</Text>
+              </View>
             </TouchableOpacity>
-          </Animated.View>
-
-          {/* Slow speed */}
-          <TouchableOpacity
-            onPress={() => handlePlayAudio(true)}
-            activeOpacity={0.8}
-            style={[
-              styles.audioButton,
-              isPlaying && playbackRate < 1.0 && styles.audioButtonActive,
-            ]}
-          >
-            <Text style={styles.audioButtonIcon}>▶️</Text>
-            <View style={styles.slowBadge}>
-              <Text style={styles.slowBadgeText}>🐌</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-
-      {/* Quiz Mode: Multiple Choice */}
-      {mode === 'quiz' && options && (
-        <Animated.View
-          entering={FadeIn.duration(400).delay(400)}
-          style={styles.optionsContainer}
-        >
-          {options.map((option, index) => (
-            <AnswerOption
-              key={index}
-              text={option}
-              onPress={() => handleSelectOption(index)}
-              disabled={showResult}
-              state={getOptionState(index)}
-              entranceDelay={100 * index + 400}
-              hapticFeedback={false}
-            />
-          ))}
+          </View>
         </Animated.View>
-      )}
 
-      {/* Type Mode: Text Input */}
-      {mode === 'type' && (
+        {/* Type Mode: Text Input */}
         <Animated.View
           entering={FadeInDown.duration(400).delay(400)}
           style={styles.inputSection}
@@ -363,30 +311,44 @@ export function ListeningCard({
               onSubmitEditing={handleSubmitTyping}
             />
           </Animated.View>
-
-          {/* Check button */}
-          {!showWrongAnswer && (
-            <TouchableOpacity
-              onPress={handleSubmitTyping}
-              disabled={!input || (showResult && isCorrect)}
-              activeOpacity={0.8}
-              style={[
-                styles.checkButton,
-                {
-                  backgroundColor:
-                    !input || (showResult && isCorrect)
-                      ? colors.background.elevated
-                      : colors.primary.DEFAULT,
-                },
-              ]}
-            >
-              <Text style={styles.checkButtonText}>
-                {showResult && isCorrect ? '✓ Correct!' : 'Check'}
-              </Text>
-            </TouchableOpacity>
-          )}
         </Animated.View>
-      )}
+      </View>
+
+      {/* Fixed Bottom Actions */}
+      <View style={styles.bottomActions}>
+        {!showWrongAnswer && (
+          <TouchableOpacity
+            onPress={handleSubmitTyping}
+            disabled={!input || (showResult && isCorrect)}
+            activeOpacity={0.8}
+            style={[
+              styles.checkButton,
+              (!input || (showResult && isCorrect)) && styles.checkButtonDisabled,
+            ]}
+          >
+            <LinearGradient
+              colors={
+                !input || (showResult && isCorrect)
+                  ? [colors.background.elevated, colors.background.card]
+                  : colors.gradients.primary
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.checkButtonGradient}
+            >
+              {showResult && isCorrect && (
+                <Text style={styles.checkIcon}>✓</Text>
+              )}
+              <Text style={[
+                styles.checkButtonText,
+                (!input || (showResult && isCorrect)) && styles.checkButtonTextDisabled,
+              ]}>
+                {showResult && isCorrect ? 'Correct!' : 'Check'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Overlays */}
       <DarkOverlay visible={showWrongAnswer} opacity={0.3} />
@@ -397,14 +359,13 @@ export function ListeningCard({
         correctAnswer={item.word}
         onContinue={handleContinue}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
   },
   header: {
     alignItems: 'center',
@@ -431,6 +392,10 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
   },
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+  },
   audioSection: {
     alignItems: 'center',
     marginBottom: spacing['2xl'],
@@ -438,8 +403,8 @@ const styles = StyleSheet.create({
   },
   pulseBg: {
     position: 'absolute',
-    width: 140,
-    height: 70,
+    width: 160,
+    height: 80,
     borderRadius: borderRadius['2xl'],
     backgroundColor: colors.primary.DEFAULT,
   },
@@ -448,8 +413,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background.card,
     borderRadius: borderRadius['2xl'],
-    padding: spacing.sm,
-    gap: spacing.md,
+    padding: spacing.md,
+    gap: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border.light,
     ...shadows.md,
@@ -461,15 +426,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.elevated,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.border.light,
   },
   audioButtonActive: {
     backgroundColor: colors.primary.DEFAULT,
     borderColor: colors.primary.light,
   },
-  audioButtonIcon: {
-    fontSize: 24,
+  playIcon: {
+    fontSize: 22,
+    color: colors.primary.DEFAULT,
+  },
+  playIconActive: {
+    color: colors.text.primary,
   },
   slowBadge: {
     position: 'absolute',
@@ -477,13 +446,12 @@ const styles = StyleSheet.create({
     right: -4,
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.full,
-    padding: 2,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
   slowBadgeText: {
     fontSize: 12,
-  },
-  optionsContainer: {
-    gap: spacing.md,
   },
   inputSection: {
     position: 'relative',
@@ -506,7 +474,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   inputWrapper: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   input: {
     backgroundColor: colors.background.card,
@@ -520,15 +488,36 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
   },
+  bottomActions: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    paddingTop: spacing.md,
+  },
   checkButton: {
-    paddingVertical: spacing.lg,
     borderRadius: borderRadius.xl,
-    alignItems: 'center',
+    overflow: 'hidden',
     ...shadows.md,
+  },
+  checkButtonDisabled: {
+    opacity: 0.7,
+  },
+  checkButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
+  },
+  checkIcon: {
+    fontSize: 20,
+    color: colors.text.primary,
   },
   checkButtonText: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
+  },
+  checkButtonTextDisabled: {
+    color: colors.text.tertiary,
   },
 });
