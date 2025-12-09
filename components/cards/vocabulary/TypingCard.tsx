@@ -24,6 +24,7 @@ import Animated, {
   withSpring,
   useSharedValue,
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -66,6 +67,7 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
 
   // Animation values
   const inputScale = useSharedValue(1);
+  const buttonScale = useSharedValue(1);
 
   const handleShowHint = useCallback(() => {
     haptics.light();
@@ -102,6 +104,10 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
     transform: [{ scale: inputScale.value }],
   }));
 
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
+
   const showWrongAnswer = showResult && !isCorrect;
 
   const getInputBorderColor = () => {
@@ -135,7 +141,7 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
             colors={[colors.background.card, colors.background.elevated]}
             style={styles.questionHeaderInner}
           >
-            <Text style={styles.questionIcon}>🔔</Text>
+            <Ionicons name="language" size={20} color={colors.primary.DEFAULT} />
             <Text style={styles.questionText}>How do you say in English?</Text>
           </LinearGradient>
         </Animated.View>
@@ -162,7 +168,7 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
               activeOpacity={0.7}
               style={styles.hintButton}
             >
-              <Text style={styles.hintButtonText}>💡</Text>
+              <Ionicons name="bulb-outline" size={20} color={colors.accent.orange} />
             </TouchableOpacity>
           )}
 
@@ -214,38 +220,46 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
       {/* Fixed Bottom Actions */}
       <View style={styles.bottomActions}>
         {!showWrongAnswer && (
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={!input || (showResult && isCorrect)}
-            activeOpacity={0.8}
-            style={[
-              styles.checkButton,
-              (!input || (showResult && isCorrect)) && styles.checkButtonDisabled,
-            ]}
-          >
-            <LinearGradient
-              colors={
-                !input || (showResult && isCorrect)
-                  ? [colors.background.elevated, colors.background.card]
-                  : colors.gradients.primary
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.checkButtonGradient}
+          <Animated.View style={buttonAnimatedStyle}>
+            <TouchableOpacity
+              onPress={handleSubmit}
+              disabled={!input || (showResult && isCorrect)}
+              activeOpacity={0.8}
+              onPressIn={() => {
+                buttonScale.value = withSpring(0.95);
+              }}
+              onPressOut={() => {
+                buttonScale.value = withSpring(1);
+              }}
+              style={[
+                styles.checkButton,
+                (!input || (showResult && isCorrect)) && styles.checkButtonDisabled,
+              ]}
             >
-              {showResult && isCorrect && (
-                <Text style={styles.checkIcon}>✓</Text>
-              )}
-              <Text
-                style={[
-                  styles.checkButtonText,
-                  (!input || (showResult && isCorrect)) && styles.checkButtonTextDisabled,
-                ]}
+              <LinearGradient
+                colors={
+                  !input || (showResult && isCorrect)
+                    ? [colors.background.elevated, colors.background.card]
+                    : colors.gradients.primary
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.checkButtonGradient}
               >
-                {showResult && isCorrect ? 'Correct!' : 'Check'}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+                {showResult && isCorrect && (
+                  <Ionicons name="checkmark" size={20} color={colors.text.primary} />
+                )}
+                <Text
+                  style={[
+                    styles.checkButtonText,
+                    (!input || (showResult && isCorrect)) && styles.checkButtonTextDisabled,
+                  ]}
+                >
+                  {showResult && isCorrect ? 'Correct!' : 'Check'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         )}
 
         {/* Skip Button */}
@@ -315,9 +329,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border.light,
     ...shadows.sm,
   },
-  questionIcon: {
-    fontSize: 20,
-  },
   questionText: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
@@ -361,9 +372,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border.light,
     zIndex: 10,
   },
-  hintButtonText: {
-    fontSize: 20,
-  },
   inputWrapper: {
     width: '100%',
   },
@@ -406,10 +414,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing['2xl'],
     gap: spacing.sm,
-  },
-  checkIcon: {
-    fontSize: 20,
-    color: colors.text.primary,
   },
   checkButtonText: {
     fontSize: typography.fontSize.lg,

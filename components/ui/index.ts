@@ -42,6 +42,10 @@ export { StatsCard } from './StatsCard';
 export { DepthBackButton } from './DepthBackButton';
 export type { DepthBackButtonProps, DepthBackButtonSize } from './DepthBackButton';
 
+// Navigation components
+export { BackButton } from './BackButton';
+export type { BackButtonProps, BackButtonVariant } from './BackButton';
+
 // Teleprompter components
 export { WordPopover } from './WordPopover';
 export { TeleprompterControls } from './TeleprompterControls';

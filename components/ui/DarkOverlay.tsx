@@ -33,7 +33,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 export interface DarkOverlayProps {
   /** Whether the overlay is visible */
   visible: boolean;
-  /** Opacity of the overlay (0-1). Default: 0.4 */
+  /** Opacity of the overlay (0-1). Default: 0.5 */
   opacity?: number;
   /** Fade in duration in ms. Default: 300 */
   fadeInDuration?: number;
@@ -47,7 +47,7 @@ export interface DarkOverlayProps {
 
 export function DarkOverlay({
   visible,
-  opacity = 0.4,
+  opacity = 0.5,
   fadeInDuration = 300,
   fadeOutDuration = 200,
   onPress,

@@ -11,6 +11,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import Animated, { FadeIn, FadeOut, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors, borderRadius, spacing, shadows, typography } from '@/constants/designSystem';
 import { ResultAnimation } from '@/components/ui';
@@ -298,7 +299,7 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
       <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.avatarContainer}>
-            <Text style={styles.avatarEmoji}>🧑‍💼</Text>
+            <Ionicons name="person" size={24} color={colors.primary.DEFAULT} />
           </View>
           <View style={styles.headerText}>
             <Text style={styles.partnerName}>{scenario.role}</Text>
@@ -438,9 +439,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: colors.primary.DEFAULT,
-  },
-  avatarEmoji: {
-    fontSize: 24,
   },
   headerText: {
     gap: 2,

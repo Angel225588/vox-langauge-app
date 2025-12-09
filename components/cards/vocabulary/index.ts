@@ -18,9 +18,12 @@ export { VocabCardBase } from './VocabCardBase';
 export { IntroductionCard } from './IntroductionCard';
 export { ListeningCard } from './ListeningCard';
 export { TypingCard } from './TypingCard';
+export { SpeakingCard } from './SpeakingCard';
+export { AudioQuizCard } from './AudioQuizCard';
+export { VocabularyCardFlow } from './VocabularyCardFlow';
 
 // Hooks
-export { useVocabCard } from './hooks/useVocabCard';
+export { useVocabCard, selectNextVariant, getFlowSequence } from './hooks/useVocabCard';
 
 // Re-export types
 export type {

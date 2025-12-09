@@ -171,6 +171,37 @@ const CARD_COMPONENTS = [
     borderColor: 'border-amber-200',
     isNew: true,
   },
+  // NEW: Listen & Speak, Audio Quiz, Full Flow
+  {
+    id: 'vocab-speaking',
+    emoji: '🗣️',
+    name: 'Listen & Speak',
+    time: '2 min',
+    color: ['#EF4444', '#F87171'],
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200',
+    isNew: true,
+  },
+  {
+    id: 'vocab-audio-quiz',
+    emoji: '👂',
+    name: 'Audio Quiz',
+    time: '1 min',
+    color: ['#3B82F6', '#60A5FA'],
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
+    isNew: true,
+  },
+  {
+    id: 'vocab-flow',
+    emoji: '🔄',
+    name: 'Vocab Flow',
+    time: '5 min',
+    color: ['#8B5CF6', '#C084FC'],
+    bgColor: 'bg-purple-50',
+    borderColor: 'border-purple-200',
+    isNew: true,
+  },
 ];
 
 export default function PracticeScreen() {
@@ -183,6 +214,18 @@ export default function PracticeScreen() {
 
   const handleReadingPractice = () => {
     router.push('/reading-practice');
+  };
+
+  const handleWritingTask = () => {
+    router.push('/test-writing-task');
+  };
+
+  const handleNotesLibrary = () => {
+    router.push('/notes-library');
+  };
+
+  const handleRecordingsLibrary = () => {
+    router.push('/recordings-library');
   };
 
   return (
@@ -270,6 +313,131 @@ export default function PracticeScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
+
+        {/* Writing Task Button */}
+        <Animated.View
+          entering={FadeInDown.duration(400).delay(100).springify()}
+          style={{ marginBottom: 16 }}
+        >
+          <TouchableOpacity
+            onPress={handleWritingTask}
+            activeOpacity={0.9}
+            style={{
+              borderRadius: 20,
+              overflow: 'hidden',
+              shadowColor: '#06D6A0',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.4,
+              shadowRadius: 12,
+              elevation: 8,
+            }}
+          >
+            <LinearGradient
+              colors={['#06D6A0', '#4ECDC4']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                padding: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 20,
+              }}
+            >
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 16,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 16,
+                }}
+              >
+                <Text style={{ fontSize: 28 }}>✍️</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={{ color: '#0A0E1A', fontSize: 18, fontWeight: '700' }}>
+                    Writing Tasks
+                  </Text>
+                  <View
+                    style={{
+                      backgroundColor: '#FF006E',
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: 6,
+                      marginLeft: 8,
+                    }}
+                  >
+                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>NEW</Text>
+                  </View>
+                </View>
+                <Text style={{ color: 'rgba(10, 14, 26, 0.7)', fontSize: 14 }}>
+                  Personal Script Builder & AI feedback
+                </Text>
+              </View>
+              <Text style={{ color: '#0A0E1A', fontSize: 24, fontWeight: '700' }}>→</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Library Buttons Row */}
+        <Animated.View
+          entering={FadeInDown.duration(400).delay(200).springify()}
+          style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}
+        >
+          {/* Notes Library */}
+          <TouchableOpacity
+            onPress={handleNotesLibrary}
+            activeOpacity={0.9}
+            style={{
+              flex: 1,
+              borderRadius: 16,
+              overflow: 'hidden',
+              backgroundColor: '#1A1F3A',
+              borderWidth: 1,
+              borderColor: '#6366F1',
+            }}
+          >
+            <View style={{ padding: 16, alignItems: 'center' }}>
+              <Text style={{ fontSize: 28, marginBottom: 8 }}>📝</Text>
+              <Text style={{ color: '#F9FAFB', fontSize: 14, fontWeight: '600' }}>
+                My Notes
+              </Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
+                Writing library
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Recordings Library */}
+          <TouchableOpacity
+            onPress={handleRecordingsLibrary}
+            activeOpacity={0.9}
+            style={{
+              flex: 1,
+              borderRadius: 16,
+              overflow: 'hidden',
+              backgroundColor: '#1A1F3A',
+              borderWidth: 1,
+              borderColor: '#EF4444',
+            }}
+          >
+            <View style={{ padding: 16, alignItems: 'center' }}>
+              <Text style={{ fontSize: 28, marginBottom: 8 }}>🎙️</Text>
+              <Text style={{ color: '#F9FAFB', fontSize: 14, fontWeight: '600' }}>
+                Recordings
+              </Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
+                Audio library
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+
         {/* 2-Column Grid */}
         <View
           style={{

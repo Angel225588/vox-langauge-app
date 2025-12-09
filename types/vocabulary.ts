@@ -58,8 +58,10 @@ export interface VocabularyItem extends BankWord {
     introduction: boolean;
     listening: boolean;
     typing: boolean;
+    speaking: boolean;
+    audioQuiz: boolean;
   };
-  lastVariantShown: 'introduction' | 'listening' | 'typing' | null;
+  lastVariantShown: VocabCardVariant | null;
 }
 
 /**
@@ -75,7 +77,12 @@ export interface ExampleSentence {
 /**
  * Card variant types for vocabulary practice
  */
-export type VocabCardVariant = 'introduction' | 'listening' | 'typing';
+export type VocabCardVariant =
+  | 'introduction'  // First encounter: see word, translation, examples
+  | 'listening'     // Listen & write (text input)
+  | 'typing'        // Active recall: see translation, type word
+  | 'speaking'      // Listen & speak (record pronunciation)
+  | 'audioQuiz';    // Listen & select (multiple choice)
 
 /**
  * Result from completing a vocabulary card
@@ -113,6 +120,8 @@ export const DEFAULT_VOCABULARY_ITEM: Partial<VocabularyItem> = {
     introduction: false,
     listening: false,
     typing: false,
+    speaking: false,
+    audioQuiz: false,
   },
   lastVariantShown: null,
   examples: [],

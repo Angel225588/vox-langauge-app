@@ -49,7 +49,12 @@ export {
   IntroductionCard,
   ListeningCard as VocabListeningCard,
   TypingCard as VocabTypingCard,
+  SpeakingCard as VocabSpeakingCard,
+  AudioQuizCard as VocabAudioQuizCard,
+  VocabularyCardFlow,
   useVocabCard,
+  selectNextVariant,
+  getFlowSequence,
 } from './vocabulary';
 export type {
   VocabularyItem,
@@ -58,3 +63,21 @@ export type {
   VocabCardProps,
   ExampleSentence,
 } from './vocabulary';
+
+// Writing Task cards (Personal Script Builder)
+export {
+  TaskBriefCard,
+  WritingEditor,
+  CorrectionCard,
+  WritingAnalysisView,
+  WritingTaskFlow,
+} from './writing';
+export type {
+  WritingTask,
+  WritingAnalysis,
+  WritingTaskResult,
+  GrammarCorrection,
+  CorrectionType,
+  TaskCategory,
+  UserNote,
+} from './writing';

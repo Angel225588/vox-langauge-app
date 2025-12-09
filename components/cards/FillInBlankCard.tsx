@@ -15,7 +15,8 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
 import { DarkOverlay, AnswerOption, AnswerFeedbackOverlay } from '@/components/ui';
@@ -39,6 +40,11 @@ export function FillInBlankCard({
   const haptics = useHaptics();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const buttonScale = useSharedValue(1);
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
 
   const handleSelect = (index: number) => {
     setSelectedIndex(index);
@@ -141,40 +147,48 @@ export function FillInBlankCard({
       {/* Fixed Bottom Button */}
       <View style={styles.bottomActions}>
         {!showWrongAnswer && (
-          <TouchableOpacity
-            onPress={handleConfirm}
-            disabled={selectedIndex === null || (showResult && selectedIndex === correct_answer)}
-            activeOpacity={0.8}
-            style={[
-              styles.confirmButton,
-              (selectedIndex === null || (showResult && selectedIndex === correct_answer)) &&
-                styles.confirmButtonDisabled,
-            ]}
-          >
-            <LinearGradient
-              colors={
-                selectedIndex === null || (showResult && selectedIndex === correct_answer)
-                  ? [colors.background.elevated, colors.background.card]
-                  : colors.gradients.primary
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.confirmButtonGradient}
+          <Animated.View style={buttonAnimatedStyle}>
+            <TouchableOpacity
+              onPress={handleConfirm}
+              disabled={selectedIndex === null || (showResult && selectedIndex === correct_answer)}
+              activeOpacity={0.8}
+              onPressIn={() => {
+                buttonScale.value = withSpring(0.95);
+              }}
+              onPressOut={() => {
+                buttonScale.value = withSpring(1);
+              }}
+              style={[
+                styles.confirmButton,
+                (selectedIndex === null || (showResult && selectedIndex === correct_answer)) &&
+                  styles.confirmButtonDisabled,
+              ]}
             >
-              {showResult && selectedIndex === correct_answer && (
-                <Text style={styles.checkIcon}>✓</Text>
-              )}
-              <Text
-                style={[
-                  styles.confirmButtonText,
-                  (selectedIndex === null || (showResult && selectedIndex === correct_answer)) &&
-                    styles.confirmButtonTextDisabled,
-                ]}
+              <LinearGradient
+                colors={
+                  selectedIndex === null || (showResult && selectedIndex === correct_answer)
+                    ? [colors.background.elevated, colors.background.card]
+                    : colors.gradients.primary
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.confirmButtonGradient}
               >
-                {showResult && selectedIndex === correct_answer ? 'Correct!' : 'Confirm'}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+                {showResult && selectedIndex === correct_answer && (
+                  <Ionicons name="checkmark" size={20} color={colors.text.primary} />
+                )}
+                <Text
+                  style={[
+                    styles.confirmButtonText,
+                    (selectedIndex === null || (showResult && selectedIndex === correct_answer)) &&
+                      styles.confirmButtonTextDisabled,
+                  ]}
+                >
+                  {showResult && selectedIndex === correct_answer ? 'Correct!' : 'Confirm'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         )}
       </View>
 
@@ -254,10 +268,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.lg,
     gap: spacing.sm,
-  },
-  checkIcon: {
-    fontSize: 20,
-    color: colors.text.primary,
   },
   confirmButtonText: {
     fontSize: typography.fontSize.lg,

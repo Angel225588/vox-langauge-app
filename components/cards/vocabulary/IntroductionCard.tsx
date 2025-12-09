@@ -2,12 +2,13 @@
  * IntroductionCard - New Word/Phrase Card
  *
  * First encounter with a vocabulary word. Progressive reveal pattern:
- * 1. Category badge at top
- * 2. Image (if available)
+ * 1. Prominent image at very top (visual context)
+ * 2. Category badge
  * 3. Word + phonetic + audio controls
  * 4. Tap "Translation" button to reveal meaning
- * 5. Examples expand below
- * 6. Fixed button at bottom
+ * 5. Examples button (separate from translation)
+ * 6. Each example has its own translate toggle
+ * 7. Fixed button at bottom
  *
  * Design inspiration:
  * - Vocabulary card.png reference (toggle-based reveal)
@@ -15,7 +16,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, ScrollView } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -29,6 +30,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,6 +45,7 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
   const haptics = useHaptics();
   const [showTranslation, setShowTranslation] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
+  const [visibleExampleTranslations, setVisibleExampleTranslations] = useState<Set<number>>(new Set());
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -136,6 +139,19 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
     setShowExamples(!showExamples);
   }, [showExamples, haptics]);
 
+  const handleToggleExampleTranslation = useCallback((index: number) => {
+    haptics.light();
+    setVisibleExampleTranslations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  }, [haptics]);
+
   const handleContinue = useCallback(() => {
     haptics.medium();
     complete(true);
@@ -170,37 +186,53 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
     opacity: isPlaying ? 0.5 : 0,
   }));
 
+  const continueButtonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
+
   return (
     <View style={styles.container}>
-      {/* Category Badge at Top */}
-      <Animated.View
-        entering={FadeInDown.duration(400)}
-        style={styles.categoryContainer}
-      >
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{item.category}</Text>
-        </View>
-      </Animated.View>
+      {/* Prominent Image at Very Top */}
+      {item.imageUrl && (
+        <Animated.View
+          entering={FadeIn.duration(500)}
+          style={styles.heroImageContainer}
+        >
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+          {/* Category badge overlay on image */}
+          <View style={styles.categoryOverlay}>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>{item.category}</Text>
+            </View>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Category Badge (when no image) */}
+      {!item.imageUrl && (
+        <Animated.View
+          entering={FadeInDown.duration(400)}
+          style={styles.categoryContainer}
+        >
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{item.category}</Text>
+          </View>
+        </Animated.View>
+      )}
 
       {/* Scrollable Content Area */}
-      <View style={styles.contentArea}>
-        {/* Image (if available) */}
-        {item.imageUrl && (
-          <Animated.View
-            entering={FadeIn.duration(500).delay(100)}
-            style={styles.imageContainer}
-          >
-            <Image
-              source={{ uri: item.imageUrl }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-          </Animated.View>
-        )}
-
+      <ScrollView
+        style={styles.contentArea}
+        contentContainerStyle={styles.contentAreaInner}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Word Display */}
         <Animated.View
-          entering={FadeInDown.duration(500).delay(200)}
+          entering={FadeInDown.duration(500).delay(100)}
           style={styles.wordContainer}
         >
           <Text style={styles.word}>{item.word}</Text>
@@ -212,7 +244,7 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
 
         {/* Audio Controls - Below Phonetic */}
         <Animated.View
-          entering={FadeIn.duration(400).delay(300)}
+          entering={FadeIn.duration(400).delay(200)}
           style={styles.audioControlsContainer}
         >
           <View style={styles.audioControls}>
@@ -229,7 +261,11 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
                   isPlaying && playbackRate === 1.0 && styles.audioButtonActive,
                 ]}
               >
-                <Text style={styles.playIcon}>▶</Text>
+                <Ionicons
+                  name={isPlaying && playbackRate === 1.0 ? "pause" : "play"}
+                  size={22}
+                  color={isPlaying && playbackRate === 1.0 ? colors.text.primary : colors.primary.DEFAULT}
+                />
               </TouchableOpacity>
             </Animated.View>
 
@@ -242,9 +278,13 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
                 isPlaying && playbackRate < 1.0 && styles.audioButtonActive,
               ]}
             >
-              <Text style={styles.playIcon}>▶</Text>
+              <Ionicons
+                name={isPlaying && playbackRate < 1.0 ? "pause" : "play"}
+                size={22}
+                color={isPlaying && playbackRate < 1.0 ? colors.text.primary : colors.primary.DEFAULT}
+              />
               <View style={styles.slowBadge}>
-                <Text style={styles.slowBadgeText}>🐢</Text>
+                <Ionicons name="speedometer-outline" size={12} color={colors.text.tertiary} />
               </View>
             </TouchableOpacity>
           </View>
@@ -252,7 +292,7 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
 
         {/* Translation Toggle Button / Revealed Translation */}
         <Animated.View
-          entering={FadeIn.duration(400).delay(400)}
+          entering={FadeIn.duration(400).delay(300)}
           style={styles.translationSection}
         >
           {!showTranslation ? (
@@ -265,52 +305,103 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
                 colors={neomorphism.gradients.card}
                 style={styles.translationButtonInner}
               >
+                <Ionicons name="language" size={18} color={colors.text.secondary} />
                 <Text style={styles.translationButtonText}>Translation</Text>
               </LinearGradient>
             </TouchableOpacity>
           ) : (
             <Animated.View style={[styles.translationRevealed, translationStyle]}>
               <Text style={styles.translationText}>{item.translation}</Text>
-
-              {/* Examples toggle */}
-              {item.examples && item.examples.length > 0 && (
-                <TouchableOpacity
-                  onPress={handleToggleExamples}
-                  activeOpacity={0.7}
-                  style={styles.examplesToggle}
-                >
-                  <Text style={styles.examplesToggleText}>
-                    {showExamples ? 'Hide examples ▲' : 'Show examples ▼'}
-                  </Text>
-                </TouchableOpacity>
-              )}
             </Animated.View>
           )}
         </Animated.View>
 
-        {/* Examples Section */}
-        {showExamples && item.examples && (
-          <View style={styles.examplesContainer}>
-            {item.examples.map((example, index) => (
-              <Animated.View
-                key={index}
-                entering={FadeInUp.duration(300).delay(index * 100)}
-                style={styles.exampleItem}
-              >
-                <Text style={styles.exampleText}>{example.text}</Text>
-                <Text style={styles.exampleTranslation}>{example.translation}</Text>
-              </Animated.View>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* Fixed Bottom Actions */}
-      <View style={styles.bottomActions}>
-        {showTranslation ? (
-          <>
+        {/* Examples Button - Separate from Translation */}
+        {item.examples && item.examples.length > 0 && (
+          <Animated.View
+            entering={FadeIn.duration(400).delay(400)}
+            style={styles.examplesSection}
+          >
             <TouchableOpacity
-              onPress={handleContinue}
+              onPress={handleToggleExamples}
+              activeOpacity={0.8}
+              style={styles.examplesButton}
+            >
+              <View style={styles.examplesButtonInner}>
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={18}
+                  color={colors.text.secondary}
+                />
+                <Text style={styles.examplesButtonText}>
+                  Examples ({item.examples.length})
+                </Text>
+                <Ionicons
+                  name={showExamples ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={colors.text.tertiary}
+                />
+              </View>
+            </TouchableOpacity>
+
+            {/* Examples List */}
+            {showExamples && (
+              <View style={styles.examplesContainer}>
+                {item.examples.map((example, index) => (
+                  <Animated.View
+                    key={index}
+                    entering={FadeInUp.duration(300).delay(index * 100)}
+                    style={styles.exampleItem}
+                  >
+                    <Text style={styles.exampleText}>{example.text}</Text>
+
+                    {/* Translation toggle for each example */}
+                    {visibleExampleTranslations.has(index) ? (
+                      <TouchableOpacity
+                        onPress={() => handleToggleExampleTranslation(index)}
+                        activeOpacity={0.7}
+                        style={styles.exampleTranslationContainer}
+                      >
+                        <Text style={styles.exampleTranslation}>{example.translation}</Text>
+                        <Ionicons name="eye-off-outline" size={16} color={colors.text.tertiary} />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => handleToggleExampleTranslation(index)}
+                        activeOpacity={0.7}
+                        style={styles.translateButton}
+                      >
+                        <Ionicons name="language" size={16} color={colors.primary.DEFAULT} />
+                        <Text style={styles.translateButtonText}>Translate</Text>
+                      </TouchableOpacity>
+                    )}
+                  </Animated.View>
+                ))}
+              </View>
+            )}
+          </Animated.View>
+        )}
+      </ScrollView>
+
+      {/* Fixed Bottom Actions - Always visible, two buttons side by side */}
+      <View style={styles.bottomActions}>
+        <View style={styles.buttonRow}>
+          {/* Study Again / Know This button */}
+          <TouchableOpacity
+            onPress={handleMarkAsKnown}
+            activeOpacity={0.8}
+            style={styles.secondaryButton}
+          >
+            <View style={styles.secondaryButtonInner}>
+              <Ionicons name="checkmark-circle-outline" size={20} color={colors.text.secondary} />
+              <Text style={styles.secondaryButtonText}>Know it</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Got it / Continue button */}
+          <Animated.View style={[continueButtonStyle, styles.primaryButtonWrapper]}>
+            <TouchableOpacity
+              onPress={showTranslation ? handleContinue : handleRevealTranslation}
               activeOpacity={0.8}
               onPressIn={() => {
                 buttonScale.value = withSpring(0.95);
@@ -326,21 +417,18 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
                 end={{ x: 1, y: 0 }}
                 style={styles.continueButtonGradient}
               >
-                <Text style={styles.continueButtonText}>Got it</Text>
+                <Ionicons
+                  name={showTranslation ? "arrow-forward" : "eye-outline"}
+                  size={20}
+                  color={colors.text.primary}
+                />
+                <Text style={styles.continueButtonText}>
+                  {showTranslation ? 'Got it' : 'Reveal'}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleMarkAsKnown}
-              activeOpacity={0.7}
-              style={styles.skipButton}
-            >
-              <Text style={styles.skipButtonText}>I already know this</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <View style={styles.bottomPlaceholder} />
-        )}
+          </Animated.View>
+        </View>
       </View>
     </View>
   );
@@ -350,13 +438,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  heroImageContainer: {
+    width: '100%',
+    height: 200,
+    position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  categoryOverlay: {
+    position: 'absolute',
+    bottom: spacing.md,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
   categoryContainer: {
     alignItems: 'center',
     paddingTop: spacing.md,
     marginBottom: spacing.md,
   },
   categoryBadge: {
-    backgroundColor: colors.background.elevated,
+    backgroundColor: 'rgba(30, 30, 35, 0.9)',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
@@ -366,23 +470,15 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.text.secondary,
+    color: colors.text.primary,
   },
   contentArea: {
     flex: 1,
+  },
+  contentAreaInner: {
     paddingHorizontal: spacing.lg,
-  },
-  imageContainer: {
-    alignSelf: 'center',
-    marginBottom: spacing.lg,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-    ...shadows.md,
-  },
-  image: {
-    width: SCREEN_WIDTH - spacing.lg * 4,
-    height: 180,
-    borderRadius: borderRadius.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
   },
   wordContainer: {
     alignItems: 'center',
@@ -440,20 +536,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.DEFAULT,
     borderColor: colors.primary.light,
   },
-  playIcon: {
-    fontSize: 18,
-    color: colors.primary.DEFAULT,
-  },
   slowBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
+    bottom: -4,
+    right: -4,
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.full,
-    padding: 2,
-  },
-  slowBadgeText: {
-    fontSize: 10,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
   translationSection: {
     alignItems: 'center',
@@ -465,11 +556,14 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   translationButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: colors.border.light,
+    gap: spacing.sm,
   },
   translationButtonText: {
     fontSize: typography.fontSize.base,
@@ -484,17 +578,33 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
     color: colors.accent.purple,
     textAlign: 'center',
-    marginBottom: spacing.sm,
   },
-  examplesToggle: {
-    paddingVertical: spacing.sm,
+  examplesSection: {
+    marginTop: spacing.lg,
   },
-  examplesToggleText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
+  examplesButton: {
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadows.sm,
+  },
+  examplesButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  examplesButtonText: {
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.medium,
+    color: colors.text.secondary,
+    flex: 1,
   },
   examplesContainer: {
+    marginTop: spacing.md,
     gap: spacing.md,
   },
   exampleItem: {
@@ -507,44 +617,86 @@ const styles = StyleSheet.create({
   exampleText: {
     fontSize: typography.fontSize.base,
     color: colors.text.primary,
-    marginBottom: spacing.xs,
-    fontStyle: 'italic',
+    marginBottom: spacing.sm,
+    lineHeight: typography.fontSize.base * 1.5,
+  },
+  exampleTranslationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
   },
   exampleTranslation: {
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
+    fontStyle: 'italic',
+    flex: 1,
+  },
+  translateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  translateButtonText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary.DEFAULT,
+    fontWeight: typography.fontWeight.medium,
   },
   bottomActions: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
     paddingTop: spacing.md,
+    backgroundColor: colors.background.primary,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  secondaryButton: {
+    flex: 1,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.background.card,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadows.sm,
+  },
+  secondaryButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
+  },
+  secondaryButtonText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.secondary,
+  },
+  primaryButtonWrapper: {
+    flex: 1,
   },
   continueButton: {
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
     ...shadows.glow.primary,
-    marginBottom: spacing.sm,
   },
   continueButtonGradient: {
+    flexDirection: 'row',
     paddingVertical: spacing.lg,
-    paddingHorizontal: spacing['2xl'],
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
   continueButtonText: {
-    fontSize: typography.fontSize.lg,
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
-  },
-  skipButton: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  skipButtonText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
-    fontWeight: typography.fontWeight.medium,
-  },
-  bottomPlaceholder: {
-    height: 80,
   },
 });

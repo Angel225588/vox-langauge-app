@@ -26,6 +26,9 @@ import {
   IntroductionCard,
   VocabListeningCard,
   VocabTypingCard,
+  VocabSpeakingCard,
+  VocabAudioQuizCard,
+  VocabularyCardFlow,
 } from '@/components/cards';
 import type { VocabularyItem, VocabCardResult } from '@/components/cards';
 import { colors, spacing, typography } from '@/constants/designSystem';
@@ -307,8 +310,9 @@ const CARD_SAMPLES = {
       easeFactor: 2.5,
       interval: 0,
       repetitions: 0,
-      cardVariantsCompleted: { introduction: false, listening: false, typing: false },
+      cardVariantsCompleted: { introduction: false, listening: false, typing: false, speaking: false, audioQuiz: false },
       lastVariantShown: null,
+      imageUrl: IMAGES.mountain, // Hero image for visual context
       examples: [
         { text: "Let's wait and see what happens.", translation: 'Attendons et voyons ce qui se passe.' },
         { text: 'We should wait and see the results.', translation: 'Nous devrions attendre et voir les résultats.' },
@@ -333,8 +337,9 @@ const CARD_SAMPLES = {
       easeFactor: 2.5,
       interval: 0,
       repetitions: 0,
-      cardVariantsCompleted: { introduction: false, listening: false, typing: false },
+      cardVariantsCompleted: { introduction: false, listening: false, typing: false, speaking: false, audioQuiz: false },
       lastVariantShown: null,
+      imageUrl: IMAGES.coffee, // Hero image for visual context
       examples: [
         { text: 'Hello, how are you?', translation: 'Bonjour, comment allez-vous?' },
         { text: 'Hello there!', translation: 'Bonjour!' },
@@ -359,8 +364,9 @@ const CARD_SAMPLES = {
       easeFactor: 2.5,
       interval: 0,
       repetitions: 0,
-      cardVariantsCompleted: { introduction: false, listening: false, typing: false },
+      cardVariantsCompleted: { introduction: false, listening: false, typing: false, speaking: false, audioQuiz: false },
       lastVariantShown: null,
+      imageUrl: IMAGES.flower, // Hero image for visual context
       examples: [
         { text: 'What a beautiful day!', translation: 'Quelle belle journée!' },
         { text: 'She has a beautiful smile.', translation: 'Elle a un beau sourire.' },
@@ -387,7 +393,7 @@ const CARD_SAMPLES = {
       easeFactor: 2.5,
       interval: 1,
       repetitions: 1,
-      cardVariantsCompleted: { introduction: true, listening: false, typing: false },
+      cardVariantsCompleted: { introduction: true, listening: false, typing: false, speaking: false, audioQuiz: false },
       lastVariantShown: 'introduction',
       examples: [],
     },
@@ -410,7 +416,7 @@ const CARD_SAMPLES = {
       easeFactor: 2.5,
       interval: 2,
       repetitions: 2,
-      cardVariantsCompleted: { introduction: true, listening: false, typing: false },
+      cardVariantsCompleted: { introduction: true, listening: false, typing: false, speaking: false, audioQuiz: false },
       lastVariantShown: 'introduction',
       examples: [],
     },
@@ -433,7 +439,7 @@ const CARD_SAMPLES = {
       easeFactor: 2.5,
       interval: 3,
       repetitions: 3,
-      cardVariantsCompleted: { introduction: true, listening: false, typing: false },
+      cardVariantsCompleted: { introduction: true, listening: false, typing: false, speaking: false, audioQuiz: false },
       lastVariantShown: 'introduction',
       examples: [],
     },
@@ -458,7 +464,7 @@ const CARD_SAMPLES = {
       easeFactor: 2.5,
       interval: 5,
       repetitions: 4,
-      cardVariantsCompleted: { introduction: true, listening: true, typing: false },
+      cardVariantsCompleted: { introduction: true, listening: true, typing: false, speaking: false, audioQuiz: false },
       lastVariantShown: 'listening',
       examples: [],
     },
@@ -481,7 +487,7 @@ const CARD_SAMPLES = {
       easeFactor: 2.5,
       interval: 4,
       repetitions: 3,
-      cardVariantsCompleted: { introduction: true, listening: true, typing: false },
+      cardVariantsCompleted: { introduction: true, listening: true, typing: false, speaking: false, audioQuiz: false },
       lastVariantShown: 'listening',
       examples: [],
     },
@@ -504,9 +510,183 @@ const CARD_SAMPLES = {
       easeFactor: 2.5,
       interval: 3,
       repetitions: 2,
-      cardVariantsCompleted: { introduction: true, listening: true, typing: false },
+      cardVariantsCompleted: { introduction: true, listening: true, typing: false, speaking: false, audioQuiz: false },
       lastVariantShown: 'listening',
       examples: [],
+    },
+  ],
+  // NEW: Speaking Card (Listen & Speak)
+  'vocab-speaking': [
+    {
+      id: 'vocab-speak-1',
+      word: 'Mountain',
+      translation: 'Montagne',
+      phonetic: 'ˈmaʊn.tɪn',
+      category: 'Nature',
+      cefrLevel: 'A2',
+      partOfSpeech: 'noun',
+      masteryScore: 70,
+      priority: 5,
+      timesCorrect: 6,
+      timesIncorrect: 1,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 7,
+      repetitions: 5,
+      cardVariantsCompleted: { introduction: true, listening: true, typing: true, speaking: false, audioQuiz: true },
+      lastVariantShown: 'typing',
+      examples: [],
+    },
+    {
+      id: 'vocab-speak-2',
+      word: 'River',
+      translation: 'Rivière',
+      phonetic: 'ˈrɪv.ər',
+      category: 'Nature',
+      cefrLevel: 'A2',
+      partOfSpeech: 'noun',
+      masteryScore: 65,
+      priority: 5,
+      timesCorrect: 5,
+      timesIncorrect: 2,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 5,
+      repetitions: 4,
+      cardVariantsCompleted: { introduction: true, listening: true, typing: true, speaking: false, audioQuiz: true },
+      lastVariantShown: 'audioQuiz',
+      examples: [],
+    },
+    {
+      id: 'vocab-speak-3',
+      word: 'Forest',
+      translation: 'Forêt',
+      phonetic: 'ˈfɒr.ɪst',
+      category: 'Nature',
+      cefrLevel: 'A2',
+      partOfSpeech: 'noun',
+      masteryScore: 60,
+      priority: 5,
+      timesCorrect: 4,
+      timesIncorrect: 2,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 4,
+      repetitions: 3,
+      cardVariantsCompleted: { introduction: true, listening: true, typing: true, speaking: false, audioQuiz: true },
+      lastVariantShown: 'typing',
+      examples: [],
+    },
+  ],
+  // NEW: Audio Quiz Card (Listen & Select)
+  'vocab-audio-quiz': [
+    {
+      id: 'vocab-quiz-1',
+      word: 'Cat',
+      translation: 'Chat',
+      phonetic: 'kæt',
+      category: 'Animals',
+      cefrLevel: 'A1',
+      partOfSpeech: 'noun',
+      masteryScore: 20,
+      priority: 5,
+      timesCorrect: 1,
+      timesIncorrect: 1,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 1,
+      repetitions: 1,
+      cardVariantsCompleted: { introduction: true, listening: false, typing: false, speaking: false, audioQuiz: false },
+      lastVariantShown: 'introduction',
+      examples: [],
+    },
+    {
+      id: 'vocab-quiz-2',
+      word: 'Dog',
+      translation: 'Chien',
+      phonetic: 'dɒɡ',
+      category: 'Animals',
+      cefrLevel: 'A1',
+      partOfSpeech: 'noun',
+      masteryScore: 25,
+      priority: 5,
+      timesCorrect: 2,
+      timesIncorrect: 1,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 1,
+      repetitions: 1,
+      cardVariantsCompleted: { introduction: true, listening: false, typing: false, speaking: false, audioQuiz: false },
+      lastVariantShown: 'introduction',
+      examples: [],
+    },
+    {
+      id: 'vocab-quiz-3',
+      word: 'Bird',
+      translation: 'Oiseau',
+      phonetic: 'bɜːd',
+      category: 'Animals',
+      cefrLevel: 'A1',
+      partOfSpeech: 'noun',
+      masteryScore: 15,
+      priority: 5,
+      timesCorrect: 1,
+      timesIncorrect: 2,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 1,
+      repetitions: 1,
+      cardVariantsCompleted: { introduction: true, listening: false, typing: false, speaking: false, audioQuiz: false },
+      lastVariantShown: 'introduction',
+      examples: [],
+    },
+  ],
+  // NEW: Vocabulary Card Flow (Full sequence test)
+  'vocab-flow': [
+    {
+      id: 'vocab-flow-1',
+      word: 'Adventure',
+      translation: 'Aventure',
+      phonetic: 'ædˈven.tʃər',
+      category: 'Abstract',
+      cefrLevel: 'B1',
+      partOfSpeech: 'noun',
+      masteryScore: 0,
+      priority: 5,
+      timesCorrect: 0,
+      timesIncorrect: 0,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 0,
+      repetitions: 0,
+      cardVariantsCompleted: { introduction: false, listening: false, typing: false, speaking: false, audioQuiz: false },
+      lastVariantShown: null,
+      imageUrl: IMAGES.mountain,
+      examples: [
+        { text: 'Life is an adventure.', translation: 'La vie est une aventure.' },
+        { text: 'She loves adventure sports.', translation: 'Elle aime les sports d\'aventure.' },
+      ],
     },
   ],
 };
@@ -571,6 +751,32 @@ export default function TestCardsScreen() {
             item={currentSample as VocabularyItem}
             onComplete={(result: VocabCardResult) => handleNext(result)}
             onSkip={() => handleNext()}
+          />
+        );
+      case 'vocab-speaking':
+        return (
+          <VocabSpeakingCard
+            item={currentSample as VocabularyItem}
+            onComplete={(result: VocabCardResult) => handleNext(result)}
+            onSkip={() => handleNext()}
+          />
+        );
+      case 'vocab-audio-quiz':
+        return (
+          <VocabAudioQuizCard
+            item={currentSample as VocabularyItem}
+            onComplete={(result: VocabCardResult) => handleNext(result)}
+          />
+        );
+      case 'vocab-flow':
+        return (
+          <VocabularyCardFlow
+            item={currentSample as VocabularyItem}
+            onComplete={(results: VocabCardResult[]) => {
+              console.log('Flow completed with results:', results);
+              handleNext(results);
+            }}
+            onExit={() => router.back()}
           />
         );
       default:

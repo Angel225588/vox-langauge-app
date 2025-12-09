@@ -15,6 +15,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -26,6 +27,7 @@ import Animated, {
   useSharedValue,
   Easing,
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -62,6 +64,7 @@ interface ListeningCardProps extends VocabCardProps {
 
 export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCardProps) {
   const haptics = useHaptics();
+  const insets = useSafeAreaInsets();
   const [input, setInput] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -79,6 +82,7 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
   const audioButtonScale = useSharedValue(1);
   const pulseScale = useSharedValue(1);
   const inputScale = useSharedValue(1);
+  const buttonScale = useSharedValue(1);
 
   // Pulse animation when playing
   React.useEffect(() => {
@@ -189,11 +193,15 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
     transform: [{ scale: inputScale.value }],
   }));
 
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
+
   const showWrongAnswer = showResult && !isCorrect;
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {/* Header */}
@@ -202,9 +210,9 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
         style={styles.header}
       >
         <View style={styles.headerPill}>
-          <Text style={styles.headerIcon}>🎧</Text>
+          <Ionicons name="headset" size={20} color={colors.primary.DEFAULT} />
           <Text style={styles.headerText}>Listen & Write</Text>
-          <Text style={styles.headerIcon}>✍️</Text>
+          <Ionicons name="pencil" size={18} color={colors.accent.purple} />
         </View>
       </Animated.View>
 
@@ -229,10 +237,11 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
                   isPlaying && playbackRate === 1.0 && styles.audioButtonActive,
                 ]}
               >
-                <Text style={[
-                  styles.playIcon,
-                  isPlaying && playbackRate === 1.0 && styles.playIconActive,
-                ]}>▶</Text>
+                <Ionicons
+                  name={isPlaying && playbackRate === 1.0 ? "pause" : "play"}
+                  size={24}
+                  color={isPlaying && playbackRate === 1.0 ? colors.text.primary : colors.primary.DEFAULT}
+                />
               </TouchableOpacity>
             </Animated.View>
 
@@ -245,12 +254,13 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
                 isPlaying && playbackRate < 1.0 && styles.audioButtonActive,
               ]}
             >
-              <Text style={[
-                styles.playIcon,
-                isPlaying && playbackRate < 1.0 && styles.playIconActive,
-              ]}>▶</Text>
+              <Ionicons
+                name={isPlaying && playbackRate < 1.0 ? "pause" : "play"}
+                size={24}
+                color={isPlaying && playbackRate < 1.0 ? colors.text.primary : colors.primary.DEFAULT}
+              />
               <View style={styles.slowBadge}>
-                <Text style={styles.slowBadgeText}>🐢</Text>
+                <Ionicons name="speedometer-outline" size={12} color={colors.text.tertiary} />
               </View>
             </TouchableOpacity>
           </View>
@@ -268,7 +278,7 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
               activeOpacity={0.7}
               style={styles.hintButton}
             >
-              <Text style={styles.hintButtonText}>💡</Text>
+              <Ionicons name="bulb-outline" size={20} color={colors.accent.orange} />
             </TouchableOpacity>
           )}
 
@@ -315,38 +325,46 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
       </View>
 
       {/* Fixed Bottom Actions */}
-      <View style={styles.bottomActions}>
+      <View style={[styles.bottomActions, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]}>
         {!showWrongAnswer && (
-          <TouchableOpacity
-            onPress={handleSubmitTyping}
-            disabled={!input || (showResult && isCorrect)}
-            activeOpacity={0.8}
-            style={[
-              styles.checkButton,
-              (!input || (showResult && isCorrect)) && styles.checkButtonDisabled,
-            ]}
-          >
-            <LinearGradient
-              colors={
-                !input || (showResult && isCorrect)
-                  ? [colors.background.elevated, colors.background.card]
-                  : colors.gradients.primary
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.checkButtonGradient}
+          <Animated.View style={buttonAnimatedStyle}>
+            <TouchableOpacity
+              onPress={handleSubmitTyping}
+              disabled={!input || (showResult && isCorrect)}
+              activeOpacity={0.8}
+              onPressIn={() => {
+                buttonScale.value = withSpring(0.95);
+              }}
+              onPressOut={() => {
+                buttonScale.value = withSpring(1);
+              }}
+              style={[
+                styles.checkButton,
+                (!input || (showResult && isCorrect)) && styles.checkButtonDisabled,
+              ]}
             >
-              {showResult && isCorrect && (
-                <Text style={styles.checkIcon}>✓</Text>
-              )}
-              <Text style={[
-                styles.checkButtonText,
-                (!input || (showResult && isCorrect)) && styles.checkButtonTextDisabled,
-              ]}>
-                {showResult && isCorrect ? 'Correct!' : 'Check'}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={
+                  !input || (showResult && isCorrect)
+                    ? [colors.background.elevated, colors.background.card]
+                    : colors.gradients.primary
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.checkButtonGradient}
+              >
+                {showResult && isCorrect && (
+                  <Ionicons name="checkmark" size={20} color={colors.text.primary} />
+                )}
+                <Text style={[
+                  styles.checkButtonText,
+                  (!input || (showResult && isCorrect)) && styles.checkButtonTextDisabled,
+                ]}>
+                  {showResult && isCorrect ? 'Correct!' : 'Check'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         )}
       </View>
 
@@ -383,9 +401,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.light,
     ...shadows.sm,
-  },
-  headerIcon: {
-    fontSize: 20,
   },
   headerText: {
     fontSize: typography.fontSize.lg,
@@ -433,25 +448,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.DEFAULT,
     borderColor: colors.primary.light,
   },
-  playIcon: {
-    fontSize: 22,
-    color: colors.primary.DEFAULT,
-  },
-  playIconActive: {
-    color: colors.text.primary,
-  },
   slowBadge: {
     position: 'absolute',
     bottom: -4,
     right: -4,
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.full,
-    padding: 3,
+    padding: 4,
     borderWidth: 1,
     borderColor: colors.border.light,
-  },
-  slowBadgeText: {
-    fontSize: 12,
   },
   inputSection: {
     position: 'relative',
@@ -469,9 +474,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.light,
     zIndex: 10,
-  },
-  hintButtonText: {
-    fontSize: 20,
   },
   inputWrapper: {
     marginBottom: spacing.md,
@@ -507,10 +509,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.lg,
     gap: spacing.sm,
-  },
-  checkIcon: {
-    fontSize: 20,
-    color: colors.text.primary,
   },
   checkButtonText: {
     fontSize: typography.fontSize.lg,

@@ -54,6 +54,33 @@
 
 ---
 
+## ⚠️ Technical Debt / Migration Notes
+
+### expo-av Deprecation (SDK 54)
+
+**Warning**: `expo-av` is deprecated and will be removed in SDK 54.
+
+**Current Usage**: Audio recording, playback in flashcards and speaking cards
+
+**Migration Plan**:
+| Package | Replacement | Status |
+|---------|-------------|--------|
+| `expo-av` (Audio playback) | `expo-audio` | Pending |
+| `expo-av` (Video) | `expo-video` | Not needed |
+| `expo-av` (Recording) | `expo-audio` | Pending |
+
+**Files to Update**:
+- `components/cards/vocabulary/ListeningCard.tsx`
+- `components/cards/vocabulary/SpeakingCard.tsx`
+- `components/flashcards/ListeningCard.tsx`
+- `components/flashcards/SpeakingCard.tsx`
+- `app/recording-feedback/[id].tsx`
+- Any other files using `Audio` from `expo-av`
+
+**Timeline**: Migrate before upgrading to SDK 54
+
+---
+
 ## Part 1: P0 - Current Sprint (MUST COMPLETE)
 
 ### Already In Progress
@@ -223,6 +250,36 @@ interface WordGrammar {
 | First Lesson Launch | 📅 Planned | Critical | P1 |
 | Skip Assessment (Start Beginner) | ✅ Decided | High | P0 |
 | Optional Level Test | Medium | Medium | P2 |
+
+---
+
+### P1.8: Personal Script Builder (NEW - Dec 2024)
+**Priority Score**: 8.8/10
+**User Demand**: Users want to express THEIR thoughts, not just learn vocabulary
+**Research Support**: TBLT effect size d = 0.93 (authentic task completion)
+**Competitive Gap**: No app lets users write → correct → practice their own scripts
+**Business Impact**: Creates highly personalized, relevant practice content
+
+| Sub-Feature | Effort | Impact | Priority |
+|-------------|--------|--------|----------|
+| Script Input Editor | Medium | High | P1 |
+| AI Grammar Analysis | Medium | High | P1 |
+| Vocabulary Enhancement | Medium | High | P1 |
+| "Better Ways to Say" Suggestions | Medium | High | P1 |
+| Script → Teleprompter Integration | Low | High | P1 |
+| Category Templates (Routine, Interview, etc.) | Low | Medium | P1 |
+| Word Bank Integration | Low | Medium | P1 |
+| Script Library/History | Low | Medium | P2 |
+
+**Use Cases:**
+- Daily routine descriptions → practice until natural
+- Job interview preparation → polished self-introduction
+- Travel scenario scripts → ready-to-use phrases
+- Opinion/story expression → complex thought articulation
+
+**TBLT Connection:** This feature puts users in authentic task-based scenarios where they create, correct, and practice real content they need. Directly implements research-backed methodology (see [SCENARIOS.md](./features/SCENARIOS.md)).
+
+**Full Spec:** [PERSONAL_SCRIPT_BUILDER.md](./features/PERSONAL_SCRIPT_BUILDER.md)
 
 ---
 
