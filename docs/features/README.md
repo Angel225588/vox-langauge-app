@@ -22,6 +22,7 @@ Each feature file contains:
 
 | Feature | File | Priority | Status |
 |---------|------|----------|--------|
+| **Learning Path System** | [../LEARNING_PATH_SYSTEM.md](../LEARNING_PATH_SYSTEM.md) | **P0 - CORE** | Active Development |
 | **Scenarios & TBLT** | [SCENARIOS.md](./SCENARIOS.md) | **P0 - CRITICAL** | Design Complete |
 | Word Bank | [WORD_BANK.md](./WORD_BANK.md) | P0 | Planned |
 | AI Conversation | [AI_CONVERSATION.md](./AI_CONVERSATION.md) | P0 | Planned |
