@@ -159,7 +159,7 @@ interface WordGrammar {
 
 ---
 
-### P1.3: AI Conversation Partner
+### P1.3: AI Conversation Partner ✅ PLANNING COMPLETE (Dec 16, 2025)
 **Priority Score**: 9.5/10
 **User Demand**: #1 most requested feature (75% of feature discussions)
 **Research Support**: 19% speaking improvement, reduced anxiety
@@ -180,6 +180,18 @@ interface WordGrammar {
 - AI must WAIT 5-10 seconds before offering hints
 - Corrections are contextual ("Try saying it like...") not binary (wrong!)
 - Never interrupt - let user finish
+
+**📋 IMPLEMENTATION PLAN APPROVED (Dec 16, 2025)**:
+
+Three-phase approach decided:
+1. **Phase 1 (MVP)**: Gemini Live API - Free tier, validate product-market fit
+2. **Phase 2 (Production)**: ElevenLabs + Gemini Flash - Best voice quality
+3. **Phase 3 (Scale)**: Self-hosted Chatterbox - Cost optimization at volume
+
+Full documentation:
+- Research: `docs/research/VOICE_AI_OPTIONS_2025.md`
+- Spec: `docs/features/VOICE_CONVERSATION_SYSTEM.md`
+- Plan: `docs/features/VOICE_CONVERSATION_IMPLEMENTATION_PLAN.md`
 
 ---
 
@@ -284,6 +296,67 @@ interface WordGrammar {
 ---
 
 ## Part 3: P2 - Important Enhancements (v1.1)
+
+### P2.0: Progressive Immersion System (NEW - Dec 2025)
+**Priority Score**: 8.2/10
+**User Demand**: Solves "plateau" problem for intermediate+ learners
+**Research Support**: Krashen's i+1 hypothesis, Vygotsky's ZPD, scaffolding research
+**Competitive Gap**: NO major app does level-based UI immersion - unique differentiator
+**Business Impact**: Improves B1+ retention, creates "aha" moments
+
+| Sub-Feature | Effort | Impact | Priority |
+|-------------|--------|--------|----------|
+| Tier 1: Buttons/Navigation in target lang | Low | High | P2 |
+| Tier 2: Headers/Feedback in target lang | Low | High | P2 |
+| Tier 3: Explanations in target lang | Medium | Medium | P2 |
+| Immersion Settings UI | Low | Medium | P2 |
+| Level-up Celebration Modal | Low | High | P2 |
+| "Peek" Feature (long-press to reveal) | Low | High | P2 |
+
+**How It Works:**
+- A1 (10% immersion): All UI in native language
+- A2 (30%): Buttons switch to target language
+- B1 (50%): Headers + feedback switch
+- B2 (70%): Most UI in target
+- C1/C2 (90-100%): Full immersion
+
+**Key Decision**: Automatic with opt-out (research shows most won't enable if opt-in)
+
+**Full Spec**: [PROGRESSIVE_IMMERSION_SYSTEM.md](./features/PROGRESSIVE_IMMERSION_SYSTEM.md)
+
+---
+
+### P2.0.5: i18n Language Expansion (NEW - Dec 2025) ✅ COMPLETE
+**Priority Score**: 7.8/10
+**User Demand**: Reach non-English native speakers learning English/Spanish/French
+**Research Support**: Duolingo 2024-2025 data on language learner demographics
+**Competitive Gap**: Most apps only have 2-3 UI languages
+**Business Impact**: Expands addressable market significantly
+
+**Current State**: 5 languages complete (EN, ES, FR, PT, AR)
+
+**✅ IMPLEMENTATION COMPLETE (Dec 17, 2025)**
+- Commit: `3199ad8`
+- 43 files added, 4,184 lines of translations
+
+| Phase | Language | Code | Status | Difficulty |
+|-------|----------|------|--------|------------|
+| **MVP** | French | fr | ✅ Complete | 🟢 Easy |
+| **MVP** | Portuguese | pt | ✅ Complete | 🟢 Easy |
+| **MVP** | Arabic | ar | ✅ Complete | 🟡 Medium |
+| v1.1 | Chinese | zh | 📅 Post-MVP | 🟡 Medium |
+| v1.2 | Japanese | ja | 📅 Future | 🟡 Medium |
+| v1.2 | Korean | ko | 📅 Future | 🟢 Easy |
+| v1.2 | German | de | 📅 Future | 🟢 Easy |
+
+**Why These 3 for MVP?**
+- French: Europe/Africa, testers understand it, easy to translate
+- Portuguese: Brazil (200M+), 80% similar to Spanish
+- Arabic: Fastest growing market, validates RTL infrastructure
+
+**Full Plan**: [docs/i18n/LANGUAGE_EXPANSION_PLAN.md](./i18n/LANGUAGE_EXPANSION_PLAN.md)
+
+---
 
 ### P2.1: Native Speaker Videos
 **Priority Score**: 7.5/10

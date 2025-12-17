@@ -1,7 +1,7 @@
 # Vox Language App - Project Status
 
-**Last Updated**: 2025-11-30
-**Current Phase**: Phase 1 ✅ Complete | Phase 2 📋 Next Up
+**Last Updated**: 2025-12-17
+**Current Phase**: Phase 1 ✅ Complete | AI Path Generation ✅ Complete | Voice AI Planning ✅ Complete | i18n Expansion ✅ Complete | Phase 3 🚧 In Progress
 **Version**: 1.0.0
 
 ---
@@ -297,11 +297,187 @@ Create a **self-directed language learning app** where users:
 
 ---
 
-## 📝 Current Work (Updated 2025-11-20)
+## ✅ AI Path Generation System (COMPLETE - Dec 14, 2025)
 
-### Active Sprint: Core Learning Mechanics
+**Status**: ✅ Complete
+**Completion Date**: 2025-12-14
 
-**Current Focus**: Building Flashcard System (Phase 3.1)
+### What We Built
+
+#### 1️⃣ Onboarding V2 Flow ✅
+- 5-step onboarding with progress dots
+- Language selection, motivation, proficiency, timeline, commitment
+- Zustand store for onboarding state (useOnboardingV2)
+
+#### 2️⃣ AI Path Generation ✅
+- Gemini AI integration (`lib/services/pathGeneration.ts`)
+- Personalized learning path generation based on onboarding data
+- Fallback to template-based paths when AI fails
+- 5 template categories: career, travel, relationship, academic, heritage
+
+#### 3️⃣ Database Integration ✅
+- `lib/db/learningPaths.ts` - Uses existing schema:
+  - `user_staircases` table for learning paths
+  - `staircase_steps` table for individual stairs
+  - `user_stair_progress` table for status tracking
+- Batch insert for stairs with progress records
+
+#### 4️⃣ Home Screen Integration ✅
+- `useLearningPath` hook fetches real stairs from database
+- Falls back to mock data if no path exists
+- Real-time status updates (locked/current/completed)
+
+#### 5️⃣ AI Memory System ✅
+- `lib/ai/userMemory.ts` - Personalized AI memory per user
+- Stores strengths, weaknesses, learning patterns
+- Generates memory summaries for AI prompts (like claude.md)
+
+### Key Files
+- `/lib/services/pathGeneration.ts` - Main orchestration
+- `/lib/db/learningPaths.ts` - Database operations
+- `/hooks/useLearningPath.ts` - React hook for home screen
+- `/lib/ai/userMemory.ts` - AI memory system
+- `/app/(auth)/onboarding-v2/ready.tsx` - Triggers path creation
+
+### Architecture Flow
+```
+Onboarding V2 → createPersonalizedPath() → Gemini AI/Template
+                                              ↓
+                                    user_staircases (DB)
+                                              ↓
+                                    staircase_steps (DB)
+                                              ↓
+                                    user_stair_progress (DB)
+                                              ↓
+                                    Home Screen (useLearningPath)
+```
+
+---
+
+## ✅ Voice Conversation System Planning (COMPLETE - Dec 16, 2025)
+
+**Status**: ✅ Planning Complete | Ready for Implementation
+**Completion Date**: 2025-12-16
+**Priority Score**: 9.5/10 (Highest P1 feature)
+
+### What We Planned
+
+#### 1️⃣ Comprehensive Research ✅
+- Evaluated 10+ voice AI solutions (Gemini Live, ElevenLabs, open-source)
+- User feedback analysis from Reddit, GitHub, production deployments
+- Cost analysis at scale (free tier → enterprise)
+- React Native / Expo compatibility assessment
+- Full documentation: `docs/research/VOICE_AI_OPTIONS_2025.md`
+
+#### 2️⃣ Three-Phase Migration Strategy ✅
+
+| Phase | Solution | Purpose | Cost |
+|-------|----------|---------|------|
+| **Phase 1** | Gemini Live API | MVP Validation | Free tier |
+| **Phase 2** | ElevenLabs + Gemini Flash | Production Quality | $99-1,320/mo |
+| **Phase 3** | Self-hosted Chatterbox | Scale Optimization | Infrastructure |
+
+#### 3️⃣ Technical Specification ✅
+- Full architecture diagrams for all 3 phases
+- Database schema for conversations
+- Component hierarchy (VoiceConversation, VoiceButton, etc.)
+- Hook design (useVoiceConversation)
+- Scenario system for roleplay/stories
+- Character voice system
+
+#### 4️⃣ Implementation Plan ✅
+- 17 tasks broken into 3 sprints
+- Estimated effort: 14.5 days
+- Clear acceptance criteria per task
+- Testing requirements defined
+
+### Key Decision: Why This Approach
+
+1. **User Demand**: #1 requested feature (75% of feature discussions)
+2. **Competitive Gap**: No app does judgment-free AI conversations well
+3. **Technical Fit**: Gemini already integrated, free tier for validation
+4. **Risk Mitigation**: Graduate from free → paid → self-hosted as scale demands
+
+### Key Files
+- `/docs/research/VOICE_AI_OPTIONS_2025.md` - Full research (600+ lines)
+- `/docs/features/VOICE_CONVERSATION_SYSTEM.md` - Technical spec
+- `/docs/features/VOICE_CONVERSATION_IMPLEMENTATION_PLAN.md` - Sprint plan
+
+### Use Cases Supported
+1. **Character Conversations**: Voice chats with AI characters in stories
+2. **Scenario Roleplay**: Practice real situations (cafe, directions, interview)
+3. **Multi-Character Dialogues**: Listen to distinct voices in conversations
+
+---
+
+## ✅ i18n Language Expansion (COMPLETE - Dec 17, 2025)
+
+**Status**: ✅ Complete
+**Completion Date**: 2025-12-17
+**Commit**: `3199ad8`
+
+### What We Built
+
+#### 1️⃣ New Language Translations ✅
+- **French (fr)**: 7 translation files (common, onboarding, home, settings, practice, errors, rewards)
+- **Portuguese (pt)**: 7 translation files (Brazilian Portuguese)
+- **Arabic (ar)**: 7 translation files (RTL-ready)
+
+#### 2️⃣ i18n Infrastructure ✅
+- `i18n/index.ts` - Main config with all 5 language resources
+- `i18n/types.ts` - Type definitions + LANGUAGES_WITH_TRANSLATIONS
+- `i18n/hooks/useLanguage.ts` - Language switching hook
+- `i18n/hooks/useRTL.ts` - RTL layout support
+- `i18n/utils/rtl.ts` - RTL utilities for Arabic/Hebrew
+- `lib/storage/languageStorage.ts` - Persist language preferences
+
+#### 3️⃣ Features ✅
+- Auto-switch app language when user selects native language in onboarding
+- Language picker in Profile tab with all 5 languages
+- Full RTL support for Arabic
+
+### Languages Now Supported
+| Code | Language | RTL | Status |
+|------|----------|-----|--------|
+| en | English | No | ✅ Complete |
+| es | Spanish | No | ✅ Complete |
+| fr | French | No | ✅ Complete |
+| pt | Portuguese | No | ✅ Complete |
+| ar | Arabic | Yes | ✅ Complete |
+
+---
+
+## 📝 Current Work (Updated 2025-12-17)
+
+### Active Sprint: Voice Conversation System (Phase 1 MVP)
+
+**Current Focus**: Implementing Gemini Live API integration for voice conversations
+
+#### Voice AI Implementation Tasks:
+1. **Sprint 1: Core Infrastructure** (Days 1-4)
+   - [ ] Audio Recording System (`lib/voice/audioRecorder.ts`)
+   - [ ] Audio Playback System (`lib/voice/audioPlayer.ts`)
+   - [ ] Gemini Live API Client (`lib/voice/geminiLive.ts`)
+   - [ ] Conversation Manager (`lib/voice/conversationManager.ts`)
+
+2. **Sprint 2: React Hooks & UI** (Days 5-8)
+   - [ ] Voice Conversation Hook (`hooks/useVoiceConversation.ts`)
+   - [ ] Voice Button Component
+   - [ ] Conversation Bubble Component
+   - [ ] Voice Waveform Visualization
+   - [ ] Main Voice Conversation Screen
+
+3. **Sprint 3: Scenarios & Polish** (Days 9-13)
+   - [ ] Scenario System (greeting, cafe, directions, shopping)
+   - [ ] Character System (4+ characters with voices)
+   - [ ] Scenario Selection Screen
+   - [ ] Conversation Results Screen
+   - [ ] Error Handling & Edge Cases
+   - [ ] Analytics & Testing
+
+### Parallel Track: Core Learning Mechanics
+
+**Secondary Focus**: Building Flashcard System (Phase 3.1)
 
 #### Task Breakdown:
 1. **Database Layer**
