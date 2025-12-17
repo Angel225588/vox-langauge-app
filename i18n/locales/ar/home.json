@@ -1,0 +1,46 @@
+{
+  "title": "خارطة طريقي",
+  "loading": "جارٍ تحميل مسار تعلمك...",
+  "greeting": {
+    "morning": "صباح الخير",
+    "afternoon": "مساء الخير",
+    "evening": "مساء الخير"
+  },
+  "stats": {
+    "points": "{{count}} نقطة",
+    "points_label": "النقاط",
+    "streak": "سلسلة {{count}} يوم",
+    "streak_label": "السلسلة",
+    "words_learned": "{{count}} كلمة تم تعلمها",
+    "lessons_completed": "{{count}} درس مكتمل"
+  },
+  "stair_card": {
+    "locked": "أكمل المرحلة السابقة للفتح",
+    "current": "الحالي",
+    "completed": "مكتمل",
+    "vocabulary_count": "{{count}} كلمة",
+    "vocabulary_count_plural": "{{count}} كلمات",
+    "estimated_days": "~{{count}} يوم",
+    "estimated_days_plural": "~{{count}} أيام",
+    "start_lesson": "ابدأ الدرس",
+    "continue_lesson": "متابعة",
+    "review": "مراجعة"
+  },
+  "quick_practice": {
+    "title": "تدريب سريع",
+    "vocabulary": "المفردات",
+    "speaking": "التحدث",
+    "listening": "الاستماع",
+    "reading": "القراءة"
+  },
+  "daily_goal": {
+    "title": "الهدف اليومي",
+    "progress": "{{current}} / {{target}} دقيقة",
+    "completed": "تم تحقيق الهدف!",
+    "keep_going": "استمر!"
+  },
+  "next_lesson": {
+    "title": "الدرس التالي",
+    "continue": "متابعة التعلم"
+  }
+}

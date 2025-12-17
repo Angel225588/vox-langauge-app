@@ -1,0 +1,50 @@
+{
+  "app_name": "Vox Language",
+  "loading": "Chargement...",
+  "buttons": {
+    "continue": "Continuer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "back": "Retour",
+    "next": "Suivant",
+    "submit": "Soumettre",
+    "retry": "Réessayer",
+    "done": "Terminé",
+    "skip": "Passer",
+    "start": "Commencer",
+    "finish": "Terminer",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "share": "Partager",
+    "learn_more": "En savoir plus"
+  },
+  "validation": {
+    "required": "Ce champ est obligatoire",
+    "invalid_email": "Veuillez entrer une adresse e-mail valide",
+    "password_too_short": "Le mot de passe doit contenir au moins {{min}} caractères",
+    "passwords_dont_match": "Les mots de passe ne correspondent pas",
+    "invalid_input": "Entrée invalide"
+  },
+  "time": {
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "tomorrow": "Demain",
+    "days_ago": "il y a {{count}} jour",
+    "days_ago_plural": "il y a {{count}} jours",
+    "hours_ago": "il y a {{count}} heure",
+    "hours_ago_plural": "il y a {{count}} heures",
+    "minutes_ago": "il y a {{count}} minute",
+    "minutes_ago_plural": "il y a {{count}} minutes",
+    "just_now": "À l'instant"
+  },
+  "status": {
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "syncing": "Synchronisation...",
+    "success": "Succès",
+    "error": "Erreur",
+    "pending": "En attente"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "points": {
+    "earned": "+{{count}} points",
+    "total": "{{count}} total points",
+    "label": "Points"
+  },
+  "streak": {
+    "current": "{{count}} day streak",
+    "record": "Record: {{count}} days",
+    "keep_going": "Keep your streak going!",
+    "streak_lost": "Oh no! Your streak was lost.",
+    "streak_recovered": "Streak recovered!",
+    "frozen": "Streak frozen",
+    "days": "{{count}} day",
+    "days_plural": "{{count}} days"
+  },
+  "daily": {
+    "goal_reached": "Daily goal reached!",
+    "bonus": "Daily bonus: +{{count}} points",
+    "progress": "{{current}}/{{target}} minutes today"
+  },
+  "achievements": {
+    "title": "Achievements",
+    "unlocked": "Achievement Unlocked!",
+    "progress": "{{current}}/{{target}}",
+    "first_lesson": {
+      "title": "First Steps",
+      "description": "Complete your first lesson"
+    },
+    "week_streak": {
+      "title": "Week Warrior",
+      "description": "Maintain a 7-day streak"
+    },
+    "month_streak": {
+      "title": "Month Master",
+      "description": "Maintain a 30-day streak"
+    },
+    "words_100": {
+      "title": "Vocabulary Builder",
+      "description": "Learn 100 words"
+    },
+    "words_500": {
+      "title": "Word Collector",
+      "description": "Learn 500 words"
+    },
+    "perfect_session": {
+      "title": "Perfect Score",
+      "description": "Complete a session with 100% accuracy"
+    },
+    "early_bird": {
+      "title": "Early Bird",
+      "description": "Practice before 8 AM"
+    },
+    "night_owl": {
+      "title": "Night Owl",
+      "description": "Practice after 10 PM"
+    }
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "weekly": "This Week",
+    "monthly": "This Month",
+    "all_time": "All Time",
+    "your_rank": "Your Rank: #{{rank}}",
+    "points_to_next": "{{count}} points to next rank"
+  },
+  "levels": {
+    "title": "Your Level",
+    "current": "Level {{level}}",
+    "progress": "{{current}}/{{target}} XP to next level",
+    "level_up": "Level Up!",
+    "level_up_message": "You've reached level {{level}}!"
+  },
+  "badges": {
+    "title": "Badges",
+    "earned": "Earned",
+    "locked": "Locked",
+    "share": "Share Badge"
+  }
+}

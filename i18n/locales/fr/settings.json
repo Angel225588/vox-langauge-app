@@ -1,0 +1,109 @@
+{
+  "title": "Paramètres",
+  "profile": {
+    "title": "Profil",
+    "subtitle": "Gérez votre parcours d'apprentissage",
+    "learning_preferences": "Préférences d'apprentissage",
+    "edit": "Modifier",
+    "cancel": "Annuler",
+    "language_label": "Langue",
+    "level_label": "Niveau",
+    "timeline_label": "Délai",
+    "why_label": "Pourquoi",
+    "not_set": "Non défini",
+    "edit_section": {
+      "motivation_label": "Votre motivation (personnalisée)",
+      "motivation_placeholder": "Pourquoi voulez-vous apprendre ?",
+      "stakes_label": "Qu'est-ce qui est en jeu ?",
+      "stakes_placeholder": "Que se passe-t-il si vous ne réussissez pas ?",
+      "save_button": "Enregistrer et mettre à jour l'IA"
+    },
+    "preferences_saved_title": "Préférences enregistrées",
+    "preferences_saved_message": "Vos préférences d'apprentissage ont été mises à jour. L'IA ajustera votre parcours en conséquence.",
+    "developer_tools": "Outils développeur",
+    "test_onboarding_title": "Tester le nouvel onboarding",
+    "test_onboarding_description": "Découvrez le nouveau flux d'intégration avec de belles animations",
+    "test_onboarding_button": "Tester le nouveau flux d'intégration",
+    "account_section": "Compte",
+    "logout_button": "Se déconnecter",
+    "logout_confirm_title": "Se déconnecter",
+    "logout_confirm_message": "Êtes-vous sûr de vouloir vous déconnecter ? Cela effacera vos données locales.",
+    "logout_error": "Échec de la déconnexion. Veuillez réessayer.",
+    "unexpected_error": "Une erreur inattendue s'est produite."
+  },
+  "language_selection": "Langue de l'application",
+  "language_description": "Choisissez votre langue d'interface préférée",
+  "language_note": "Seuls l'anglais, l'espagnol, le français, le portugais et l'arabe sont actuellement disponibles",
+  "current_language": "Actuelle : {{language}}",
+  "available_languages": "Langues disponibles",
+  "coming_soon": "Bientôt disponible",
+  "restart_required": "Redémarrage requis",
+  "restart_message": "L'application doit redémarrer pour appliquer la nouvelle direction de langue.",
+  "restart_now": "Redémarrer maintenant",
+  "sections": {
+    "account": "Compte",
+    "learning": "Apprentissage",
+    "notifications": "Notifications",
+    "appearance": "Apparence",
+    "privacy": "Confidentialité et données",
+    "support": "Support",
+    "about": "À propos"
+  },
+  "account": {
+    "profile": "Profil",
+    "email": "Email",
+    "password": "Changer le mot de passe",
+    "sign_out": "Se déconnecter",
+    "delete_account": "Supprimer le compte",
+    "delete_warning": "Cette action est irréversible. Toutes vos données seront définitivement supprimées."
+  },
+  "learning": {
+    "daily_goal": "Objectif quotidien",
+    "daily_goal_description": "{{minutes}} minutes par jour",
+    "target_language": "Langue cible",
+    "difficulty": "Niveau de difficulté",
+    "sound_effects": "Effets sonores",
+    "vibration": "Retour haptique",
+    "auto_play_audio": "Lecture automatique de l'audio"
+  },
+  "notifications": {
+    "push_notifications": "Notifications push",
+    "daily_reminder": "Rappel quotidien",
+    "reminder_time": "Heure du rappel",
+    "streak_alerts": "Alertes de série",
+    "new_content": "Alertes nouveau contenu",
+    "weekly_progress": "Rapport de progression hebdomadaire"
+  },
+  "appearance": {
+    "theme": "Thème",
+    "theme_light": "Clair",
+    "theme_dark": "Sombre",
+    "theme_system": "Système par défaut",
+    "font_size": "Taille de police",
+    "font_small": "Petite",
+    "font_medium": "Moyenne",
+    "font_large": "Grande"
+  },
+  "privacy": {
+    "analytics": "Analytiques d'utilisation",
+    "analytics_description": "Aidez-nous à nous améliorer en partageant des données d'utilisation anonymes",
+    "personalized_ads": "Publicités personnalisées",
+    "data_export": "Exporter mes données",
+    "privacy_policy": "Politique de confidentialité",
+    "terms_of_service": "Conditions d'utilisation"
+  },
+  "support": {
+    "help_center": "Centre d'aide",
+    "contact_us": "Nous contacter",
+    "report_bug": "Signaler un bug",
+    "feature_request": "Demande de fonctionnalité",
+    "faq": "FAQ"
+  },
+  "about": {
+    "version": "Version {{version}}",
+    "rate_app": "Noter l'application",
+    "share_app": "Partager avec des amis",
+    "licenses": "Licences open source",
+    "credits": "Crédits"
+  }
+}

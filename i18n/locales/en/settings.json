@@ -1,0 +1,109 @@
+{
+  "title": "Settings",
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your learning journey",
+    "learning_preferences": "Learning Preferences",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "language_label": "Language",
+    "level_label": "Level",
+    "timeline_label": "Timeline",
+    "why_label": "Why",
+    "not_set": "Not set",
+    "edit_section": {
+      "motivation_label": "Your Motivation (Custom)",
+      "motivation_placeholder": "Why do you want to learn?",
+      "stakes_label": "What's at Stake?",
+      "stakes_placeholder": "What happens if you don't succeed?",
+      "save_button": "Save & Update AI"
+    },
+    "preferences_saved_title": "Preferences Saved",
+    "preferences_saved_message": "Your learning preferences have been updated. AI will adjust your path accordingly.",
+    "developer_tools": "Developer Tools",
+    "test_onboarding_title": "Test New Onboarding",
+    "test_onboarding_description": "Experience the new onboarding flow with beautiful animations",
+    "test_onboarding_button": "Test New Onboarding Flow",
+    "account_section": "Account",
+    "logout_button": "Log Out",
+    "logout_confirm_title": "Log Out",
+    "logout_confirm_message": "Are you sure you want to log out? This will clear your local data.",
+    "logout_error": "Failed to log out. Please try again.",
+    "unexpected_error": "An unexpected error occurred."
+  },
+  "language_selection": "App Language",
+  "language_description": "Choose your preferred interface language",
+  "language_note": "English, Spanish, French, Portuguese, and Arabic are currently available",
+  "current_language": "Current: {{language}}",
+  "available_languages": "Available Languages",
+  "coming_soon": "Coming Soon",
+  "restart_required": "Restart Required",
+  "restart_message": "The app needs to restart to apply the new language direction.",
+  "restart_now": "Restart Now",
+  "sections": {
+    "account": "Account",
+    "learning": "Learning",
+    "notifications": "Notifications",
+    "appearance": "Appearance",
+    "privacy": "Privacy & Data",
+    "support": "Support",
+    "about": "About"
+  },
+  "account": {
+    "profile": "Profile",
+    "email": "Email",
+    "password": "Change Password",
+    "sign_out": "Sign Out",
+    "delete_account": "Delete Account",
+    "delete_warning": "This action cannot be undone. All your data will be permanently deleted."
+  },
+  "learning": {
+    "daily_goal": "Daily Goal",
+    "daily_goal_description": "{{minutes}} minutes per day",
+    "target_language": "Target Language",
+    "difficulty": "Difficulty Level",
+    "sound_effects": "Sound Effects",
+    "vibration": "Vibration Feedback",
+    "auto_play_audio": "Auto-play Audio"
+  },
+  "notifications": {
+    "push_notifications": "Push Notifications",
+    "daily_reminder": "Daily Reminder",
+    "reminder_time": "Reminder Time",
+    "streak_alerts": "Streak Alerts",
+    "new_content": "New Content Alerts",
+    "weekly_progress": "Weekly Progress Report"
+  },
+  "appearance": {
+    "theme": "Theme",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_system": "System Default",
+    "font_size": "Font Size",
+    "font_small": "Small",
+    "font_medium": "Medium",
+    "font_large": "Large"
+  },
+  "privacy": {
+    "analytics": "Usage Analytics",
+    "analytics_description": "Help us improve by sharing anonymous usage data",
+    "personalized_ads": "Personalized Ads",
+    "data_export": "Export My Data",
+    "privacy_policy": "Privacy Policy",
+    "terms_of_service": "Terms of Service"
+  },
+  "support": {
+    "help_center": "Help Center",
+    "contact_us": "Contact Us",
+    "report_bug": "Report a Bug",
+    "feature_request": "Feature Request",
+    "faq": "FAQ"
+  },
+  "about": {
+    "version": "Version {{version}}",
+    "rate_app": "Rate the App",
+    "share_app": "Share with Friends",
+    "licenses": "Open Source Licenses",
+    "credits": "Credits"
+  }
+}

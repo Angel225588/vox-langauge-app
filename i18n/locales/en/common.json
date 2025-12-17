@@ -1,0 +1,50 @@
+{
+  "app_name": "Vox Language",
+  "loading": "Loading...",
+  "buttons": {
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "retry": "Try Again",
+    "done": "Done",
+    "skip": "Skip",
+    "start": "Start",
+    "finish": "Finish",
+    "close": "Close",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "share": "Share",
+    "learn_more": "Learn More"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalid_email": "Please enter a valid email address",
+    "password_too_short": "Password must be at least {{min}} characters",
+    "passwords_dont_match": "Passwords don't match",
+    "invalid_input": "Invalid input"
+  },
+  "time": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "tomorrow": "Tomorrow",
+    "days_ago": "{{count}} day ago",
+    "days_ago_plural": "{{count}} days ago",
+    "hours_ago": "{{count}} hour ago",
+    "hours_ago_plural": "{{count}} hours ago",
+    "minutes_ago": "{{count}} minute ago",
+    "minutes_ago_plural": "{{count}} minutes ago",
+    "just_now": "Just now"
+  },
+  "status": {
+    "online": "Online",
+    "offline": "Offline",
+    "syncing": "Syncing...",
+    "success": "Success",
+    "error": "Error",
+    "pending": "Pending"
+  }
+}

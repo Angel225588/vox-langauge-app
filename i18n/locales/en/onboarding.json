@@ -1,0 +1,146 @@
+{
+  "welcome": {
+    "title": "Welcome to Vox",
+    "subtitle": "Your personal language learning journey starts here",
+    "slogan_line1": "Speak Freely.",
+    "slogan_line2": "Learn Naturally.",
+    "get_started": "Get Started",
+    "continue_with_email": "Continue with Email",
+    "already_have_account": "Already have an account?",
+    "sign_in": "Sign In"
+  },
+  "languages": {
+    "title": "Choose Your Languages",
+    "subtitle": "Let's personalize your learning journey",
+    "native_question": "What's your native language?",
+    "native_placeholder": "Select your native language",
+    "target_question": "Which language do you want to learn?",
+    "your_native_language": "Your native language",
+    "same_language_warning": "Please select different languages for native and target",
+    "continue": "Continue"
+  },
+  "login": {
+    "title": "Welcome Back",
+    "subtitle": "Sign in to continue learning",
+    "email_label": "Email",
+    "email_placeholder": "you@example.com",
+    "password_label": "Password",
+    "password_placeholder": "Enter your password",
+    "forgot_password": "Forgot password?",
+    "sign_in_button": "Sign In",
+    "signing_in": "Signing In...",
+    "no_account": "Don't have an account?",
+    "sign_up": "Sign Up",
+    "or_continue_with": "Or continue with",
+    "errors": {
+      "enter_email": "Please enter your email",
+      "enter_password": "Please enter your password",
+      "invalid_credentials": "Invalid email or password",
+      "unexpected_error": "An unexpected error occurred. Please try again."
+    }
+  },
+  "signup": {
+    "title": "Create Account",
+    "subtitle": "Start your language learning journey",
+    "full_name_label": "Full Name",
+    "full_name_placeholder": "John Doe",
+    "email_label": "Email",
+    "email_placeholder": "you@example.com",
+    "password_label": "Password",
+    "password_placeholder": "At least 6 characters",
+    "confirm_password_label": "Confirm Password",
+    "confirm_password_placeholder": "Re-enter your password",
+    "creating_account": "Creating Account...",
+    "continue": "Continue",
+    "terms_text": "By continuing, you agree to our",
+    "terms_of_service": "Terms of Service",
+    "and": "and",
+    "privacy_policy": "Privacy Policy",
+    "have_account": "Already have an account?",
+    "sign_in": "Sign In",
+    "errors": {
+      "enter_name": "Please enter your full name",
+      "enter_email": "Please enter your email",
+      "enter_password": "Please enter a password",
+      "passwords_mismatch": "Passwords do not match",
+      "password_too_short": "Password must be at least 6 characters",
+      "unexpected_error": "An unexpected error occurred. Please try again."
+    },
+    "alerts": {
+      "account_exists_title": "Account Already Exists",
+      "account_exists_message": "An account with this email already exists. Would you like to sign in instead?",
+      "cancel": "Cancel",
+      "signup_failed": "Signup Failed",
+      "signup_failed_message": "Failed to create account. Please try again.",
+      "check_email_title": "Check Your Email",
+      "check_email_message": "We sent you a confirmation email. Please verify your email address before logging in."
+    }
+  },
+  "your_why": {
+    "title": "What's Your Why?",
+    "subtitle": "Why do you want to learn {{language}}?",
+    "default_language": "this language",
+    "tell_us_label": "Tell us in your own words",
+    "tell_us_subtext": "The more detail you share, the more personalized your learning path will be",
+    "tell_us_placeholder": "I want to learn this language because...",
+    "quick_option_label": "Or choose a quick option",
+    "quick_option_subtext": "Tap to select, or use as inspiration for your answer above",
+    "why_now_label": "What made you decide NOW?",
+    "optional": "(Optional)",
+    "why_now_subtext": "Understanding your timing helps us personalize your learning path",
+    "why_now_placeholder": "e.g., I'm traveling to Spain next month, starting a new job, met someone special...",
+    "continue": "Continue"
+  },
+  "your_level": {
+    "title": "Where are you in your",
+    "title_suffix": "journey?",
+    "previous_attempts_label": "What have you tried before?",
+    "previous_attempts_subtext": "We understand learning is hard. We're here to help make it stick this time.",
+    "previous_attempts_placeholder": "E.g., Duolingo, classes in school, watching movies...",
+    "continue": "Continue"
+  },
+  "your_commitment": {
+    "goal_question": "When do you want to\nachieve your goal?",
+    "stakes_question": "What happens if you",
+    "stakes_emphasis": "don't",
+    "stakes_question_suffix": "succeed?",
+    "stakes_subtext": "This is where commitment begins. Be honest with yourself.",
+    "stakes_placeholder": "Think about what's at stake...",
+    "character_count": "{{count}} / 20 characters minimum",
+    "why_matters_title": "Why this matters:",
+    "why_matters_points": "• Research shows accountability increases success by 65%\n• Knowing your \"why\" keeps you going when it gets hard\n• This is for you. We're here to support your journey.",
+    "continue": "Continue"
+  },
+  "ready": {
+    "emoji": "🎯",
+    "title": "Your Learning Path Awaits",
+    "subtitle": "Here's what we're building for you",
+    "summary": {
+      "language": "Language",
+      "why": "Why",
+      "level": "Level",
+      "timeline": "Timeline"
+    },
+    "cta_button": "Create My Personalized Path",
+    "loading": {
+      "preparing": "Preparing your journey...",
+      "ai_crafting": "AI is crafting your personalized path...",
+      "finalizing": "Finalizing your staircase...",
+      "ready": "Ready to learn!",
+      "preparing_ai": "Preparing AI...",
+      "generating": "Generating your personalized path...",
+      "almost_ready": "Almost ready!"
+    },
+    "alerts": {
+      "generation_failed_title": "Generation Failed",
+      "generation_failed_message": "We couldn't create your personalized path. Please try again."
+    }
+  },
+  "common": {
+    "continue": "Continue",
+    "back": "Back",
+    "skip": "Skip",
+    "error": "Error",
+    "ok": "OK"
+  }
+}

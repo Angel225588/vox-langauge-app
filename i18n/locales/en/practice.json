@@ -1,0 +1,138 @@
+{
+  "session": {
+    "title": "Practice Session",
+    "cards_remaining": "{{count}} card remaining",
+    "cards_remaining_plural": "{{count}} cards remaining",
+    "time_spent": "Time: {{minutes}}m {{seconds}}s",
+    "exit_confirm": "Are you sure you want to exit? Your progress will be saved.",
+    "exit_title": "Exit Practice?"
+  },
+  "cards": {
+    "vocabulary": {
+      "introduction": {
+        "title": "New Word",
+        "tap_to_hear": "Tap to hear pronunciation",
+        "example_sentence": "Example",
+        "got_it": "Got it!"
+      },
+      "listening": {
+        "title": "Listening",
+        "instructions": "Listen and select the correct word",
+        "play_again": "Play Again"
+      },
+      "speaking": {
+        "title": "Speaking",
+        "instructions": "Say the word out loud",
+        "tap_to_record": "Tap to record",
+        "recording": "Recording...",
+        "analyzing": "Analyzing...",
+        "try_again": "Try Again",
+        "well_done": "Well done!"
+      },
+      "typing": {
+        "title": "Typing",
+        "instructions": "Type the word you hear",
+        "placeholder": "Type here...",
+        "check": "Check",
+        "correct": "Correct!",
+        "incorrect": "Not quite. The answer is: {{answer}}"
+      },
+      "audio_quiz": {
+        "title": "Audio Quiz",
+        "instructions": "Listen and choose the correct meaning"
+      }
+    },
+    "fill_blank": {
+      "title": "Fill in the Blank",
+      "instructions": "Complete the sentence with the correct word",
+      "placeholder": "Type your answer...",
+      "check_answer": "Check Answer",
+      "show_hint": "Show Hint",
+      "hint": "Hint: {{hint}}",
+      "correct": "Correct!",
+      "incorrect": "Not quite. The correct answer is: {{answer}}"
+    },
+    "speaking": {
+      "title": "Speaking Practice",
+      "instructions": "Read the sentence aloud clearly",
+      "target_sentence": "Say this:",
+      "tap_to_record": "Tap to Start Recording",
+      "recording": "Recording... Tap to stop",
+      "analyzing": "Analyzing your pronunciation...",
+      "play_recording": "Listen to Recording",
+      "score": "Score: {{score}}%",
+      "feedback": {
+        "excellent": "Excellent pronunciation!",
+        "good": "Good job! Keep practicing.",
+        "needs_work": "Keep practicing, you're improving!"
+      }
+    },
+    "comparison": {
+      "title": "Compare & Choose",
+      "instructions": "Which sentence is correct?",
+      "option_a": "Option A",
+      "option_b": "Option B",
+      "correct": "That's right!",
+      "incorrect": "Not quite. {{explanation}}"
+    },
+    "role_play": {
+      "title": "Role Play",
+      "your_role": "Your Role",
+      "partner_says": "Partner says:",
+      "your_turn": "Your turn:",
+      "suggestions": "Suggested responses:",
+      "or_say_anything": "Or say anything you'd like!"
+    },
+    "sentence_scramble": {
+      "title": "Sentence Scramble",
+      "instructions": "Arrange the words to form a correct sentence",
+      "tap_to_add": "Tap words to build the sentence",
+      "clear": "Clear",
+      "check": "Check"
+    },
+    "teleprompter": {
+      "title": "Reading Practice",
+      "instructions": "Read along with the text",
+      "tap_word_hint": "Tap any word for translation",
+      "speed": "Speed",
+      "slow": "Slow",
+      "normal": "Normal",
+      "fast": "Fast"
+    },
+    "text_input": {
+      "title": "Write Your Answer",
+      "placeholder": "Type your response...",
+      "submit": "Submit",
+      "min_characters": "Minimum {{count}} characters"
+    },
+    "quiz": {
+      "title": "Quiz",
+      "question": "Question {{current}} of {{total}}",
+      "select_answer": "Select your answer"
+    }
+  },
+  "feedback": {
+    "excellent": "Excellent!",
+    "great": "Great job!",
+    "good": "Good!",
+    "needs_practice": "Keep practicing!",
+    "try_again": "Give it another try",
+    "correct": "Correct!",
+    "incorrect": "Not quite right"
+  },
+  "results": {
+    "title": "Session Complete!",
+    "summary": "Here's how you did",
+    "score": "Score",
+    "accuracy": "Accuracy: {{percent}}%",
+    "time_spent": "Time spent: {{minutes}} minutes",
+    "cards_completed": "Cards completed: {{count}}",
+    "points_earned": "+{{points}} points",
+    "streak_maintained": "Streak maintained!",
+    "new_words": "New words learned: {{count}}",
+    "words_reviewed": "Words reviewed: {{count}}",
+    "continue": "Continue",
+    "practice_again": "Practice Again",
+    "back_to_home": "Back to Home"
+  }
+}

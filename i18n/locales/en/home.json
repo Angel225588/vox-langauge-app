@@ -1,0 +1,46 @@
+{
+  "title": "My Roadmap",
+  "loading": "Loading your learning path...",
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "stats": {
+    "points": "{{count}} points",
+    "points_label": "Points",
+    "streak": "{{count}} day streak",
+    "streak_label": "Streak",
+    "words_learned": "{{count}} words learned",
+    "lessons_completed": "{{count}} lessons completed"
+  },
+  "stair_card": {
+    "locked": "Complete previous stair to unlock",
+    "current": "Current",
+    "completed": "Completed",
+    "vocabulary_count": "{{count}} word",
+    "vocabulary_count_plural": "{{count}} words",
+    "estimated_days": "~{{count}} day",
+    "estimated_days_plural": "~{{count}} days",
+    "start_lesson": "Start Lesson",
+    "continue_lesson": "Continue",
+    "review": "Review"
+  },
+  "quick_practice": {
+    "title": "Quick Practice",
+    "vocabulary": "Vocabulary",
+    "speaking": "Speaking",
+    "listening": "Listening",
+    "reading": "Reading"
+  },
+  "daily_goal": {
+    "title": "Daily Goal",
+    "progress": "{{current}} / {{target}} min",
+    "completed": "Goal completed!",
+    "keep_going": "Keep going!"
+  },
+  "next_lesson": {
+    "title": "Next Lesson",
+    "continue": "Continue Learning"
+  }
+}

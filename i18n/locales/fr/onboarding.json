@@ -1,0 +1,146 @@
+{
+  "welcome": {
+    "title": "Bienvenue sur Vox",
+    "subtitle": "Votre parcours personnalisé d'apprentissage des langues commence ici",
+    "slogan_line1": "Parlez librement.",
+    "slogan_line2": "Apprenez naturellement.",
+    "get_started": "Commencer",
+    "continue_with_email": "Continuer avec Email",
+    "already_have_account": "Vous avez déjà un compte ?",
+    "sign_in": "Se connecter"
+  },
+  "languages": {
+    "title": "Choisissez vos langues",
+    "subtitle": "Personnalisons votre parcours d'apprentissage",
+    "native_question": "Quelle est votre langue maternelle ?",
+    "native_placeholder": "Sélectionnez votre langue maternelle",
+    "target_question": "Quelle langue voulez-vous apprendre ?",
+    "your_native_language": "Votre langue maternelle",
+    "same_language_warning": "Veuillez sélectionner des langues différentes pour maternelle et cible",
+    "continue": "Continuer"
+  },
+  "login": {
+    "title": "Bon retour",
+    "subtitle": "Connectez-vous pour continuer à apprendre",
+    "email_label": "Email",
+    "email_placeholder": "vous@exemple.com",
+    "password_label": "Mot de passe",
+    "password_placeholder": "Entrez votre mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "sign_in_button": "Se connecter",
+    "signing_in": "Connexion en cours...",
+    "no_account": "Vous n'avez pas de compte ?",
+    "sign_up": "S'inscrire",
+    "or_continue_with": "Ou continuer avec",
+    "errors": {
+      "enter_email": "Veuillez entrer votre email",
+      "enter_password": "Veuillez entrer votre mot de passe",
+      "invalid_credentials": "Email ou mot de passe invalide",
+      "unexpected_error": "Une erreur inattendue s'est produite. Veuillez réessayer."
+    }
+  },
+  "signup": {
+    "title": "Créer un compte",
+    "subtitle": "Commencez votre parcours d'apprentissage des langues",
+    "full_name_label": "Nom complet",
+    "full_name_placeholder": "Jean Dupont",
+    "email_label": "Email",
+    "email_placeholder": "vous@exemple.com",
+    "password_label": "Mot de passe",
+    "password_placeholder": "Au moins 6 caractères",
+    "confirm_password_label": "Confirmer le mot de passe",
+    "confirm_password_placeholder": "Entrez à nouveau votre mot de passe",
+    "creating_account": "Création du compte...",
+    "continue": "Continuer",
+    "terms_text": "En continuant, vous acceptez nos",
+    "terms_of_service": "Conditions d'utilisation",
+    "and": "et",
+    "privacy_policy": "Politique de confidentialité",
+    "have_account": "Vous avez déjà un compte ?",
+    "sign_in": "Se connecter",
+    "errors": {
+      "enter_name": "Veuillez entrer votre nom complet",
+      "enter_email": "Veuillez entrer votre email",
+      "enter_password": "Veuillez entrer un mot de passe",
+      "passwords_mismatch": "Les mots de passe ne correspondent pas",
+      "password_too_short": "Le mot de passe doit contenir au moins 6 caractères",
+      "unexpected_error": "Une erreur inattendue s'est produite. Veuillez réessayer."
+    },
+    "alerts": {
+      "account_exists_title": "Le compte existe déjà",
+      "account_exists_message": "Un compte avec cet email existe déjà. Voulez-vous vous connecter ?",
+      "cancel": "Annuler",
+      "signup_failed": "Échec de l'inscription",
+      "signup_failed_message": "Impossible de créer le compte. Veuillez réessayer.",
+      "check_email_title": "Vérifiez votre email",
+      "check_email_message": "Nous vous avons envoyé un email de confirmation. Veuillez vérifier votre adresse email avant de vous connecter."
+    }
+  },
+  "your_why": {
+    "title": "Quelle est votre motivation ?",
+    "subtitle": "Pourquoi voulez-vous apprendre {{language}} ?",
+    "default_language": "cette langue",
+    "tell_us_label": "Dites-nous avec vos propres mots",
+    "tell_us_subtext": "Plus vous partagez de détails, plus votre parcours d'apprentissage sera personnalisé",
+    "tell_us_placeholder": "Je veux apprendre cette langue parce que...",
+    "quick_option_label": "Ou choisissez une option rapide",
+    "quick_option_subtext": "Appuyez pour sélectionner, ou utilisez comme inspiration pour votre réponse",
+    "why_now_label": "Qu'est-ce qui vous a décidé MAINTENANT ?",
+    "optional": "(Optionnel)",
+    "why_now_subtext": "Comprendre votre timing nous aide à personnaliser votre parcours d'apprentissage",
+    "why_now_placeholder": "Ex : Je voyage en Espagne le mois prochain, je commence un nouveau travail, j'ai rencontré quelqu'un de spécial...",
+    "continue": "Continuer"
+  },
+  "your_level": {
+    "title": "Où en êtes-vous dans votre",
+    "title_suffix": "parcours ?",
+    "previous_attempts_label": "Qu'avez-vous essayé avant ?",
+    "previous_attempts_subtext": "Nous comprenons que l'apprentissage est difficile. Nous sommes là pour vous aider à réussir cette fois.",
+    "previous_attempts_placeholder": "Ex : Duolingo, cours à l'école, regarder des films...",
+    "continue": "Continuer"
+  },
+  "your_commitment": {
+    "goal_question": "Quand voulez-vous\natteindre votre objectif ?",
+    "stakes_question": "Que se passe-t-il si vous",
+    "stakes_emphasis": "n'y arrivez",
+    "stakes_question_suffix": "pas ?",
+    "stakes_subtext": "C'est ici que l'engagement commence. Soyez honnête avec vous-même.",
+    "stakes_placeholder": "Pensez à ce qui est en jeu...",
+    "character_count": "{{count}} / 20 caractères minimum",
+    "why_matters_title": "Pourquoi c'est important :",
+    "why_matters_points": "• Les recherches montrent que la responsabilité augmente le succès de 65%\n• Connaître votre \"pourquoi\" vous aide à continuer quand ça devient difficile\n• C'est pour vous. Nous sommes là pour soutenir votre parcours.",
+    "continue": "Continuer"
+  },
+  "ready": {
+    "emoji": "🎯",
+    "title": "Votre parcours d'apprentissage vous attend",
+    "subtitle": "Voici ce que nous construisons pour vous",
+    "summary": {
+      "language": "Langue",
+      "why": "Pourquoi",
+      "level": "Niveau",
+      "timeline": "Délai"
+    },
+    "cta_button": "Créer mon parcours personnalisé",
+    "loading": {
+      "preparing": "Préparation de votre parcours...",
+      "ai_crafting": "L'IA crée votre parcours personnalisé...",
+      "finalizing": "Finalisation de votre escalier...",
+      "ready": "Prêt à apprendre !",
+      "preparing_ai": "Préparation de l'IA...",
+      "generating": "Génération de votre parcours personnalisé...",
+      "almost_ready": "Presque prêt !"
+    },
+    "alerts": {
+      "generation_failed_title": "Échec de la génération",
+      "generation_failed_message": "Nous n'avons pas pu créer votre parcours personnalisé. Veuillez réessayer."
+    }
+  },
+  "common": {
+    "continue": "Continuer",
+    "back": "Retour",
+    "skip": "Passer",
+    "error": "Erreur",
+    "ok": "OK"
+  }
+}

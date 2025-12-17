@@ -1,0 +1,80 @@
+{
+  "points": {
+    "earned": "+{{count}} نقطة",
+    "total": "{{count}} نقطة إجمالية",
+    "label": "النقاط"
+  },
+  "streak": {
+    "current": "سلسلة {{count}} يوم",
+    "record": "الرقم القياسي: {{count}} أيام",
+    "keep_going": "حافظ على سلسلتك!",
+    "streak_lost": "أوه لا! فقدت سلسلتك.",
+    "streak_recovered": "تم استعادة السلسلة!",
+    "frozen": "السلسلة مجمدة",
+    "days": "{{count}} يوم",
+    "days_plural": "{{count}} أيام"
+  },
+  "daily": {
+    "goal_reached": "تم تحقيق الهدف اليومي!",
+    "bonus": "مكافأة يومية: +{{count}} نقطة",
+    "progress": "{{current}}/{{target}} دقيقة اليوم"
+  },
+  "achievements": {
+    "title": "الإنجازات",
+    "unlocked": "تم فتح إنجاز!",
+    "progress": "{{current}}/{{target}}",
+    "first_lesson": {
+      "title": "الخطوات الأولى",
+      "description": "أكمل درسك الأول"
+    },
+    "week_streak": {
+      "title": "محارب الأسبوع",
+      "description": "حافظ على سلسلة ٧ أيام"
+    },
+    "month_streak": {
+      "title": "سيد الشهر",
+      "description": "حافظ على سلسلة ٣٠ يوماً"
+    },
+    "words_100": {
+      "title": "باني المفردات",
+      "description": "تعلم ١٠٠ كلمة"
+    },
+    "words_500": {
+      "title": "جامع الكلمات",
+      "description": "تعلم ٥٠٠ كلمة"
+    },
+    "perfect_session": {
+      "title": "النتيجة المثالية",
+      "description": "أكمل جلسة بدقة ١٠٠٪"
+    },
+    "early_bird": {
+      "title": "الطائر المبكر",
+      "description": "تدرب قبل الساعة ٨ صباحاً"
+    },
+    "night_owl": {
+      "title": "بومة الليل",
+      "description": "تدرب بعد الساعة ١٠ مساءً"
+    }
+  },
+  "leaderboard": {
+    "title": "لوحة المتصدرين",
+    "weekly": "هذا الأسبوع",
+    "monthly": "هذا الشهر",
+    "all_time": "كل الأوقات",
+    "your_rank": "ترتيبك: #{{rank}}",
+    "points_to_next": "{{count}} نقطة للترتيب التالي"
+  },
+  "levels": {
+    "title": "مستواك",
+    "current": "المستوى {{level}}",
+    "progress": "{{current}}/{{target}} XP للمستوى التالي",
+    "level_up": "ارتقيت مستوى!",
+    "level_up_message": "وصلت إلى المستوى {{level}}!"
+  },
+  "badges": {
+    "title": "الشارات",
+    "earned": "مكتسبة",
+    "locked": "مقفلة",
+    "share": "شارك الشارة"
+  }
+}

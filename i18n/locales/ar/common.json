@@ -1,0 +1,50 @@
+{
+  "app_name": "Vox Language",
+  "loading": "جارٍ التحميل...",
+  "buttons": {
+    "continue": "متابعة",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "back": "رجوع",
+    "next": "التالي",
+    "submit": "إرسال",
+    "retry": "حاول مرة أخرى",
+    "done": "تم",
+    "skip": "تخطي",
+    "start": "ابدأ",
+    "finish": "إنهاء",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "share": "مشاركة",
+    "learn_more": "اعرف المزيد"
+  },
+  "validation": {
+    "required": "هذا الحقل مطلوب",
+    "invalid_email": "يرجى إدخال بريد إلكتروني صالح",
+    "password_too_short": "يجب أن تحتوي كلمة المرور على {{min}} أحرف على الأقل",
+    "passwords_dont_match": "كلمات المرور غير متطابقة",
+    "invalid_input": "إدخال غير صالح"
+  },
+  "time": {
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "tomorrow": "غداً",
+    "days_ago": "منذ {{count}} يوم",
+    "days_ago_plural": "منذ {{count}} أيام",
+    "hours_ago": "منذ {{count}} ساعة",
+    "hours_ago_plural": "منذ {{count}} ساعات",
+    "minutes_ago": "منذ {{count}} دقيقة",
+    "minutes_ago_plural": "منذ {{count}} دقائق",
+    "just_now": "الآن"
+  },
+  "status": {
+    "online": "متصل",
+    "offline": "غير متصل",
+    "syncing": "جارٍ المزامنة...",
+    "success": "نجاح",
+    "error": "خطأ",
+    "pending": "قيد الانتظار"
+  }
+}

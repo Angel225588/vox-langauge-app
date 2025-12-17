@@ -1,0 +1,138 @@
+{
+  "session": {
+    "title": "جلسة التدريب",
+    "cards_remaining": "{{count}} بطاقة متبقية",
+    "cards_remaining_plural": "{{count}} بطاقات متبقية",
+    "time_spent": "الوقت: {{minutes}}د {{seconds}}ث",
+    "exit_confirm": "هل أنت متأكد أنك تريد الخروج؟ سيتم حفظ تقدمك.",
+    "exit_title": "الخروج من التدريب؟"
+  },
+  "cards": {
+    "vocabulary": {
+      "introduction": {
+        "title": "كلمة جديدة",
+        "tap_to_hear": "انقر لسماع النطق",
+        "example_sentence": "مثال",
+        "got_it": "فهمت!"
+      },
+      "listening": {
+        "title": "الاستماع",
+        "instructions": "استمع واختر الكلمة الصحيحة",
+        "play_again": "تشغيل مرة أخرى"
+      },
+      "speaking": {
+        "title": "التحدث",
+        "instructions": "انطق الكلمة بصوت عالٍ",
+        "tap_to_record": "انقر للتسجيل",
+        "recording": "جارٍ التسجيل...",
+        "analyzing": "جارٍ التحليل...",
+        "try_again": "حاول مرة أخرى",
+        "well_done": "أحسنت!"
+      },
+      "typing": {
+        "title": "الكتابة",
+        "instructions": "اكتب الكلمة التي سمعتها",
+        "placeholder": "اكتب هنا...",
+        "check": "تحقق",
+        "correct": "صحيح!",
+        "incorrect": "ليس تماماً. الإجابة هي: {{answer}}"
+      },
+      "audio_quiz": {
+        "title": "اختبار صوتي",
+        "instructions": "استمع واختر المعنى الصحيح"
+      }
+    },
+    "fill_blank": {
+      "title": "أكمل الفراغ",
+      "instructions": "أكمل الجملة بالكلمة الصحيحة",
+      "placeholder": "اكتب إجابتك...",
+      "check_answer": "تحقق من الإجابة",
+      "show_hint": "إظهار تلميح",
+      "hint": "تلميح: {{hint}}",
+      "correct": "صحيح!",
+      "incorrect": "ليس تماماً. الإجابة الصحيحة هي: {{answer}}"
+    },
+    "speaking": {
+      "title": "تدريب التحدث",
+      "instructions": "اقرأ الجملة بصوت عالٍ وواضح",
+      "target_sentence": "قل هذا:",
+      "tap_to_record": "انقر لبدء التسجيل",
+      "recording": "جارٍ التسجيل... انقر للإيقاف",
+      "analyzing": "جارٍ تحليل نطقك...",
+      "play_recording": "استمع للتسجيل",
+      "score": "النتيجة: {{score}}٪",
+      "feedback": {
+        "excellent": "نطق ممتاز!",
+        "good": "عمل جيد! استمر في التدريب.",
+        "needs_work": "استمر في التدريب، أنت تتحسن!"
+      }
+    },
+    "comparison": {
+      "title": "قارن واختر",
+      "instructions": "أي جملة صحيحة؟",
+      "option_a": "الخيار أ",
+      "option_b": "الخيار ب",
+      "correct": "هذا صحيح!",
+      "incorrect": "ليس تماماً. {{explanation}}"
+    },
+    "role_play": {
+      "title": "تمثيل الأدوار",
+      "your_role": "دورك",
+      "partner_says": "الشريك يقول:",
+      "your_turn": "دورك:",
+      "suggestions": "الردود المقترحة:",
+      "or_say_anything": "أو قل أي شيء تريده!"
+    },
+    "sentence_scramble": {
+      "title": "ترتيب الجملة",
+      "instructions": "رتب الكلمات لتكوين جملة صحيحة",
+      "tap_to_add": "انقر على الكلمات لبناء الجملة",
+      "clear": "مسح",
+      "check": "تحقق"
+    },
+    "teleprompter": {
+      "title": "تدريب القراءة",
+      "instructions": "اقرأ مع النص",
+      "tap_word_hint": "انقر على أي كلمة للترجمة",
+      "speed": "السرعة",
+      "slow": "بطيء",
+      "normal": "عادي",
+      "fast": "سريع"
+    },
+    "text_input": {
+      "title": "اكتب إجابتك",
+      "placeholder": "اكتب ردك...",
+      "submit": "إرسال",
+      "min_characters": "{{count}} أحرف كحد أدنى"
+    },
+    "quiz": {
+      "title": "اختبار",
+      "question": "السؤال {{current}} من {{total}}",
+      "select_answer": "اختر إجابتك"
+    }
+  },
+  "feedback": {
+    "excellent": "ممتاز!",
+    "great": "عمل رائع!",
+    "good": "جيد!",
+    "needs_practice": "استمر في التدريب!",
+    "try_again": "حاول مرة أخرى",
+    "correct": "صحيح!",
+    "incorrect": "ليس صحيحاً تماماً"
+  },
+  "results": {
+    "title": "انتهت الجلسة!",
+    "summary": "إليك نتائجك",
+    "score": "النتيجة",
+    "accuracy": "الدقة: {{percent}}٪",
+    "time_spent": "الوقت المستغرق: {{minutes}} دقائق",
+    "cards_completed": "البطاقات المكتملة: {{count}}",
+    "points_earned": "+{{points}} نقطة",
+    "streak_maintained": "تم الحفاظ على السلسلة!",
+    "new_words": "الكلمات الجديدة المتعلمة: {{count}}",
+    "words_reviewed": "الكلمات المراجعة: {{count}}",
+    "continue": "متابعة",
+    "practice_again": "تدريب مرة أخرى",
+    "back_to_home": "العودة للرئيسية"
+  }
+}

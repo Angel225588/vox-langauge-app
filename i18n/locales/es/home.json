@@ -1,0 +1,47 @@
+{
+  "title": "Mi Hoja de Ruta",
+  "loading": "Cargando tu camino de aprendizaje...",
+  "greeting": {
+    "morning": "Buenos días",
+    "afternoon": "Buenas tardes",
+    "evening": "Buenas noches"
+  },
+  "stats": {
+    "points": "{{count}} puntos",
+    "points_label": "Puntos",
+    "streak": "{{count}} día de racha",
+    "streak_plural": "{{count}} días de racha",
+    "streak_label": "Racha",
+    "words_learned": "{{count}} palabras aprendidas",
+    "lessons_completed": "{{count}} lecciones completadas"
+  },
+  "stair_card": {
+    "locked": "Completa la escalera anterior para desbloquear",
+    "current": "Actual",
+    "completed": "Completado",
+    "vocabulary_count": "{{count}} palabra",
+    "vocabulary_count_plural": "{{count}} palabras",
+    "estimated_days": "~{{count}} día",
+    "estimated_days_plural": "~{{count}} días",
+    "start_lesson": "Comenzar lección",
+    "continue_lesson": "Continuar",
+    "review": "Repasar"
+  },
+  "quick_practice": {
+    "title": "Práctica rápida",
+    "vocabulary": "Vocabulario",
+    "speaking": "Hablar",
+    "listening": "Escuchar",
+    "reading": "Leer"
+  },
+  "daily_goal": {
+    "title": "Meta diaria",
+    "progress": "{{current}} / {{target}} min",
+    "completed": "¡Meta completada!",
+    "keep_going": "¡Sigue adelante!"
+  },
+  "next_lesson": {
+    "title": "Siguiente lección",
+    "continue": "Continuar aprendiendo"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "points": {
+    "earned": "+{{count}} puntos",
+    "total": "{{count}} puntos totales",
+    "label": "Puntos"
+  },
+  "streak": {
+    "current": "{{count}} día de racha",
+    "current_plural": "{{count}} días de racha",
+    "record": "Récord: {{count}} días",
+    "keep_going": "¡Mantén tu racha!",
+    "streak_lost": "¡Oh no! Tu racha se perdió.",
+    "streak_recovered": "¡Racha recuperada!",
+    "frozen": "Racha congelada",
+    "days": "{{count}} día",
+    "days_plural": "{{count}} días"
+  },
+  "daily": {
+    "goal_reached": "¡Meta diaria alcanzada!",
+    "bonus": "Bono diario: +{{count}} puntos",
+    "progress": "{{current}}/{{target}} minutos hoy"
+  },
+  "achievements": {
+    "title": "Logros",
+    "unlocked": "¡Logro desbloqueado!",
+    "progress": "{{current}}/{{target}}",
+    "first_lesson": {
+      "title": "Primeros pasos",
+      "description": "Completa tu primera lección"
+    },
+    "week_streak": {
+      "title": "Guerrero de la semana",
+      "description": "Mantén una racha de 7 días"
+    },
+    "month_streak": {
+      "title": "Maestro del mes",
+      "description": "Mantén una racha de 30 días"
+    },
+    "words_100": {
+      "title": "Constructor de vocabulario",
+      "description": "Aprende 100 palabras"
+    },
+    "words_500": {
+      "title": "Coleccionista de palabras",
+      "description": "Aprende 500 palabras"
+    },
+    "perfect_session": {
+      "title": "Puntuación perfecta",
+      "description": "Completa una sesión con 100% de precisión"
+    },
+    "early_bird": {
+      "title": "Madrugador",
+      "description": "Practica antes de las 8 AM"
+    },
+    "night_owl": {
+      "title": "Noctámbulo",
+      "description": "Practica después de las 10 PM"
+    }
+  },
+  "leaderboard": {
+    "title": "Tabla de clasificación",
+    "weekly": "Esta semana",
+    "monthly": "Este mes",
+    "all_time": "Histórico",
+    "your_rank": "Tu posición: #{{rank}}",
+    "points_to_next": "{{count}} puntos para el siguiente rango"
+  },
+  "levels": {
+    "title": "Tu nivel",
+    "current": "Nivel {{level}}",
+    "progress": "{{current}}/{{target}} XP para el siguiente nivel",
+    "level_up": "¡Subiste de nivel!",
+    "level_up_message": "¡Has alcanzado el nivel {{level}}!"
+  },
+  "badges": {
+    "title": "Insignias",
+    "earned": "Obtenidas",
+    "locked": "Bloqueadas",
+    "share": "Compartir insignia"
+  }
+}

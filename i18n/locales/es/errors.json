@@ -1,0 +1,49 @@
+{
+  "generic": {
+    "title": "Algo salió mal",
+    "message": "Ocurrió un error inesperado. Por favor intenta de nuevo.",
+    "retry": "Reintentar"
+  },
+  "network": {
+    "title": "Error de conexión",
+    "message": "No se puede conectar. Por favor revisa tu conexión a internet.",
+    "offline": "Estás sin conexión",
+    "offline_message": "Algunas funciones pueden estar limitadas sin conexión."
+  },
+  "auth": {
+    "title": "Error de autenticación",
+    "invalid_credentials": "Correo o contraseña inválidos",
+    "email_exists": "Ya existe una cuenta con este correo",
+    "weak_password": "La contraseña es muy débil",
+    "session_expired": "Tu sesión ha expirado. Por favor inicia sesión de nuevo.",
+    "unauthorized": "No tienes permiso para acceder a esto"
+  },
+  "validation": {
+    "required_field": "Este campo es obligatorio",
+    "invalid_email": "Por favor ingresa un correo electrónico válido",
+    "password_mismatch": "Las contraseñas no coinciden",
+    "min_length": "Debe tener al menos {{min}} caracteres",
+    "max_length": "No debe tener más de {{max}} caracteres"
+  },
+  "recording": {
+    "title": "Error de grabación",
+    "permission_denied": "Se denegó el acceso al micrófono. Por favor habilítalo en configuración.",
+    "not_supported": "La grabación no es compatible con este dispositivo",
+    "failed": "La grabación falló. Por favor intenta de nuevo."
+  },
+  "audio": {
+    "playback_failed": "No se pudo reproducir el audio. Por favor intenta de nuevo.",
+    "load_failed": "No se pudo cargar el archivo de audio."
+  },
+  "sync": {
+    "title": "Error de sincronización",
+    "message": "No se pudo sincronizar tu progreso. Los cambios se guardarán localmente.",
+    "conflict": "Hubo un conflicto al sincronizar tus datos. Se han mantenido tus últimos cambios."
+  },
+  "lesson": {
+    "load_failed": "No se pudo cargar la lección. Por favor intenta de nuevo.",
+    "not_found": "Lección no encontrada"
+  },
+  "restart_failed": "Reinicio fallido",
+  "restart_failed_message": "Por favor cierra y vuelve a abrir la app manualmente."
+}

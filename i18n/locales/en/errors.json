@@ -1,0 +1,49 @@
+{
+  "generic": {
+    "title": "Something went wrong",
+    "message": "An unexpected error occurred. Please try again.",
+    "retry": "Retry"
+  },
+  "network": {
+    "title": "Connection Error",
+    "message": "Unable to connect. Please check your internet connection.",
+    "offline": "You're offline",
+    "offline_message": "Some features may be limited while offline."
+  },
+  "auth": {
+    "title": "Authentication Error",
+    "invalid_credentials": "Invalid email or password",
+    "email_exists": "An account with this email already exists",
+    "weak_password": "Password is too weak",
+    "session_expired": "Your session has expired. Please sign in again.",
+    "unauthorized": "You don't have permission to access this"
+  },
+  "validation": {
+    "required_field": "This field is required",
+    "invalid_email": "Please enter a valid email address",
+    "password_mismatch": "Passwords don't match",
+    "min_length": "Must be at least {{min}} characters",
+    "max_length": "Must be no more than {{max}} characters"
+  },
+  "recording": {
+    "title": "Recording Error",
+    "permission_denied": "Microphone access was denied. Please enable it in settings.",
+    "not_supported": "Recording is not supported on this device",
+    "failed": "Recording failed. Please try again."
+  },
+  "audio": {
+    "playback_failed": "Unable to play audio. Please try again.",
+    "load_failed": "Unable to load audio file."
+  },
+  "sync": {
+    "title": "Sync Error",
+    "message": "Unable to sync your progress. Changes will be saved locally.",
+    "conflict": "There was a conflict syncing your data. Your latest changes have been kept."
+  },
+  "lesson": {
+    "load_failed": "Unable to load lesson. Please try again.",
+    "not_found": "Lesson not found"
+  },
+  "restart_failed": "Restart Failed",
+  "restart_failed_message": "Please close and reopen the app manually."
+}

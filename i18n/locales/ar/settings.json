@@ -1,0 +1,109 @@
+{
+  "title": "الإعدادات",
+  "profile": {
+    "title": "الملف الشخصي",
+    "subtitle": "إدارة رحلة تعلمك",
+    "learning_preferences": "تفضيلات التعلم",
+    "edit": "تعديل",
+    "cancel": "إلغاء",
+    "language_label": "اللغة",
+    "level_label": "المستوى",
+    "timeline_label": "الجدول الزمني",
+    "why_label": "لماذا",
+    "not_set": "غير محدد",
+    "edit_section": {
+      "motivation_label": "دافعك (مخصص)",
+      "motivation_placeholder": "لماذا تريد التعلم؟",
+      "stakes_label": "ما هو على المحك؟",
+      "stakes_placeholder": "ماذا يحدث إذا لم تنجح؟",
+      "save_button": "حفظ وتحديث الذكاء الاصطناعي"
+    },
+    "preferences_saved_title": "تم حفظ التفضيلات",
+    "preferences_saved_message": "تم تحديث تفضيلات التعلم الخاصة بك. سيقوم الذكاء الاصطناعي بتعديل مسارك وفقاً لذلك.",
+    "developer_tools": "أدوات المطور",
+    "test_onboarding_title": "اختبار الإعداد الجديد",
+    "test_onboarding_description": "جرب تدفق الإعداد الجديد مع الرسوم المتحركة الجميلة",
+    "test_onboarding_button": "اختبار تدفق الإعداد الجديد",
+    "account_section": "الحساب",
+    "logout_button": "تسجيل الخروج",
+    "logout_confirm_title": "تسجيل الخروج",
+    "logout_confirm_message": "هل أنت متأكد أنك تريد تسجيل الخروج؟ سيؤدي هذا إلى مسح بياناتك المحلية.",
+    "logout_error": "فشل تسجيل الخروج. يرجى المحاولة مرة أخرى.",
+    "unexpected_error": "حدث خطأ غير متوقع."
+  },
+  "language_selection": "لغة التطبيق",
+  "language_description": "اختر لغة واجهتك المفضلة",
+  "language_note": "الإنجليزية والإسبانية والفرنسية والبرتغالية والعربية متاحة حالياً فقط",
+  "current_language": "الحالية: {{language}}",
+  "available_languages": "اللغات المتاحة",
+  "coming_soon": "قريباً",
+  "restart_required": "يلزم إعادة التشغيل",
+  "restart_message": "يحتاج التطبيق إلى إعادة التشغيل لتطبيق اتجاه اللغة الجديد.",
+  "restart_now": "إعادة التشغيل الآن",
+  "sections": {
+    "account": "الحساب",
+    "learning": "التعلم",
+    "notifications": "الإشعارات",
+    "appearance": "المظهر",
+    "privacy": "الخصوصية والبيانات",
+    "support": "الدعم",
+    "about": "حول"
+  },
+  "account": {
+    "profile": "الملف الشخصي",
+    "email": "البريد الإلكتروني",
+    "password": "تغيير كلمة المرور",
+    "sign_out": "تسجيل الخروج",
+    "delete_account": "حذف الحساب",
+    "delete_warning": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بياناتك نهائياً."
+  },
+  "learning": {
+    "daily_goal": "الهدف اليومي",
+    "daily_goal_description": "{{minutes}} دقيقة في اليوم",
+    "target_language": "اللغة المستهدفة",
+    "difficulty": "مستوى الصعوبة",
+    "sound_effects": "المؤثرات الصوتية",
+    "vibration": "ردود الفعل الاهتزازية",
+    "auto_play_audio": "التشغيل التلقائي للصوت"
+  },
+  "notifications": {
+    "push_notifications": "الإشعارات الفورية",
+    "daily_reminder": "التذكير اليومي",
+    "reminder_time": "وقت التذكير",
+    "streak_alerts": "تنبيهات السلسلة",
+    "new_content": "تنبيهات المحتوى الجديد",
+    "weekly_progress": "تقرير التقدم الأسبوعي"
+  },
+  "appearance": {
+    "theme": "المظهر",
+    "theme_light": "فاتح",
+    "theme_dark": "داكن",
+    "theme_system": "افتراضي النظام",
+    "font_size": "حجم الخط",
+    "font_small": "صغير",
+    "font_medium": "متوسط",
+    "font_large": "كبير"
+  },
+  "privacy": {
+    "analytics": "تحليلات الاستخدام",
+    "analytics_description": "ساعدنا على التحسين بمشاركة بيانات الاستخدام المجهولة",
+    "personalized_ads": "الإعلانات المخصصة",
+    "data_export": "تصدير بياناتي",
+    "privacy_policy": "سياسة الخصوصية",
+    "terms_of_service": "شروط الخدمة"
+  },
+  "support": {
+    "help_center": "مركز المساعدة",
+    "contact_us": "اتصل بنا",
+    "report_bug": "الإبلاغ عن خطأ",
+    "feature_request": "طلب ميزة",
+    "faq": "الأسئلة الشائعة"
+  },
+  "about": {
+    "version": "الإصدار {{version}}",
+    "rate_app": "قيّم التطبيق",
+    "share_app": "شارك مع الأصدقاء",
+    "licenses": "تراخيص المصدر المفتوح",
+    "credits": "الاعتمادات"
+  }
+}

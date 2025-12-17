@@ -1,0 +1,109 @@
+{
+  "title": "Configuración",
+  "profile": {
+    "title": "Perfil",
+    "subtitle": "Administra tu viaje de aprendizaje",
+    "learning_preferences": "Preferencias de aprendizaje",
+    "edit": "Editar",
+    "cancel": "Cancelar",
+    "language_label": "Idioma",
+    "level_label": "Nivel",
+    "timeline_label": "Plazo",
+    "why_label": "Por qué",
+    "not_set": "No configurado",
+    "edit_section": {
+      "motivation_label": "Tu motivación (Personalizada)",
+      "motivation_placeholder": "¿Por qué quieres aprender?",
+      "stakes_label": "¿Qué está en juego?",
+      "stakes_placeholder": "¿Qué pasa si no tienes éxito?",
+      "save_button": "Guardar y actualizar IA"
+    },
+    "preferences_saved_title": "Preferencias guardadas",
+    "preferences_saved_message": "Tus preferencias de aprendizaje han sido actualizadas. La IA ajustará tu camino acorde.",
+    "developer_tools": "Herramientas de desarrollo",
+    "test_onboarding_title": "Probar nuevo onboarding",
+    "test_onboarding_description": "Experimenta el nuevo flujo de onboarding con hermosas animaciones",
+    "test_onboarding_button": "Probar nuevo flujo de onboarding",
+    "account_section": "Cuenta",
+    "logout_button": "Cerrar sesión",
+    "logout_confirm_title": "Cerrar sesión",
+    "logout_confirm_message": "¿Estás seguro de que quieres cerrar sesión? Esto borrará tus datos locales.",
+    "logout_error": "No se pudo cerrar sesión. Por favor intenta de nuevo.",
+    "unexpected_error": "Ocurrió un error inesperado."
+  },
+  "language_selection": "Idioma de la app",
+  "language_description": "Elige tu idioma de interfaz preferido",
+  "language_note": "Inglés, español, francés, portugués y árabe están disponibles actualmente",
+  "current_language": "Actual: {{language}}",
+  "available_languages": "Idiomas disponibles",
+  "coming_soon": "Próximamente",
+  "restart_required": "Reinicio requerido",
+  "restart_message": "La app necesita reiniciarse para aplicar la nueva dirección del idioma.",
+  "restart_now": "Reiniciar ahora",
+  "sections": {
+    "account": "Cuenta",
+    "learning": "Aprendizaje",
+    "notifications": "Notificaciones",
+    "appearance": "Apariencia",
+    "privacy": "Privacidad y datos",
+    "support": "Soporte",
+    "about": "Acerca de"
+  },
+  "account": {
+    "profile": "Perfil",
+    "email": "Correo electrónico",
+    "password": "Cambiar contraseña",
+    "sign_out": "Cerrar sesión",
+    "delete_account": "Eliminar cuenta",
+    "delete_warning": "Esta acción no se puede deshacer. Todos tus datos serán eliminados permanentemente."
+  },
+  "learning": {
+    "daily_goal": "Meta diaria",
+    "daily_goal_description": "{{minutes}} minutos por día",
+    "target_language": "Idioma objetivo",
+    "difficulty": "Nivel de dificultad",
+    "sound_effects": "Efectos de sonido",
+    "vibration": "Vibración",
+    "auto_play_audio": "Reproducir audio automáticamente"
+  },
+  "notifications": {
+    "push_notifications": "Notificaciones push",
+    "daily_reminder": "Recordatorio diario",
+    "reminder_time": "Hora del recordatorio",
+    "streak_alerts": "Alertas de racha",
+    "new_content": "Alertas de contenido nuevo",
+    "weekly_progress": "Reporte semanal de progreso"
+  },
+  "appearance": {
+    "theme": "Tema",
+    "theme_light": "Claro",
+    "theme_dark": "Oscuro",
+    "theme_system": "Sistema",
+    "font_size": "Tamaño de fuente",
+    "font_small": "Pequeño",
+    "font_medium": "Mediano",
+    "font_large": "Grande"
+  },
+  "privacy": {
+    "analytics": "Análisis de uso",
+    "analytics_description": "Ayúdanos a mejorar compartiendo datos de uso anónimos",
+    "personalized_ads": "Anuncios personalizados",
+    "data_export": "Exportar mis datos",
+    "privacy_policy": "Política de privacidad",
+    "terms_of_service": "Términos de servicio"
+  },
+  "support": {
+    "help_center": "Centro de ayuda",
+    "contact_us": "Contáctanos",
+    "report_bug": "Reportar un error",
+    "feature_request": "Solicitar función",
+    "faq": "Preguntas frecuentes"
+  },
+  "about": {
+    "version": "Versión {{version}}",
+    "rate_app": "Calificar la app",
+    "share_app": "Compartir con amigos",
+    "licenses": "Licencias de código abierto",
+    "credits": "Créditos"
+  }
+}

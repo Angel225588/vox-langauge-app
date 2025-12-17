@@ -1,0 +1,146 @@
+{
+  "welcome": {
+    "title": "Bem-vindo ao Vox",
+    "subtitle": "Sua jornada pessoal de aprendizado de idiomas começa aqui",
+    "slogan_line1": "Fale com liberdade.",
+    "slogan_line2": "Aprenda naturalmente.",
+    "get_started": "Começar",
+    "continue_with_email": "Continuar com Email",
+    "already_have_account": "Já tem uma conta?",
+    "sign_in": "Entrar"
+  },
+  "languages": {
+    "title": "Escolha seus idiomas",
+    "subtitle": "Vamos personalizar sua jornada de aprendizado",
+    "native_question": "Qual é o seu idioma nativo?",
+    "native_placeholder": "Selecione seu idioma nativo",
+    "target_question": "Qual idioma você quer aprender?",
+    "your_native_language": "Seu idioma nativo",
+    "same_language_warning": "Por favor, selecione idiomas diferentes para nativo e objetivo",
+    "continue": "Continuar"
+  },
+  "login": {
+    "title": "Bem-vindo de volta",
+    "subtitle": "Entre para continuar aprendendo",
+    "email_label": "Email",
+    "email_placeholder": "voce@exemplo.com",
+    "password_label": "Senha",
+    "password_placeholder": "Digite sua senha",
+    "forgot_password": "Esqueceu a senha?",
+    "sign_in_button": "Entrar",
+    "signing_in": "Entrando...",
+    "no_account": "Não tem uma conta?",
+    "sign_up": "Cadastre-se",
+    "or_continue_with": "Ou continuar com",
+    "errors": {
+      "enter_email": "Por favor, insira seu email",
+      "enter_password": "Por favor, insira sua senha",
+      "invalid_credentials": "Email ou senha inválidos",
+      "unexpected_error": "Ocorreu um erro inesperado. Por favor, tente novamente."
+    }
+  },
+  "signup": {
+    "title": "Criar conta",
+    "subtitle": "Comece sua jornada de aprendizado de idiomas",
+    "full_name_label": "Nome completo",
+    "full_name_placeholder": "João Silva",
+    "email_label": "Email",
+    "email_placeholder": "voce@exemplo.com",
+    "password_label": "Senha",
+    "password_placeholder": "Pelo menos 6 caracteres",
+    "confirm_password_label": "Confirmar senha",
+    "confirm_password_placeholder": "Digite sua senha novamente",
+    "creating_account": "Criando conta...",
+    "continue": "Continuar",
+    "terms_text": "Ao continuar, você concorda com nossos",
+    "terms_of_service": "Termos de serviço",
+    "and": "e",
+    "privacy_policy": "Política de privacidade",
+    "have_account": "Já tem uma conta?",
+    "sign_in": "Entrar",
+    "errors": {
+      "enter_name": "Por favor, insira seu nome completo",
+      "enter_email": "Por favor, insira seu email",
+      "enter_password": "Por favor, insira uma senha",
+      "passwords_mismatch": "As senhas não coincidem",
+      "password_too_short": "A senha deve ter pelo menos 6 caracteres",
+      "unexpected_error": "Ocorreu um erro inesperado. Por favor, tente novamente."
+    },
+    "alerts": {
+      "account_exists_title": "Conta já existe",
+      "account_exists_message": "Já existe uma conta com este email. Deseja entrar?",
+      "cancel": "Cancelar",
+      "signup_failed": "Cadastro falhou",
+      "signup_failed_message": "Não foi possível criar a conta. Por favor, tente novamente.",
+      "check_email_title": "Verifique seu email",
+      "check_email_message": "Enviamos um email de confirmação. Por favor, verifique seu endereço de email antes de entrar."
+    }
+  },
+  "your_why": {
+    "title": "Qual é o seu porquê?",
+    "subtitle": "Por que você quer aprender {{language}}?",
+    "default_language": "esse idioma",
+    "tell_us_label": "Conte-nos com suas próprias palavras",
+    "tell_us_subtext": "Quanto mais detalhes você compartilhar, mais personalizado será seu caminho de aprendizado",
+    "tell_us_placeholder": "Eu quero aprender esse idioma porque...",
+    "quick_option_label": "Ou escolha uma opção rápida",
+    "quick_option_subtext": "Toque para selecionar, ou use como inspiração para sua resposta",
+    "why_now_label": "O que fez você decidir AGORA?",
+    "optional": "(Opcional)",
+    "why_now_subtext": "Entender seu momento nos ajuda a personalizar seu caminho de aprendizado",
+    "why_now_placeholder": "Ex: Vou viajar para a Espanha no próximo mês, começando um novo emprego, conheci alguém especial...",
+    "continue": "Continuar"
+  },
+  "your_level": {
+    "title": "Onde você está na sua",
+    "title_suffix": "jornada?",
+    "previous_attempts_label": "O que você já tentou antes?",
+    "previous_attempts_subtext": "Entendemos que aprender é difícil. Estamos aqui para ajudar você a conseguir desta vez.",
+    "previous_attempts_placeholder": "Ex: Duolingo, aulas na escola, assistindo filmes...",
+    "continue": "Continuar"
+  },
+  "your_commitment": {
+    "goal_question": "Quando você quer\nalcançar sua meta?",
+    "stakes_question": "O que acontece se você",
+    "stakes_emphasis": "não",
+    "stakes_question_suffix": "conseguir?",
+    "stakes_subtext": "É aqui que o compromisso começa. Seja honesto consigo mesmo.",
+    "stakes_placeholder": "Pense no que está em jogo...",
+    "character_count": "{{count}} / 20 caracteres mínimo",
+    "why_matters_title": "Por que isso importa:",
+    "why_matters_points": "• Pesquisas mostram que responsabilidade aumenta o sucesso em 65%\n• Conhecer seu \"porquê\" te mantém firme quando fica difícil\n• Isso é para você. Estamos aqui para apoiar sua jornada.",
+    "continue": "Continuar"
+  },
+  "ready": {
+    "emoji": "🎯",
+    "title": "Seu caminho de aprendizado te espera",
+    "subtitle": "Veja o que estamos construindo para você",
+    "summary": {
+      "language": "Idioma",
+      "why": "Por quê",
+      "level": "Nível",
+      "timeline": "Prazo"
+    },
+    "cta_button": "Criar meu caminho personalizado",
+    "loading": {
+      "preparing": "Preparando sua jornada...",
+      "ai_crafting": "A IA está criando seu caminho personalizado...",
+      "finalizing": "Finalizando sua escada...",
+      "ready": "Pronto para aprender!",
+      "preparing_ai": "Preparando IA...",
+      "generating": "Gerando seu caminho personalizado...",
+      "almost_ready": "Quase pronto!"
+    },
+    "alerts": {
+      "generation_failed_title": "Falha na geração",
+      "generation_failed_message": "Não conseguimos criar seu caminho personalizado. Por favor, tente novamente."
+    }
+  },
+  "common": {
+    "continue": "Continuar",
+    "back": "Voltar",
+    "skip": "Pular",
+    "error": "Erro",
+    "ok": "OK"
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "session": {
+    "title": "Sessão de prática",
+    "cards_remaining": "{{count}} cartão restante",
+    "cards_remaining_plural": "{{count}} cartões restantes",
+    "time_spent": "Tempo: {{minutes}}m {{seconds}}s",
+    "exit_confirm": "Tem certeza que deseja sair? Seu progresso será salvo.",
+    "exit_title": "Sair da prática?"
+  },
+  "cards": {
+    "vocabulary": {
+      "introduction": {
+        "title": "Nova palavra",
+        "tap_to_hear": "Toque para ouvir a pronúncia",
+        "example_sentence": "Exemplo",
+        "got_it": "Entendi!"
+      },
+      "listening": {
+        "title": "Escuta",
+        "instructions": "Ouça e selecione a palavra correta",
+        "play_again": "Ouvir novamente"
+      },
+      "speaking": {
+        "title": "Fala",
+        "instructions": "Diga a palavra em voz alta",
+        "tap_to_record": "Toque para gravar",
+        "recording": "Gravando...",
+        "analyzing": "Analisando...",
+        "try_again": "Tentar novamente",
+        "well_done": "Muito bem!"
+      },
+      "typing": {
+        "title": "Digitação",
+        "instructions": "Digite a palavra que você ouviu",
+        "placeholder": "Digite aqui...",
+        "check": "Verificar",
+        "correct": "Correto!",
+        "incorrect": "Quase lá. A resposta é: {{answer}}"
+      },
+      "audio_quiz": {
+        "title": "Quiz de áudio",
+        "instructions": "Ouça e escolha o significado correto"
+      }
+    },
+    "fill_blank": {
+      "title": "Preencha o espaço",
+      "instructions": "Complete a frase com a palavra correta",
+      "placeholder": "Digite sua resposta...",
+      "check_answer": "Verificar resposta",
+      "show_hint": "Mostrar dica",
+      "hint": "Dica: {{hint}}",
+      "correct": "Correto!",
+      "incorrect": "Quase lá. A resposta correta é: {{answer}}"
+    },
+    "speaking": {
+      "title": "Prática de fala",
+      "instructions": "Leia a frase em voz alta claramente",
+      "target_sentence": "Diga isso:",
+      "tap_to_record": "Toque para começar a gravar",
+      "recording": "Gravando... Toque para parar",
+      "analyzing": "Analisando sua pronúncia...",
+      "play_recording": "Ouvir gravação",
+      "score": "Pontuação: {{score}}%",
+      "feedback": {
+        "excellent": "Excelente pronúncia!",
+        "good": "Bom trabalho! Continue praticando.",
+        "needs_work": "Continue praticando, você está melhorando!"
+      }
+    },
+    "comparison": {
+      "title": "Compare e escolha",
+      "instructions": "Qual frase está correta?",
+      "option_a": "Opção A",
+      "option_b": "Opção B",
+      "correct": "Isso mesmo!",
+      "incorrect": "Quase lá. {{explanation}}"
+    },
+    "role_play": {
+      "title": "Encenação",
+      "your_role": "Seu papel",
+      "partner_says": "Parceiro diz:",
+      "your_turn": "Sua vez:",
+      "suggestions": "Respostas sugeridas:",
+      "or_say_anything": "Ou diga o que quiser!"
+    },
+    "sentence_scramble": {
+      "title": "Frase embaralhada",
+      "instructions": "Organize as palavras para formar uma frase correta",
+      "tap_to_add": "Toque nas palavras para construir a frase",
+      "clear": "Limpar",
+      "check": "Verificar"
+    },
+    "teleprompter": {
+      "title": "Prática de leitura",
+      "instructions": "Leia acompanhando o texto",
+      "tap_word_hint": "Toque em qualquer palavra para tradução",
+      "speed": "Velocidade",
+      "slow": "Lento",
+      "normal": "Normal",
+      "fast": "Rápido"
+    },
+    "text_input": {
+      "title": "Escreva sua resposta",
+      "placeholder": "Digite sua resposta...",
+      "submit": "Enviar",
+      "min_characters": "Mínimo {{count}} caracteres"
+    },
+    "quiz": {
+      "title": "Quiz",
+      "question": "Pergunta {{current}} de {{total}}",
+      "select_answer": "Selecione sua resposta"
+    }
+  },
+  "feedback": {
+    "excellent": "Excelente!",
+    "great": "Ótimo trabalho!",
+    "good": "Bom!",
+    "needs_practice": "Continue praticando!",
+    "try_again": "Tente novamente",
+    "correct": "Correto!",
+    "incorrect": "Não está bem certo"
+  },
+  "results": {
+    "title": "Sessão concluída!",
+    "summary": "Veja como você se saiu",
+    "score": "Pontuação",
+    "accuracy": "Precisão: {{percent}}%",
+    "time_spent": "Tempo gasto: {{minutes}} minutos",
+    "cards_completed": "Cartões concluídos: {{count}}",
+    "points_earned": "+{{points}} pontos",
+    "streak_maintained": "Sequência mantida!",
+    "new_words": "Novas palavras aprendidas: {{count}}",
+    "words_reviewed": "Palavras revisadas: {{count}}",
+    "continue": "Continuar",
+    "practice_again": "Praticar novamente",
+    "back_to_home": "Voltar ao início"
+  }
+}

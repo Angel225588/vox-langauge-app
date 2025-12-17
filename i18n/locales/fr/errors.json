@@ -1,0 +1,49 @@
+{
+  "generic": {
+    "title": "Une erreur s'est produite",
+    "message": "Une erreur inattendue s'est produite. Veuillez réessayer.",
+    "retry": "Réessayer"
+  },
+  "network": {
+    "title": "Erreur de connexion",
+    "message": "Impossible de se connecter. Veuillez vérifier votre connexion internet.",
+    "offline": "Vous êtes hors ligne",
+    "offline_message": "Certaines fonctionnalités peuvent être limitées en mode hors ligne."
+  },
+  "auth": {
+    "title": "Erreur d'authentification",
+    "invalid_credentials": "Email ou mot de passe invalide",
+    "email_exists": "Un compte avec cet email existe déjà",
+    "weak_password": "Le mot de passe est trop faible",
+    "session_expired": "Votre session a expiré. Veuillez vous reconnecter.",
+    "unauthorized": "Vous n'avez pas la permission d'accéder à ceci"
+  },
+  "validation": {
+    "required_field": "Ce champ est obligatoire",
+    "invalid_email": "Veuillez entrer une adresse email valide",
+    "password_mismatch": "Les mots de passe ne correspondent pas",
+    "min_length": "Doit contenir au moins {{min}} caractères",
+    "max_length": "Ne doit pas dépasser {{max}} caractères"
+  },
+  "recording": {
+    "title": "Erreur d'enregistrement",
+    "permission_denied": "L'accès au microphone a été refusé. Veuillez l'activer dans les paramètres.",
+    "not_supported": "L'enregistrement n'est pas pris en charge sur cet appareil",
+    "failed": "L'enregistrement a échoué. Veuillez réessayer."
+  },
+  "audio": {
+    "playback_failed": "Impossible de lire l'audio. Veuillez réessayer.",
+    "load_failed": "Impossible de charger le fichier audio."
+  },
+  "sync": {
+    "title": "Erreur de synchronisation",
+    "message": "Impossible de synchroniser votre progression. Les modifications seront enregistrées localement.",
+    "conflict": "Il y a eu un conflit lors de la synchronisation de vos données. Vos dernières modifications ont été conservées."
+  },
+  "lesson": {
+    "load_failed": "Impossible de charger la leçon. Veuillez réessayer.",
+    "not_found": "Leçon introuvable"
+  },
+  "restart_failed": "Échec du redémarrage",
+  "restart_failed_message": "Veuillez fermer et rouvrir l'application manuellement."
+}

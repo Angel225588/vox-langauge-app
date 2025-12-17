@@ -1,0 +1,46 @@
+{
+  "title": "Ma Feuille de Route",
+  "loading": "Chargement de votre parcours d'apprentissage...",
+  "greeting": {
+    "morning": "Bonjour",
+    "afternoon": "Bon après-midi",
+    "evening": "Bonsoir"
+  },
+  "stats": {
+    "points": "{{count}} points",
+    "points_label": "Points",
+    "streak": "Série de {{count}} jour",
+    "streak_label": "Série",
+    "words_learned": "{{count}} mots appris",
+    "lessons_completed": "{{count}} leçons terminées"
+  },
+  "stair_card": {
+    "locked": "Terminez l'étape précédente pour débloquer",
+    "current": "En cours",
+    "completed": "Terminé",
+    "vocabulary_count": "{{count}} mot",
+    "vocabulary_count_plural": "{{count}} mots",
+    "estimated_days": "~{{count}} jour",
+    "estimated_days_plural": "~{{count}} jours",
+    "start_lesson": "Commencer la leçon",
+    "continue_lesson": "Continuer",
+    "review": "Réviser"
+  },
+  "quick_practice": {
+    "title": "Pratique rapide",
+    "vocabulary": "Vocabulaire",
+    "speaking": "Expression orale",
+    "listening": "Compréhension orale",
+    "reading": "Lecture"
+  },
+  "daily_goal": {
+    "title": "Objectif quotidien",
+    "progress": "{{current}} / {{target}} min",
+    "completed": "Objectif atteint !",
+    "keep_going": "Continuez !"
+  },
+  "next_lesson": {
+    "title": "Prochaine leçon",
+    "continue": "Continuer à apprendre"
+  }
+}
