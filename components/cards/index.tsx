@@ -4,44 +4,51 @@
  * Barrel file that exports all card components.
  * Each card is in its own file for better maintainability and team collaboration.
  *
- * Working polished cards (6 original):
- * - SingleVocabCard: Display word with image, phonetics, translation
- * - MultipleChoiceCard: Select correct translation from 4 options
- * - ImageQuizCard: Identify image from 4 word options
+ * Core cards:
+ * - QuizCard: Unified quiz card supporting image and translation modes
  * - AudioCard: Listen to audio and select matching word
  * - TextInputCard: Type the English word for a translation
  * - SpeakingCard: Record pronunciation of a word
+ * - ComparisonCard: Side-by-side word comparison
  *
- * New cards (6 Gemini-generated - all fixed and working):
- * - FillInBlankCard: ✅ Fill in the blank with correct grammar
- * - SentenceScrambleCard: ✅ Drag & drop sentence ordering
- * - DescribeImageCard: ✅ Describe images with text/audio
- * - StorytellingCard: ✅ Creative narrative building
- * - QuestionGameCard: ✅ 20 questions word guessing game
- * - RolePlayCard: ✅ Interactive conversation scenarios
+ * Grammar & Sentence cards:
+ * - FillInBlankCard: Fill in the blank with correct grammar
+ * - SentenceScrambleCard: Drag & drop sentence ordering
+ *
+ * Conversation cards:
+ * - RolePlayCard: Interactive conversation scenarios
  */
 
-// Working polished cards (extracted from monolithic file)
-export { SingleVocabCard } from './SingleVocabCard';
-export { MultipleChoiceCard } from './MultipleChoiceCard';
-export { ImageQuizCard } from './ImageQuizCard';
+// Core cards
+export { QuizCard } from './QuizCard';
 export { AudioCard } from './AudioCard';
 export { TextInputCard } from './TextInputCard';
 export { SpeakingCard } from './SpeakingCard';
 export { ComparisonCard } from './ComparisonCard';
+export type { ComparisonCardProps, ComparisonItem } from './ComparisonCard';
 
-// New cards (all fixed - BaseCard dependency removed)
+// Grammar & Sentence cards
 export { FillInBlankCard } from './FillInBlankCard';
 export { SentenceScrambleCard } from './SentenceScrambleCard';
-export { DescribeImageCard } from './DescribeImageCard';
-export { StorytellingCard } from './StorytellingCard';
-export { QuestionGameCard } from './QuestionGameCard';
+
+// Conversation cards
 export { RolePlayCard } from './RolePlayCard';
+export { VoiceRolePlayCard } from './VoiceRolePlayCard';
+export type { VoiceRolePlayCardProps, VoiceConversationMode } from './VoiceRolePlayCard';
+export { GoalPage } from './GoalPage';
+export type { GoalPageProps } from './GoalPage';
+export { VoiceCallScreen } from './VoiceCallScreen';
+export type { VoiceCallScreenProps } from './VoiceCallScreen';
+export { PostCallFeedbackScreen } from './PostCallFeedbackScreen';
+export type { PostCallFeedbackScreenProps } from './PostCallFeedbackScreen';
 
 // Reading Practice cards
 export { TeleprompterCard } from './TeleprompterCard';
-export type { TeleprompterResults, RecordingState, FontSize, ScrollSpeed } from './TeleprompterCard';
+export type { TeleprompterResults, TeleprompterMode, FontSizeOption } from './TeleprompterCard';
 export { ReadingResultsCard } from './ReadingResultsCard';
+
+// Speaking Feedback cards (Honest feedback + Effort points)
+export { SpeakingResultsCard } from './SpeakingResultsCard';
 
 // Vocabulary cards (Premium)
 export {
@@ -52,6 +59,7 @@ export {
   SpeakingCard as VocabSpeakingCard,
   AudioQuizCard as VocabAudioQuizCard,
   VocabularyCardFlow,
+  VocabularyPracticeScreen,
   useVocabCard,
   selectNextVariant,
   getFlowSequence,

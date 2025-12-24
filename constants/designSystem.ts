@@ -14,7 +14,7 @@ export const colors = {
 
   // Gradient definitions (as const for LinearGradient compatibility)
   gradients: {
-    primary: ['#6366F1', '#8B5CF6'] as const,      // Indigo to purple
+    primary: ['#0036FF', '#00A3FF'] as const,      // Deep blue to bright blue
     secondary: ['#06D6A0', '#4ECDC4'] as const,    // Teal to turquoise
     success: ['#10B981', '#34D399'] as const,      // Green
     warning: ['#F59E0B', '#FBBF24'] as const,      // Amber
@@ -23,11 +23,11 @@ export const colors = {
     dark: ['#1A1F3A', '#0F1729'] as const,         // Dark card gradient
   },
 
-  // Solid colors
+  // Solid colors - Primary: Electric Blue (voice/communication focused)
   primary: {
-    DEFAULT: '#6366F1',      // Indigo
-    light: '#818CF8',
-    dark: '#4F46E5',
+    DEFAULT: '#0036FF',      // Deep electric blue
+    light: '#3D6BFF',        // Hover/active states
+    dark: '#0029CC',         // Pressed states
   },
 
   secondary: {
@@ -55,8 +55,9 @@ export const colors = {
   },
 
   accent: {
-    primary: '#6366F1',      // Match primary color
-    purple: '#8B5CF6',
+    primary: '#0036FF',      // Match primary blue
+    blue: '#00A3FF',         // Bright blue accent
+    purple: '#8B5CF6',       // Keep purple as accent option
     pink: '#EC4899',
     orange: '#F97316',
     cyan: '#06B6D4',
@@ -79,11 +80,74 @@ export const colors = {
 
   // Glow effects (for box shadows)
   glow: {
-    primary: 'rgba(99, 102, 241, 0.5)',     // Indigo glow
+    primary: 'rgba(0, 54, 255, 0.5)',       // Blue glow
     secondary: 'rgba(6, 214, 160, 0.5)',    // Teal glow
     success: 'rgba(16, 185, 129, 0.5)',     // Green glow
     error: 'rgba(239, 68, 68, 0.5)',        // Red glow
-    purple: 'rgba(139, 92, 246, 0.5)',      // Purple glow
+    blue: 'rgba(0, 163, 255, 0.5)',         // Bright blue glow
+    purple: 'rgba(139, 92, 246, 0.5)',      // Purple glow (accent)
+  },
+};
+
+/**
+ * Reward Currency Colors
+ * Colors for the Vox gamification system
+ * "The only failure is not trying" - Every attempt earns Vox
+ */
+export const rewardCurrencies = {
+  // Main Vox currency (hexagonal crystal with sound waves)
+  vox: {
+    primary: '#0036FF',        // Blue - matches brand
+    secondary: '#00A3FF',      // Bright blue accent
+    glow: 'rgba(0, 54, 255, 0.4)',
+    gradient: ['#0036FF', '#00A3FF'] as const,
+    // Tier colors for achievement levels
+    tiers: {
+      bronze: {
+        primary: '#D97706',
+        secondary: '#F59E0B',
+        glow: 'rgba(217, 119, 6, 0.4)',
+      },
+      silver: {
+        primary: '#9CA3AF',
+        secondary: '#D1D5DB',
+        glow: 'rgba(156, 163, 175, 0.4)',
+      },
+      gold: {
+        primary: '#F59E0B',
+        secondary: '#FBBF24',
+        glow: 'rgba(245, 158, 11, 0.4)',
+      },
+    },
+  },
+  // Fluency Flames - Speaking & Pronunciation (coral/orange)
+  fluency: {
+    primary: '#FF6B6B',        // Coral red
+    secondary: '#FFA07A',      // Light salmon
+    glow: 'rgba(255, 107, 107, 0.4)',
+    gradient: ['#FF6B6B', '#FFA07A'] as const,
+    accent: '#FFE4E1',         // Misty rose (inner glow)
+  },
+  // Comprehension Crystals - Listening & Reading (teal/cyan)
+  comprehension: {
+    primary: '#06D6A0',        // Teal
+    secondary: '#4ECDC4',      // Turquoise
+    glow: 'rgba(6, 214, 160, 0.4)',
+    gradient: ['#06D6A0', '#4ECDC4'] as const,
+    accent: '#E0FFF4',         // Mint cream (inner glow)
+  },
+  // Expression Embers - Writing & Production (violet/purple)
+  expression: {
+    primary: '#8B5CF6',        // Violet
+    secondary: '#A78BFA',      // Light violet
+    glow: 'rgba(139, 92, 246, 0.4)',
+    gradient: ['#8B5CF6', '#A78BFA'] as const,
+    accent: '#EDE9FE',         // Lavender (inner glow)
+  },
+  // Glow effect sizing
+  glowSize: {
+    multiplier: 1.5,           // Icon glow is 1.5x icon size
+    blurMultiplier: 1.2,       // Blur radius multiplier
   },
 };
 
@@ -191,6 +255,12 @@ export const animation = {
     fast: 150,
     normal: 300,
     slow: 500,
+    // Icon-specific durations
+    icon: 600,              // Icon scale/pulse animations
+    iconFlicker: 250,       // Flame flicker step duration
+    iconShimmer: 800,       // Crystal shimmer cycle
+    rewardPopup: 2500,      // Auto-dismiss duration for reward popups
+    counterStep: 30,        // Counter animation step interval
   },
 
   // Spring configs for reanimated
@@ -206,6 +276,15 @@ export const animation = {
     stiff: {
       damping: 20,
       stiffness: 200,
+    },
+    // Reward-specific springs
+    reward: {
+      damping: 12,
+      stiffness: 150,
+    },
+    iconPulse: {
+      damping: 8,
+      stiffness: 100,
     },
   },
 };
@@ -227,23 +306,23 @@ export const haptics = {
 
 /**
  * Neomorphism Design System
- * Purple/Indigo accent to match the app's primary color scheme
+ * Electric Blue accent to match the app's primary color scheme (voice/communication focused)
  */
 export const neomorphism = {
   // Base background - matches app's deep space blue-black
   background: '#0A0E1A',
 
-  // Accent color - Purple/Indigo (matching primary)
-  accent: '#6366F1',
-  accentLight: '#818CF8',
-  accentGlow: 'rgba(99, 102, 241, 0.5)',
+  // Accent color - Electric Blue (matching primary)
+  accent: '#0036FF',
+  accentLight: '#3D6BFF',
+  accentGlow: 'rgba(0, 54, 255, 0.5)',
 
   // Text colors for neomorphic context
   text: {
     primary: '#F9FAFB',      // Almost white for primary text
     secondary: '#9CA3AF',    // Medium gray for secondary text
     inactive: '#6B7280',     // Darker for disabled/inactive states
-    accent: '#818CF8',       // Light purple for accent text
+    accent: '#3D6BFF',       // Light blue for accent text
   },
 
   // Shadow configurations for raised (convex) elements
@@ -266,22 +345,22 @@ export const neomorphism = {
   pressed: {
     backgroundColor: '#0F1729',
     borderColor: '#1A1F3A',
-    innerGlow: 'rgba(99, 102, 241, 0.1)',
+    innerGlow: 'rgba(0, 54, 255, 0.1)',
   },
 
   // Button variants
   button: {
-    // Primary raised button (purple/indigo)
+    // Primary raised button (electric blue)
     primary: {
-      backgroundColor: '#6366F1',
+      backgroundColor: '#0036FF',
       textColor: '#FFFFFF',
-      shadowLight: '#818CF8',
-      shadowDark: '#4F46E5',
+      shadowLight: '#3D6BFF',
+      shadowDark: '#0029CC',
     },
     // Secondary raised button (dark card)
     secondary: {
       backgroundColor: '#1A1F3A',
-      textColor: '#818CF8',
+      textColor: '#3D6BFF',
       shadowLight: '#222845',
       shadowDark: '#0A0E1A',
     },
@@ -297,7 +376,7 @@ export const neomorphism = {
   toggle: {
     track: {
       off: '#1A1F3A',
-      on: '#6366F1',
+      on: '#0036FF',
     },
     thumb: '#F9FAFB',
   },
@@ -305,9 +384,9 @@ export const neomorphism = {
   // Slider
   slider: {
     track: '#1A1F3A',
-    fill: '#6366F1',
+    fill: '#0036FF',
     thumb: '#F9FAFB',
-    thumbBorder: '#6366F1',
+    thumbBorder: '#0036FF',
   },
 
   // Input fields
@@ -321,7 +400,7 @@ export const neomorphism = {
   // Icon buttons (circular)
   iconButton: {
     background: '#1A1F3A',
-    iconColor: '#818CF8',
+    iconColor: '#3D6BFF',
     iconColorInactive: '#6B7280',
     size: {
       sm: 40,
@@ -334,19 +413,19 @@ export const neomorphism = {
   radio: {
     background: '#1A1F3A',
     border: '#222845',
-    active: '#6366F1',
+    active: '#0036FF',
     inactive: '#6B7280',
   },
 
   // Card
   card: {
     background: '#1A1F3A',
-    border: 'rgba(99, 102, 241, 0.15)',
+    border: 'rgba(0, 54, 255, 0.15)',
   },
 
   // Gradients
   gradients: {
-    primary: ['#6366F1', '#8B5CF6'] as const,
+    primary: ['#0036FF', '#00A3FF'] as const,
     card: ['#1A1F3A', '#0F1729'] as const,
     fadeBottom: ['transparent', '#0A0E1A'] as const,
   },
