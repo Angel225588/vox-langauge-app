@@ -16,6 +16,7 @@ import { colors, spacing, borderRadius, typography, shadows } from '@/constants/
 import { useOnboardingV2, TARGET_LANGUAGES, MOTIVATIONS, PROFICIENCY_LEVELS, TIMELINES } from '@/hooks/useOnboardingV2';
 import { createPersonalizedPath } from '@/lib/services/pathGeneration';
 import { supabase } from '@/lib/db/supabase';
+import { storeUserLevel } from '@/lib/utils/levelGating';
 
 export default function ReadyScreen() {
   const router = useRouter();
@@ -82,6 +83,12 @@ export default function ReadyScreen() {
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to create path');
+      }
+
+      // Store user's proficiency level for level-gating
+      if (data.proficiency_level) {
+        await storeUserLevel(data.proficiency_level);
+        console.log('Stored user level:', data.proficiency_level);
       }
 
       // Step 3: Finalizing
