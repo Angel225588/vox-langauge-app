@@ -194,7 +194,7 @@ export const PreSessionScreen: React.FC<PreSessionScreenProps> = ({
             />
           </>
         ) : (
-          <View style={styles.bannerIconContainer}>
+          <View style={[styles.bannerIconContainer, { paddingTop: insets.top }]}>
             <View style={styles.iconCircle}>
               <Ionicons name={icon} size={48} color={colors.primary.DEFAULT} />
             </View>
