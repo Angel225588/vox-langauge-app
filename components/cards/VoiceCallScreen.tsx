@@ -626,7 +626,7 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
 
   // End call handler
   const handleEndCall = useCallback(() => {
-    const success = messages.length >= 4;
+    const success = messages.length >= 2; // 2+ messages = at least 1 exchange
     haptics.medium();
 
     setShowResultAnimation(success ? 'success' : 'error');
