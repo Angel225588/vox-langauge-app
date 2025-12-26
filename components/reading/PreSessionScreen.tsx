@@ -271,7 +271,7 @@ export const PreSessionScreen: React.FC<PreSessionScreenProps> = ({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Inspirational Quote */}
+        {/* Inspirational Quote - Emphasized */}
         <Animated.View
           entering={FadeInUp.delay(550).duration(400)}
           style={styles.quoteSection}
@@ -284,9 +284,12 @@ export const PreSessionScreen: React.FC<PreSessionScreenProps> = ({
           </View>
         </Animated.View>
 
+        {/* Divider */}
+        <View style={styles.sectionDivider} />
+
         {/* What to Expect */}
         <Animated.View
-          entering={FadeInUp.delay(600).duration(400)}
+          entering={FadeInUp.delay(650).duration(400)}
           style={styles.section}
         >
           <Text style={styles.sectionTitle}>What to Expect</Text>
@@ -482,15 +485,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
 
-  // Quote Section
+  // Quote Section - Emphasized
   quoteSection: {
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing['2xl'],
   },
   quoteContainer: {
     flexDirection: 'row',
   },
   quoteLine: {
-    width: 3,
+    width: 4,
     backgroundColor: colors.primary.DEFAULT,
     borderRadius: 2,
     marginRight: spacing.md,
@@ -499,10 +502,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   quoteText: {
-    fontSize: typography.fontSize.lg,
+    fontSize: typography.fontSize.xl,
     fontStyle: 'italic',
-    color: colors.text.secondary,
-    lineHeight: typography.fontSize.lg * 1.6,
+    color: colors.text.primary,
+    lineHeight: typography.fontSize.xl * 1.5,
+  },
+
+  // Divider
+  sectionDivider: {
+    height: 1,
+    backgroundColor: colors.border.light,
+    marginBottom: spacing.xl,
+    opacity: 0.5,
   },
 
   // Sections
@@ -510,9 +521,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   sectionTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.tertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
     marginBottom: spacing.md,
   },
 
