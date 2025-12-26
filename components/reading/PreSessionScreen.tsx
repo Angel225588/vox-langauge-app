@@ -287,12 +287,12 @@ export const PreSessionScreen: React.FC<PreSessionScreenProps> = ({
         {/* Divider */}
         <View style={styles.sectionDivider} />
 
-        {/* What to Expect */}
+        {/* Goals */}
         <Animated.View
           entering={FadeInUp.delay(650).duration(400)}
           style={styles.section}
         >
-          <Text style={styles.sectionTitle}>What to Expect</Text>
+          <Text style={styles.sectionTitle}>Goals</Text>
           <View style={styles.expectList}>
             {expectations.map((item, index) => (
               <Animated.View

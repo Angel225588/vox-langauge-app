@@ -204,12 +204,17 @@ export default function VoiceConversationScreen() {
 
   // Show goal page (pre-call briefing)
   if (flowState === 'goal' && selectedScenario) {
-    // Get expectations based on scenario
-    const expectations = [
-      { icon: '🎯', text: `Practice ${selectedScenario.difficulty} level conversation` },
-      { icon: '🗣️', text: 'Speak naturally with an AI tutor' },
-      { icon: '✨', text: 'Get real-time feedback on your responses' },
+    // Get goals based on scenario - what the user should accomplish
+    const goals = [
+      { icon: '👋', text: 'Introduce yourself and greet the other person' },
+      { icon: '💬', text: 'Ask and answer basic questions naturally' },
+      { icon: '🎯', text: 'Complete the conversation without switching to English' },
     ];
+
+    const handlePreviewVocabulary = () => {
+      // TODO: Navigate to vocabulary preview page
+      console.log('Preview vocabulary for scenario:', selectedScenario.id);
+    };
 
     return (
       <PreSessionScreen
@@ -220,9 +225,11 @@ export default function VoiceConversationScreen() {
         icon="call-outline"
         metaValue1="~5 min"
         metaLabel1="duration"
-        expectations={expectations}
+        expectations={goals}
         primaryButtonText="Start Call"
+        secondaryButtonText="Preview Vocabulary"
         onPrimaryPress={handleStartCall}
+        onSecondaryPress={handlePreviewVocabulary}
         onBack={handleGoalBack}
       />
     );
