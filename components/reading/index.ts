@@ -12,13 +12,7 @@ export { AnalyzingScreen } from './AnalyzingScreen';
 
 export { ScoreCard } from './ScoreCard';
 
-export { PassageSelector } from './PassageSelector';
-export type { PassageSelectorProps } from './PassageSelector';
-
 export { ImportPassageForm } from './ImportPassageForm';
 export type { ImportPassageFormProps } from './ImportPassageForm';
-
-export { usePassages } from './usePassages';
-export type { UsePassagesReturn } from './usePassages';
 
 export { RecordingPlayback, type RecordingPlaybackProps } from './RecordingPlayback';
