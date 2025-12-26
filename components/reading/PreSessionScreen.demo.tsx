@@ -3,66 +3,80 @@
  *
  * Interactive demo for testing and showcasing the PreSessionScreen component.
  * Use this file to quickly test the component in development.
- *
- * To use:
- * 1. Import this component in your app
- * 2. Render it in a screen
- * 3. Interact with buttons to see different scenarios
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
 import { PreSessionScreen } from './PreSessionScreen';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
 
-type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
+type DemoMode = 'reading' | 'voice' | 'minimal';
+
+const DEMO_CONFIGS = {
+  reading: {
+    title: 'My Trip to Barcelona',
+    subtitle: 'A story about discovering Spanish culture',
+    category: 'Travel',
+    difficulty: 'intermediate' as const,
+    imageUrl: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800',
+    metaValue1: '3 min',
+    metaLabel1: 'duration',
+    metaValue2: '250',
+    metaLabel2: 'words',
+    primaryButtonText: 'Start Reading',
+    secondaryButtonText: 'Preview Vocabulary',
+    expectations: [
+      { icon: '🎯', text: 'Read at your own pace with auto-scrolling' },
+      { icon: '🎤', text: 'Record your voice for pronunciation feedback' },
+      { icon: '⭐', text: 'Track your progress and earn points' },
+    ],
+  },
+  voice: {
+    title: 'Ordering at a Restaurant',
+    subtitle: 'Practice ordering food and drinks in Spanish',
+    category: 'Food',
+    difficulty: 'beginner' as const,
+    icon: 'call-outline' as const,
+    metaValue1: '~5 min',
+    metaLabel1: 'duration',
+    primaryButtonText: 'Start Call',
+    expectations: [
+      { icon: '🎯', text: 'Practice beginner level conversation' },
+      { icon: '🗣️', text: 'Speak naturally with an AI tutor' },
+      { icon: '✨', text: 'Get real-time feedback on your responses' },
+    ],
+  },
+  minimal: {
+    title: 'Quick Practice Session',
+    primaryButtonText: 'Start',
+    expectations: [
+      { icon: '🎯', text: 'Practice at your own pace' },
+      { icon: '🎤', text: 'Get feedback on your performance' },
+      { icon: '⭐', text: 'Track your progress and earn points' },
+    ],
+  },
+};
 
 export function PreSessionScreenDemo() {
+  const [mode, setMode] = useState<DemoMode>('reading');
   const [showDemo, setShowDemo] = useState(false);
-  const [difficulty, setDifficulty] = useState<DifficultyLevel>('beginner');
-  const [sessionNumber, setSessionNumber] = useState<number | undefined>(1);
 
-  // Sample passages for each difficulty
-  const passages = {
-    beginner: {
-      title: 'Greetings and Basic Phrases',
-      difficulty: 'beginner' as const,
-      wordCount: 80,
-      estimatedDuration: 60,
-    },
-    intermediate: {
-      title: 'Planning Your Dream Vacation',
-      difficulty: 'intermediate' as const,
-      wordCount: 250,
-      estimatedDuration: 180,
-    },
-    advanced: {
-      title: 'Understanding Global Economic Trends',
-      difficulty: 'advanced' as const,
-      wordCount: 450,
-      estimatedDuration: 320,
-    },
-  };
-
-  const handleStart = () => {
-    console.log('🎉 Start button pressed!');
-    console.log('Passage:', passages[difficulty]);
-    console.log('Session:', sessionNumber);
-    alert(`Starting ${difficulty} passage with ${passages[difficulty].wordCount} words!`);
-  };
-
-  const handleBack = () => {
-    console.log('⬅️ Back button pressed!');
-    setShowDemo(false);
-  };
+  const config = DEMO_CONFIGS[mode];
 
   if (showDemo) {
     return (
       <PreSessionScreen
-        passage={passages[difficulty]}
-        sessionNumber={sessionNumber}
-        onStart={handleStart}
-        onBack={handleBack}
+        {...config}
+        onPrimaryPress={() => {
+          Alert.alert('Primary Action', `Starting ${mode} session...`);
+          setShowDemo(false);
+        }}
+        onSecondaryPress={
+          'secondaryButtonText' in config
+            ? () => Alert.alert('Secondary Action', 'Showing vocabulary...')
+            : undefined
+        }
+        onBack={() => setShowDemo(false)}
       />
     );
   }
@@ -73,82 +87,37 @@ export function PreSessionScreenDemo() {
         <Text style={styles.title}>PreSessionScreen Demo</Text>
         <Text style={styles.subtitle}>Test different configurations</Text>
 
-        {/* Difficulty Selection */}
+        {/* Mode Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Difficulty:</Text>
+          <Text style={styles.sectionTitle}>Select Mode:</Text>
           <View style={styles.buttonGroup}>
-            {(['beginner', 'intermediate', 'advanced'] as DifficultyLevel[]).map((level) => (
+            {(['reading', 'voice', 'minimal'] as DemoMode[]).map((m) => (
               <TouchableOpacity
-                key={level}
-                style={[
-                  styles.optionButton,
-                  difficulty === level && styles.optionButtonActive,
-                ]}
-                onPress={() => setDifficulty(level)}
+                key={m}
+                style={[styles.optionButton, mode === m && styles.optionButtonActive]}
+                onPress={() => setMode(m)}
               >
-                <Text
-                  style={[
-                    styles.optionText,
-                    difficulty === level && styles.optionTextActive,
-                  ]}
-                >
-                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                <Text style={[styles.optionText, mode === m && styles.optionTextActive]}>
+                  {m.charAt(0).toUpperCase() + m.slice(1)}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Session Number Toggle */}
+        {/* Mode Preview */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Session Number:</Text>
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity
-              style={[styles.optionButton, sessionNumber === undefined && styles.optionButtonActive]}
-              onPress={() => setSessionNumber(undefined)}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  sessionNumber === undefined && styles.optionTextActive,
-                ]}
-              >
-                None
-              </Text>
-            </TouchableOpacity>
-            {[1, 2, 3, 5].map((num) => (
-              <TouchableOpacity
-                key={num}
-                style={[
-                  styles.optionButton,
-                  sessionNumber === num && styles.optionButtonActive,
-                ]}
-                onPress={() => setSessionNumber(num)}
-              >
-                <Text
-                  style={[
-                    styles.optionText,
-                    sessionNumber === num && styles.optionTextActive,
-                  ]}
-                >
-                  {num}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Passage Preview */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Current Passage:</Text>
+          <Text style={styles.sectionTitle}>Current Mode: {mode}</Text>
           <View style={styles.previewCard}>
-            <Text style={styles.previewTitle}>{passages[difficulty].title}</Text>
-            <Text style={styles.previewMeta}>
-              {passages[difficulty].wordCount} words · {passages[difficulty].estimatedDuration}s
-            </Text>
-            <Text style={styles.previewDifficulty}>
-              Difficulty: {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-            </Text>
+            <Text style={styles.previewTitle}>{config.title}</Text>
+            {'subtitle' in config && (
+              <Text style={styles.previewMeta}>{config.subtitle}</Text>
+            )}
+            {'category' in config && (
+              <Text style={styles.previewDifficulty}>
+                Category: {config.category} | Difficulty: {config.difficulty}
+              </Text>
+            )}
           </View>
         </View>
 
@@ -159,15 +128,15 @@ export function PreSessionScreenDemo() {
 
         {/* Info */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>💡 Demo Features</Text>
+          <Text style={styles.infoTitle}>Features</Text>
           <Text style={styles.infoText}>
-            • 7 random motivational quotes{'\n'}
-            • Glassmorphic design with gradients{'\n'}
-            • Staggered fade-in animations{'\n'}
+            • Hero banner with optional image{'\n'}
+            • Icon-based header when no image{'\n'}
+            • Motivational quotes{'\n'}
+            • What to Expect section{'\n'}
+            • Primary & secondary CTAs{'\n'}
             • Pulse animation on start button{'\n'}
-            • Haptic feedback on interactions{'\n'}
-            • Difficulty color coding{'\n'}
-            • Session tracking display
+            • Haptic feedback
           </Text>
         </View>
       </View>
@@ -284,3 +253,5 @@ const styles = StyleSheet.create({
     lineHeight: typography.fontSize.sm * 1.6,
   },
 });
+
+export default PreSessionScreenDemo;

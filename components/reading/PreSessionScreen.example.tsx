@@ -10,361 +10,117 @@ import { View } from 'react-native';
 import { PreSessionScreen } from './PreSessionScreen';
 
 // ============================================================================
-// Example 1: Basic Usage
+// Example 1: Reading Session
 // ============================================================================
-export function BasicExample() {
-  const passage = {
-    title: 'My Trip to Barcelona',
-    difficulty: 'intermediate' as const,
-    wordCount: 250,
-    estimatedDuration: 180, // 3 minutes
-  };
-
+export function ReadingSessionExample() {
   return (
     <PreSessionScreen
-      passage={passage}
-      onStart={() => {
-        console.log('Starting reading session...');
-        // Navigate to teleprompter screen
-      }}
-      onBack={() => {
-        console.log('Going back...');
-        // Navigate back to reading selection
-      }}
+      title="My Trip to Barcelona"
+      subtitle="A story about discovering Spanish culture"
+      category="Travel"
+      difficulty="intermediate"
+      imageUrl="https://example.com/barcelona.jpg"
+      metaValue1="3 min"
+      metaLabel1="duration"
+      metaValue2="250"
+      metaLabel2="words"
+      expectations={[
+        { icon: '🎯', text: 'Read at your own pace with auto-scrolling' },
+        { icon: '🎤', text: 'Record your voice for pronunciation feedback' },
+        { icon: '⭐', text: 'Track your progress and earn points' },
+      ]}
+      primaryButtonText="Start Reading"
+      secondaryButtonText="Preview Vocabulary"
+      onPrimaryPress={() => console.log('Starting reading session...')}
+      onSecondaryPress={() => console.log('Showing vocabulary...')}
+      onBack={() => console.log('Going back...')}
     />
   );
 }
 
 // ============================================================================
-// Example 2: With Session Tracking
+// Example 2: Voice Call Session
 // ============================================================================
-export function SessionTrackingExample() {
-  const [currentSession] = useState(3); // 3rd session today
-
-  const passage = {
-    title: 'Cooking Italian Pasta',
-    difficulty: 'beginner' as const,
-    wordCount: 150,
-    estimatedDuration: 120, // 2 minutes
-  };
-
+export function VoiceCallExample() {
   return (
     <PreSessionScreen
-      passage={passage}
-      sessionNumber={currentSession}
-      onStart={() => {
-        console.log(`Starting session ${currentSession}...`);
-        // Track session start in analytics
-        // Navigate to teleprompter
-      }}
-      onBack={() => {
-        console.log('Cancelled session');
-      }}
+      title="Ordering at a Restaurant"
+      subtitle="Practice ordering food and drinks in Spanish"
+      category="Food"
+      difficulty="beginner"
+      icon="call-outline"
+      metaValue1="~5 min"
+      metaLabel1="duration"
+      expectations={[
+        { icon: '🎯', text: 'Practice beginner level conversation' },
+        { icon: '🗣️', text: 'Speak naturally with an AI tutor' },
+        { icon: '✨', text: 'Get real-time feedback on your responses' },
+      ]}
+      primaryButtonText="Start Call"
+      onPrimaryPress={() => console.log('Starting voice call...')}
+      onBack={() => console.log('Going back...')}
     />
   );
 }
 
 // ============================================================================
-// Example 3: Advanced Difficulty Passage
+// Example 3: Advanced Session with Custom Quote
 // ============================================================================
-export function AdvancedPassageExample() {
-  const passage = {
-    title: 'Climate Change and Global Economics',
-    difficulty: 'advanced' as const,
-    wordCount: 450,
-    estimatedDuration: 300, // 5 minutes
-  };
-
-  const handleStart = () => {
-    console.log('Starting advanced reading...');
-    // Pre-load passage data
-    // Start audio recording
-    // Navigate to teleprompter
-  };
-
+export function AdvancedExample() {
   return (
     <PreSessionScreen
-      passage={passage}
-      onStart={handleStart}
-      onBack={() => console.log('Back to passage selection')}
+      title="Business Negotiations"
+      subtitle="Handle complex business discussions with confidence"
+      category="Business"
+      difficulty="advanced"
+      icon="briefcase-outline"
+      metaValue1="10 min"
+      metaLabel1="duration"
+      metaValue2="Advanced"
+      metaLabel2="level"
+      quote="The limits of my language mean the limits of my world."
+      expectations={[
+        { icon: '💼', text: 'Master professional vocabulary' },
+        { icon: '🎯', text: 'Handle complex negotiations' },
+        { icon: '🏆', text: 'Build business communication skills' },
+      ]}
+      primaryButtonText="Begin Session"
+      onPrimaryPress={() => console.log('Starting advanced session...')}
+      onBack={() => console.log('Going back...')}
     />
   );
 }
 
 // ============================================================================
-// Example 4: Integration with Navigation (Expo Router)
+// Example 4: Without Image (Icon-based header)
 // ============================================================================
-export function NavigationExample() {
-  // Using Expo Router
-  // import { useRouter } from 'expo-router';
-  // const router = useRouter();
-
-  const passage = {
-    title: 'Daily Conversation Phrases',
-    difficulty: 'beginner' as const,
-    wordCount: 100,
-    estimatedDuration: 90,
-  };
-
+export function IconBasedExample() {
   return (
     <PreSessionScreen
-      passage={passage}
-      onStart={() => {
-        // router.push('/reading/session');
-        console.log('Navigate to /reading/session');
-      }}
-      onBack={() => {
-        // router.back();
-        console.log('Navigate back');
-      }}
+      title="Daily Conversation Practice"
+      subtitle="Practice common phrases for everyday situations"
+      category="Social"
+      difficulty="beginner"
+      icon="chatbubbles-outline"
+      metaValue1="5 min"
+      metaLabel1="duration"
+      primaryButtonText="Start Practice"
+      onPrimaryPress={() => console.log('Starting practice...')}
+      onBack={() => console.log('Going back...')}
     />
   );
 }
 
 // ============================================================================
-// Example 5: With State Management (Loading Passage)
+// Example 5: Minimal Configuration
 // ============================================================================
-export function StateManagementExample() {
-  const [passage, setPassage] = useState({
-    title: 'Loading...',
-    difficulty: 'beginner' as const,
-    wordCount: 0,
-    estimatedDuration: 0,
-  });
-
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Simulate loading passage data
-  React.useEffect(() => {
-    const loadPassage = async () => {
-      setIsLoading(true);
-      // Fetch passage from API or database
-      const data = await fetchPassage('passage-id-123');
-      setPassage(data);
-      setIsLoading(false);
-    };
-
-    loadPassage();
-  }, []);
-
-  if (isLoading) {
-    return <View />; // Show loading state
-  }
-
+export function MinimalExample() {
   return (
     <PreSessionScreen
-      passage={passage}
-      onStart={() => console.log('Start reading')}
-      onBack={() => console.log('Go back')}
-    />
-  );
-}
-
-// Mock API function
-async function fetchPassage(id: string) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        title: 'Understanding Technology',
-        difficulty: 'intermediate',
-        wordCount: 320,
-        estimatedDuration: 240,
-      });
-    }, 1000);
-  });
-}
-
-// ============================================================================
-// Example 6: Full Screen Integration with Complete Flow
-// ============================================================================
-export function FullFlowExample() {
-  const [showPreSession, setShowPreSession] = useState(true);
-  const [isReading, setIsReading] = useState(false);
-
-  const passage = {
-    title: 'Learning Spanish Through Music',
-    difficulty: 'intermediate' as const,
-    wordCount: 280,
-    estimatedDuration: 210,
-  };
-
-  const handleStartReading = () => {
-    setShowPreSession(false);
-    setIsReading(true);
-    // Initialize recording
-    // Start teleprompter
-    console.log('Teleprompter started');
-  };
-
-  const handleBackToSelection = () => {
-    setShowPreSession(false);
-    // Navigate back to passage selection screen
-    console.log('Back to passage selection');
-  };
-
-  if (showPreSession) {
-    return (
-      <PreSessionScreen
-        passage={passage}
-        sessionNumber={2}
-        onStart={handleStartReading}
-        onBack={handleBackToSelection}
-      />
-    );
-  }
-
-  if (isReading) {
-    return <View>{/* TeleprompterView component would go here */}</View>;
-  }
-
-  return <View>{/* Passage selection screen */}</View>;
-}
-
-// ============================================================================
-// Example 7: Different Difficulty Levels Showcase
-// ============================================================================
-export function DifficultyShowcase() {
-  const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>(
-    'beginner'
-  );
-
-  const passages = {
-    beginner: {
-      title: 'Greetings and Introductions',
-      difficulty: 'beginner' as const,
-      wordCount: 80,
-      estimatedDuration: 60,
-    },
-    intermediate: {
-      title: 'Planning a Vacation',
-      difficulty: 'intermediate' as const,
-      wordCount: 250,
-      estimatedDuration: 180,
-    },
-    advanced: {
-      title: 'Analyzing Global Markets',
-      difficulty: 'advanced' as const,
-      wordCount: 500,
-      estimatedDuration: 360,
-    },
-  };
-
-  return (
-    <PreSessionScreen
-      passage={passages[difficulty]}
-      onStart={() => console.log(`Starting ${difficulty} passage`)}
-      onBack={() => console.log('Back')}
-    />
-  );
-}
-
-// ============================================================================
-// Example 8: With Analytics Tracking
-// ============================================================================
-export function AnalyticsExample() {
-  const passage = {
-    title: 'Healthy Eating Habits',
-    difficulty: 'beginner' as const,
-    wordCount: 180,
-    estimatedDuration: 140,
-  };
-
-  const handleStart = () => {
-    // Track analytics
-    trackEvent('reading_session_started', {
-      passage_title: passage.title,
-      difficulty: passage.difficulty,
-      word_count: passage.wordCount,
-      estimated_duration: passage.estimatedDuration,
-      timestamp: new Date().toISOString(),
-    });
-
-    console.log('Analytics tracked, starting session');
-  };
-
-  const handleBack = () => {
-    trackEvent('reading_session_cancelled', {
-      passage_title: passage.title,
-      timestamp: new Date().toISOString(),
-    });
-
-    console.log('Session cancelled');
-  };
-
-  return <PreSessionScreen passage={passage} onStart={handleStart} onBack={handleBack} />;
-}
-
-// Mock analytics function
-function trackEvent(eventName: string, properties: Record<string, any>) {
-  console.log('Event tracked:', eventName, properties);
-}
-
-// ============================================================================
-// Example 9: TypeScript Type Safety Demonstration
-// ============================================================================
-export function TypeSafetyExample() {
-  // This demonstrates proper TypeScript usage
-
-  // ✅ CORRECT - All required fields provided
-  const validPassage = {
-    title: 'Test Passage',
-    difficulty: 'beginner' as const,
-    wordCount: 100,
-    estimatedDuration: 90,
-  };
-
-  // ❌ INCORRECT - Missing required fields (TypeScript will error)
-  // const invalidPassage = {
-  //   title: 'Test Passage',
-  //   // Missing difficulty, wordCount, estimatedDuration
-  // };
-
-  // ❌ INCORRECT - Invalid difficulty value (TypeScript will error)
-  // const wrongDifficulty = {
-  //   title: 'Test Passage',
-  //   difficulty: 'expert', // Not in union type
-  //   wordCount: 100,
-  //   estimatedDuration: 90,
-  // };
-
-  return (
-    <PreSessionScreen
-      passage={validPassage}
-      onStart={() => console.log('Start')}
-      onBack={() => console.log('Back')}
-      sessionNumber={1} // Optional prop
-    />
-  );
-}
-
-// ============================================================================
-// Example 10: Accessibility Considerations
-// ============================================================================
-export function AccessibleExample() {
-  const passage = {
-    title: 'Introduction to Art History',
-    difficulty: 'intermediate' as const,
-    wordCount: 220,
-    estimatedDuration: 165,
-  };
-
-  // Note: The component includes:
-  // - Large touch targets (start button)
-  // - High contrast text
-  // - Clear visual hierarchy
-  // - Haptic feedback for actions
-  // - Readable font sizes (follows design system)
-
-  return (
-    <PreSessionScreen
-      passage={passage}
-      onStart={() => {
-        // Announce to screen reader
-        console.log('Starting reading session');
-      }}
-      onBack={() => {
-        console.log('Returning to previous screen');
-      }}
+      title="Quick Practice Session"
+      primaryButtonText="Start"
+      onPrimaryPress={() => console.log('Starting...')}
+      onBack={() => console.log('Back...')}
     />
   );
 }

@@ -23,7 +23,8 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated'
 import Constants from 'expo-constants';
 
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
-import { VoiceCallScreen, PostCallFeedbackScreen, GoalPage } from '@/components/cards';
+import { VoiceCallScreen, PostCallFeedbackScreen } from '@/components/cards';
+import { PreSessionScreen } from '@/components/reading';
 import {
   getScenariosForLanguage,
   getScenariosByDifficulty,
@@ -203,10 +204,25 @@ export default function VoiceConversationScreen() {
 
   // Show goal page (pre-call briefing)
   if (flowState === 'goal' && selectedScenario) {
+    // Get expectations based on scenario
+    const expectations = [
+      { icon: '🎯', text: `Practice ${selectedScenario.difficulty} level conversation` },
+      { icon: '🗣️', text: 'Speak naturally with an AI tutor' },
+      { icon: '✨', text: 'Get real-time feedback on your responses' },
+    ];
+
     return (
-      <GoalPage
-        scenario={selectedScenario}
-        onStartCall={handleStartCall}
+      <PreSessionScreen
+        title={selectedScenario.title}
+        subtitle={selectedScenario.description}
+        category={selectedScenario.category}
+        difficulty={selectedScenario.difficulty as 'beginner' | 'intermediate' | 'advanced'}
+        icon="call-outline"
+        metaValue1="~5 min"
+        metaLabel1="duration"
+        expectations={expectations}
+        primaryButtonText="Start Call"
+        onPrimaryPress={handleStartCall}
         onBack={handleGoalBack}
       />
     );
