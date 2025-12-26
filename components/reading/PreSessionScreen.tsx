@@ -194,7 +194,7 @@ export const PreSessionScreen: React.FC<PreSessionScreenProps> = ({
             />
           </>
         ) : (
-          <View style={[styles.bannerIconContainer, { paddingTop: insets.top }]}>
+          <View style={[styles.bannerIconContainer, { paddingTop: insets.top + spacing.xl + 44 }]}>
             <View style={styles.iconCircle}>
               <Ionicons name={icon} size={48} color={colors.primary.DEFAULT} />
             </View>
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   bannerNoImage: {
-    height: SCREEN_HEIGHT * 0.32,
+    height: SCREEN_HEIGHT * 0.42,
     justifyContent: 'flex-end',
   },
   bannerImage: {
@@ -384,8 +384,7 @@ const styles = StyleSheet.create({
   bannerIconContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: spacing.xl,
+    justifyContent: 'flex-start',
   },
   iconCircle: {
     width: 100,
