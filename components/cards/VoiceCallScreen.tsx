@@ -637,7 +637,17 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
   // P2 Fix: Enhanced handleEndCall with detailed completion result
   const handleEndCall = useCallback(() => {
     const endReason = state === 'error' ? 'error' : 'user_ended';
-    const success = messages.length >= 2 && state !== 'error';
+    // Consider both messages AND duration for success (same logic as parent)
+    const hasEnoughContent = messages.length >= 2 || sessionTime >= 30;
+    const success = hasEnoughContent && state !== 'error';
+
+    console.log('[VoiceCallScreen] handleEndCall:', {
+      messageCount: messages.length,
+      sessionTime,
+      state,
+      hasEnoughContent,
+      success,
+    });
 
     haptics.medium();
     setShowResultAnimation(success ? 'success' : 'error');
