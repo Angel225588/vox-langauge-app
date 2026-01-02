@@ -62,6 +62,15 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Types
 // =============================================================================
 
+// P2 Fix: Enhanced completion result for proper error propagation
+export interface VoiceCallCompletionResult {
+  success: boolean;
+  messages: ConversationMessage[];
+  endReason: 'user_ended' | 'error' | 'timeout' | 'completed';
+  error?: Error;
+  duration: number;
+}
+
 export interface VoiceCallScreenProps {
   /** Scenario ID or custom scenario */
   scenarioId?: string;
@@ -72,8 +81,8 @@ export interface VoiceCallScreenProps {
   voice?: GeminiVoiceName;
   /** User's name */
   userName?: string;
-  /** Callback when call ends */
-  onComplete: (isSuccess: boolean, messages: ConversationMessage[]) => void;
+  /** Callback when call ends - P2 Fix: now includes detailed result */
+  onComplete: (result: VoiceCallCompletionResult) => void;
   /** Callback to go back */
   onBack?: () => void;
 }
@@ -625,19 +634,27 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
   }, [haptics, isRecording, isPlaying, stopRecording, stopPlayback]);
 
   // End call handler
+  // P2 Fix: Enhanced handleEndCall with detailed completion result
   const handleEndCall = useCallback(() => {
-    const success = messages.length >= 2; // 2+ messages = at least 1 exchange
-    haptics.medium();
+    const endReason = state === 'error' ? 'error' : 'user_ended';
+    const success = messages.length >= 2 && state !== 'error';
 
+    haptics.medium();
     setShowResultAnimation(success ? 'success' : 'error');
     if (success) haptics.success();
 
     setTimeout(() => {
       setShowResultAnimation(null);
       disconnect();
-      onComplete(success, messages);
+      onComplete({
+        success,
+        messages,
+        endReason,
+        error: error || undefined,
+        duration: sessionTime,
+      });
     }, 2000);
-  }, [messages, disconnect, onComplete, haptics]);
+  }, [messages, state, error, sessionTime, disconnect, onComplete, haptics]);
 
   // Format time
   const formatTime = (seconds: number): string => {

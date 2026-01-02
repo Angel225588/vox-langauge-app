@@ -83,10 +83,21 @@ export class AudioRecorder {
   private onAudioLevelCallback?: (level: number) => void;
   private onAudioDataCallback?: (data: ArrayBuffer) => void;
   private onErrorCallback?: (error: Error) => void;
+  private onSilenceDetectedCallback?: () => void;
 
   // Options
   private maxDuration: number;
   private streamingEnabled: boolean;
+
+  // P1 Fix: Voice Activity Detection (Silence Detection)
+  // Automatically stops recording when user stops speaking
+  private silenceStartTime: number | null = null;
+  private speechStartTime: number | null = null;
+
+  // Configurable thresholds for silence detection
+  private readonly SILENCE_THRESHOLD = 0.08; // Audio level below this = silence (0-1 normalized)
+  private readonly SILENCE_DURATION_MS = 1500; // 1.5s of silence = done speaking
+  private readonly MIN_SPEECH_DURATION_MS = 500; // Ignore very short recordings
 
   constructor(options: AudioRecordingOptions = {}) {
     this.maxDuration = options.maxDuration || 60000; // 60 seconds default
@@ -164,7 +175,11 @@ export class AudioRecorder {
       this.isRecording = true;
       console.log('[AudioRecorder] Recording started');
 
-      // Start metering for audio level visualization
+      // P1 Fix: Track speech timing for VAD
+      this.speechStartTime = Date.now();
+      this.silenceStartTime = null;
+
+      // Start metering for audio level visualization and VAD
       this.startMetering();
 
       // Set up max duration timeout
@@ -270,7 +285,7 @@ export class AudioRecorder {
   }
 
   /**
-   * Start audio level metering
+   * Start audio level metering (with P1 Voice Activity Detection)
    */
   private startMetering(): void {
     if (!this.recording) return;
@@ -289,6 +304,33 @@ export class AudioRecorder {
           // Typical range: -160 to 0 dB
           const normalizedLevel = Math.min(1, Math.max(0, (status.metering + 60) / 60));
           this.onAudioLevelCallback?.(normalizedLevel);
+
+          // P1 Fix: Voice Activity Detection (Silence Detection)
+          if (normalizedLevel < this.SILENCE_THRESHOLD) {
+            // Audio level is below threshold - silence detected
+            if (!this.silenceStartTime) {
+              this.silenceStartTime = Date.now();
+            } else {
+              const silenceDuration = Date.now() - this.silenceStartTime;
+              const speechDuration = this.speechStartTime
+                ? Date.now() - this.speechStartTime
+                : 0;
+
+              // Trigger callback if enough silence AND minimum speech recorded
+              if (
+                silenceDuration >= this.SILENCE_DURATION_MS &&
+                speechDuration >= this.MIN_SPEECH_DURATION_MS
+              ) {
+                console.log('[AudioRecorder] Silence detected, triggering callback');
+                this.onSilenceDetectedCallback?.();
+                // Reset to prevent repeated triggers
+                this.silenceStartTime = null;
+              }
+            }
+          } else {
+            // Sound detected, reset silence timer
+            this.silenceStartTime = null;
+          }
         }
       } catch (error) {
         // Stop metering if recorder no longer exists
@@ -333,6 +375,14 @@ export class AudioRecorder {
    */
   onError(callback: (error: Error) => void): void {
     this.onErrorCallback = callback;
+  }
+
+  /**
+   * P1 Fix: Register callback for silence detection (auto-stop recording)
+   * Called when user stops speaking (1.5s of silence after minimum 0.5s speech)
+   */
+  onSilenceDetected(callback: () => void): void {
+    this.onSilenceDetectedCallback = callback;
   }
 
   // =============================================================================

@@ -23,8 +23,8 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated'
 import Constants from 'expo-constants';
 
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
-import { VoiceCallScreen, PostCallFeedbackScreen } from '@/components/cards';
-import { PreSessionScreen } from '@/components/reading';
+import { VoiceCallScreen, PostCallFeedbackScreen, MissionBriefingScreen } from '@/components/cards';
+import { VoiceCallCompletionResult } from '@/components/cards/VoiceCallScreen';
 import {
   getScenariosForLanguage,
   getScenariosByDifficulty,
@@ -75,9 +75,13 @@ export default function VoiceConversationScreen() {
   const [flowState, setFlowState] = useState<FlowState>('selection');
   const [selectedAccent, setSelectedAccent] = useState<AccentType>(getDefaultAccent('es'));
   const [showAccentSelector, setShowAccentSelector] = useState(false);
+  // P2 Fix: Added hadError to track if conversation ended due to error
   const [lastConversation, setLastConversation] = useState<{
     messages: ConversationMessage[];
     duration: number;
+    scenarioTitle: string;
+    characterName?: string;
+    hadError?: boolean;
   } | null>(null);
 
   // Get available accents for the current language
@@ -117,32 +121,47 @@ export default function VoiceConversationScreen() {
     setSelectedScenario(null);
   };
 
-  const handleConversationComplete = (success: boolean, messages: ConversationMessage[]) => {
-    console.log('[VoiceConversation] handleConversationComplete called:', { success, messageCount: messages.length });
+  // P2 Fix: Updated to accept detailed completion result
+  const handleConversationComplete = (result: VoiceCallCompletionResult) => {
+    const { success, messages, endReason, duration } = result;
 
-    // Calculate approximate duration (rough estimate based on messages)
-    const estimatedDuration = messages.length > 0
-      ? Math.max(60, messages.length * 10) // At least 1 min, ~10s per message
-      : 0;
+    console.log('[VoiceConversation] handleConversationComplete called:', {
+      success,
+      endReason,
+      messageCount: messages.length,
+      duration,
+    });
 
-    // Show feedback screen for successful conversations with messages
-    if (success && messages.length >= 2) {
+    // Show feedback screen for conversations with enough content
+    // Even if there was an error, if they had 2+ messages, show feedback
+    if (messages.length >= 2 && selectedScenario) {
+      const character = selectedScenario.characterId
+        ? getCharacter(selectedScenario.characterId)
+        : null;
+
       setLastConversation({
         messages,
-        duration: estimatedDuration,
+        duration,
+        scenarioTitle: selectedScenario.title,
+        characterName: character?.name,
+        hadError: endReason === 'error',
       });
       setFlowState('feedback');
     } else {
-      // Just show alert for short/failed conversations
+      // Only show generic alert for very short conversations
       setFlowState('selection');
       setSelectedScenario(null);
-      Alert.alert(
-        'Conversation ended',
-        messages.length > 0
+
+      const alertTitle = endReason === 'error'
+        ? 'Connection Issue'
+        : 'Conversation ended';
+      const alertMessage = endReason === 'error'
+        ? 'There was a problem with the connection. Please try again.'
+        : messages.length > 0
           ? `You exchanged ${Math.floor(messages.length / 2)} turns.`
-          : 'Try again to practice more!',
-        [{ text: 'OK' }]
-      );
+          : 'Try again to practice more!';
+
+      Alert.alert(alertTitle, alertMessage, [{ text: 'OK' }]);
     }
   };
 
@@ -185,31 +204,115 @@ export default function VoiceConversationScreen() {
   };
 
   // Show feedback screen after conversation
-  if (flowState === 'feedback' && lastConversation && selectedScenario) {
-    const character = selectedScenario.characterId
-      ? getCharacter(selectedScenario.characterId)
-      : null;
-
+  // Use lastConversation data (not selectedScenario) since scenario may have been cleared
+  if (flowState === 'feedback' && lastConversation) {
     return (
       <PostCallFeedbackScreen
         duration={lastConversation.duration}
         messages={lastConversation.messages}
-        scenarioTitle={selectedScenario.title}
-        characterName={character?.name}
+        scenarioTitle={lastConversation.scenarioTitle}
+        characterName={lastConversation.characterName}
         onPracticeAgain={handlePracticeAgain}
         onDone={handleFeedbackDone}
       />
     );
   }
 
-  // Show goal page (pre-call briefing)
+  // Show goal page (pre-call briefing) - Mission Briefing style
   if (flowState === 'goal' && selectedScenario) {
-    // Get goals based on scenario - what the user should accomplish
-    const goals = [
-      { icon: '👋', text: 'Introduce yourself and greet the other person' },
-      { icon: '💬', text: 'Ask and answer basic questions naturally' },
-      { icon: '🎯', text: 'Complete the conversation without switching to English' },
-    ];
+    // Get character for the scenario
+    const character = selectedScenario.characterId
+      ? getCharacter(selectedScenario.characterId)
+      : null;
+
+    // Generate role descriptions based on scenario
+    const getRoles = () => {
+      const scenarioId = selectedScenario.id.toLowerCase();
+
+      if (scenarioId.includes('cafe') || scenarioId.includes('coffee')) {
+        return {
+          yourRole: 'A customer ordering coffee',
+          theirRole: 'A friendly barista',
+          characterEmoji: '☕',
+        };
+      } else if (scenarioId.includes('restaurant')) {
+        return {
+          yourRole: 'A customer ordering food',
+          theirRole: 'A restaurant waiter',
+          characterEmoji: '🍽️',
+        };
+      } else if (scenarioId.includes('direction')) {
+        return {
+          yourRole: 'A tourist asking for directions',
+          theirRole: 'A helpful local',
+          characterEmoji: '🗺️',
+        };
+      } else if (scenarioId.includes('shop')) {
+        return {
+          yourRole: 'A customer shopping',
+          theirRole: 'A store clerk',
+          characterEmoji: '🛍️',
+        };
+      } else if (scenarioId.includes('hotel')) {
+        return {
+          yourRole: 'A guest checking in',
+          theirRole: 'A hotel receptionist',
+          characterEmoji: '🏨',
+        };
+      } else if (scenarioId.includes('airport') || scenarioId.includes('travel')) {
+        return {
+          yourRole: 'A traveler at the airport',
+          theirRole: 'An airline staff member',
+          characterEmoji: '✈️',
+        };
+      } else {
+        return {
+          yourRole: 'Yourself, practicing conversation',
+          theirRole: character?.name || 'A native speaker',
+          characterEmoji: '💬',
+        };
+      }
+    };
+
+    // Generate mission objectives based on scenario
+    const getObjectives = () => {
+      const scenarioId = selectedScenario.id.toLowerCase();
+
+      if (scenarioId.includes('cafe') || scenarioId.includes('coffee')) {
+        return [
+          'Greet the barista and place your order',
+          'Ask about sizes or recommendations',
+          'Complete the payment and thank them',
+        ];
+      } else if (scenarioId.includes('restaurant')) {
+        return [
+          'Ask for a table and read the menu',
+          'Order food and drinks for yourself',
+          'Ask for the check when finished',
+        ];
+      } else if (scenarioId.includes('direction')) {
+        return [
+          'Ask how to get to your destination',
+          'Understand the directions given',
+          'Confirm and thank them for help',
+        ];
+      } else if (scenarioId.includes('shop')) {
+        return [
+          'Ask about product availability',
+          'Inquire about prices or sizes',
+          'Complete a purchase or thank them',
+        ];
+      } else {
+        return [
+          'Introduce yourself naturally',
+          'Ask and answer basic questions',
+          'Keep the conversation flowing in Spanish',
+        ];
+      }
+    };
+
+    const roles = getRoles();
+    const objectives = getObjectives();
 
     const handlePreviewVocabulary = () => {
       // TODO: Navigate to vocabulary preview page
@@ -217,19 +320,17 @@ export default function VoiceConversationScreen() {
     };
 
     return (
-      <PreSessionScreen
+      <MissionBriefingScreen
         title={selectedScenario.title}
-        subtitle={selectedScenario.description}
-        category={selectedScenario.category}
+        description={selectedScenario.description}
         difficulty={selectedScenario.difficulty as 'beginner' | 'intermediate' | 'advanced'}
-        icon="call-outline"
-        metaValue1="~5 min"
-        metaLabel1="duration"
-        expectations={goals}
-        primaryButtonText="Start Call"
-        secondaryButtonText="Preview Vocabulary"
-        onPrimaryPress={handleStartCall}
-        onSecondaryPress={handlePreviewVocabulary}
+        duration="~5 min"
+        yourRole={roles.yourRole}
+        theirRole={roles.theirRole}
+        characterEmoji={roles.characterEmoji}
+        objectives={objectives}
+        onStartCall={handleStartCall}
+        onPreviewVocabulary={handlePreviewVocabulary}
         onBack={handleGoalBack}
       />
     );
