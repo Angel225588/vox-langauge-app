@@ -132,9 +132,12 @@ export default function VoiceConversationScreen() {
       duration,
     });
 
-    // Show feedback screen for conversations with enough content
-    // Even if there was an error, if they had 2+ messages, show feedback
-    if (messages.length >= 2 && selectedScenario) {
+    // Show feedback screen if:
+    // 1. Has 2+ messages (proper conversation), OR
+    // 2. Duration >= 30 seconds (fallback - transcripts may not be captured but conversation happened)
+    const hasEnoughContent = messages.length >= 2 || duration >= 30;
+
+    if (hasEnoughContent && selectedScenario) {
       const character = selectedScenario.characterId
         ? getCharacter(selectedScenario.characterId)
         : null;
@@ -148,7 +151,7 @@ export default function VoiceConversationScreen() {
       });
       setFlowState('feedback');
     } else {
-      // Only show generic alert for very short conversations
+      // Only show generic alert for very short conversations (< 30s and no messages)
       setFlowState('selection');
       setSelectedScenario(null);
 
