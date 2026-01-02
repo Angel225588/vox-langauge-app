@@ -84,6 +84,7 @@ export class AudioRecorder {
   private onAudioDataCallback?: (data: ArrayBuffer) => void;
   private onErrorCallback?: (error: Error) => void;
   private onSilenceDetectedCallback?: () => void;
+  private onMaxDurationReachedCallback?: () => void;
 
   // Options
   private maxDuration: number;
@@ -182,12 +183,13 @@ export class AudioRecorder {
       // Start metering for audio level visualization and VAD
       this.startMetering();
 
-      // Set up max duration timeout
+      // Set up max duration timeout - use callback instead of direct stop
+      // This allows useVoiceConversation to handle the stop properly
       if (this.maxDuration > 0) {
         setTimeout(() => {
           if (this.isRecording) {
-            console.log('[AudioRecorder] Max duration reached, stopping');
-            this.stopRecording();
+            console.log('[AudioRecorder] Max duration reached, triggering callback');
+            this.onMaxDurationReachedCallback?.();
           }
         }, this.maxDuration);
       }
@@ -383,6 +385,15 @@ export class AudioRecorder {
    */
   onSilenceDetected(callback: () => void): void {
     this.onSilenceDetectedCallback = callback;
+  }
+
+  /**
+   * Register callback for max duration reached
+   * Called when recording reaches the configured max duration
+   * Important: Use this instead of relying on internal stop to properly handle audio
+   */
+  onMaxDurationReached(callback: () => void): void {
+    this.onMaxDurationReachedCallback = callback;
   }
 
   // =============================================================================

@@ -274,6 +274,14 @@ export function useVoiceConversation(
         }
       });
 
+      // Set up max duration callback - critical to send audio when duration limit hit
+      recorder.onMaxDurationReached(() => {
+        if (stateRef.current === 'recording') {
+          console.log('[VoiceConversation] Max duration reached, stopping and sending audio');
+          stopRecordingRef.current?.();
+        }
+      });
+
       // Initialize player
       const player = new AudioPlayer();
       playerRef.current = player;
@@ -403,30 +411,20 @@ export function useVoiceConversation(
       await playerRef.current?.stop();
 
       // Start recording
+      // Note: AudioRecorder handles max duration timeout via onMaxDurationReached callback
       await recorderRef.current?.startRecording();
       updateState('recording');
-
-      // Auto-stop after max duration
-      recordingTimeoutRef.current = setTimeout(() => {
-        stopRecording();
-      }, maxRecordingDuration);
 
     } catch (err) {
       handleError(err as Error);
     }
-  }, [isConnected, isRecording, maxRecordingDuration, updateState, handleError]);
+  }, [isConnected, isRecording, updateState, handleError]);
 
   // Stop recording and send to Gemini
   const stopRecording = useCallback(async () => {
     if (!isRecording || !recorderRef.current) return;
 
     try {
-      // Clear timeout
-      if (recordingTimeoutRef.current) {
-        clearTimeout(recordingTimeoutRef.current);
-        recordingTimeoutRef.current = null;
-      }
-
       // P0 Fix: Reset coordination flags for new turn
       turnCompletedRef.current = false;
       playbackPendingRef.current = false;
