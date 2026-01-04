@@ -698,17 +698,11 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
         </Animated.View>
       )}
 
-      {/* Minimal Header */}
+      {/* Minimal Header - Timer only, no close button */}
       <Animated.View
         entering={FadeInDown}
         style={[styles.header, { paddingTop: insets.top + spacing.sm }]}
       >
-        {onBack && (
-          <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Ionicons name="close" size={24} color={colors.text.secondary} />
-          </TouchableOpacity>
-        )}
-
         <View style={styles.headerCenter}>
           <View style={styles.timerPill}>
             <View style={[
@@ -718,8 +712,6 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
             <Text style={styles.timerText}>{formatTime(sessionTime)}</Text>
           </View>
         </View>
-
-        <View style={styles.headerRight} />
       </Animated.View>
 
       {/* Main Content - Particle Sphere */}
@@ -779,22 +771,6 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
           </View>
         )}
 
-        {/* Status Text */}
-        <Text style={styles.statusText}>
-          {state === 'connecting'
-            ? 'Connecting...'
-            : isPaused
-            ? 'Conversation paused'
-            : isMuted
-            ? 'Microphone muted'
-            : isRecording
-            ? 'Listening...'
-            : isPlaying
-            ? 'Speaking...'
-            : state === 'processing'
-            ? 'Thinking...'
-            : 'Ready to listen'}
-        </Text>
       </View>
     </View>
   );
@@ -810,27 +786,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
   },
 
-  // Header - Minimal
+  // Header - Centered timer only
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   headerCenter: {
-    flex: 1,
     alignItems: 'center',
-  },
-  headerRight: {
-    width: 40,
   },
   timerPill: {
     flexDirection: 'row',
@@ -891,12 +854,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'center',
     gap: spacing['2xl'],
-  },
-  statusText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
-    textAlign: 'center',
-    marginTop: spacing.lg,
   },
 
   // Overlay

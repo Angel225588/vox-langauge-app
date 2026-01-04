@@ -232,13 +232,17 @@ async function generateImage(
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey });
 
-    console.log('  Generating image...');
+    console.log('  Generating image with Gemini 3 Pro...');
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp', // Use available model with image generation
+      model: 'gemini-3-pro-image-preview', // Highest quality for photorealistic avatars
       contents: prompt,
       config: {
         responseModalities: ['IMAGE'],
+        imageConfig: {
+          aspectRatio: '3:4', // Portrait orientation
+          imageSize: '2K', // 2048px resolution
+        },
       },
     });
 
