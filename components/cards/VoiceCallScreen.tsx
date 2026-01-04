@@ -1,18 +1,18 @@
 /**
- * Voice Call Screen Component - Premium Redesign
+ * Voice Call Screen Component - Apple-Inspired Premium Design
  *
- * Minimalist, modern voice conversation interface featuring:
+ * Clean, minimalist voice conversation interface featuring:
  * - Animated particle sphere that responds to audio
- * - Glow buttons with visual hierarchy
- * - Always-listening mode (no push-to-talk)
- * - Clean, focused design
+ * - Apple Phone app-inspired control buttons (no glow, translucent backgrounds)
+ * - Always-listening mode with silence detection
+ * - Premium dark mode aesthetics
  *
  * @example
  * ```tsx
  * <VoiceCallScreen
  *   scenario={scenario}
  *   accent="es-latam"
- *   onComplete={(success, messages) => console.log('Done!')}
+ *   onComplete={(result) => console.log('Done!', result)}
  * />
  * ```
  */
@@ -280,140 +280,145 @@ const sphereStyles = StyleSheet.create({
 });
 
 // =============================================================================
-// Glow Button Component - Premium Control Buttons
+// Call Control Button - Apple-Inspired Premium Design
 // =============================================================================
 
-interface GlowButtonProps {
+interface CallButtonProps {
   icon: keyof typeof Ionicons.glyphMap;
-  size?: 'small' | 'medium' | 'large';
-  color: string;
-  glowColor: string;
+  variant: 'primary' | 'secondary' | 'destructive';
+  size?: 'medium' | 'large';
   onPress: () => void;
   disabled?: boolean;
   active?: boolean;
   label?: string;
 }
 
-const GlowButton: React.FC<GlowButtonProps> = ({
+const CallButton: React.FC<CallButtonProps> = ({
   icon,
+  variant,
   size = 'medium',
-  color,
-  glowColor,
   onPress,
   disabled = false,
   active = false,
   label,
 }) => {
   const scale = useSharedValue(1);
-  const glowOpacity = useSharedValue(active ? 0.5 : 0.2);
 
-  useEffect(() => {
-    if (active) {
-      glowOpacity.value = withRepeat(
-        withSequence(
-          withTiming(0.6, { duration: 500 }),
-          withTiming(0.3, { duration: 500 })
-        ),
-        -1,
-        true
-      );
-    } else {
-      glowOpacity.value = withTiming(0.2);
+  // Size configurations - Apple uses 62px for main, 54px for secondary
+  const sizeConfig = {
+    medium: { button: 56, icon: 24 },
+    large: { button: 68, icon: 28 },
+  };
+
+  // Variant configurations - Apple-style colors
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'primary':
+        return {
+          background: active ? colors.primary.DEFAULT : 'rgba(255, 255, 255, 0.12)',
+          iconColor: active ? '#FFFFFF' : colors.text.primary,
+        };
+      case 'secondary':
+        return {
+          background: active ? colors.warning.DEFAULT : 'rgba(255, 255, 255, 0.12)',
+          iconColor: active ? '#FFFFFF' : colors.text.primary,
+        };
+      case 'destructive':
+        return {
+          background: '#FF3B30', // Apple's red
+          iconColor: '#FFFFFF',
+        };
+      default:
+        return {
+          background: 'rgba(255, 255, 255, 0.12)',
+          iconColor: colors.text.primary,
+        };
     }
-  }, [active]);
+  };
+
+  const config = sizeConfig[size];
+  const variantStyles = getVariantStyles();
 
   const buttonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: glowOpacity.value,
-  }));
-
-  const sizeConfig = {
-    small: { button: 48, icon: 20, glow: 64 },
-    medium: { button: 56, icon: 24, glow: 72 },
-    large: { button: 72, icon: 32, glow: 96 },
-  };
-
-  const config = sizeConfig[size];
-
   const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 15 });
+    scale.value = withSpring(0.92, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15 });
+    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
   };
 
   return (
-    <View style={glowButtonStyles.wrapper}>
+    <View style={callButtonStyles.wrapper}>
       <Pressable
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
-        style={({ pressed }) => [
-          { opacity: disabled ? 0.4 : pressed ? 0.9 : 1 },
-        ]}
+        style={{ opacity: disabled ? 0.4 : 1 }}
+        accessibilityLabel={label}
+        accessibilityRole="button"
       >
         <Animated.View style={buttonStyle}>
-          {/* Glow */}
-          <Animated.View
-            style={[
-              glowButtonStyles.glow,
-              glowStyle,
-              {
-                width: config.glow,
-                height: config.glow,
-                borderRadius: config.glow / 2,
-                backgroundColor: glowColor,
-              },
-            ]}
-          />
-          {/* Button */}
           <View
             style={[
-              glowButtonStyles.button,
+              callButtonStyles.button,
               {
                 width: config.button,
                 height: config.button,
                 borderRadius: config.button / 2,
-                backgroundColor: color,
+                backgroundColor: variantStyles.background,
               },
             ]}
           >
-            <Ionicons name={icon} size={config.icon} color="#FFFFFF" />
+            {/* Subtle inner highlight for depth - Apple style */}
+            <View style={callButtonStyles.innerHighlight} />
+
+            <Ionicons
+              name={icon}
+              size={config.icon}
+              color={variantStyles.iconColor}
+            />
           </View>
         </Animated.View>
       </Pressable>
-      {label && <Text style={glowButtonStyles.label}>{label}</Text>}
+
+      {label && (
+        <Text style={callButtonStyles.label}>{label}</Text>
+      )}
     </View>
   );
 };
 
-const glowButtonStyles = StyleSheet.create({
+const callButtonStyles = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
-    gap: spacing.xs,
-  },
-  glow: {
-    position: 'absolute',
-    alignSelf: 'center',
+    gap: spacing.sm,
   },
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    overflow: 'hidden',
+    // No elevation, no shadows - clean flat design
+  },
+  innerHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopLeftRadius: 100,
+    borderTopRightRadius: 100,
   },
   label: {
     fontSize: typography.fontSize.xs,
-    color: colors.text.tertiary,
-    marginTop: spacing.xs,
+    fontWeight: '500',
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
 });
 
@@ -740,36 +745,33 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
           </View>
         )}
 
-        {/* Controls */}
+        {/* Controls - Apple-style clean buttons */}
         {state !== 'error' && (
           <View style={styles.controlsRow}>
-            {/* Mute Button */}
-            <GlowButton
+            {/* Mute Button - Primary variant */}
+            <CallButton
               icon={isMuted ? 'mic-off' : 'mic'}
+              variant="primary"
               size="medium"
-              color={isMuted ? colors.text.tertiary : colors.background.elevated}
-              glowColor={isMuted ? colors.text.tertiary : colors.primary.DEFAULT}
               onPress={handleToggleMute}
-              active={!isMuted && isRecording}
+              active={isMuted}
               label={isMuted ? 'Unmute' : 'Mute'}
             />
 
-            {/* End Call Button - Primary/Largest */}
-            <GlowButton
+            {/* End Call Button - Destructive/Hero */}
+            <CallButton
               icon="call"
+              variant="destructive"
               size="large"
-              color="#EF4444"
-              glowColor="#EF4444"
               onPress={handleEndCall}
               label="End"
             />
 
-            {/* Pause Button */}
-            <GlowButton
+            {/* Pause Button - Secondary variant */}
+            <CallButton
               icon={isPaused ? 'play' : 'pause'}
+              variant="secondary"
               size="medium"
-              color={isPaused ? colors.warning.DEFAULT : colors.background.elevated}
-              glowColor={isPaused ? colors.warning.DEFAULT : colors.primary.DEFAULT}
               onPress={handleTogglePause}
               active={isPaused}
               label={isPaused ? 'Resume' : 'Pause'}
