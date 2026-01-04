@@ -1,13 +1,16 @@
 /**
- * Post-Call Feedback Screen (Redesigned)
+ * Post-Call Feedback Screen - Premium Redesign
  *
- * Minimalistic celebration screen with skill scores after voice conversation.
+ * Comprehensive feedback screen with real metrics after voice practice.
+ * Serves as the template for all practice feedback screens.
  *
  * Features:
- * - Celebration animation (fireworks/success)
- * - 3 Skill Cards: Fluency, Confidence, Comprehension
- * - Points earned display
- * - Continue & Practice Again buttons
+ * - Animated score ring with color-coded performance
+ * - 4-stat grid with session metrics
+ * - Words to practice section with word bank integration
+ * - Highlights section showing best moments
+ * - Improvement tips section
+ * - Practice again / Continue actions
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -15,18 +18,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
   Dimensions,
 } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
   FadeInUp,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withDelay,
-  withTiming,
-  Easing,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,6 +32,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, borderRadius, spacing, typography } from '@/constants/designSystem';
 import { ConversationMessage } from '@/lib/voice';
 import { LottieSuccess } from '@/components/animations';
+import {
+  ScoreRing,
+  StatsGrid,
+  FeedbackSection,
+  WordsToPractice,
+  getScoreColor,
+} from '@/components/feedback';
+import type { StatItem, WordToPractice } from '@/components/feedback';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -54,243 +60,189 @@ export interface PostCallFeedbackScreenProps {
   onPracticeAgain: () => void;
   /** Callback when done */
   onDone: () => void;
+  /** Optional callback to practice weak words */
+  onPracticeWords?: (words: WordToPractice[]) => void;
 }
 
-interface SkillScores {
-  fluency: number;
-  confidence: number;
-  comprehension: number;
+interface AnalysisResult {
+  overallScore: number;
+  stats: StatItem[];
+  wordsToPractice: WordToPractice[];
+  highlights: string[];
+  tips: string[];
 }
 
 // =============================================================================
-// Skill Score Calculator
+// Analysis Engine
 // =============================================================================
 
-function calculateSkillScores(
+function analyzeConversation(
   messages: ConversationMessage[],
   duration: number
-): SkillScores {
+): AnalysisResult {
   const userMessages = messages.filter((m) => m.role === 'user');
+  const aiMessages = messages.filter((m) => m.role === 'assistant');
 
+  // Default result for empty conversations
   if (userMessages.length === 0) {
-    return { fluency: 50, confidence: 50, comprehension: 50 };
+    return {
+      overallScore: 50,
+      stats: [
+        { icon: '🎯', value: '50', label: 'Accuracy', color: colors.warning.DEFAULT },
+        { icon: '💬', value: '0', label: 'Turns' },
+        { icon: '⏱️', value: formatDuration(duration), label: 'Duration' },
+        { icon: '📝', value: '0', label: 'Words' },
+      ],
+      wordsToPractice: [],
+      highlights: ['Start speaking to get feedback!'],
+      tips: ['Try responding to the AI to practice your conversation skills.'],
+    };
   }
 
-  // FLUENCY: Based on word count, turn count, conversation pace
+  // Calculate metrics
   const totalWords = userMessages.reduce(
-    (sum, m) => sum + m.content.split(/\s+/).filter(w => w.length > 0).length,
+    (sum, m) => sum + m.content.split(/\s+/).filter((w) => w.length > 0).length,
     0
   );
   const avgWordsPerTurn = totalWords / userMessages.length;
-  const turnScore = Math.min(userMessages.length, 10) / 10; // Up to 10 turns = full score
-  const wordScore = Math.min(avgWordsPerTurn, 15) / 15; // Up to 15 words/turn = full score
-  const fluency = Math.round((wordScore * 50 + turnScore * 50));
+  const exchanges = Math.min(userMessages.length, aiMessages.length);
 
-  // CONFIDENCE: Based on response consistency, lack of hesitation markers
-  const hesitantResponses = userMessages.filter((m) =>
-    /\b(um|uh|hmm|err|i don't know|no sé)\b/i.test(m.content) ||
-    m.content.length < 10 ||
-    m.content.endsWith('?') && m.content.split(' ').length < 4
+  // Fluency score (word count and turn length)
+  const wordScore = Math.min(avgWordsPerTurn / 12, 1) * 40;
+  const turnScore = Math.min(exchanges / 8, 1) * 30;
+
+  // Confidence score (lack of hesitation markers)
+  const hesitantCount = userMessages.filter((m) =>
+    /\b(um|uh|hmm|err|i don't know|no sé|este|pues)\b/i.test(m.content)
   ).length;
-  const hesitationRatio = hesitantResponses / userMessages.length;
-  const confidence = Math.round(Math.max(30, 100 - hesitationRatio * 60));
+  const hesitationPenalty = (hesitantCount / userMessages.length) * 20;
+  const confidenceBonus = 30 - hesitationPenalty;
 
-  // COMPREHENSION: Based on turn count and response relevance (simplified)
-  // More turns = better comprehension (kept conversation going)
-  const turnBonus = Math.min(userMessages.length * 8, 40);
-  const baseComprehension = 60;
-  const comprehension = Math.round(Math.min(100, baseComprehension + turnBonus));
+  // Overall score
+  const overallScore = Math.round(
+    Math.min(100, Math.max(0, wordScore + turnScore + confidenceBonus))
+  );
+
+  // Generate words to practice (simulated - in production this comes from speech analysis)
+  const wordsToPractice = generateWordsToPractice(userMessages);
+
+  // Generate highlights
+  const highlights = generateHighlights(userMessages, exchanges);
+
+  // Generate tips
+  const tips = generateTips(overallScore, avgWordsPerTurn, hesitantCount, exchanges);
 
   return {
-    fluency: Math.min(100, Math.max(0, fluency)),
-    confidence: Math.min(100, Math.max(0, confidence)),
-    comprehension: Math.min(100, Math.max(0, comprehension)),
+    overallScore,
+    stats: [
+      {
+        icon: '🎯',
+        value: overallScore.toString(),
+        label: 'Accuracy',
+        color: getScoreColor(overallScore),
+      },
+      { icon: '💬', value: exchanges.toString(), label: 'Turns' },
+      { icon: '⏱️', value: formatDuration(duration), label: 'Duration' },
+      { icon: '📝', value: totalWords.toString(), label: 'Words' },
+    ],
+    wordsToPractice,
+    highlights,
+    tips,
   };
 }
 
-// =============================================================================
-// Skill Card Component
-// =============================================================================
-
-interface SkillCardProps {
-  icon: string;
-  label: string;
-  score: number;
-  color: string;
-  delay: number;
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-const SkillCard: React.FC<SkillCardProps> = ({
-  icon,
-  label,
-  score,
-  color,
-  delay,
-}) => {
-  const progress = useSharedValue(0);
-  const scale = useSharedValue(0.8);
-  const opacity = useSharedValue(0);
+function generateWordsToPractice(messages: ConversationMessage[]): WordToPractice[] {
+  // In production, this would come from real speech recognition analysis
+  // For now, we simulate by detecting common difficult words
+  const difficultPatterns = [
+    { pattern: /restaurante/gi, word: 'restaurante', issue: 'Try softer R sound', phonetic: 'res-tau-RAN-te' },
+    { pattern: /gracias/gi, word: 'gracias', issue: 'Emphasize the S', phonetic: 'GRA-sias' },
+    { pattern: /por favor/gi, word: 'por favor', issue: 'Connect the words smoothly', phonetic: 'por-fa-VOR' },
+    { pattern: /buenos días/gi, word: 'buenos días', issue: 'Watch the accent on días', phonetic: 'BWE-nos DEE-as' },
+    { pattern: /¿cómo estás\?/gi, word: 'cómo estás', issue: 'Rising intonation on estás', phonetic: 'KO-mo es-TAS' },
+  ];
 
-  useEffect(() => {
-    // Entry animation
-    scale.value = withDelay(delay, withSpring(1, { damping: 15, stiffness: 150 }));
-    opacity.value = withDelay(delay, withTiming(1, { duration: 400 }));
-    // Progress bar fill animation
-    progress.value = withDelay(
-      delay + 200,
-      withTiming(score / 100, { duration: 1200, easing: Easing.out(Easing.cubic) })
-    );
-  }, [score, delay]);
+  const allText = messages.map((m) => m.content).join(' ');
+  const foundWords: WordToPractice[] = [];
 
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+  difficultPatterns.forEach((item) => {
+    if (item.pattern.test(allText)) {
+      foundWords.push({
+        word: item.word,
+        issue: item.issue,
+        severity: Math.random() > 0.5 ? 'moderate' : 'minor',
+        phonetic: item.phonetic,
+      });
+    }
+  });
 
-  const progressStyle = useAnimatedStyle(() => ({
-    width: `${progress.value * 100}%`,
-  }));
-
-  const getScoreColor = (s: number) => {
-    if (s >= 70) return colors.success.DEFAULT;
-    if (s >= 50) return colors.warning.DEFAULT;
-    return colors.error.DEFAULT;
-  };
-
-  return (
-    <Animated.View style={[skillStyles.card, cardStyle]}>
-      <View style={skillStyles.cardHeader}>
-        <View style={skillStyles.labelRow}>
-          <Text style={skillStyles.icon}>{icon}</Text>
-          <Text style={skillStyles.label}>{label}</Text>
-        </View>
-        <Text style={[skillStyles.score, { color: getScoreColor(score) }]}>
-          {score}
-        </Text>
-      </View>
-      <View style={skillStyles.progressTrack}>
-        <Animated.View
-          style={[
-            skillStyles.progressFill,
-            { backgroundColor: color },
-            progressStyle,
-          ]}
-        />
-      </View>
-    </Animated.View>
-  );
-};
-
-const skillStyles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  icon: {
-    fontSize: 24,
-  },
-  label: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.primary,
-  },
-  score: {
-    fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
-  },
-  progressTrack: {
-    height: 8,
-    backgroundColor: colors.background.elevated,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-});
-
-// =============================================================================
-// Points Display Component
-// =============================================================================
-
-interface PointsDisplayProps {
-  total: number;
-  delay: number;
+  // Limit to 4 words max
+  return foundWords.slice(0, 4);
 }
 
-const PointsDisplay: React.FC<PointsDisplayProps> = ({ total, delay }) => {
-  const scale = useSharedValue(0);
-  const [displayedPoints, setDisplayedPoints] = useState(0);
+function generateHighlights(
+  messages: ConversationMessage[],
+  exchanges: number
+): string[] {
+  const highlights: string[] = [];
 
-  useEffect(() => {
-    scale.value = withDelay(delay, withSpring(1, { damping: 12, stiffness: 100 }));
+  if (exchanges >= 5) {
+    highlights.push('Great conversation flow! You kept the dialogue going naturally.');
+  }
 
-    // Count up animation
-    const timeout = setTimeout(() => {
-      const duration = 1200;
-      const steps = 30;
-      const increment = total / steps;
-      let current = 0;
-      const interval = setInterval(() => {
-        current += increment;
-        if (current >= total) {
-          setDisplayedPoints(total);
-          clearInterval(interval);
-        } else {
-          setDisplayedPoints(Math.floor(current));
-        }
-      }, duration / steps);
-    }, delay);
+  const longResponses = messages.filter((m) => m.content.split(' ').length > 10);
+  if (longResponses.length > 0) {
+    highlights.push('Excellent use of longer, more detailed responses.');
+  }
 
-    return () => clearTimeout(timeout);
-  }, [total, delay]);
+  const questions = messages.filter((m) => m.content.includes('?'));
+  if (questions.length > 0) {
+    highlights.push('Good job asking questions to keep the conversation interactive!');
+  }
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: scale.value,
-  }));
+  if (highlights.length === 0) {
+    highlights.push('You completed the practice session - keep it up!');
+  }
 
-  return (
-    <Animated.View style={[pointsStyles.container, animatedStyle]}>
-      <Ionicons name="star" size={28} color={colors.warning.DEFAULT} />
-      <Text style={pointsStyles.points}>+{displayedPoints}</Text>
-      <Text style={pointsStyles.label}>Points Earned</Text>
-    </Animated.View>
-  );
-};
+  return highlights.slice(0, 3);
+}
 
-const pointsStyles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-    gap: spacing.xs,
-  },
-  points: {
-    fontSize: 48,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-  },
-  label: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-});
+function generateTips(
+  score: number,
+  avgWords: number,
+  hesitations: number,
+  exchanges: number
+): string[] {
+  const tips: string[] = [];
+
+  if (avgWords < 8) {
+    tips.push('Try giving longer responses to practice more vocabulary.');
+  }
+
+  if (hesitations > 2) {
+    tips.push('Practice common phrases to reduce hesitation words like "um" or "uh".');
+  }
+
+  if (exchanges < 4) {
+    tips.push('Aim for at least 4-5 exchanges to get meaningful practice.');
+  }
+
+  if (score < 60) {
+    tips.push('Focus on speaking clearly, even if you speak more slowly.');
+  }
+
+  if (tips.length === 0) {
+    tips.push('Keep practicing to maintain your excellent progress!');
+  }
+
+  return tips.slice(0, 3);
+}
 
 // =============================================================================
 // Main Component
@@ -303,98 +255,149 @@ export const PostCallFeedbackScreen: React.FC<PostCallFeedbackScreenProps> = ({
   characterName,
   onPracticeAgain,
   onDone,
+  onPracticeWords,
 }) => {
   const insets = useSafeAreaInsets();
   const [showSuccess, setShowSuccess] = useState(true);
+  const [expandedSections, setExpandedSections] = useState({
+    words: true,
+    highlights: true,
+    tips: true,
+  });
 
-  // Calculate skill scores
-  const skills = useMemo(() => {
-    return calculateSkillScores(messages, duration);
+  // Analyze conversation
+  const analysis = useMemo(() => {
+    return analyzeConversation(messages, duration);
   }, [messages, duration]);
-
-  // Calculate total points
-  const points = useMemo(() => {
-    const avgScore = (skills.fluency + skills.confidence + skills.comprehension) / 3;
-    const base = Math.round(avgScore * 1.2); // 0-120 base
-    const bonus = messages.length >= 6 ? 25 : 0; // Completion bonus
-    return base + bonus;
-  }, [skills, messages.length]);
 
   // Hide celebration after delay
   useEffect(() => {
-    const timer = setTimeout(() => setShowSuccess(false), 2000);
+    const timer = setTimeout(() => setShowSuccess(false), 2200);
     return () => clearTimeout(timer);
   }, []);
 
-  // Skill card configurations
-  const SKILL_CARDS = [
-    {
-      icon: '🗣️',
-      label: 'Fluency',
-      score: skills.fluency,
-      color: '#FF6B6B',
-      delay: 2200,
-    },
-    {
-      icon: '💪',
-      label: 'Confidence',
-      score: skills.confidence,
-      color: '#8B5CF6',
-      delay: 2400,
-    },
-    {
-      icon: '🧠',
-      label: 'Comprehension',
-      score: skills.comprehension,
-      color: '#06D6A0',
-      delay: 2600,
-    },
-  ];
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  const handleAddToWordBank = (words: WordToPractice[]) => {
+    if (onPracticeWords) {
+      onPracticeWords(words);
+    }
+    // TODO: Actually add to word bank via database
+    console.log('[Feedback] Adding to word bank:', words);
+  };
 
   return (
     <View style={styles.container}>
-      {/* Success Animation */}
+      {/* Success Animation Overlay */}
       {showSuccess && (
         <Animated.View entering={FadeIn} style={styles.successOverlay}>
-          <LottieSuccess message="Great job!" />
+          <LottieSuccess message="Great Practice!" />
         </Animated.View>
       )}
 
-      {/* Content */}
-      <View style={[styles.content, { paddingTop: insets.top + spacing.xl }]}>
-        {/* Header */}
+      {/* Scrollable Content */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + 140 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Section */}
         <Animated.View
-          entering={FadeInDown.delay(2000).duration(400)}
-          style={styles.header}
+          entering={FadeInDown.delay(2000).duration(500)}
+          style={styles.heroSection}
         >
-          <Text style={styles.headerTitle}>Conversation Complete!</Text>
-          <Text style={styles.headerSubtitle}>
-            {characterName ? `with ${characterName}` : scenarioTitle}
+          <ScoreRing
+            score={analysis.overallScore}
+            size={150}
+            strokeWidth={12}
+            delay={2200}
+          />
+
+          <Text style={styles.scenarioTitle}>{scenarioTitle}</Text>
+          <Text style={styles.scenarioMeta}>
+            {characterName ? `with ${characterName} • ` : ''}
+            {formatDuration(duration)}
           </Text>
         </Animated.View>
 
-        {/* Skill Cards */}
-        <View style={styles.skillCardsContainer}>
-          {SKILL_CARDS.map((skill) => (
-            <SkillCard
-              key={skill.label}
-              icon={skill.icon}
-              label={skill.label}
-              score={skill.score}
-              color={skill.color}
-              delay={skill.delay}
-            />
-          ))}
-        </View>
+        {/* Stats Grid */}
+        <Animated.View
+          entering={FadeInUp.delay(2400).duration(400)}
+          style={styles.statsSection}
+        >
+          <StatsGrid stats={analysis.stats} delay={2600} stagger={80} />
+        </Animated.View>
 
-        {/* Points */}
-        <PointsDisplay total={points} delay={2800} />
-      </View>
+        {/* Words to Practice Section */}
+        {analysis.wordsToPractice.length > 0 && (
+          <Animated.View entering={FadeInUp.delay(2800).duration(400)}>
+            <FeedbackSection
+              icon="🎯"
+              title="Words to Practice"
+              badge={analysis.wordsToPractice.length}
+              badgeColor={colors.warning.DEFAULT}
+              expanded={expandedSections.words}
+              onToggle={() => toggleSection('words')}
+            >
+              <WordsToPractice
+                words={analysis.wordsToPractice}
+                onAddToWordBank={handleAddToWordBank}
+              />
+            </FeedbackSection>
+          </Animated.View>
+        )}
 
-      {/* Bottom Actions */}
+        {/* Highlights Section */}
+        <Animated.View entering={FadeInUp.delay(3000).duration(400)}>
+          <FeedbackSection
+            icon="⭐"
+            title="Highlights"
+            expanded={expandedSections.highlights}
+            onToggle={() => toggleSection('highlights')}
+          >
+            <View style={styles.listSection}>
+              {analysis.highlights.map((highlight, index) => (
+                <View key={index} style={styles.listItem}>
+                  <View style={styles.bulletPoint} />
+                  <Text style={styles.listItemText}>{highlight}</Text>
+                </View>
+              ))}
+            </View>
+          </FeedbackSection>
+        </Animated.View>
+
+        {/* Tips Section */}
+        <Animated.View entering={FadeInUp.delay(3200).duration(400)}>
+          <FeedbackSection
+            icon="💡"
+            title="Tips for Next Time"
+            expanded={expandedSections.tips}
+            onToggle={() => toggleSection('tips')}
+          >
+            <View style={styles.listSection}>
+              {analysis.tips.map((tip, index) => (
+                <View key={index} style={styles.listItem}>
+                  <View style={[styles.bulletPoint, styles.tipBullet]} />
+                  <Text style={styles.listItemText}>{tip}</Text>
+                </View>
+              ))}
+            </View>
+          </FeedbackSection>
+        </Animated.View>
+      </ScrollView>
+
+      {/* Bottom Actions - Fixed */}
       <Animated.View
-        entering={FadeInUp.delay(3200).duration(400)}
-        style={[styles.bottomActions, { paddingBottom: insets.bottom + spacing.lg }]}
+        entering={FadeInUp.delay(3400).duration(400)}
+        style={[styles.bottomActions, { paddingBottom: insets.bottom + spacing.md }]}
       >
         <TouchableOpacity
           style={styles.secondaryButton}
@@ -417,7 +420,7 @@ export const PostCallFeedbackScreen: React.FC<PostCallFeedbackScreenProps> = ({
             style={styles.primaryButtonGradient}
           >
             <Text style={styles.primaryButtonText}>Continue</Text>
-            <Text style={styles.primaryButtonArrow}>→</Text>
+            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
@@ -436,34 +439,78 @@ const styles = StyleSheet.create({
   },
   successOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10, 14, 26, 0.9)',
+    backgroundColor: 'rgba(10, 14, 26, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: spacing.lg,
   },
-  header: {
+
+  // Hero Section
+  heroSection: {
     alignItems: 'center',
     marginBottom: spacing.xl,
   },
-  headerTitle: {
-    fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
+  scenarioTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: '700',
     color: colors.text.primary,
-    marginBottom: spacing.xs,
+    marginTop: spacing.lg,
+    textAlign: 'center',
   },
-  headerSubtitle: {
-    fontSize: typography.fontSize.base,
+  scenarioMeta: {
+    fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
+    marginTop: spacing.xs,
   },
-  skillCardsContainer: {
-    marginBottom: spacing.md,
+
+  // Stats Section
+  statsSection: {
+    marginBottom: spacing.lg,
   },
+
+  // List Sections (Highlights & Tips)
+  listSection: {
+    gap: spacing.sm,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  bulletPoint: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.secondary.DEFAULT,
+    marginTop: 6,
+  },
+  tipBullet: {
+    backgroundColor: colors.primary.DEFAULT,
+  },
+  listItemText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    lineHeight: 20,
+  },
+
+  // Bottom Actions
   bottomActions: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    backgroundColor: colors.background.primary,
+    borderTopWidth: 1,
+    borderTopColor: colors.background.card,
     gap: spacing.sm,
   },
   secondaryButton: {
@@ -474,39 +521,29 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: colors.border?.light || 'rgba(255,255,255,0.1)',
     backgroundColor: 'transparent',
   },
   secondaryButtonText: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.medium,
+    fontWeight: '500',
     color: colors.text.secondary,
   },
   primaryButton: {
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
-    shadowColor: colors.glow.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
   },
   primaryButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
     gap: spacing.sm,
   },
   primaryButtonText: {
     fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-  },
-  primaryButtonArrow: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 
