@@ -260,6 +260,7 @@ export const PostCallFeedbackScreen: React.FC<PostCallFeedbackScreenProps> = ({
   const insets = useSafeAreaInsets();
   const [showSuccess, setShowSuccess] = useState(true);
   const [expandedSections, setExpandedSections] = useState({
+    transcript: false, // Collapsed by default for cleaner initial view
     words: true,
     highlights: true,
     tips: true,
@@ -335,6 +336,46 @@ export const PostCallFeedbackScreen: React.FC<PostCallFeedbackScreenProps> = ({
         >
           <StatsGrid stats={analysis.stats} delay={2600} stagger={80} />
         </Animated.View>
+
+        {/* Full Transcript Section - Detailed View */}
+        {messages.length > 0 && (
+          <Animated.View entering={FadeInUp.delay(2600).duration(400)}>
+            <FeedbackSection
+              icon="📜"
+              title="Full Transcript"
+              badge={messages.length}
+              badgeColor={colors.primary.DEFAULT}
+              expanded={expandedSections.transcript}
+              onToggle={() => toggleSection('transcript')}
+            >
+              <View style={styles.transcriptContainer}>
+                {messages.map((message, index) => (
+                  <View
+                    key={message.id || index}
+                    style={[
+                      styles.messageBubble,
+                      message.role === 'user'
+                        ? styles.userMessage
+                        : styles.aiMessage,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.messageRole,
+                        message.role === 'user'
+                          ? styles.userRole
+                          : styles.aiRole,
+                      ]}
+                    >
+                      {message.role === 'user' ? '👤 You' : '🤖 AI'}
+                    </Text>
+                    <Text style={styles.messageContent}>{message.content}</Text>
+                  </View>
+                ))}
+              </View>
+            </FeedbackSection>
+          </Animated.View>
+        )}
 
         {/* Words to Practice Section */}
         {analysis.wordsToPractice.length > 0 && (
@@ -472,6 +513,44 @@ const styles = StyleSheet.create({
   // Stats Section
   statsSection: {
     marginBottom: spacing.lg,
+  },
+
+  // Transcript Section
+  transcriptContainer: {
+    gap: spacing.md,
+  },
+  messageBubble: {
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    maxWidth: '95%',
+  },
+  userMessage: {
+    backgroundColor: colors.primary.DEFAULT + '20',
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 4,
+  },
+  aiMessage: {
+    backgroundColor: colors.background.elevated,
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 4,
+  },
+  messageRole: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  userRole: {
+    color: colors.primary.DEFAULT,
+  },
+  aiRole: {
+    color: colors.text.tertiary,
+  },
+  messageContent: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    lineHeight: 20,
   },
 
   // List Sections (Highlights & Tips)
