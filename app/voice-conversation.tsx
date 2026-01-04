@@ -3,9 +3,15 @@
  *
  * Select a scenario and start a real-time voice conversation
  * with an AI tutor. Premium, minimalist design.
+ *
+ * Now powered by ElevenLabs Conversational AI for:
+ * - Automatic voice activity detection (no manual mute)
+ * - Natural conversation flow
+ * - Better voice quality
+ * - Full transcript saving
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,14 +23,15 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
-import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
-import { VoiceCallScreen, PostCallFeedbackScreen, MissionBriefingScreen } from '@/components/cards';
-import { VoiceCallCompletionResult } from '@/components/cards/VoiceCallScreen';
+import { PostCallFeedbackScreen, MissionBriefingScreen } from '@/components/cards';
+import VoiceCallScreenElevenLabs, {
+  VoiceCallCompletionResult,
+} from '@/components/cards/VoiceCallScreenElevenLabs';
 import {
   getScenariosForLanguage,
   getScenariosByDifficulty,
@@ -35,6 +42,7 @@ import {
   getAccentsForLanguage,
   getDefaultAccent,
 } from '@/lib/voice';
+import type { ElevenLabsMessage } from '@/lib/voice/elevenLabsTypes';
 
 type DifficultyFilter = 'all' | 'beginner' | 'intermediate' | 'advanced';
 
@@ -68,6 +76,20 @@ const getScenarioIcon = (scenario: VoiceScenario): keyof typeof Ionicons.glyphMa
 // Flow states: selection → goal → call → feedback
 type FlowState = 'selection' | 'goal' | 'call' | 'feedback';
 
+// Storage key for saved transcripts
+const TRANSCRIPTS_STORAGE_KEY = 'vox_conversation_transcripts';
+
+// Saved transcript structure
+interface SavedTranscript {
+  id: string;
+  scenarioId: string;
+  scenarioTitle: string;
+  characterName?: string;
+  messages: ElevenLabsMessage[];
+  duration: number;
+  timestamp: number;
+}
+
 export default function VoiceConversationScreen() {
   const router = useRouter();
   const [selectedScenario, setSelectedScenario] = useState<VoiceScenario | null>(null);
@@ -75,13 +97,14 @@ export default function VoiceConversationScreen() {
   const [flowState, setFlowState] = useState<FlowState>('selection');
   const [selectedAccent, setSelectedAccent] = useState<AccentType>(getDefaultAccent('es'));
   const [showAccentSelector, setShowAccentSelector] = useState(false);
-  // P2 Fix: Added hadError to track if conversation ended due to error
+  // Extended to include full transcript for saving
   const [lastConversation, setLastConversation] = useState<{
     messages: ConversationMessage[];
     duration: number;
     scenarioTitle: string;
     characterName?: string;
     hadError?: boolean;
+    transcript?: ElevenLabsMessage[];
   } | null>(null);
 
   // Get available accents for the current language
@@ -93,17 +116,33 @@ export default function VoiceConversationScreen() {
     ? allScenarios
     : getScenariosByDifficulty('es', difficultyFilter);
 
-  // Check if API key is configured
-  const hasApiKey = !!(
-    Constants.expoConfig?.extra?.geminiApiKey ||
-    process.env.EXPO_PUBLIC_GEMINI_API_KEY
-  );
+  // Check if ElevenLabs is configured
+  const hasApiKey = !!(process.env.EXPO_PUBLIC_ELEVENLABS_AGENT_ID);
+
+  // Save transcript to AsyncStorage
+  const saveTranscript = useCallback(async (transcript: SavedTranscript) => {
+    try {
+      const existingData = await AsyncStorage.getItem(TRANSCRIPTS_STORAGE_KEY);
+      const transcripts: SavedTranscript[] = existingData ? JSON.parse(existingData) : [];
+
+      // Add new transcript at the beginning
+      transcripts.unshift(transcript);
+
+      // Keep only the last 50 transcripts
+      const trimmedTranscripts = transcripts.slice(0, 50);
+
+      await AsyncStorage.setItem(TRANSCRIPTS_STORAGE_KEY, JSON.stringify(trimmedTranscripts));
+      console.log('[VoiceConversation] Transcript saved:', transcript.id);
+    } catch (error) {
+      console.error('[VoiceConversation] Failed to save transcript:', error);
+    }
+  }, []);
 
   const handleScenarioSelect = (scenario: VoiceScenario) => {
     if (!hasApiKey) {
       Alert.alert(
-        'API Key Required',
-        'Please add your Gemini API key to continue.\n\nAdd EXPO_PUBLIC_GEMINI_API_KEY to your .env file.',
+        'ElevenLabs Not Configured',
+        'Please add your ElevenLabs Agent ID to continue.\n\nAdd EXPO_PUBLIC_ELEVENLABS_AGENT_ID to your .env file.',
         [{ text: 'OK' }]
       );
       return;
@@ -121,15 +160,16 @@ export default function VoiceConversationScreen() {
     setSelectedScenario(null);
   };
 
-  // P2 Fix: Updated to accept detailed completion result
-  const handleConversationComplete = (result: VoiceCallCompletionResult) => {
-    const { success, messages, endReason, duration } = result;
+  // Handle conversation completion - save transcript and show feedback
+  const handleConversationComplete = async (result: VoiceCallCompletionResult) => {
+    const { success, messages, endReason, duration, transcript } = result;
 
     console.log('[VoiceConversation] handleConversationComplete called:', {
       success,
       endReason,
       messageCount: messages.length,
       duration,
+      hasTranscript: !!transcript,
     });
 
     // Show feedback screen if:
@@ -142,12 +182,27 @@ export default function VoiceConversationScreen() {
         ? getCharacter(selectedScenario.characterId)
         : null;
 
+      // Save transcript to storage
+      if (transcript && transcript.length > 0) {
+        const savedTranscript: SavedTranscript = {
+          id: `transcript_${Date.now()}`,
+          scenarioId: selectedScenario.id,
+          scenarioTitle: selectedScenario.title,
+          characterName: character?.name,
+          messages: transcript,
+          duration,
+          timestamp: Date.now(),
+        };
+        await saveTranscript(savedTranscript);
+      }
+
       setLastConversation({
         messages,
         duration,
         scenarioTitle: selectedScenario.title,
         characterName: character?.name,
         hadError: endReason === 'error',
+        transcript,
       });
       setFlowState('feedback');
     } else {
@@ -339,12 +394,17 @@ export default function VoiceConversationScreen() {
     );
   }
 
-  // Show conversation view (active call)
+  // Show conversation view (active call) - Now using ElevenLabs
   if (flowState === 'call' && selectedScenario) {
+    const character = selectedScenario.characterId
+      ? getCharacter(selectedScenario.characterId)
+      : undefined;
+
     return (
-      <VoiceCallScreen
+      <VoiceCallScreenElevenLabs
         scenario={selectedScenario}
-        accent={selectedAccent}
+        character={character}
+        proficiency="intermediate" // TODO: Get from user settings
         onComplete={handleConversationComplete}
         onBack={handleBack}
       />

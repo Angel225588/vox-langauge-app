@@ -39,8 +39,12 @@ export { GoalPage } from './GoalPage';
 export type { GoalPageProps } from './GoalPage';
 export { VoiceCallScreen } from './VoiceCallScreen';
 export type { VoiceCallScreenProps } from './VoiceCallScreen';
+export { VoiceCallScreenElevenLabs } from './VoiceCallScreenElevenLabs';
+export type { VoiceCallScreenElevenLabsProps, VoiceCallCompletionResult } from './VoiceCallScreenElevenLabs';
 export { PostCallFeedbackScreen } from './PostCallFeedbackScreen';
 export type { PostCallFeedbackScreenProps } from './PostCallFeedbackScreen';
+export { MissionBriefingScreen } from './MissionBriefingScreen';
+export type { MissionBriefingScreenProps } from './MissionBriefingScreen';
 
 // Reading Practice cards
 export { TeleprompterCard } from './TeleprompterCard';
