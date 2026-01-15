@@ -6,23 +6,18 @@
 
 import React, { useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  SingleVocabCard,
-  MultipleChoiceCard,
-  ImageQuizCard,
+  QuizCard,
   AudioCard,
   TextInputCard,
   SpeakingCard,
   FillInBlankCard,
   SentenceScrambleCard,
-  DescribeImageCard,
-  StorytellingCard,
-  QuestionGameCard,
   RolePlayCard,
   ComparisonCard,
-  // NEW: Vocabulary Cards (Premium)
+  // Vocabulary Cards (Premium)
   IntroductionCard,
   VocabListeningCard,
   VocabTypingCard,
@@ -31,6 +26,8 @@ import {
   VocabularyCardFlow,
 } from '@/components/cards';
 import type { VocabularyItem, VocabCardResult } from '@/components/cards';
+import { CalibrationFlow } from '@/components/calibration';
+import type { CalibrationResult } from '@/components/calibration';
 import { colors, spacing, typography } from '@/constants/designSystem';
 
 // Placeholder images
@@ -54,39 +51,19 @@ const IMAGES = {
 
 // Sample data for each card type (3 samples each)
 const CARD_SAMPLES = {
-  'single-vocab': [
+  // Unified Quiz Card - supports both 'image' and 'translation' modes
+  quiz: [
     {
-      word: 'apple',
-      phonetic: '/ˈæp.əl/',
-      translation: 'manzana',
-      image_url: IMAGES.apple,
-      example_sentence: 'I eat an apple every day for breakfast.'
-    },
-    {
-      word: 'coffee',
-      phonetic: '/ˈkɒf.i/',
-      translation: 'café',
-      image_url: IMAGES.coffee,
-      example_sentence: 'She drinks coffee in the morning.'
-    },
-    {
-      word: 'flower',
-      phonetic: '/ˈflaʊ.ər/',
-      translation: 'flor',
-      image_url: IMAGES.flower,
-      example_sentence: 'The flower smells beautiful in the garden.'
-    },
-  ],
-  'multiple-choice': [
-    {
+      mode: 'image' as const,
       word: 'dog',
       translation: 'perro',
       image_url: IMAGES.dog,
       options: ['dog', 'cat', 'house', 'car'],
       correct_answer: 0,
-      explanation: '"Perro" is Spanish for dog, a domestic animal. "Gato" (cat), "casa" (house), and "coche" (car) are different words.',
+      explanation: 'The image shows a dog (perro in Spanish). Remember the furry tail and friendly face!',
     },
     {
+      mode: 'translation' as const,
       word: 'book',
       translation: 'libro',
       image_url: IMAGES.book,
@@ -95,6 +72,15 @@ const CARD_SAMPLES = {
       explanation: '"Libro" means book in Spanish. "Teléfono" (phone), "café" (coffee), and "manzana" (apple) are incorrect.',
     },
     {
+      mode: 'image' as const,
+      word: 'coffee',
+      image_url: IMAGES.coffee,
+      options: ['water', 'coffee', 'flower', 'apple'],
+      correct_answer: 1,
+      explanation: 'Look for the coffee cup (café). Coffee is usually served in a mug or cup.',
+    },
+    {
+      mode: 'translation' as const,
       word: 'tree',
       translation: 'árbol',
       image_url: IMAGES.tree,
@@ -102,31 +88,17 @@ const CARD_SAMPLES = {
       correct_answer: 2,
       explanation: '"Árbol" is Spanish for tree. "Flor" (flower), "casa" (house), and "agua" (water) are different vocabulary words.',
     },
-  ],
-  'image-quiz': [
     {
-      word: 'dog',
-      image_url: IMAGES.dog,
-      options: ['dog', 'cat', 'house', 'car'],
-      correct_answer: 0,
-      explanation: 'The image shows a dog (perro in Spanish). Remember the furry tail and friendly face!'
-    },
-    {
-      word: 'coffee',
-      image_url: IMAGES.coffee,
-      options: ['water', 'coffee', 'flower', 'apple'],
-      correct_answer: 1,
-      explanation: 'Look for the coffee cup (café). Coffee is usually served in a mug or cup.'
-    },
-    {
+      mode: 'image' as const,
       word: 'house',
       image_url: IMAGES.house,
       options: ['car', 'tree', 'house', 'book'],
       correct_answer: 2,
-      explanation: 'This is a house (casa), a building where people live. Notice the roof and walls.'
+      explanation: 'This is a house (casa), a building where people live. Notice the roof and walls.',
     },
   ],
   'audio-to-image': [
+    // Short word example
     {
       word: 'apple',
       translation: 'manzana',
@@ -134,19 +106,37 @@ const CARD_SAMPLES = {
       correct_answer: 0,
       explanation: 'Listen carefully to the "a" sound at the beginning. Apple starts with /æ/ as in "app".'
     },
+    // Medium phrase example
     {
-      word: 'cat',
-      translation: 'gato',
-      options: ['dog', 'cat', 'house', 'tree'],
+      word: 'good morning',
+      translation: 'buenos días',
+      options: ['good night', 'good morning', 'good evening', 'goodbye'],
       correct_answer: 1,
-      explanation: 'The word "cat" has a short "a" sound and ends with a "t". Listen for the /æ/ vowel.'
+      explanation: '"Good morning" is a common greeting used in the early part of the day. Listen for the "mor-ning" sound.'
     },
+    // Long phrase example - tests adaptive layout
     {
-      word: 'car',
-      translation: 'coche',
-      options: ['house', 'book', 'car', 'dog'],
+      word: 'Where is the nearest train station?',
+      translation: '¿Dónde está la estación de tren más cercana?',
+      options: ['Where is the bus stop?', 'Where is the airport?', 'Where is the nearest train station?', 'Where is the taxi stand?'],
       correct_answer: 2,
-      explanation: 'Car has an "ar" sound like "far" or "star". The /r/ sound is pronounced clearly.'
+      explanation: 'This is a common travel phrase. Listen for "train station" at the end. The key words are "nearest" and "train".'
+    },
+    // Another long phrase
+    {
+      word: 'I would like to make a reservation for two people',
+      translation: 'Me gustaría hacer una reservación para dos personas',
+      options: ['I need a table', 'I would like to make a reservation for two people', 'Can I have the menu?', 'The bill please'],
+      correct_answer: 1,
+      explanation: 'This is a restaurant phrase. Key words: "reservation" and "two people". Listen for the formal "would like" structure.'
+    },
+    // Travel phrase
+    {
+      word: 'Excuse me, could you help me find my way?',
+      translation: 'Disculpe, ¿podría ayudarme a encontrar mi camino?',
+      options: ['Where is the hotel?', 'How much does it cost?', 'Excuse me, could you help me find my way?', 'Can I have directions?'],
+      correct_answer: 2,
+      explanation: 'A polite way to ask for directions. Listen for "excuse me" at the start and "find my way" at the end.'
     },
   ],
   'text-input': [
@@ -182,69 +172,10 @@ const CARD_SAMPLES = {
     { words: ['language', 'learning', 'is', 'fun'], correctOrder: ['learning', 'language', 'is', 'fun'], targetSentence: 'learning language is fun', hint: 'Think about the subject.', difficulty: 'medium' },
     { words: ['a', 'good', 'This', 'is', 'example'], correctOrder: ['This', 'is', 'a', 'good', 'example'], targetSentence: 'This is a good example', hint: 'Group the adjectives.', difficulty: 'hard' },
   ],
-  'describe-image': [
-    {
-      imageUrl: IMAGES.water,
-      keywords: ['water', 'nature', 'sky'],
-      minLength: 25,
-      difficulty: 'easy',
-      referenceDescription: 'A serene body of water reflects the clear blue sky. The calm surface creates a peaceful natural scene with gentle ripples visible across the water.'
-    },
-    {
-      imageUrl: IMAGES.mountain,
-      keywords: ['mountain', 'snow', 'sky'],
-      minLength: 30,
-      difficulty: 'medium',
-      referenceDescription: 'A majestic snow-capped mountain peak rises dramatically against a clear blue sky. The white summit contrasts beautifully with the darker rocky slopes below.'
-    },
-    {
-      imageUrl: IMAGES.cat,
-      keywords: ['cat', 'animal', 'looking'],
-      minLength: 20,
-      difficulty: 'hard',
-      referenceDescription: 'A curious cat gazes intently with alert eyes. The feline appears focused and attentive, showcasing typical cat behavior and posture.'
-    },
-  ],
-  'question-game': [
-    { secretWord: 'pizza', category: 'food', difficulty: 'easy', maxQuestions: 8 },
-    { secretWord: 'elephant', category: 'animal', difficulty: 'medium', maxQuestions: 10 },
-    { secretWord: 'airplane', category: 'vehicle', difficulty: 'hard', maxQuestions: 12 },
-  ],
   'role-play': [
     { scenario: { title: 'Ordering at a Restaurant', role: 'waiter', goal: 'Order a meal', difficulty: 'easy' }, userRole: 'customer', scriptId: 'restaurant_order', maxTurns: 5 },
     { scenario: { title: 'Asking for Directions', role: 'stranger', goal: 'Find the museum', difficulty: 'medium' }, userRole: 'tourist', scriptId: 'directions', maxTurns: 7 },
     { scenario: { title: 'Shopping for Groceries', role: 'clerk', goal: 'Buy groceries', difficulty: 'hard' }, userRole: 'shopper', scriptId: 'restaurant_order', maxTurns: 6 }, // Using restaurant_order for now, as a placeholder
-  ],
-  'storytelling': [
-    {
-      images: [
-        { id: '1', url: IMAGES.forest, label: 'forest' },
-        { id: '2', url: IMAGES.castle, label: 'castle' },
-        { id: '3', url: IMAGES.river, label: 'river' },
-      ],
-      storyPrompt: 'Tell a story about an adventure in a magical forest.',
-      minWords: 40,
-      difficulty: 'medium',
-    },
-    {
-      images: [
-        { id: '1', url: IMAGES.dog, label: 'dog' },
-        { id: '2', url: IMAGES.house, label: 'house' },
-      ],
-      storyPrompt: 'Describe a day in the life of a pet.',
-      minWords: 30,
-      difficulty: 'easy',
-    },
-    {
-      images: [
-        { id: '1', url: IMAGES.mountain, label: 'mountain' },
-        { id: '2', url: IMAGES.coffee, label: 'coffee' },
-        { id: '3', url: IMAGES.book, label: 'book' },
-      ],
-      storyPrompt: 'Write a story about a cozy evening in the mountains.',
-      minWords: 60,
-      difficulty: 'hard',
-    },
   ],
   'fill-in-blank': [
     {
@@ -263,30 +194,124 @@ const CARD_SAMPLES = {
       correct_answer: 1,
     },
   ],
+  // ComparisonCardV2 - For comparing similar-sounding or similar-looking words
+  // RULE: MAX 2 ITEMS per card! Split into sequences if needed.
+  // NOT for direct translations! Use this for: verb tenses, homophones, synonyms, etc.
   comparison: [
+    // Example 1: Verb Tenses - Go vs Went (Present/Past)
     {
+      type: 'verb-tense' as const,
       items: [
-        { label: 'English', word: 'apple', phonetic: '/ˈæp.əl/' },
-        { label: 'Spanish', word: 'manzana', phonetic: '/manˈθana/' },
+        {
+          label: 'Present',
+          word: 'go',
+          phonetic: '/ɡoʊ/',
+          nativeApprox: 'góu',
+          definition: 'Base form - action happening now or regularly',
+          example: { text: 'I go to the gym every morning.', translation: 'Voy al gimnasio cada mañana.' },
+        },
+        {
+          label: 'Past',
+          word: 'went',
+          phonetic: '/wɛnt/',
+          nativeApprox: 'uent',
+          definition: 'Irregular past - action completed in the past',
+          example: { text: 'Yesterday, I went to the beach.', translation: 'Ayer, fui a la playa.' },
+        },
       ],
-      title: 'Apple',
-      language: 'en-US',
+      onComplete: (quality: 'again' | 'got-it') => console.log('Verb tense rated:', quality),
     },
+    // Example 2: Verb Tenses - Went vs Gone (Past/Past Participle) - Continuation
     {
+      type: 'verb-tense' as const,
       items: [
-        { label: 'English', word: 'water', phonetic: '/ˈwɔː.tər/' },
-        { label: 'Spanish', word: 'agua', phonetic: '/ˈa.ɣwa/' },
+        {
+          label: 'Past',
+          word: 'went',
+          phonetic: '/wɛnt/',
+          nativeApprox: 'uent',
+          definition: 'Irregular past - action completed in the past',
+          example: { text: 'Yesterday, I went to the beach.', translation: 'Ayer, fui a la playa.' },
+        },
+        {
+          label: 'Past Participle',
+          word: 'gone',
+          phonetic: '/ɡɔːn/',
+          nativeApprox: 'gon',
+          definition: 'Used with have/has for perfect tenses',
+          example: { text: 'She has gone home already.', translation: 'Ella ya se ha ido a casa.' },
+        },
       ],
-      title: 'Water',
-      language: 'en-US',
+      onComplete: (quality: 'again' | 'got-it') => console.log('Verb tense rated:', quality),
     },
+    // Example 3: Homophones - There vs Their
     {
+      type: 'homophone' as const,
       items: [
-        { label: 'English', word: 'coffee', phonetic: '/ˈkɒf.i/' },
-        { label: 'Spanish', word: 'café', phonetic: '/kaˈfe/' },
+        {
+          label: 'Place',
+          word: 'there',
+          phonetic: '/ðɛr/',
+          nativeApprox: 'der',
+          definition: 'Indicates a location or position',
+          example: { text: 'The book is over there on the table.', translation: 'El libro está allí sobre la mesa.' },
+        },
+        {
+          label: 'Possession',
+          word: 'their',
+          phonetic: '/ðɛr/',
+          nativeApprox: 'der',
+          definition: 'Shows something belongs to them',
+          example: { text: 'Their car is parked outside.', translation: 'Su carro está estacionado afuera.' },
+        },
       ],
-      title: 'Coffee',
-      language: 'en-US',
+      onComplete: (quality: 'again' | 'got-it') => console.log('Homophone rated:', quality),
+    },
+    // Example 4: Homophones - Their vs They're (Continuation)
+    {
+      type: 'homophone' as const,
+      items: [
+        {
+          label: 'Possession',
+          word: 'their',
+          phonetic: '/ðɛr/',
+          nativeApprox: 'der',
+          definition: 'Shows something belongs to them',
+          example: { text: 'Their car is parked outside.', translation: 'Su carro está estacionado afuera.' },
+        },
+        {
+          label: 'They + Are',
+          word: "they're",
+          phonetic: '/ðɛr/',
+          nativeApprox: 'der',
+          definition: 'Contraction of "they are"',
+          example: { text: "They're coming to the party tonight.", translation: 'Ellos vienen a la fiesta esta noche.' },
+        },
+      ],
+      onComplete: (quality: 'again' | 'got-it') => console.log('Homophone rated:', quality),
+    },
+    // Example 5: Similar Words - Affect vs Effect
+    {
+      type: 'similar-words' as const,
+      items: [
+        {
+          label: 'Verb',
+          word: 'affect',
+          phonetic: '/əˈfɛkt/',
+          nativeApprox: 'a-FECT',
+          definition: 'To influence or cause change (action word)',
+          example: { text: 'The rain will affect our outdoor plans.', translation: 'La lluvia afectará nuestros planes.' },
+        },
+        {
+          label: 'Noun',
+          word: 'effect',
+          phonetic: '/ɪˈfɛkt/',
+          nativeApprox: 'i-FECT',
+          definition: 'The result or outcome of a change',
+          example: { text: 'The effect of exercise is better health.', translation: 'El efecto del ejercicio es mejor salud.' },
+        },
+      ],
+      onComplete: (quality: 'again' | 'got-it') => console.log('Similar words rated:', quality),
     },
   ],
   // NEW: Vocabulary Cards (Premium)
@@ -689,11 +714,14 @@ const CARD_SAMPLES = {
       ],
     },
   ],
+  // Calibration Flow (Level Calibrator)
+  'calibration': [{ placeholder: true }],
 };
 
 export default function TestCardsScreen() {
   const { type } = useLocalSearchParams<{ type: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const cardType = type || 'single-vocab';
@@ -715,19 +743,49 @@ export default function TestCardsScreen() {
     }
 
     switch (cardType) {
-      case 'single-vocab': return <SingleVocabCard {...currentSample} onNext={handleNext} />;
-      case 'multiple-choice': return <MultipleChoiceCard {...currentSample} onNext={handleNext} />;
-      case 'image-quiz': return <ImageQuizCard {...currentSample} onNext={handleNext} />;
-      case 'audio-to-image': return <AudioCard {...currentSample} onNext={handleNext} />;
+      case 'quiz': {
+        const sample = currentSample as any;
+        return (
+          <QuizCard
+            mode={sample.mode || 'image'}
+            word={sample.word || ''}
+            translation={sample.translation}
+            image_url={sample.image_url}
+            options={sample.options || []}
+            correct_answer={sample.correct_answer as number}
+            explanation={sample.explanation}
+            onComplete={(correct) => handleNext(correct)}
+          />
+        );
+      }
+      case 'audio-to-image': {
+        const audioSample = currentSample as {
+          word: string;
+          translation: string;
+          options: string[];
+          correct_answer: number;
+          explanation: string;
+        };
+        return <AudioCard {...audioSample} onNext={handleNext} />;
+      }
       case 'text-input': return <TextInputCard {...currentSample} onNext={handleNext} />;
       case 'speaking': return <SpeakingCard {...currentSample} onComplete={handleNext} />;
       case 'fill-in-blank': return <FillInBlankCard {...currentSample} onNext={handleNext} />;
       case 'sentence-scramble': return <SentenceScrambleCard {...currentSample} onComplete={handleNext} />;
-      case 'describe-image': return <DescribeImageCard {...currentSample} onComplete={handleNext} />;
-      case 'question-game': return <QuestionGameCard {...currentSample} onComplete={handleNext} />;
       case 'role-play': return <RolePlayCard {...currentSample} onComplete={handleNext} />;
-      case 'storytelling': return <StorytellingCard {...currentSample} onComplete={handleNext} />;
-      case 'comparison': return <ComparisonCard {...currentSample} />;
+      case 'comparison': {
+        const compSample = currentSample as any;
+        return (
+          <ComparisonCard
+            type={compSample.type}
+            items={compSample.items}
+            onComplete={(quality) => {
+              console.log('Comparison card completed:', quality);
+              handleNext(quality);
+            }}
+          />
+        );
+      }
       // NEW: Vocabulary Cards (Premium)
       case 'vocab-introduction':
         return (
@@ -779,6 +837,16 @@ export default function TestCardsScreen() {
             onExit={() => router.back()}
           />
         );
+      case 'calibration':
+        return (
+          <CalibrationFlow
+            onComplete={(result: CalibrationResult) => {
+              console.log('Calibration completed:', result);
+              router.back();
+            }}
+            onExit={() => router.back()}
+          />
+        );
       default:
         return (
           <View style={styles.errorCard}>
@@ -790,20 +858,20 @@ export default function TestCardsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Minimal close button - floating top left */}
+    <View style={styles.container}>
+      {/* Minimal close button - floating top left with safe area */}
       <TouchableOpacity
         onPress={() => router.back()}
-        style={styles.closeButton}
+        style={[styles.closeButton, { top: insets.top + spacing.sm }]}
       >
         <Text style={styles.closeText}>✕</Text>
       </TouchableOpacity>
 
-      {/* Fullscreen card content */}
-      <View style={styles.cardContainer}>
+      {/* Fullscreen card content - cards handle their own bottom safe area */}
+      <View style={[styles.cardContainer, { paddingTop: insets.top + spacing['2xl'] }]}>
         {renderCard()}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -814,7 +882,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: spacing.md,
     left: spacing.md,
     width: 40,
     height: 40,
@@ -832,7 +899,6 @@ const styles = StyleSheet.create({
   cardContainer: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
   },
   errorCard: {
     backgroundColor: colors.background.card,

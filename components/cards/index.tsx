@@ -24,8 +24,12 @@ export { QuizCard } from './QuizCard';
 export { AudioCard } from './AudioCard';
 export { TextInputCard } from './TextInputCard';
 export { SpeakingCard } from './SpeakingCard';
-export { ComparisonCard } from './ComparisonCard';
-export type { ComparisonCardProps, ComparisonItem } from './ComparisonCard';
+// ComparisonCard - V2 is now the default (vertical full-width layout)
+export { ComparisonCardV2 as ComparisonCard } from './ComparisonCardV2';
+export type { ComparisonCardV2Props as ComparisonCardProps, ComparisonItemV2 as ComparisonItem } from './ComparisonCardV2';
+// Legacy V1 (side-by-side layout) - deprecated
+export { ComparisonCard as ComparisonCardLegacy } from './ComparisonCard';
+export type { ComparisonCardProps as ComparisonCardLegacyProps, ComparisonItem as ComparisonItemLegacy } from './ComparisonCard';
 
 // Grammar & Sentence cards
 export { FillInBlankCard } from './FillInBlankCard';
@@ -45,6 +49,8 @@ export { PostCallFeedbackScreen } from './PostCallFeedbackScreen';
 export type { PostCallFeedbackScreenProps } from './PostCallFeedbackScreen';
 export { MissionBriefingScreen } from './MissionBriefingScreen';
 export type { MissionBriefingScreenProps } from './MissionBriefingScreen';
+export { TranscriptPage } from './TranscriptPage';
+export type { TranscriptPageProps } from './TranscriptPage';
 
 // Reading Practice cards
 export { TeleprompterCard } from './TeleprompterCard';
