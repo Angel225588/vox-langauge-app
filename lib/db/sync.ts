@@ -1,6 +1,39 @@
 import { supabase } from '@/lib/db/supabase';
 import { getUnsyncedData, markAsSynced } from '@/lib/db/sqlite';
 import * as Network from 'expo-network';
+import { readingSync } from '@/lib/reading/readingSync';
+
+// Type definitions for SQLite sync data
+interface FlashcardReview {
+  id: string;
+  user_id: string;
+  flashcard_id: string;
+  ease_factor: number;
+  interval: number;
+  repetitions: number;
+  next_review: number;
+  last_reviewed: number;
+  created_at: number;
+}
+
+interface UserProgress {
+  id: string;
+  user_id: string;
+  lesson_id: string;
+  points: number;
+  completed: number;
+  completed_at: number | null;
+  created_at: number;
+}
+
+interface StreakData {
+  id: string;
+  user_id: string;
+  current_streak: number;
+  longest_streak: number;
+  last_practice_date: number | null;
+  total_points: number;
+}
 
 export async function syncData() {
   try {
@@ -19,10 +52,15 @@ export async function syncData() {
   try {
     const { reviews, progress, streaks } = await getUnsyncedData();
 
+    // Type assertions for SQLite data
+    const typedReviews = reviews as FlashcardReview[];
+    const typedProgress = progress as UserProgress[];
+    const typedStreaks = streaks as StreakData[];
+
     // Sync Flashcard Reviews
-    if (reviews.length > 0) {
-      console.log(`Syncing ${reviews.length} flashcard reviews...`);
-      const { error } = await supabase.from('flashcard_reviews').upsert(reviews.map(review => ({
+    if (typedReviews.length > 0) {
+      console.log(`Syncing ${typedReviews.length} flashcard reviews...`);
+      const { error } = await supabase.from('flashcard_reviews').upsert(typedReviews.map(review => ({
         id: review.id,
         user_id: review.user_id,
         flashcard_id: review.flashcard_id,
@@ -37,15 +75,15 @@ export async function syncData() {
       if (error) {
         console.error('Error syncing flashcard reviews:', error);
       } else {
-        await markAsSynced('flashcard_reviews', reviews.map(r => r.id));
+        await markAsSynced('flashcard_reviews', typedReviews.map(r => r.id));
         console.log('Flashcard reviews synced successfully.');
       }
     }
 
     // Sync User Progress
-    if (progress.length > 0) {
-      console.log(`Syncing ${progress.length} user progress entries...`);
-      const { error } = await supabase.from('user_progress').upsert(progress.map(p => ({
+    if (typedProgress.length > 0) {
+      console.log(`Syncing ${typedProgress.length} user progress entries...`);
+      const { error } = await supabase.from('user_progress').upsert(typedProgress.map(p => ({
         id: p.id,
         user_id: p.user_id,
         lesson_id: p.lesson_id,
@@ -58,7 +96,7 @@ export async function syncData() {
       if (error) {
         console.error('Error syncing user progress:', error);
       } else {
-        await markAsSynced('user_progress', progress.map(p => p.id));
+        await markAsSynced('user_progress', typedProgress.map(p => p.id));
         console.log('User progress synced successfully.');
       }
     }
@@ -67,9 +105,9 @@ export async function syncData() {
     // Note: Supabase's streak_data table likely uses user_id as primary key,
     // so we need to handle upsert carefully, or fetch existing and update.
     // For now, assuming direct upsert is fine if the structure allows.
-    if (streaks.length > 0) {
-      console.log(`Syncing ${streaks.length} streak data entries...`);
-      for (const streak of streaks) {
+    if (typedStreaks.length > 0) {
+      console.log(`Syncing ${typedStreaks.length} streak data entries...`);
+      for (const streak of typedStreaks) {
         const { error } = await supabase.from('streak_data').upsert({
           user_id: streak.user_id,
           current_streak: streak.current_streak,
@@ -92,5 +130,51 @@ export async function syncData() {
     console.error('Unhandled error during data sync:', error);
   }
 }
+
+/**
+ * Sync reading sessions to Supabase
+ * Call this after completing a reading session
+ */
+export async function syncReadingSessions(
+  sessions: any[],
+  userId: string,
+  uploadRecordings = false
+): Promise<{ success: number; failed: number }> {
+  let success = 0;
+  let failed = 0;
+
+  try {
+    const state = await Network.getNetworkStateAsync();
+    if (!state.isConnected || !state.isInternetReachable) {
+      console.log('Offline: Skipping reading session sync.');
+      return { success: 0, failed: sessions.length };
+    }
+
+    console.log(`Syncing ${sessions.length} reading sessions...`);
+
+    const results = await readingSync.syncReadingSessions(sessions, userId, {
+      uploadRecording: uploadRecordings,
+    });
+
+    for (const result of results) {
+      if (result.success) {
+        success++;
+      } else {
+        failed++;
+        console.warn(`Failed to sync session ${result.sessionId}: ${result.error}`);
+      }
+    }
+
+    console.log(`Reading sessions synced: ${success} success, ${failed} failed`);
+  } catch (error) {
+    console.error('Error syncing reading sessions:', error);
+    failed = sessions.length;
+  }
+
+  return { success, failed };
+}
+
+// Re-export reading sync utilities
+export { readingSync };
 
 
