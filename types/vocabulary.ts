@@ -45,6 +45,9 @@ export interface VocabularyItem extends BankWord {
   imageUrl?: string;           // Context image
   contextVideoUrl?: string;    // Short usage video (future)
 
+  // Definition/Explanation (for slangs, idioms, phrases)
+  definition?: string;         // Meaning explanation in target language
+
   // Examples with translations
   examples: ExampleSentence[];
 
@@ -103,6 +106,8 @@ export interface VocabCardProps {
   item: VocabularyItem;
   onComplete: (result: VocabCardResult) => void;
   onSkip?: () => void;
+  /** Called when user can't speak - switches to typing/writing card */
+  onCantSpeak?: () => void;
 }
 
 /**

@@ -1,19 +1,18 @@
 /**
- * ListeningCard - Audio Recognition Card
+ * ListeningCard - Listen & Write Card
  *
- * "Listen & Write" card for audio comprehension.
- * Based on Listen card.png reference.
- * Button fixed at bottom, branded icon colors.
+ * "Listen and type what you hear" card for audio comprehension.
+ * Clean structure: Badge → Title → Audio Buttons → Input → Check Button
  *
  * Features:
- * - Large audio play button with pulse animation
- * - Speed toggle (normal/slow) with brand colors
+ * - Premium dark badge
+ * - Large audio buttons (same size) at top
  * - Text input for typing
- * - Typo tolerance
- * - Fixed button at bottom
+ * - Typo tolerance (Levenshtein distance)
+ * - Fixed check button at bottom
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -22,10 +21,7 @@ import Animated, {
   ZoomIn,
   useAnimatedStyle,
   withSpring,
-  withRepeat,
-  withTiming,
   useSharedValue,
-  Easing,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
@@ -33,7 +29,7 @@ import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
 import { useHaptics } from '@/hooks/useHaptics';
-import { DarkOverlay, AnswerFeedbackOverlay } from '@/components/ui';
+import { DarkOverlay } from '@/components/ui';
 import { useVocabCard } from './hooks/useVocabCard';
 import type { VocabCardProps } from '@/types/vocabulary';
 
@@ -63,8 +59,8 @@ interface ListeningCardProps extends VocabCardProps {
 }
 
 export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCardProps) {
-  const haptics = useHaptics();
   const insets = useSafeAreaInsets();
+  const haptics = useHaptics();
   const [input, setInput] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -79,55 +75,55 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
   });
 
   // Animation values
-  const audioButtonScale = useSharedValue(1);
-  const pulseScale = useSharedValue(1);
   const inputScale = useSharedValue(1);
   const buttonScale = useSharedValue(1);
 
-  // Pulse animation when playing
-  React.useEffect(() => {
-    if (isPlaying) {
-      pulseScale.value = withRepeat(
-        withTiming(1.3, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true
-      );
-    } else {
-      pulseScale.value = withSpring(1);
-    }
-  }, [isPlaying]);
-
   // Cleanup
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (sound) sound.unloadAsync();
     };
   }, [sound]);
 
+  // Auto-play audio on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handlePlayAudio(false);
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handlePlayAudio = useCallback(async (slow = false) => {
     haptics.light();
     trackAudioPlay();
-    audioButtonScale.value = withSpring(0.9, {}, () => {
-      audioButtonScale.value = withSpring(1);
-    });
 
-    const rate = slow ? 0.6 : 1.0;
-    setPlaybackRate(rate);
+    const newRate = slow ? 0.6 : 1.0;
 
-    if (isPlaying && sound) {
-      await sound.stopAsync();
+    // If already playing same speed, stop it
+    if (isPlaying && playbackRate === newRate) {
+      Speech.stop();
+      if (sound) await sound.stopAsync();
       setIsPlaying(false);
       return;
     }
 
+    // If playing different speed, stop current first
+    if (isPlaying) {
+      Speech.stop();
+      if (sound) await sound.stopAsync();
+    }
+
+    setPlaybackRate(newRate);
     setIsPlaying(true);
 
-    if (item.audioUrl) {
+    // Use audioUrl for normal speed only, Speech for slow
+    if (item.audioUrl && !slow) {
       try {
         if (sound) await sound.unloadAsync();
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: item.audioUrl },
-          { shouldPlay: true, rate, shouldCorrectPitch: true },
+          { shouldPlay: true, rate: 1.0, shouldCorrectPitch: true },
           (status) => {
             if (status.isLoaded && status.didJustFinish) setIsPlaying(false);
           }
@@ -135,19 +131,19 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
         setSound(newSound);
       } catch {
         Speech.speak(item.word, {
-          rate: slow ? 0.5 : 0.8,
+          rate: 0.85,
           onDone: () => setIsPlaying(false),
           onError: () => setIsPlaying(false),
         });
       }
     } else {
       Speech.speak(item.word, {
-        rate: slow ? 0.5 : 0.8,
+        rate: slow ? 0.5 : 0.85,
         onDone: () => setIsPlaying(false),
         onError: () => setIsPlaying(false),
       });
     }
-  }, [sound, isPlaying, item, haptics, trackAudioPlay]);
+  }, [sound, isPlaying, playbackRate, item, haptics, trackAudioPlay]);
 
   const handleShowHint = useCallback(() => {
     haptics.light();
@@ -156,6 +152,8 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
   }, [haptics, trackHintUsed]);
 
   const handleSubmitTyping = useCallback(() => {
+    if (!input.trim()) return;
+
     const userAnswer = input.toLowerCase().trim();
     const correctAnswer = item.word.toLowerCase().trim();
 
@@ -180,15 +178,6 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
     complete(false, input);
   }, [complete, input]);
 
-  const audioButtonStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: audioButtonScale.value }],
-  }));
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-    opacity: isPlaying ? 0.4 : 0,
-  }));
-
   const inputAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: inputScale.value }],
   }));
@@ -201,72 +190,85 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      {/* Header */}
+      {/* Top-right Badge */}
       <Animated.View
-        entering={FadeInDown.duration(400)}
-        style={styles.header}
+        entering={FadeIn.duration(300)}
+        style={[styles.typeBadge, { top: insets.top + spacing.md }]}
       >
-        <View style={styles.headerPill}>
-          <Ionicons name="headset" size={20} color={colors.primary.DEFAULT} />
-          <Text style={styles.headerText}>Listen & Write</Text>
-          <Ionicons name="pencil" size={18} color={colors.accent.purple} />
+        <View style={styles.typeBadgeInner}>
+          <Ionicons name="ear" size={14} color={colors.primary.light} />
+          <Text style={styles.typeBadgeText}>LISTEN & WRITE</Text>
         </View>
       </Animated.View>
 
-      {/* Content Area */}
-      <View style={styles.contentArea}>
-        {/* Audio Controls */}
+      {/* Top Content: Title + Audio Buttons */}
+      <View style={[styles.topContent, { paddingTop: insets.top + spacing['3xl'] }]}>
+        {/* Title */}
+        <Animated.Text
+          entering={FadeInDown.duration(400).delay(100)}
+          style={styles.title}
+        >
+          Type what you hear
+        </Animated.Text>
+
+        {/* Audio Buttons - Same size, centered */}
         <Animated.View
           entering={ZoomIn.duration(500).delay(200)}
           style={styles.audioSection}
         >
-          {/* Pulse background */}
-          <Animated.View style={[styles.pulseBg, pulseStyle]} />
-
-          <View style={styles.audioControls}>
-            {/* Normal speed */}
-            <Animated.View style={audioButtonStyle}>
-              <TouchableOpacity
-                onPress={() => handlePlayAudio(false)}
-                activeOpacity={0.8}
-                style={[
-                  styles.audioButton,
-                  isPlaying && playbackRate === 1.0 && styles.audioButtonActive,
-                ]}
+          <View style={styles.audioButtonsRow}>
+            {/* Play button */}
+            <TouchableOpacity
+              onPress={() => handlePlayAudio(false)}
+              activeOpacity={0.8}
+              style={styles.audioButtonWrapper}
+            >
+              <LinearGradient
+                colors={colors.gradients.success}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.audioButton}
               >
                 <Ionicons
-                  name={isPlaying && playbackRate === 1.0 ? "pause" : "play"}
-                  size={24}
-                  color={isPlaying && playbackRate === 1.0 ? colors.text.primary : colors.primary.DEFAULT}
+                  name={isPlaying && playbackRate >= 1.0 ? 'pause' : 'play'}
+                  size={32}
+                  color={colors.text.primary}
                 />
-              </TouchableOpacity>
-            </Animated.View>
+              </LinearGradient>
+            </TouchableOpacity>
 
-            {/* Slow speed */}
+            {/* Slow button */}
             <TouchableOpacity
               onPress={() => handlePlayAudio(true)}
               activeOpacity={0.8}
-              style={[
-                styles.audioButton,
-                isPlaying && playbackRate < 1.0 && styles.audioButtonActive,
-              ]}
+              style={styles.audioButtonWrapper}
             >
-              <Ionicons
-                name={isPlaying && playbackRate < 1.0 ? "pause" : "play"}
-                size={24}
-                color={isPlaying && playbackRate < 1.0 ? colors.text.primary : colors.primary.DEFAULT}
-              />
-              <View style={styles.slowBadge}>
-                <Ionicons name="speedometer-outline" size={12} color={colors.text.tertiary} />
-              </View>
+              <LinearGradient
+                colors={isPlaying && playbackRate < 1.0 ? colors.gradients.accent : colors.gradients.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.audioButton}
+              >
+                {isPlaying && playbackRate < 1.0 ? (
+                  <Ionicons name="pause" size={32} color={colors.text.primary} />
+                ) : (
+                  <Text style={styles.turtleEmoji}>🐢</Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
-        </Animated.View>
 
-        {/* Type Mode: Text Input */}
+          <Text style={styles.tapHint}>Tap to replay</Text>
+        </Animated.View>
+      </View>
+
+      {/* Bottom Section: Input + Check Button (stays above keyboard) */}
+      <View style={[styles.bottomSection, { paddingBottom: insets.bottom + spacing.md }]}>
+        {/* Input Section */}
         <Animated.View
           entering={FadeInDown.duration(400).delay(400)}
           style={styles.inputSection}
@@ -278,7 +280,8 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
               activeOpacity={0.7}
               style={styles.hintButton}
             >
-              <Ionicons name="bulb-outline" size={20} color={colors.accent.orange} />
+              <Ionicons name="bulb-outline" size={18} color={colors.accent.orange} />
+              <Text style={styles.hintButtonText}>Hint</Text>
             </TouchableOpacity>
           )}
 
@@ -289,7 +292,7 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
               placeholder={
                 showHint
                   ? `Hint: ${item.word.substring(0, 2)}...`
-                  : 'Type what you hear...'
+                  : 'Type your answer...'
               }
               placeholderTextColor={showHint ? colors.accent.purple : colors.text.tertiary}
               autoCapitalize="none"
@@ -302,12 +305,6 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
                     : isCorrect
                     ? colors.success.DEFAULT
                     : colors.error.DEFAULT,
-                  shadowColor: showResult
-                    ? isCorrect
-                      ? colors.success.DEFAULT
-                      : colors.error.DEFAULT
-                    : '#000',
-                  shadowOpacity: showResult ? 0.4 : 0.1,
                 },
               ]}
               editable={!showResult}
@@ -322,15 +319,13 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
             />
           </Animated.View>
         </Animated.View>
-      </View>
 
-      {/* Fixed Bottom Actions */}
-      <View style={[styles.bottomActions, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]}>
+        {/* Check Button */}
         {!showWrongAnswer && (
           <Animated.View style={buttonAnimatedStyle}>
             <TouchableOpacity
               onPress={handleSubmitTyping}
-              disabled={!input || (showResult && isCorrect)}
+              disabled={!input.trim() || (showResult && isCorrect)}
               activeOpacity={0.8}
               onPressIn={() => {
                 buttonScale.value = withSpring(0.95);
@@ -340,25 +335,25 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
               }}
               style={[
                 styles.checkButton,
-                (!input || (showResult && isCorrect)) && styles.checkButtonDisabled,
+                (!input.trim() || (showResult && isCorrect)) && styles.checkButtonDisabled,
               ]}
             >
               <LinearGradient
                 colors={
-                  !input || (showResult && isCorrect)
+                  !input.trim() || (showResult && isCorrect)
                     ? [colors.background.elevated, colors.background.card]
-                    : colors.gradients.primary
+                    : colors.gradients.success
                 }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.checkButtonGradient}
               >
                 {showResult && isCorrect && (
-                  <Ionicons name="checkmark" size={20} color={colors.text.primary} />
+                  <Ionicons name="checkmark" size={24} color={colors.text.primary} />
                 )}
                 <Text style={[
                   styles.checkButtonText,
-                  (!input || (showResult && isCorrect)) && styles.checkButtonTextDisabled,
+                  (!input.trim() || (showResult && isCorrect)) && styles.checkButtonTextDisabled,
                 ]}>
                   {showResult && isCorrect ? 'Correct!' : 'Check'}
                 </Text>
@@ -368,15 +363,28 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
         )}
       </View>
 
-      {/* Overlays */}
-      <DarkOverlay visible={showWrongAnswer} opacity={0.3} />
-      <AnswerFeedbackOverlay
-        visible={showWrongAnswer}
-        title="Listening Tip"
-        explanation={`The correct answer is "${item.word}"`}
-        correctAnswer={item.word}
-        onContinue={handleContinue}
-      />
+      {/* Overlays - positioned outside of keyboard avoiding to ensure visibility */}
+      <DarkOverlay visible={showWrongAnswer} opacity={0.5} />
+      {showWrongAnswer && (
+        <Animated.View
+          entering={FadeInDown.duration(400).delay(200)}
+          style={[styles.feedbackOverlay, { paddingBottom: insets.bottom + spacing.lg }]}
+        >
+          <View style={styles.feedbackCard}>
+            <Text style={styles.feedbackTitle}>Listening Tip</Text>
+            <Text style={styles.feedbackExplanation}>
+              The correct answer is "{item.word}"
+            </Text>
+            <TouchableOpacity
+              onPress={handleContinue}
+              activeOpacity={0.8}
+              style={styles.feedbackButton}
+            >
+              <Text style={styles.feedbackButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -385,115 +393,112 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    alignItems: 'center',
-    paddingTop: spacing.xl,
-    marginBottom: spacing.xl,
+  // Top-right badge
+  typeBadge: {
+    position: 'absolute',
+    right: spacing.lg,
+    zIndex: 100,
   },
-  headerPill: {
+  typeBadgeInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.card,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.xl,
-    gap: spacing.sm,
+    backgroundColor: 'rgba(30, 30, 40, 0.9)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    gap: spacing.xs,
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: 'rgba(99, 102, 241, 0.3)',
     ...shadows.sm,
   },
-  headerText: {
-    fontSize: typography.fontSize.lg,
+  typeBadgeText: {
+    fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
+    color: colors.text.secondary,
+    letterSpacing: 1,
   },
-  contentArea: {
+  // Top content area (title + audio buttons)
+  topContent: {
     flex: 1,
     paddingHorizontal: spacing.lg,
+    justifyContent: 'flex-start',
+  },
+  title: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
   },
   audioSection: {
     alignItems: 'center',
-    marginBottom: spacing['2xl'],
-    position: 'relative',
   },
-  pulseBg: {
-    position: 'absolute',
-    width: 160,
-    height: 80,
-    borderRadius: borderRadius['2xl'],
-    backgroundColor: colors.primary.DEFAULT,
-  },
-  audioControls: {
+  audioButtonsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius['2xl'],
-    padding: spacing.md,
+    justifyContent: 'center',
     gap: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    ...shadows.md,
+  },
+  audioButtonWrapper: {
+    borderRadius: borderRadius.xl,
+    ...shadows.glow.primary,
   },
   audioButton: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.background.elevated,
+    width: 80,
+    height: 80,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.border.light,
+    ...shadows.md,
   },
-  audioButtonActive: {
-    backgroundColor: colors.primary.DEFAULT,
-    borderColor: colors.primary.light,
+  turtleEmoji: {
+    fontSize: 36,
   },
-  slowBadge: {
-    position: 'absolute',
-    bottom: -4,
-    right: -4,
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.full,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: colors.border.light,
+  tapHint: {
+    marginTop: spacing.lg,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    fontWeight: typography.fontWeight.medium,
+  },
+  // Bottom section (input + check button) - stays above keyboard
+  bottomSection: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    backgroundColor: colors.background.primary,
   },
   inputSection: {
-    position: 'relative',
+    marginBottom: spacing.md,
   },
   hintButton: {
-    position: 'absolute',
-    right: 0,
-    top: -48,
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.background.elevated,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    alignSelf: 'flex-end',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.elevated,
     borderWidth: 1,
     borderColor: colors.border.light,
-    zIndex: 10,
+  },
+  hintButtonText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.accent.orange,
+    fontWeight: typography.fontWeight.medium,
   },
   inputWrapper: {
-    marginBottom: spacing.md,
+    // Container for animated input
   },
   input: {
     backgroundColor: colors.background.card,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
     borderRadius: borderRadius.xl,
-    fontSize: typography.fontSize.lg,
+    fontSize: typography.fontSize.xl,
     color: colors.text.primary,
     borderWidth: 2,
     textAlign: 'center',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-  },
-  bottomActions: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
-    paddingTop: spacing.md,
   },
   checkButton: {
     borderRadius: borderRadius.xl,
@@ -517,5 +522,48 @@ const styles = StyleSheet.create({
   },
   checkButtonTextDisabled: {
     color: colors.text.tertiary,
+  },
+  // Feedback overlay styles
+  feedbackOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  feedbackCard: {
+    marginHorizontal: spacing.lg,
+    backgroundColor: '#3D2528',
+    borderRadius: borderRadius.xl,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.error.DEFAULT,
+    padding: spacing.lg,
+    ...shadows.lg,
+  },
+  feedbackTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.error.light,
+    marginBottom: spacing.sm,
+  },
+  feedbackExplanation: {
+    fontSize: typography.fontSize.lg,
+    color: '#FFFFFF',
+    lineHeight: 26,
+    marginBottom: spacing.lg,
+  },
+  feedbackButton: {
+    backgroundColor: colors.error.DEFAULT,
+    borderWidth: 2,
+    borderColor: colors.error.light,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing['2xl'],
+    borderRadius: borderRadius.xl,
+  },
+  feedbackButtonText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    textAlign: 'center',
   },
 });
