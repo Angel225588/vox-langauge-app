@@ -16,6 +16,7 @@ import { VoxIcon } from '@/components/ui/rewards';
 import { Icon } from '@/components/ui/Icon';
 import { CalibratorBanner } from '@/components/learning/CalibratorBanner';
 import { useLearningPath, StairForDisplay } from '@/hooks/useLearningPath';
+import { CondensedStairCard } from '@/components/staircase';
 import { supabase } from '@/lib/db/supabase';
 import { getStoredLevel, getFeatureAccess, getVoiceUnlockMessage } from '@/lib/utils/levelGating';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -107,8 +108,9 @@ const MOCK_STAIRS = [
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation('home');
-  const [weeklyPoints, setWeeklyPoints] = useState(1000);
-  const [streak, setStreak] = useState(8);
+  // Default to 0 - will be populated from user data when available
+  const [weeklyPoints, setWeeklyPoints] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [userLevel, setUserLevel] = useState<string | null>(null);
 
@@ -171,7 +173,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1F3A' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }} edges={['top']}>
       <View
         style={{ flex: 1 }}
       >
@@ -410,7 +412,7 @@ export default function HomeScreen() {
               }}
             >
               {stairs.map((stair, index) => (
-                <StairCard
+                <CondensedStairCard
                   key={stair.id}
                   stair={stair}
                   index={index}
@@ -435,200 +437,3 @@ export default function HomeScreen() {
   );
 }
 
-function StairCard({
-  stair,
-  index,
-  onPress,
-}: {
-  stair: typeof MOCK_STAIRS[0];
-  index: number;
-  onPress: () => void;
-}) {
-  const { t } = useTranslation('home');
-
-  const getGradientColors = () => {
-    if (stair.status === 'completed') {
-      return colors.gradients.success;
-    }
-    if (stair.status === 'current') {
-      return colors.gradients.primary;
-    }
-    return ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)'];
-  };
-
-  const isLocked = stair.status === 'locked';
-  const isCurrent = stair.status === 'current';
-
-  return (
-    <Animated.View
-      entering={FadeInDown.duration(600).delay(200 + index * 150).springify()}
-      style={{
-        marginBottom: spacing.lg,
-      }}
-    >
-      <TouchableOpacity
-        onPress={onPress}
-        disabled={isLocked}
-        activeOpacity={0.9}
-        style={{
-          borderRadius: borderRadius.xl,
-          borderWidth: isCurrent ? 3 : 1,
-          borderColor: isCurrent
-            ? colors.gradients.primary[0]
-            : isLocked
-              ? 'rgba(255, 255, 255, 0.1)'
-              : 'rgba(255, 255, 255, 0.2)',
-          overflow: 'hidden',
-          opacity: isLocked ? 0.5 : 1,
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: isCurrent ? colors.gradients.primary[0] : 'rgba(255, 255, 255, 0.05)',
-            padding: spacing.lg,
-            shadowColor: isCurrent ? colors.glow.primary : 'transparent',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: isCurrent ? 0.6 : 0,
-            shadowRadius: isCurrent ? 20 : 0,
-            elevation: isCurrent ? 12 : 0,
-          }}
-        >
-          {/* Stair Number Badge */}
-          <View
-            style={{
-              position: 'absolute',
-              top: spacing.md,
-              right: spacing.md,
-              width: 32,
-              height: 32,
-              borderRadius: borderRadius.full,
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text
-              style={{
-                fontSize: typography.fontSize.sm,
-                fontWeight: typography.fontWeight.bold,
-                color: colors.text.primary,
-              }}
-            >
-              {stair.order}
-            </Text>
-          </View>
-
-          {/* User Crown (for current stair) */}
-          {isCurrent && (
-            <View
-              style={{
-                position: 'absolute',
-                top: spacing.md,
-                left: spacing.md,
-                width: 40,
-                height: 40,
-                borderRadius: borderRadius.full,
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 24 }}>👑</Text>
-            </View>
-          )}
-
-          {/* Lock Icon (for locked stairs) */}
-          {isLocked && (
-            <View
-              style={{
-                position: 'absolute',
-                top: spacing.md,
-                left: spacing.md,
-                width: 40,
-                height: 40,
-                borderRadius: borderRadius.full,
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 24 }}>🔒</Text>
-            </View>
-          )}
-
-          {/* Content */}
-          <View style={{ marginTop: spacing.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-              <Text style={{ fontSize: 48, marginRight: spacing.md }}>{stair.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.xl,
-                    fontWeight: typography.fontWeight.bold,
-                    color: colors.text.primary,
-                    marginBottom: 4,
-                  }}
-                >
-                  {stair.title}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                  }}
-                >
-                  {stair.description}
-                </Text>
-              </View>
-            </View>
-
-            {/* Stats Row */}
-            <View
-              style={{
-                flexDirection: 'row',
-                gap: spacing.lg,
-                marginTop: spacing.md,
-                paddingTop: spacing.md,
-                borderTopWidth: 1,
-                borderTopColor: 'rgba(255, 255, 255, 0.1)',
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, marginRight: spacing.xs }}>📝</Text>
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                  }}
-                >
-                  {t(stair.vocabulary_count === 1 ? 'stair_card.vocabulary_count' : 'stair_card.vocabulary_count_plural', { count: stair.vocabulary_count })}
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, marginRight: spacing.xs }}>⏱️</Text>
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                  }}
-                >
-                  {t(stair.estimated_days === 1 ? 'stair_card.estimated_days' : 'stair_card.estimated_days_plural', { count: stair.estimated_days })}
-                </Text>
-              </View>
-              {stair.status === 'current' && (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 20 }}>🎯</Text>
-                </View>
-              )}
-              {stair.status === 'completed' && (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 20 }}>✅</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}

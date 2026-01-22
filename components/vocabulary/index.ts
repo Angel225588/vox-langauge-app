@@ -12,6 +12,13 @@ export { default as WordList } from './WordList';
 export { WordDetailPopup } from './WordDetailPopup';
 export { CategoryGrid } from './CategoryGrid';
 export { ViewToggle } from './ViewToggle';
+
+// New Word Bank redesign components
+export { PracticeNowCard } from './PracticeNowCard';
+export { ProgressBreakdown } from './ProgressBreakdown';
+export { FocusWordsList } from './FocusWordsList';
+export { RecentlyAddedList } from './RecentlyAddedList';
+export { CategoryScroller } from './CategoryScroller';
 export {
   EmptyWordBank,
   EmptySearchResults,
