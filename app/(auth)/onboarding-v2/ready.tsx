@@ -59,13 +59,21 @@ export default function ReadyScreen() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        // For demo/testing without auth, use a mock user ID
-        console.log('No authenticated user, using demo mode');
+        // PRODUCTION WARNING: No authenticated user detected
+        // This should only happen during development/testing
+        console.warn('[PathGeneration] ⚠️ DEMO MODE: No authenticated user found');
+        console.warn('[PathGeneration] ⚠️ In production, users must be authenticated before path generation');
+
+        if (__DEV__ === false) {
+          // In production, throw error instead of using demo mode
+          throw new Error('Authentication required. Please log in to create your learning path.');
+        }
       }
 
       // Generate a proper UUID for demo mode (database requires UUID format)
+      // WARNING: This is for development/testing only
       const generateDemoUUID = () => {
-        // Simple UUID v4 generator
+        console.warn('[PathGeneration] ⚠️ Generating demo UUID - not for production use');
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
           const r = (Math.random() * 16) | 0;
           const v = c === 'x' ? r : (r & 0x3) | 0x8;
@@ -101,11 +109,11 @@ export default function ReadyScreen() {
       setProgress(100);
       setBuildingStatus(t('ready.loading.ready'));
 
-      // Navigate to home after completion
+      // Navigate to countdown screen after completion
       setTimeout(() => {
         reset();
-        router.replace('/(tabs)/home');
-      }, 800);
+        router.replace('/(auth)/onboarding-v2/creating-plan');
+      }, 500);
 
     } catch (error) {
       console.error('Path generation error:', error);

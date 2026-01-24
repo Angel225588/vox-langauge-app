@@ -21,6 +21,7 @@ export interface PathGenerationInput {
   user_id: string;
   target_language: string;
   native_language: string;
+  target_accent?: string;  // User's preferred accent (e.g., 'es-latam', 'en-british', 'fr-france')
   motivation: string;
   motivation_custom?: string;
   why_now?: string;

@@ -4,10 +4,15 @@
  * Orchestrates the complete flow from onboarding data to stored learning path.
  * This service is the central coordinator for:
  * - Converting onboarding data to AI-compatible format
- * - Generating personalized learning paths with Gemini AI
+ * - Generating personalized learning paths with Claude + Gemini AI Orchestration
  * - Storing paths in the database (learning_path, section, stairs)
  * - Initializing user AI memory for future personalization
  * - Handling fallback to templates when AI generation fails
+ *
+ * ## AI Architecture (Claude + Gemini Orchestration)
+ * - **Claude (Supervisor)**: Strategic planning, structure creation, validation
+ * - **Gemini (Worker)**: Bulk content generation (vocabulary, scenarios, etc.)
+ * - Falls back to Gemini-only mode if Claude is unavailable
  *
  * @module lib/services/pathGeneration
  */
@@ -27,6 +32,11 @@ import {
   validateGeneratedPath,
 } from '@/lib/ai/prompts/pathGeneration';
 import { initializeUserMemory } from '@/lib/ai/userMemory';
+import {
+  AIOrchestrator,
+  isOrchestrationAvailable,
+  type OrchestrationProgress,
+} from '@/lib/ai/orchestrator';
 
 import {
   createLearningPath,
@@ -45,6 +55,7 @@ import {
 export interface OnboardingData {
   native_language: string | null;
   target_language: string | null;
+  target_accent: string | null;  // User's preferred accent (e.g., 'es-latam', 'en-british')
   motivation: string | null;
   motivation_custom: string | null;
   why_now: string | null;
@@ -61,6 +72,34 @@ export interface PathCreationResult {
   success: boolean;
   pathId?: string;
   error?: string;
+  /** AI orchestration metrics (when using Claude + Gemini) */
+  metrics?: {
+    totalDurationMs: number;
+    planningDurationMs: number;
+    contentGenerationDurationMs: number;
+    usedClaude: boolean;
+  };
+}
+
+/**
+ * Options for path creation.
+ */
+export interface PathCreationOptions {
+  /**
+   * Progress callback for streaming UI updates.
+   * Called throughout the generation process with progress info.
+   */
+  onProgress?: (progress: OrchestrationProgress) => void;
+  /**
+   * Callback when early reveal threshold is reached.
+   * Allows showing partial stairs before all content is ready.
+   */
+  onEarlyRevealReady?: (partialStairs: GeneratedStair[]) => void;
+  /**
+   * Force Gemini-only mode even if Claude is available.
+   * Useful for A/B testing or when Claude quota is exceeded.
+   */
+  forceGeminiOnly?: boolean;
 }
 
 // ============================================================================
@@ -72,17 +111,31 @@ export interface PathCreationResult {
  *
  * This is the main entry point that orchestrates the entire path generation flow:
  * 1. Validates and transforms onboarding data
- * 2. Calls Gemini AI to generate the learning path
+ * 2. Uses Claude + Gemini AI orchestration (falls back to Gemini-only if needed)
  * 3. Stores the path in the database (learning_path, section, stairs)
  * 4. Initializes user AI memory for future personalization
  *
+ * ## AI Architecture
+ * When Claude is available:
+ * - Claude generates the strategic STRUCTURE (staircase plan)
+ * - Gemini generates the CONTENT for each stair (vocabulary, scenarios)
+ * - Progress events emitted for streaming UI updates
+ *
+ * When Claude is unavailable:
+ * - Falls back to Gemini-only two-phase approach
+ * - Still generates high-quality personalized paths
+ *
  * @param userId - The user's unique identifier
  * @param onboardingData - Data collected during onboarding
+ * @param options - Optional configuration for progress callbacks
  * @returns Promise with success status and path ID or error message
  *
  * @example
  * ```typescript
- * const result = await createPersonalizedPath('user-123', onboardingData);
+ * const result = await createPersonalizedPath('user-123', onboardingData, {
+ *   onProgress: (p) => setProgress(p.progress),
+ *   onEarlyRevealReady: (stairs) => showPartialStairs(stairs),
+ * });
  * if (result.success) {
  *   console.log('Path created:', result.pathId);
  *   router.push('/home');
@@ -93,10 +146,15 @@ export interface PathCreationResult {
  */
 export async function createPersonalizedPath(
   userId: string,
-  onboardingData: OnboardingData
+  onboardingData: OnboardingData,
+  options: PathCreationOptions = {}
 ): Promise<PathCreationResult> {
   console.log('[PathGeneration] Starting path creation for user:', userId);
   console.log('[PathGeneration] Onboarding data:', JSON.stringify(onboardingData, null, 2));
+
+  // Check AI availability
+  const aiStatus = isOrchestrationAvailable();
+  console.log('[PathGeneration] AI Status:', aiStatus);
 
   try {
     // Step 1: Validate onboarding data
@@ -113,22 +171,60 @@ export async function createPersonalizedPath(
     const pathInput = transformOnboardingToInput(userId, onboardingData);
     console.log('[PathGeneration] Transformed input:', JSON.stringify(pathInput, null, 2));
 
-    // Step 3: Generate the learning path with Gemini AI
+    // Step 3: Generate the learning path
     let generatedPath: GeneratedPath;
-    try {
-      generatedPath = await generateLearningPath(pathInput);
-      console.log('[PathGeneration] AI generated path:', generatedPath.path_title);
-      console.log('[PathGeneration] Total stairs:', generatedPath.total_stairs);
-    } catch (aiError) {
-      console.error('[PathGeneration] AI generation failed:', aiError);
-      console.log('[PathGeneration] Falling back to template-based path');
+    let usedClaude = false;
+    let metrics: PathCreationResult['metrics'] | undefined;
 
-      // Fallback to template-based generation
-      generatedPath = generateFallbackPath(
-        pathInput.motivation,
-        pathInput.target_language,
-        pathInput.proficiency_level
-      );
+    // Use Claude + Gemini orchestration if available and not forced to Gemini-only
+    const useOrchestration = aiStatus.claude && !options.forceGeminiOnly;
+
+    if (useOrchestration) {
+      console.log('[PathGeneration] Using Claude + Gemini orchestration');
+
+      const orchestrator = new AIOrchestrator({
+        onProgress: options.onProgress,
+        onEarlyRevealReady: options.onEarlyRevealReady,
+        earlyRevealThreshold: 50, // Trigger at 50% completion
+      });
+
+      const result = await orchestrator.generateLearningPath(pathInput);
+
+      if (result.success && result.path) {
+        generatedPath = result.path;
+        usedClaude = true;
+        metrics = {
+          totalDurationMs: result.metrics?.totalDurationMs ?? 0,
+          planningDurationMs: result.metrics?.planningDurationMs ?? 0,
+          contentGenerationDurationMs: result.metrics?.contentGenerationDurationMs ?? 0,
+          usedClaude: true,
+        };
+        console.log('[PathGeneration] Orchestrator generated path:', generatedPath.path_title);
+        console.log('[PathGeneration] Total stairs:', generatedPath.total_stairs);
+        console.log('[PathGeneration] Metrics:', metrics);
+      } else {
+        console.warn('[PathGeneration] Orchestrator failed, falling back to Gemini-only:', result.error);
+        // Fall through to Gemini-only approach below
+        generatedPath = await generateLearningPathGeminiOnly(pathInput, options.onProgress);
+      }
+    } else {
+      // Gemini-only mode
+      console.log('[PathGeneration] Using Gemini-only mode');
+      try {
+        generatedPath = await generateLearningPathGeminiOnly(pathInput, options.onProgress);
+        console.log('[PathGeneration] Gemini generated path:', generatedPath.path_title);
+        console.log('[PathGeneration] Total stairs:', generatedPath.total_stairs);
+      } catch (aiError) {
+        console.error('[PathGeneration] AI generation failed:', aiError);
+        console.log('[PathGeneration] Falling back to template-based path');
+
+        // Fallback to template-based generation
+        generatedPath = generateFallbackPath(
+          pathInput.motivation,
+          pathInput.target_language,
+          pathInput.proficiency_level
+        );
+      }
     }
 
     // Step 4: Store the path in the database
@@ -147,9 +243,20 @@ export async function createPersonalizedPath(
     });
     console.log('[PathGeneration] User AI memory initialized');
 
+    // Emit final progress
+    if (options.onProgress) {
+      options.onProgress({
+        phase: 'complete',
+        progress: 100,
+        message: 'Your learning path is ready!',
+        totalStairs: generatedPath.total_stairs,
+      });
+    }
+
     return {
       success: true,
       pathId,
+      metrics,
     };
   } catch (error) {
     console.error('[PathGeneration] Unexpected error:', error);
@@ -158,6 +265,34 @@ export async function createPersonalizedPath(
       error: error instanceof Error ? error.message : 'Unknown error occurred',
     };
   }
+}
+
+/**
+ * Generates a learning path using Gemini-only approach (two-phase).
+ * This is the fallback when Claude is not available.
+ */
+async function generateLearningPathGeminiOnly(
+  input: PathGenerationInput,
+  onProgress?: (progress: OrchestrationProgress) => void
+): Promise<GeneratedPath> {
+  // Emit progress for skeleton phase
+  onProgress?.({
+    phase: 'planning',
+    progress: 10,
+    message: 'Creating your personalized learning path...',
+  });
+
+  const generatedPath = await generateLearningPath(input);
+
+  // Emit progress for content phase
+  onProgress?.({
+    phase: 'generating_content',
+    progress: 80,
+    message: 'Adding vocabulary and scenarios...',
+    totalStairs: generatedPath.total_stairs,
+  });
+
+  return generatedPath;
 }
 
 // ============================================================================
@@ -237,6 +372,7 @@ function transformOnboardingToInput(
     user_id: userId,
     target_language: data.target_language!,
     native_language: data.native_language!,
+    target_accent: data.target_accent || undefined,  // Preserve accent for voice conversations
     motivation: data.motivation || 'custom',
     motivation_custom: data.motivation_custom || undefined,
     why_now: data.why_now || undefined,
@@ -656,16 +792,18 @@ async function storePath(
   };
   const cefrLevel = cefrMap[input.proficiency_level] || 'A1';
 
-  // Step 1: Create learning_path record
+  // Step 1: Create learning_path record (includes target_accent for voice features)
   const pathResult = await createLearningPath(userId, {
     title: generatedPath.path_title,
     description: generatedPath.path_description,
     target_language: input.target_language,
     native_language: input.native_language,
+    target_accent: input.target_accent,  // Persist accent for voice conversations
     motivation: input.motivation,
     proficiency_level: cefrLevel,
     timeline: input.timeline,
   });
+  console.log('[PathGeneration] Storing with accent:', input.target_accent || 'default');
 
   if (!pathResult) {
     console.error('[PathGeneration] createLearningPath returned null');
@@ -718,3 +856,7 @@ export {
   storePath,
   validateOnboardingData,
 };
+
+// Re-export orchestration types for convenience
+export type { OrchestrationProgress } from '@/lib/ai/orchestrator';
+export { isOrchestrationAvailable } from '@/lib/ai/orchestrator';
