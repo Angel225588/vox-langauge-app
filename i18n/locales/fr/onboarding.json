@@ -109,7 +109,12 @@
     "character_count": "{{count}} / 20 caractères minimum",
     "why_matters_title": "Pourquoi c'est important :",
     "why_matters_points": "• Les recherches montrent que la responsabilité augmente le succès de 65%\n• Connaître votre \"pourquoi\" vous aide à continuer quand ça devient difficile\n• C'est pour vous. Nous sommes là pour soutenir votre parcours.",
+    "subtitle": "Cela nous aide à adapter le rythme de vos leçons et à fixer des objectifs.",
     "continue": "Continuer"
+  },
+  "your_stakes": {
+    "continue": "Continuer",
+    "select_vision": "Sélectionnez votre vision"
   },
   "ready": {
     "emoji": "🎯",

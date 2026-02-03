@@ -124,7 +124,12 @@ export default function StaircaseScreen() {
 
   const handleStairPress = (stairId: string, status: string) => {
     if (status === 'locked') {
-      // Show locked message
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        'Stair Locked',
+        'Complete the previous stairs to unlock this one.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -295,7 +300,12 @@ export default function StaircaseScreen() {
             >
               🏅 Latest Achievement
             </Text>
-            <TouchableOpacity activeOpacity={0.7}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                Alert.alert('Coming Soon', 'The achievements gallery is under construction.');
+              }}
+            >
               <Text
                 style={{
                   fontSize: typography.fontSize.sm,

@@ -55,7 +55,7 @@ export default function YourCommitmentScreen() {
         >
           <Text style={styles.title}>{t('your_commitment.goal_question')}</Text>
           <Text style={styles.subtitle}>
-            This helps us pace your lessons and set milestones.
+            {t('your_commitment.subtitle')}
           </Text>
         </Animated.View>
 

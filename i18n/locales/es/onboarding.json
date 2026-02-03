@@ -109,7 +109,12 @@
     "character_count": "{{count}} / 20 caracteres mínimo",
     "why_matters_title": "Por qué esto importa:",
     "why_matters_points": "• La investigación muestra que la responsabilidad aumenta el éxito en un 65%\n• Saber tu \"por qué\" te mantiene adelante cuando se pone difícil\n• Esto es para ti. Estamos aquí para apoyar tu viaje.",
+    "subtitle": "Esto nos ayuda a marcar el ritmo de tus lecciones y establecer metas.",
     "continue": "Continuar"
+  },
+  "your_stakes": {
+    "continue": "Continuar",
+    "select_vision": "Selecciona tu visión"
   },
   "ready": {
     "emoji": "🎯",

@@ -61,7 +61,7 @@ export default function LoginScreen() {
 
       console.log('Login successful:', data.user?.email);
       setLoading(false);
-      router.replace('/(tabs)/home');
+      router.replace('/');
     } catch (error) {
       setLoading(false);
       console.error('Login exception:', error);

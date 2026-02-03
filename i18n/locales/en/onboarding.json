@@ -109,7 +109,12 @@
     "character_count": "{{count}} / 20 characters minimum",
     "why_matters_title": "Why this matters:",
     "why_matters_points": "• Research shows accountability increases success by 65%\n• Knowing your \"why\" keeps you going when it gets hard\n• This is for you. We're here to support your journey.",
+    "subtitle": "This helps us pace your lessons and set milestones.",
     "continue": "Continue"
+  },
+  "your_stakes": {
+    "continue": "Continue",
+    "select_vision": "Select your vision"
   },
   "ready": {
     "emoji": "🎯",

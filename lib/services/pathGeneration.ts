@@ -63,6 +63,7 @@ export interface OnboardingData {
   previous_attempts: string | null;
   timeline: string | null;
   commitment_stakes: string | null;
+  stakes: string | null;
 }
 
 /**
@@ -326,7 +327,7 @@ function validateOnboardingData(data: OnboardingData): string | null {
     return 'Timeline is required';
   }
 
-  if (!data.commitment_stakes) {
+  if (!data.commitment_stakes && !data.stakes) {
     return 'Commitment stakes are required';
   }
 
@@ -379,7 +380,7 @@ function transformOnboardingToInput(
     proficiency_level: proficiency,
     timeline,
     previous_attempts: data.previous_attempts || undefined,
-    commitment_stakes: data.commitment_stakes!,
+    commitment_stakes: (data.commitment_stakes || data.stakes)!,
   };
 }
 

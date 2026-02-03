@@ -14,10 +14,12 @@ import * as Haptics from 'expo-haptics';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
 import { useOnboardingV2, STAKES_OPTIONS } from '@/hooks/useOnboardingV2';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, borderRadius, shadows, typography } from '@/constants/designSystem';
 
 export default function YourStakesScreen() {
   const router = useRouter();
+  const { t } = useTranslation('onboarding');
   const { data, updateData, nextStep } = useOnboardingV2();
 
   const [selectedStake, setSelectedStake] = useState<string | null>(data.stakes);
@@ -152,11 +154,11 @@ export default function YourStakesScreen() {
                   end={{ x: 1, y: 0 }}
                   style={styles.buttonGradient}
                 >
-                  <Text style={styles.continueButtonText}>Continue</Text>
+                  <Text style={styles.continueButtonText}>{t('your_stakes.continue')}</Text>
                 </LinearGradient>
               ) : (
                 <View style={styles.buttonDisabled}>
-                  <Text style={styles.continueButtonTextDisabled}>Select your vision</Text>
+                  <Text style={styles.continueButtonTextDisabled}>{t('your_stakes.select_vision')}</Text>
                 </View>
               )}
             </TouchableOpacity>
