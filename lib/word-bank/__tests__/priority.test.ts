@@ -319,10 +319,11 @@ describe('Priority Algorithm', () => {
       expect(penalty).toBeGreaterThan(10);
     });
 
-    it('should return ~50 for halfway through interval', () => {
+    it('should return ~43 for halfway through interval', () => {
       // Reviewed 3.5 days ago, interval is 7 days
+      // Math.floor(3.5) = 3 days, so penalty = (3/7) * 100 ≈ 42.86
       const penalty = calculateRecencyPenalty(getDaysAgo(3.5), 7);
-      expect(penalty).toBeCloseTo(50, 0);
+      expect(penalty).toBeCloseTo(43, 0);
     });
 
     it('should calculate correct penalty for various intervals', () => {

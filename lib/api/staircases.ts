@@ -76,6 +76,7 @@ export async function completeOnboarding(
         proficiency_level: profile.proficiency_level,
         daily_time_minutes: profile.daily_time_minutes,
         scenarios: profile.scenarios,
+        ...(profile.motivation_data && { motivation_data: profile.motivation_data }),
       });
 
     if (profileError) {

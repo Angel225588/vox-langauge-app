@@ -1,3 +1,12 @@
+// Mock expo-sqlite before any imports that depend on it
+jest.mock('expo-sqlite', () => ({
+  openDatabaseSync: jest.fn(() => ({
+    execSync: jest.fn(),
+    getAllSync: jest.fn(() => []),
+    runSync: jest.fn(),
+  })),
+}));
+
 import { syncData } from '@/lib/db/sync';
 import * as sqlite from '@/lib/db/sqlite';
 import { supabase } from '@/lib/db/supabase';

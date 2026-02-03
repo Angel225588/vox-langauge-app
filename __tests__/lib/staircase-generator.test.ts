@@ -21,7 +21,7 @@ import {
   UserProfile,
   PersonalizedStaircase,
   Stair,
-  // __setGenAIForTesting, // TODO: Add this export if needed for advanced testing
+  __setGenAIForTesting,
 } from '../../lib/gemini/staircase-generator';
 
 describe('Staircase Generator', () => {
@@ -35,24 +35,20 @@ describe('Staircase Generator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Reset the mock to return the generateContent function properly
-    mockGenerateContent.mockReset();
+    // Restore the model to return generateContent properly
     mockGetGenerativeModel.mockReturnValue({
       generateContent: mockGenerateContent,
     });
 
-    // TODO: Uncomment when __setGenAIForTesting is implemented
-    // Set up the mock GenAI instance for all tests
-    // const mockGenAI: any = {
-    //   getGenerativeModel: mockGetGenerativeModel,
-    // };
-    // __setGenAIForTesting(mockGenAI);
+    // Inject mock GenAI instance so module-level singleton is bypassed
+    __setGenAIForTesting({
+      getGenerativeModel: mockGetGenerativeModel,
+    });
   });
 
   afterEach(() => {
-    // TODO: Uncomment when __setGenAIForTesting is implemented
-    // Clean up after each test
-    // __setGenAIForTesting(null);
+    // Reset to force fresh instance on next call
+    __setGenAIForTesting(null);
   });
 
   describe('generatePersonalizedStaircase', () => {

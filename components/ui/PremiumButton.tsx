@@ -58,6 +58,7 @@ export type PremiumButtonProps = GetProps<typeof ButtonFrame> & {
 
 export function PremiumButton({ children, loading, ...props }: PremiumButtonProps) {
   return (
+    // @ts-ignore - Tamagui v1 type issues with styled() spread
     <ButtonFrame {...props}>
       {loading ? <Spinner /> : children}
     </ButtonFrame>

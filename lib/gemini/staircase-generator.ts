@@ -12,7 +12,19 @@ if (!GEMINI_API_KEY) {
   console.warn('⚠️  GEMINI_API_KEY not found. Staircase generation will fail.');
 }
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+let _genAI: GoogleGenerativeAI | null = null;
+
+function getGenAI(): GoogleGenerativeAI {
+  if (!_genAI) {
+    _genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  }
+  return _genAI;
+}
+
+/** @internal For testing only */
+export function __setGenAIForTesting(instance: any) {
+  _genAI = instance;
+}
 
 export interface UserProfile {
   learning_goal: string;
@@ -55,21 +67,35 @@ export async function generatePersonalizedStaircase(
   profile: UserProfile
 ): Promise<PersonalizedStaircase> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+    // Build motivation section if available
+    const motivationSection = profile.motivation_data ? `
+
+**Deep Motivations:**
+- Why they want to learn: ${profile.motivation_data.why || 'Not specified'}
+- Biggest fear/frustration: ${profile.motivation_data.fear || 'Not specified'}
+- What's at stake: ${profile.motivation_data.stakes || 'Not specified'}
+- Timeline: ${profile.motivation_data.timeline || 'Not specified'}` : '';
+
+    const motivationInstructions = profile.motivation_data ? `
+6. Address their fears and frustrations
+7. Help them achieve what's at stake: "${profile.motivation_data.stakes || 'their goals'}"
+8. Keep their timeline in mind: ${profile.motivation_data.timeline || 'flexible'}` : '';
 
     const prompt = `You are an expert language learning curriculum designer. Generate a personalized English learning staircase (progressive steps) for a user with the following profile:
 
 **Learning Goal:** ${profile.learning_goal}
 **Current Level:** ${profile.proficiency_level}
 **Daily Time:** ${profile.daily_time_minutes} minutes
-**Focus Scenarios:** ${profile.scenarios.join(', ')}
+**Focus Scenarios:** ${profile.scenarios.join(', ')}${motivationSection}
 
 Create a JSON staircase with 8-12 progressive stairs (learning steps). Each stair should:
 1. Build upon the previous one
 2. Focus on the user's specific scenarios
 3. Match their proficiency level and goal
 4. Be achievable within their daily time commitment
-5. Include realistic vocabulary counts and time estimates
+5. Include realistic vocabulary counts and time estimates${motivationInstructions}
 
 Return ONLY valid JSON in this exact format (no markdown, no explanations):
 
