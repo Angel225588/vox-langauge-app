@@ -15,7 +15,16 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.voxlanguageapp"
+      "bundleIdentifier": "com.anonymous.voxlanguageapp",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Vox needs microphone access for voice conversations with AI tutors.",
+        "NSSpeechRecognitionUsageDescription": "Vox uses speech recognition for language practice.",
+        "UIBackgroundModes": [
+          "audio",
+          "audio"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +33,12 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.voxlanguageapp"
+      "package": "com.anonymous.voxlanguageapp",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,6 +51,13 @@
           "enableCRSQLite": true
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0a119f61-d22f-44fa-b9f7-eac4c3b8d773"
+      }
+    },
+    "owner": "angel2255"
   }
 }

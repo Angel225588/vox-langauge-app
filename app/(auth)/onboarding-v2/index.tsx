@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { colors, spacing, borderRadius, typography, shadows } from '@/constants/designSystem';
 
@@ -17,6 +18,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('onboarding');
 
   return (
     <CometBackground intensity="high">
@@ -39,8 +41,8 @@ export default function WelcomeScreen() {
             entering={FadeInUp.duration(800).delay(400)}
             style={styles.sloganContainer}
           >
-            <Text style={styles.slogan}>Keep learning</Text>
-            <Text style={styles.slogan}>and keep going</Text>
+            <Text style={styles.slogan}>{t('welcome.slogan_line1')}</Text>
+            <Text style={styles.slogan}>{t('welcome.slogan_line2')}</Text>
           </Animated.View>
 
           {/* Spacer */}
@@ -65,21 +67,8 @@ export default function WelcomeScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.primaryButtonGradient}
               >
-                <Text style={styles.primaryButtonText}>Continue with Email</Text>
+                <Text style={styles.primaryButtonText}>{t('welcome.continue_with_email')}</Text>
               </LinearGradient>
-            </AnimatedPressable>
-
-            {/* Secondary Button - Magic Link */}
-            <AnimatedPressable
-              onPress={() => router.push('/(auth)/onboarding-v2/magic-link')}
-              style={({ pressed }) => [
-                styles.secondaryButton,
-                pressed && styles.secondaryButtonPressed,
-              ]}
-            >
-              <View style={styles.secondaryButtonContent}>
-                <Text style={styles.secondaryButtonText}>Sign in with Magic Link</Text>
-              </View>
             </AnimatedPressable>
           </Animated.View>
 
@@ -88,9 +77,9 @@ export default function WelcomeScreen() {
             entering={FadeIn.duration(600).delay(800)}
             style={[styles.signInContainer, { paddingBottom: insets.bottom + spacing.lg }]}
           >
-            <Text style={styles.signInText}>Already have an account? </Text>
+            <Text style={styles.signInText}>{t('welcome.already_have_account')} </Text>
             <Pressable onPress={() => router.push('/(auth)/onboarding-v2/login')}>
-              <Text style={styles.signInLink}>Sign In</Text>
+              <Text style={styles.signInLink}>{t('welcome.sign_in')}</Text>
             </Pressable>
           </Animated.View>
         </View>
@@ -180,7 +169,7 @@ const styles = StyleSheet.create({
 
   // Primary Button (Gradient)
   primaryButton: {
-    borderRadius: borderRadius.lg,
+    borderRadius: 9999,
     overflow: 'hidden',
     ...shadows.glow.primary,
   },
@@ -194,6 +183,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 56,
+    borderRadius: 9999,
   },
   primaryButtonText: {
     fontSize: typography.fontSize.lg,
@@ -203,7 +193,7 @@ const styles = StyleSheet.create({
 
   // Secondary Button (Outlined)
   secondaryButton: {
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     borderWidth: 2,
     borderColor: colors.primary.DEFAULT,
     backgroundColor: 'transparent',

@@ -38,20 +38,22 @@ import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
 import { useHaptics } from '@/hooks/useHaptics';
+import { AudioButton, AudioButtonGroup } from '@/components/ui';
 import { useVocabCard } from './hooks/useVocabCard';
 import type { VocabCardProps } from '@/types/vocabulary';
 
 type Phase = 'listen' | 'speak' | 'review';
 
-export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
-  const haptics = useHaptics();
+export function SpeakingCard({ item, onComplete, onSkip, onCantSpeak }: VocabCardProps) {
   const insets = useSafeAreaInsets();
+  const haptics = useHaptics();
 
   // Phase state
   const [phase, setPhase] = useState<Phase>('listen');
 
   // Audio playback state
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1.0);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [listenCount, setListenCount] = useState(0);
 
@@ -68,7 +70,6 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
   });
 
   // Animation values
-  const playButtonScale = useSharedValue(1);
   const recordButtonScale = useSharedValue(1);
   const recordButtonRotation = useSharedValue(0);
   const pulseScale = useSharedValue(1);
@@ -82,6 +83,15 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
         console.warn('Microphone permission not granted');
       }
     })();
+  }, []);
+
+  // Auto-play word audio on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handlePlayAudio(false);
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cleanup on unmount
@@ -112,14 +122,13 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
     }
   }, [isPlaying, isRecording]);
 
-  const handlePlayAudio = useCallback(async () => {
+  const handlePlayAudio = useCallback(async (slow = false) => {
     haptics.light();
     trackAudioPlay();
     setListenCount(prev => prev + 1);
 
-    playButtonScale.value = withSpring(0.9, {}, () => {
-      playButtonScale.value = withSpring(1);
-    });
+    const rate = slow ? 0.6 : 1.0;
+    setPlaybackRate(rate);
 
     if (isPlaying && sound) {
       await sound.stopAsync();
@@ -134,7 +143,7 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
         if (sound) await sound.unloadAsync();
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: item.audioUrl },
-          { shouldPlay: true },
+          { shouldPlay: true, rate, shouldCorrectPitch: true },
           (status) => {
             if (status.isLoaded && status.didJustFinish) {
               setIsPlaying(false);
@@ -148,7 +157,7 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
         setSound(newSound);
       } catch {
         Speech.speak(item.word, {
-          rate: 0.8,
+          rate: slow ? 0.5 : 0.8,
           onDone: () => {
             setIsPlaying(false);
             if (phase === 'listen') {
@@ -160,7 +169,7 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
       }
     } else {
       Speech.speak(item.word, {
-        rate: 0.8,
+        rate: slow ? 0.5 : 0.8,
         onDone: () => {
           setIsPlaying(false);
           if (phase === 'listen') {
@@ -267,11 +276,18 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
     onSkip?.();
   }, [haptics, complete, onSkip]);
 
-  // Animated styles
-  const playButtonStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: playButtonScale.value }],
-  }));
+  const handleCantSpeak = useCallback(() => {
+    haptics.light();
+    if (onCantSpeak) {
+      onCantSpeak();
+    } else {
+      // Fallback to skip if no handler
+      complete(true);
+      onSkip?.();
+    }
+  }, [haptics, complete, onSkip, onCantSpeak]);
 
+  // Animated styles
   const recordButtonStyle = useAnimatedStyle(() => ({
     transform: [
       { scale: recordButtonScale.value },
@@ -310,7 +326,7 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
   }));
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       {/* Header Badge */}
       <Animated.View
         entering={FadeInDown.duration(400)}
@@ -341,25 +357,20 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
           entering={FadeIn.duration(400).delay(200)}
           style={styles.audioSection}
         >
-          {/* Pulse background */}
-          {isPlaying && <Animated.View style={[styles.pulseBg, pulseStyle]} />}
-
-          <Animated.View style={playButtonStyle}>
-            <TouchableOpacity
-              onPress={handlePlayAudio}
-              activeOpacity={0.8}
-              style={[
-                styles.audioButton,
-                isPlaying && styles.audioButtonActive,
-              ]}
-            >
-              <Ionicons
-                name={isPlaying ? "pause" : "volume-high"}
-                size={28}
-                color={isPlaying ? colors.text.primary : colors.primary.DEFAULT}
-              />
-            </TouchableOpacity>
-          </Animated.View>
+          <AudioButtonGroup size="compact" showContainer={false}>
+            <AudioButton
+              variant="play"
+              isPlaying={isPlaying && playbackRate === 1.0}
+              onPress={() => handlePlayAudio(false)}
+              size="md"
+            />
+            <AudioButton
+              variant="slow"
+              isPlaying={isPlaying && playbackRate < 1.0}
+              onPress={() => handlePlayAudio(true)}
+              size="md"
+            />
+          </AudioButtonGroup>
 
           <Text style={styles.listenLabel}>
             {listenCount === 0 ? 'Tap to hear' : `Heard ${listenCount}x`}
@@ -458,7 +469,7 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
       </View>
 
       {/* Bottom Actions */}
-      <View style={[styles.bottomActions, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]}>
+      <View style={[styles.bottomActions, { paddingBottom: insets.bottom + spacing.md }]}>
         {phase === 'review' ? (
           <View style={styles.buttonRow}>
             <TouchableOpacity
@@ -490,11 +501,12 @@ export function SpeakingCard({ item, onComplete, onSkip }: VocabCardProps) {
           </View>
         ) : (
           <TouchableOpacity
-            onPress={handleSkip}
+            onPress={handleCantSpeak}
             activeOpacity={0.7}
-            style={styles.skipButton}
+            style={styles.cantSpeakButton}
           >
-            <Text style={styles.skipButtonText}>Skip this word</Text>
+            <Ionicons name="pencil" size={16} color={colors.text.secondary} />
+            <Text style={styles.cantSpeakButtonText}>I can't speak now</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -553,29 +565,6 @@ const styles = StyleSheet.create({
   audioSection: {
     alignItems: 'center',
     marginBottom: spacing['2xl'],
-    position: 'relative',
-  },
-  pulseBg: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary.DEFAULT,
-  },
-  audioButton: {
-    width: 72,
-    height: 72,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.border.light,
-    ...shadows.md,
-  },
-  audioButtonActive: {
-    backgroundColor: colors.primary.DEFAULT,
-    borderColor: colors.primary.light,
   },
   listenLabel: {
     marginTop: spacing.md,
@@ -673,7 +662,6 @@ const styles = StyleSheet.create({
   },
   bottomActions: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
     paddingTop: spacing.md,
     backgroundColor: colors.background.primary,
     borderTopWidth: 1,
@@ -728,6 +716,23 @@ const styles = StyleSheet.create({
   skipButtonText: {
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
+    fontWeight: typography.fontWeight.medium,
+  },
+  cantSpeakButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  cantSpeakButtonText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
     fontWeight: typography.fontWeight.medium,
   },
 });

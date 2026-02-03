@@ -8,14 +8,20 @@ import { View, Text, StyleSheet, TouchableOpacity, Pressable, TextInput, ScrollV
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
-import { useOnboardingV2, PROFICIENCY_LEVELS } from '@/hooks/useOnboardingV2';
+import { BackButton } from '@/components/ui/BackButton';
+import { useOnboardingV2, PROFICIENCY_LEVELS, TARGET_LANGUAGES } from '@/hooks/useOnboardingV2';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
 
 export default function YourLevelScreen() {
   const { data, updateData, nextStep } = useOnboardingV2();
+  const { t } = useTranslation('onboarding');
   const [selectedLevel, setSelectedLevel] = useState<string | null>(data.proficiency_level);
   const [previousAttempts, setPreviousAttempts] = useState<string>(data.previous_attempts || '');
+
+  // Focus state for input
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const handleContinue = () => {
     if (selectedLevel) {
@@ -28,7 +34,9 @@ export default function YourLevelScreen() {
     }
   };
 
-  const targetLanguage = data.target_language || 'this language';
+  // Get the target language display name
+  const targetLang = TARGET_LANGUAGES.find(l => l.code === data.target_language);
+  const targetLanguage = targetLang?.label || 'this language';
 
   return (
     <CometBackground intensity="medium">
@@ -43,19 +51,32 @@ export default function YourLevelScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Header */}
+            {/* Back Button */}
+            <View style={styles.backButtonContainer}>
+              <BackButton onPress={() => router.back()} />
+            </View>
+
+            {/* Progress Indicator - Dots */}
             <View style={styles.header}>
-              <Text style={styles.stepIndicator}>Step 3 of 5</Text>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: '60%' }]} />
+              <View style={styles.dotsContainer}>
+                {[1, 2, 3, 4, 5, 6].map((step) => (
+                  <View
+                    key={step}
+                    style={[
+                      styles.dot,
+                      step === 3 && styles.dotActive,
+                      step < 3 && styles.dotCompleted,
+                    ]}
+                  />
+                ))}
               </View>
             </View>
 
             {/* Question */}
             <View style={styles.questionContainer}>
               <Text style={styles.question}>
-                Where are you in your{'\n'}
-                <Text style={styles.languageHighlight}>{targetLanguage}</Text> journey?
+                {t('your_level.title')}{'\n'}
+                <Text style={styles.languageHighlight}>{targetLanguage}</Text> {t('your_level.title_suffix')}
               </Text>
             </View>
 
@@ -102,18 +123,20 @@ export default function YourLevelScreen() {
             {/* Optional: Previous Attempts */}
             <View style={styles.optionalSection}>
               <Text style={styles.optionalLabel}>
-                What have you tried before? (Optional)
+                {t('your_level.previous_attempts_label')} {t('your_why.optional')}
               </Text>
               <Text style={styles.optionalSubtext}>
-                We understand learning is hard. We're here to help make it stick this time.
+                {t('your_level.previous_attempts_subtext')}
               </Text>
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, isInputFocused && styles.inputContainerFocused]}>
                 <TextInput
                   style={styles.input}
-                  placeholder="E.g., Duolingo, classes in school, watching movies..."
+                  placeholder={t('your_level.previous_attempts_placeholder')}
                   placeholderTextColor={colors.text.tertiary}
                   value={previousAttempts}
                   onChangeText={setPreviousAttempts}
+                  onFocus={() => setIsInputFocused(true)}
+                  onBlur={() => setIsInputFocused(false)}
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
@@ -143,7 +166,7 @@ export default function YourLevelScreen() {
                   styles.continueButtonText,
                   !selectedLevel && styles.continueButtonTextDisabled
                 ]}>
-                  Continue
+                  {t('your_level.continue')}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -165,26 +188,30 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xl,
   },
+  backButtonContainer: {
+    marginBottom: spacing.md,
+  },
   header: {
     marginBottom: spacing.xl,
+    alignItems: 'center',
   },
-  stepIndicator: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.tertiary,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
+  dotsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-  progressBar: {
-    height: 4,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: colors.background.elevated,
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
   },
-  progressFill: {
-    height: '100%',
+  dotActive: {
+    width: 24,
     backgroundColor: colors.primary.DEFAULT,
-    borderRadius: borderRadius.full,
+  },
+  dotCompleted: {
+    backgroundColor: colors.primary.light,
   },
   questionContainer: {
     marginBottom: spacing.xl,
@@ -268,9 +295,12 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     minHeight: 90,
   },
+  inputContainerFocused: {
+    borderColor: colors.primary.DEFAULT,
+  },
   footer: {
     padding: spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? spacing.sm : spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? spacing.sm : spacing.md,
     backgroundColor: colors.background.primary,
   },
   continueButton: {

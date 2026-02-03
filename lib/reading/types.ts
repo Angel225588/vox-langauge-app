@@ -226,6 +226,9 @@ export interface Passage {
   /** Category/topic (e.g., 'travel', 'food', 'business') */
   category: string;
 
+  /** Target language of the passage (e.g., 'spanish', 'french') */
+  language?: string;
+
   /** Total word count */
   wordCount: number;
 

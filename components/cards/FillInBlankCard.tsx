@@ -18,6 +18,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
 import { DarkOverlay, AnswerOption, AnswerFeedbackOverlay } from '@/components/ui';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -38,6 +39,7 @@ export function FillInBlankCard({
   onNext,
 }: FillInBlankCardProps) {
   const haptics = useHaptics();
+  const insets = useSafeAreaInsets();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const buttonScale = useSharedValue(1);
@@ -97,7 +99,7 @@ export function FillInBlankCard({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <DarkOverlay visible={showWrongAnswer} zIndex={1} />
 
       {/* Content Area */}
@@ -110,10 +112,10 @@ export function FillInBlankCard({
           Fill in the blank
         </Animated.Text>
 
-        {/* Sentence with blank */}
+        {/* Sentence with blank - standalone without card wrapper */}
         <Animated.View
           entering={FadeInDown.duration(400).delay(200)}
-          style={styles.sentenceCard}
+          style={styles.sentenceSection}
         >
           <Text style={styles.sentenceText}>
             {parts[0]}
@@ -127,6 +129,12 @@ export function FillInBlankCard({
             {parts[1]}
           </Text>
         </Animated.View>
+
+        {/* Visual separator */}
+        <View style={styles.separator} />
+
+        {/* Options label */}
+        <Text style={styles.optionsLabel}>Choose the correct word:</Text>
 
         {/* Options */}
         <View style={styles.optionsContainer}>
@@ -145,8 +153,8 @@ export function FillInBlankCard({
       </View>
 
       {/* Fixed Bottom Button */}
-      <View style={styles.bottomActions}>
-        {!showWrongAnswer && (
+      {!showWrongAnswer && (
+        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}>
           <Animated.View style={buttonAnimatedStyle}>
             <TouchableOpacity
               onPress={handleConfirm}
@@ -189,8 +197,8 @@ export function FillInBlankCard({
               </LinearGradient>
             </TouchableOpacity>
           </Animated.View>
-        )}
-      </View>
+        </View>
+      )}
 
       {/* Feedback overlay */}
       <AnswerFeedbackOverlay
@@ -210,8 +218,8 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-    justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
   },
   contentDimmed: {
     opacity: 0.5,
@@ -223,36 +231,53 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
-  sentenceCard: {
-    backgroundColor: colors.background.card,
-    padding: spacing.xl,
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing.xl,
-    ...shadows.md,
-    borderWidth: 1,
-    borderColor: colors.border.light,
+  sentenceSection: {
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.md,
   },
   sentenceText: {
-    fontSize: typography.fontSize.lg,
+    fontSize: typography.fontSize['2xl'],
     color: colors.text.primary,
     textAlign: 'center',
-    lineHeight: typography.fontSize.lg * 1.5,
+    lineHeight: typography.fontSize['2xl'] * 1.6,
+    fontWeight: typography.fontWeight.medium,
   },
   selectedWord: {
     fontWeight: typography.fontWeight.bold,
     textDecorationLine: 'underline',
   },
   blankPlaceholder: {
-    color: colors.text.tertiary,
+    color: colors.primary.DEFAULT,
     textDecorationLine: 'underline',
+    fontWeight: typography.fontWeight.bold,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors.border.light,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  optionsLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+    fontWeight: typography.fontWeight.medium,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   optionsContainer: {
     gap: spacing.sm,
+    marginBottom: 100, // Space for fixed footer button
   },
-  bottomActions: {
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
     paddingTop: spacing.md,
+    backgroundColor: colors.background.primary,
   },
   confirmButton: {
     borderRadius: borderRadius.xl,

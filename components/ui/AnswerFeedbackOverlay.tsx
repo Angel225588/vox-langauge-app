@@ -49,8 +49,10 @@ import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 import { useHaptics } from '@/hooks/useHaptics';
 
-/** Background color for error feedback cards */
-const ERROR_BACKGROUND = '#2D1B1E';
+/** Background color for error feedback cards - brighter for better readability */
+const ERROR_BACKGROUND = '#3D2528';
+/** Elevated zIndex to appear above DarkOverlay */
+const OVERLAY_Z_INDEX = 10;
 
 export interface AnswerFeedbackOverlayProps {
   /** Whether the overlay is visible */
@@ -140,6 +142,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    zIndex: OVERLAY_Z_INDEX,
   },
   card: {
     marginHorizontal: spacing.lg,
@@ -148,6 +151,12 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: colors.error.DEFAULT,
     overflow: 'hidden',
+    // Elevated shadow for visual lift above dark overlay
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
   },
   content: {
     padding: spacing.lg,
@@ -161,8 +170,12 @@ const styles = StyleSheet.create({
   },
   explanation: {
     fontSize: typography.fontSize.lg,
-    color: colors.text.primary,
+    color: '#FFFFFF',
     lineHeight: 26,
+    // Ensure high contrast text
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   correctAnswerContainer: {
     marginTop: spacing.md,

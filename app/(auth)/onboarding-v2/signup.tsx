@@ -18,52 +18,107 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
+import { BackButton } from '@/components/ui/BackButton';
 import { colors, spacing, borderRadius, typography, shadows } from '@/constants/designSystem';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { signUp } = useAuth();
+  const { t } = useTranslation('onboarding');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Focus states for inputs
+  const [isFullNameFocused, setIsFullNameFocused] = useState(false);
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+  const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
 
   const handleSignup = async () => {
     // Validation
     if (!fullName.trim()) {
-      Alert.alert('Error', 'Please enter your full name');
+      Alert.alert(t('common.error'), t('signup.errors.enter_name'));
       return;
     }
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      Alert.alert(t('common.error'), t('signup.errors.enter_email'));
       return;
     }
     if (!password) {
-      Alert.alert('Error', 'Please enter a password');
+      Alert.alert(t('common.error'), t('signup.errors.enter_password'));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert(t('common.error'), t('signup.errors.passwords_mismatch'));
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert(t('common.error'), t('signup.errors.password_too_short'));
       return;
     }
 
     setLoading(true);
     try {
-      // TODO: Implement actual signup with Supabase
-      // For now, just navigate to the next step
-      setTimeout(() => {
+      const { data, error } = await signUp(email.trim(), password);
+
+      if (error) {
+        console.error('Signup error:', error);
+
+        // Handle "User already registered" error with a friendly message
+        if (error.message?.toLowerCase().includes('already registered')) {
+          Alert.alert(
+            t('signup.alerts.account_exists_title'),
+            t('signup.alerts.account_exists_message'),
+            [
+              { text: t('signup.alerts.cancel'), style: 'cancel' },
+              {
+                text: t('signup.sign_in'),
+                onPress: () => router.push('/(auth)/onboarding-v2/login'),
+              },
+            ]
+          );
+          setLoading(false);
+          return;
+        }
+
+        Alert.alert(t('signup.alerts.signup_failed'), error.message || t('signup.alerts.signup_failed_message'));
         setLoading(false);
-        // Navigate to language selection (first onboarding step)
-        router.push('/(auth)/onboarding-v2/languages');
-      }, 1000);
+        return;
+      }
+
+      console.log('Signup successful:', data.user?.email);
+
+      // Check if email confirmation is required
+      if (data.user && !data.session) {
+        Alert.alert(
+          t('signup.alerts.check_email_title'),
+          t('signup.alerts.check_email_message'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: () => router.push('/(auth)/onboarding-v2/login'),
+            },
+          ]
+        );
+        setLoading(false);
+        return;
+      }
+
+      // If auto-confirmed, continue to onboarding
+      setLoading(false);
+      router.push('/(auth)/onboarding-v2/languages');
     } catch (error) {
       setLoading(false);
-      Alert.alert('Error', 'Failed to create account. Please try again.');
+      console.error('Signup exception:', error);
+      Alert.alert(t('common.error'), t('signup.errors.unexpected_error'));
     }
   };
 
@@ -82,45 +137,44 @@ export default function SignupScreen() {
           >
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={styles.backButton}
-              >
-                <Text style={styles.backButtonText}>←</Text>
-              </TouchableOpacity>
+              <BackButton onPress={() => router.back()} />
             </View>
 
             {/* Title */}
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>Create Account</Text>
+              <Text style={styles.title}>{t('signup.title')}</Text>
               <Text style={styles.subtitle}>
-                Start your language learning journey
+                {t('signup.subtitle')}
               </Text>
             </View>
 
             {/* Form */}
             <View style={styles.formContainer}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Full Name</Text>
+                <Text style={styles.label}>{t('signup.full_name_label')}</Text>
                 <TextInput
-                  style={styles.input}
-                  placeholder="John Doe"
+                  style={[styles.input, isFullNameFocused && styles.inputFocused]}
+                  placeholder={t('signup.full_name_placeholder')}
                   placeholderTextColor={colors.text.tertiary}
                   value={fullName}
                   onChangeText={setFullName}
+                  onFocus={() => setIsFullNameFocused(true)}
+                  onBlur={() => setIsFullNameFocused(false)}
                   autoCapitalize="words"
                   autoCorrect={false}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>{t('signup.email_label')}</Text>
                 <TextInput
-                  style={styles.input}
-                  placeholder="you@example.com"
+                  style={[styles.input, isEmailFocused && styles.inputFocused]}
+                  placeholder={t('signup.email_placeholder')}
                   placeholderTextColor={colors.text.tertiary}
                   value={email}
                   onChangeText={setEmail}
+                  onFocus={() => setIsEmailFocused(true)}
+                  onBlur={() => setIsEmailFocused(false)}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
@@ -128,31 +182,57 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="At least 6 characters"
-                  placeholderTextColor={colors.text.tertiary}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+                <Text style={styles.label}>{t('signup.password_label')}</Text>
+                <View style={styles.passwordInputContainer}>
+                  <TextInput
+                    style={[styles.passwordInput, isPasswordFocused && styles.passwordInputFocused]}
+                    placeholder={t('signup.password_placeholder')}
+                    placeholderTextColor={colors.text.tertiary}
+                    value={password}
+                    onChangeText={setPassword}
+                    onFocus={() => setIsPasswordFocused(true)}
+                    onBlur={() => setIsPasswordFocused(false)}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    style={styles.passwordToggle}
+                    onPress={() => setShowPassword(!showPassword)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.passwordToggleIcon}>
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirm Password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Re-enter your password"
-                  placeholderTextColor={colors.text.tertiary}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+                <Text style={styles.label}>{t('signup.confirm_password_label')}</Text>
+                <View style={styles.passwordInputContainer}>
+                  <TextInput
+                    style={[styles.passwordInput, isConfirmPasswordFocused && styles.passwordInputFocused]}
+                    placeholder={t('signup.confirm_password_placeholder')}
+                    placeholderTextColor={colors.text.tertiary}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    onFocus={() => setIsConfirmPasswordFocused(true)}
+                    onBlur={() => setIsConfirmPasswordFocused(false)}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    style={styles.passwordToggle}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.passwordToggleIcon}>
+                      {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Sign Up Button */}
@@ -169,24 +249,24 @@ export default function SignupScreen() {
                   style={[styles.signupButton, shadows.glow.primary]}
                 >
                   <Text style={styles.signupButtonText}>
-                    {loading ? 'Creating Account...' : 'Continue'}
+                    {loading ? t('signup.creating_account') : t('signup.continue')}
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
 
               {/* Terms */}
               <Text style={styles.termsText}>
-                By continuing, you agree to our{' '}
-                <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-                <Text style={styles.termsLink}>Privacy Policy</Text>
+                {t('signup.terms_text')}{' '}
+                <Text style={styles.termsLink}>{t('signup.terms_of_service')}</Text> {t('signup.and')}{' '}
+                <Text style={styles.termsLink}>{t('signup.privacy_policy')}</Text>
               </Text>
             </View>
 
             {/* Sign In Link */}
             <View style={styles.signInContainer}>
-              <Text style={styles.signInText}>Already have an account? </Text>
+              <Text style={styles.signInText}>{t('signup.have_account')} </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/onboarding-v2/login')}>
-                <Text style={styles.signInLink}>Sign In</Text>
+                <Text style={styles.signInLink}>{t('signup.sign_in')}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -208,20 +288,6 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.md,
     marginBottom: spacing.lg,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.text.primary,
   },
   titleContainer: {
     marginBottom: spacing['2xl'],
@@ -258,6 +324,40 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     borderWidth: 1,
     borderColor: colors.border.light,
+  },
+  inputFocused: {
+    borderColor: colors.primary.DEFAULT,
+  },
+  passwordInputContainer: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    flex: 1,
+    height: 56,
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingRight: 56, // Make room for the toggle button
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  passwordInputFocused: {
+    borderColor: colors.primary.DEFAULT,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 0,
+    height: 56,
+    width: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  passwordToggleIcon: {
+    fontSize: 24,
   },
   signupButton: {
     height: 56,

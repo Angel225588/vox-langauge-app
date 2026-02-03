@@ -65,6 +65,7 @@ export interface UseArticulationAnalysisReturn {
    * @param expectedText - What the user was supposed to read
    * @param transcription - Transcription result from speech-to-text
    * @param audioDuration - Total duration of audio in milliseconds
+   * @param targetLanguage - Target language for AI-powered feedback (e.g., 'spanish', 'french')
    * @returns Analysis result or null if failed
    *
    * @example
@@ -72,14 +73,16 @@ export interface UseArticulationAnalysisReturn {
    * const result = await analyze(
    *   "The quick brown fox",
    *   whisperTranscription,
-   *   2500
+   *   2500,
+   *   "spanish"
    * );
    * ```
    */
   analyze: (
     expectedText: string,
     transcription: TranscriptionResult,
-    audioDuration: number
+    audioDuration: number,
+    targetLanguage?: string
   ) => Promise<AnalysisResult | null>;
 
   /**
@@ -147,7 +150,8 @@ export function useArticulationAnalysis(): UseArticulationAnalysisReturn {
     async (
       expectedText: string,
       transcription: TranscriptionResult,
-      audioDuration: number
+      audioDuration: number,
+      targetLanguage?: string
     ): Promise<AnalysisResult | null> => {
       // Validate inputs
       if (!expectedText || expectedText.trim().length === 0) {
@@ -178,6 +182,7 @@ export function useArticulationAnalysis(): UseArticulationAnalysisReturn {
           expectedText,
           transcription,
           audioDuration,
+          targetLanguage,
         });
 
         // Update state with result

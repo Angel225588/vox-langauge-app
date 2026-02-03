@@ -23,6 +23,13 @@
 
 import { TranscriptionResult, TranscriptionWord } from './speechToText';
 import { ProblemWord, ArticulationAnalysis, ReadingFeedback, IssueType } from './types';
+import {
+  checkSemanticMatch,
+  SemanticMatchResult,
+  SemanticMatchType,
+  isDroppableWord,
+} from './semanticMatcher';
+import { generateJSON, GeminiError } from '@/lib/ai/gemini';
 
 // ============================================================================
 // Types
@@ -40,6 +47,9 @@ export interface AnalysisInput {
 
   /** Total duration in ms */
   audioDuration: number;
+
+  /** Target language for AI-powered feedback (e.g., 'spanish', 'french') */
+  targetLanguage?: string;
 }
 
 /**
@@ -75,8 +85,14 @@ export interface AnalysisResult {
   /** Number of words actually spoken */
   wordsSpoken: number;
 
-  /** Percentage of expected words spoken correctly */
+  /** Percentage of expected words spoken correctly (exact match) */
   accuracy: number;
+
+  /** Percentage of words that were comprehensible (may differ from exact) */
+  comprehensionScore: number;
+
+  /** Did the message come across? (comprehensionScore >= 70) */
+  isComprehensible: boolean;
 }
 
 /**
@@ -109,6 +125,12 @@ interface WordMatch {
 
   /** Index in transcription (if spoken) */
   spokenIndex?: number;
+
+  /** Semantic match analysis */
+  semanticMatch?: SemanticMatchResult;
+
+  /** Is this word comprehensible even if not exact? */
+  isComprehensible?: boolean;
 }
 
 /**
@@ -186,7 +208,7 @@ const MIN_PAUSE_DURATION = 500;
  * ```
  */
 export async function analyzeArticulation(input: AnalysisInput): Promise<AnalysisResult> {
-  const { expectedText, transcription, audioDuration } = input;
+  const { expectedText, transcription, audioDuration, targetLanguage } = input;
 
   // Normalize and tokenize
   const expectedWords = tokenizeText(expectedText);
@@ -208,23 +230,57 @@ export async function analyzeArticulation(input: AnalysisInput): Promise<Analysi
   // Step 5: Calculate overall score (weighted average)
   const overallScore = Math.round(articulationScore * 0.6 + fluencyScore * 0.4);
 
-  // Step 6: Identify problem words
-  const problemWords = identifyProblemWords(matches, hesitations, expectedText);
+  // Step 6: Identify problem words (raw, unfiltered)
+  const rawProblemWords = identifyProblemWords(matches, hesitations, expectedText);
 
   // Step 7: Generate detailed analysis
   const analysis = generateDetailedAnalysis(matches, hesitations, transcribedWords);
 
-  // Step 8: Generate feedback
-  const feedback = generateFeedback(
-    { articulation: articulationScore, fluency: fluencyScore },
-    problemWords,
-    { wordsExpected: expectedWords.length, wordsSpoken: transcribedWords.length }
-  );
+  // Step 8: Filter problem words and generate feedback
+  // If targetLanguage is provided, use Gemini for smarter analysis
+  let problemWords = rawProblemWords;
+  let feedback: ReadingFeedback;
 
-  // Calculate accuracy
+  if (targetLanguage && rawProblemWords.length > 0) {
+    try {
+      // Use Gemini to filter out false positives (acceptable variations)
+      problemWords = await filterProblemWordsWithGemini(rawProblemWords, targetLanguage);
+
+      // Generate AI-powered feedback with language-specific tips
+      feedback = await generateGeminiFeedback(
+        { articulation: articulationScore, fluency: fluencyScore },
+        problemWords,
+        { wordsExpected: expectedWords.length, wordsSpoken: transcribedWords.length },
+        targetLanguage
+      );
+    } catch (error) {
+      // Fallback to static feedback if Gemini fails
+      console.warn('Gemini analysis failed, using static feedback:', error);
+      feedback = generateFeedback(
+        { articulation: articulationScore, fluency: fluencyScore },
+        problemWords,
+        { wordsExpected: expectedWords.length, wordsSpoken: transcribedWords.length }
+      );
+    }
+  } else {
+    // No target language provided - use static feedback
+    feedback = generateFeedback(
+      { articulation: articulationScore, fluency: fluencyScore },
+      problemWords,
+      { wordsExpected: expectedWords.length, wordsSpoken: transcribedWords.length }
+    );
+  }
+
+  // Calculate accuracy (exact matches only)
   const correctWords = matches.filter(m => m.status === 'correct').length;
   const accuracy = expectedWords.length > 0
     ? Math.round((correctWords / expectedWords.length) * 100)
+    : 0;
+
+  // Calculate comprehension score (includes semantic equivalents)
+  const comprehensibleWords = matches.filter(m => m.isComprehensible).length;
+  const comprehensionScore = expectedWords.length > 0
+    ? Math.round((comprehensibleWords / expectedWords.length) * 100)
     : 0;
 
   return {
@@ -237,6 +293,8 @@ export async function analyzeArticulation(input: AnalysisInput): Promise<Analysi
     wordsExpected: expectedWords.length,
     wordsSpoken: transcribedWords.length,
     accuracy,
+    comprehensionScore,
+    isComprehensible: comprehensionScore >= 70,
   };
 }
 
@@ -270,18 +328,25 @@ function matchWords(
 
     // Skip if we've exhausted transcribed words
     if (transcribedIndex >= transcribedWords.length) {
+      // Check if this is a droppable word (articles, fillers)
+      const semanticResult = checkSemanticMatch(expected, null);
       matches.push({
         expected,
         spoken: null,
-        status: 'skipped',
+        status: semanticResult.isComprehensible ? 'correct' : 'skipped',
         confidence: 0,
         expectedIndex,
+        semanticMatch: semanticResult,
+        isComprehensible: semanticResult.isComprehensible,
       });
       continue;
     }
 
     const transcribed = transcribedWords[transcribedIndex];
     const spoken = transcribed.word;
+
+    // Use semantic matching for intelligent comparison
+    const semanticResult = checkSemanticMatch(expected, spoken);
 
     // Check for exact match
     if (wordsMatchExactly(expected, spoken)) {
@@ -293,6 +358,8 @@ function matchWords(
         confidence: transcribed.confidence ?? 1.0,
         expectedIndex,
         spokenIndex: transcribedIndex,
+        semanticMatch: semanticResult,
+        isComprehensible: true,
       });
       transcribedIndex++;
       continue;
@@ -308,6 +375,26 @@ function matchWords(
         confidence: transcribed.confidence ?? 1.0,
         expectedIndex,
         spokenIndex: transcribedIndex,
+        semanticMatch: semanticResult,
+        isComprehensible: true,
+      });
+      transcribedIndex++;
+      continue;
+    }
+
+    // NEW: Check for semantic equivalence (gonna = going to)
+    if (semanticResult.isComprehensible && !semanticResult.countsAsError) {
+      // Semantically equivalent or comprehensible - treat as correct!
+      matches.push({
+        expected,
+        spoken,
+        timestamp: transcribed.start,
+        status: 'correct', // Count as correct for comprehension
+        confidence: semanticResult.confidence,
+        expectedIndex,
+        spokenIndex: transcribedIndex,
+        semanticMatch: semanticResult,
+        isComprehensible: true,
       });
       transcribedIndex++;
       continue;
@@ -316,7 +403,10 @@ function matchWords(
     // Check if next word is a better match (word was skipped)
     if (transcribedIndex + 1 < transcribedWords.length) {
       const nextSpoken = transcribedWords[transcribedIndex + 1].word;
-      if (wordsMatchExactly(expected, nextSpoken) || wordsMatchFuzzy(expected, nextSpoken)) {
+      const nextSemanticResult = checkSemanticMatch(expected, nextSpoken);
+      if (wordsMatchExactly(expected, nextSpoken) ||
+          wordsMatchFuzzy(expected, nextSpoken) ||
+          (nextSemanticResult.isComprehensible && !nextSemanticResult.countsAsError)) {
         // Current word was likely a filler or mistake
         transcribedIndex++;
         continue;
@@ -333,6 +423,26 @@ function matchWords(
         confidence: transcribed.confidence ?? 1.0,
         expectedIndex,
         spokenIndex: transcribedIndex,
+        semanticMatch: semanticResult,
+        isComprehensible: semanticResult.isComprehensible,
+      });
+      transcribedIndex++;
+      continue;
+    }
+
+    // Check if it's comprehensible but not exact (minor variations)
+    if (semanticResult.isComprehensible) {
+      // It's understandable! Mark as correct with a note about variation
+      matches.push({
+        expected,
+        spoken,
+        timestamp: transcribed.start,
+        status: 'correct', // Comprehensible = correct for communication
+        confidence: semanticResult.confidence,
+        expectedIndex,
+        spokenIndex: transcribedIndex,
+        semanticMatch: semanticResult,
+        isComprehensible: true,
       });
       transcribedIndex++;
       continue;
@@ -349,18 +459,35 @@ function matchWords(
         confidence: transcribed.confidence ?? 0.5,
         expectedIndex,
         spokenIndex: transcribedIndex,
+        semanticMatch: semanticResult,
+        isComprehensible: false,
       });
       transcribedIndex++;
       continue;
     }
 
-    // Word was skipped
+    // Word was skipped - but check if it's droppable
+    if (isDroppableWord(expected)) {
+      matches.push({
+        expected,
+        spoken: null,
+        status: 'correct', // Droppable words are OK to skip
+        confidence: 0.8,
+        expectedIndex,
+        semanticMatch: { matchType: 'comprehensible', isComprehensible: true, countsAsError: false, explanation: `"${expected}" is optional`, confidence: 0.9 },
+        isComprehensible: true,
+      });
+      continue;
+    }
+
     matches.push({
       expected,
       spoken: null,
       status: 'skipped',
       confidence: 0,
       expectedIndex,
+      semanticMatch: semanticResult,
+      isComprehensible: false,
     });
   }
 
@@ -707,6 +834,282 @@ function generateFeedback(
     encouragement,
     nextSteps,
   };
+}
+
+// ============================================================================
+// AI-Powered Feedback Generation (Gemini)
+// ============================================================================
+
+/**
+ * Generate personalized feedback using Gemini AI
+ *
+ * This provides much richer, language-specific feedback than the static templates.
+ * Falls back to static feedback if Gemini fails.
+ *
+ * @param scores - Articulation and fluency scores
+ * @param problemWords - Words that had issues
+ * @param stats - Reading statistics
+ * @param targetLanguage - The language being practiced (e.g., 'spanish', 'french')
+ * @returns AI-generated feedback with specific pronunciation tips
+ */
+/**
+ * Filter problem words using Gemini to identify REAL pronunciation issues
+ * vs. acceptable variations in the target language.
+ *
+ * This is the key improvement - Whisper + static matching creates false positives.
+ * Gemini understands language-specific acceptable variations.
+ *
+ * @param problemWords - Raw problem words from static analysis
+ * @param targetLanguage - The language being practiced
+ * @returns Filtered problem words that are actual pronunciation issues
+ */
+async function filterProblemWordsWithGemini(
+  problemWords: ProblemWord[],
+  targetLanguage: string
+): Promise<ProblemWord[]> {
+  if (problemWords.length === 0) return [];
+
+  // Build problem words for analysis
+  const wordsForAnalysis = problemWords.slice(0, 10).map(pw => ({
+    word: pw.word,
+    issue: pw.issueType,
+    context: pw.context,
+  }));
+
+  const prompt = `You are a ${targetLanguage} pronunciation expert and phonetics specialist. Analyze these words flagged from a reading practice session.
+
+## Flagged Words
+${JSON.stringify(wordsForAnalysis, null, 2)}
+
+## Issue Types
+- "skipped": Word was not spoken at all
+- "hesitated": User paused noticeably before this word
+- "mispronounced": Speech recognition detected a different pronunciation
+- "repeated": User said this word multiple times
+
+## Your Task
+Analyze each word and determine if it's a REAL pronunciation issue or an acceptable variation/transcription artifact.
+
+EXCLUDE from results:
+- Acceptable regional/colloquial variations (e.g., "gonna" for "going to")
+- Speech recognition artifacts (similar-sounding words in different languages)
+- Minor hesitations that don't indicate pronunciation difficulty
+- Common contractions or reduced forms
+
+INCLUDE in results (these are real issues):
+- Words that were clearly skipped (user avoided saying them)
+- Words with sounds that don't exist in English (tricky for learners)
+- Words with unusual stress patterns
+- Long or complex words the user stumbled on
+
+Return JSON with ONLY the real issues, and for each one, provide a DETAILED, SPECIFIC suggestion:
+
+{
+  "realIssues": [
+    {
+      "word": "the word",
+      "issueType": "the original issue type",
+      "suggestion": "A SPECIFIC tip like: 'Break it into syllables: res-tau-RAN-te. The stress falls on RAN. Practice by saying the stressed syllable loudly, then softening the others: res-tau-RAN-te.'"
+    }
+  ]
+}
+
+## Guidelines for Suggestions
+- Include syllable breakdown with stress markers (capital letters for stressed syllable)
+- Mention any sounds that don't exist in English
+- Give mouth/tongue position tips for tricky sounds
+- Suggest a mini-exercise (e.g., "say it 5 times slowly, then speed up")
+- Be encouraging but specific
+
+Be selective - only return words that truly need practice. Empty array is fine if all issues are minor.`;
+
+  try {
+    const result = await generateJSON<{ realIssues: Array<{ word: string; issueType: string; suggestion: string }> }>(prompt);
+
+    if (!result.realIssues || !Array.isArray(result.realIssues)) {
+      return problemWords; // Fallback to original if invalid response
+    }
+
+    // Map Gemini's filtered results back to ProblemWord format
+    return result.realIssues.map(issue => {
+      const original = problemWords.find(pw => pw.word.toLowerCase() === issue.word.toLowerCase());
+      return {
+        word: issue.word,
+        issueType: (issue.issueType as IssueType) || 'mispronounced',
+        timestamp: original?.timestamp || 0,
+        context: original?.context || '',
+        suggestion: issue.suggestion,
+        addedToWordBank: false,
+      };
+    });
+  } catch (error) {
+    console.warn('Gemini problem word filtering failed, using original list:', error);
+    return problemWords; // Fallback to original analysis
+  }
+}
+
+/**
+ * Generate personalized feedback using Gemini AI
+ *
+ * This provides much richer, language-specific feedback than the static templates.
+ * Falls back to static feedback if Gemini fails.
+ *
+ * @param scores - Articulation and fluency scores
+ * @param problemWords - Words that had issues (already filtered by Gemini)
+ * @param stats - Reading statistics
+ * @param targetLanguage - The language being practiced (e.g., 'spanish', 'french')
+ * @returns AI-generated feedback with specific pronunciation tips
+ */
+async function generateGeminiFeedback(
+  scores: { articulation: number; fluency: number },
+  problemWords: ProblemWord[],
+  stats: { wordsExpected: number; wordsSpoken: number },
+  targetLanguage: string
+): Promise<ReadingFeedback> {
+  // Build the problem words description with more context
+  const problemWordsDesc = problemWords.slice(0, 8).map((pw, i) => {
+    const issueDesc = {
+      skipped: 'SKIPPED - user didn\'t say this word at all',
+      hesitated: 'HESITATED - user paused noticeably or used filler words before saying this',
+      mispronounced: 'MISPRONOUNCED - speech recognition detected a different pronunciation',
+      repeated: 'REPEATED - user said this word multiple times in a row',
+    }[pw.issueType] || pw.issueType;
+
+    return `${i + 1}. "${pw.word}" - ${issueDesc}${pw.context ? ` (in context: "${pw.context.substring(0, 50)}...")` : ''}`;
+  }).join('\n');
+
+  const overallScore = Math.round((scores.articulation * 0.6 + scores.fluency * 0.4));
+  const completionRate = stats.wordsExpected > 0 ? Math.round((stats.wordsSpoken / stats.wordsExpected) * 100) : 0;
+
+  const prompt = `You are an expert ${targetLanguage} pronunciation coach with deep knowledge of phonetics and common challenges English speakers face when learning ${targetLanguage}.
+
+## Reading Session Analysis
+
+### Performance Metrics
+- **Overall Score**: ${overallScore}/100
+- **Articulation (word clarity)**: ${scores.articulation}/100 ${scores.articulation >= 80 ? '✓ Good' : scores.articulation >= 60 ? '→ Needs work' : '→ Focus area'}
+- **Fluency (smooth flow)**: ${scores.fluency}/100 ${scores.fluency >= 80 ? '✓ Good' : scores.fluency >= 60 ? '→ Needs work' : '→ Focus area'}
+- **Completion Rate**: ${completionRate}% (${stats.wordsSpoken} of ${stats.wordsExpected} words)
+
+### Problem Words Identified
+${problemWordsDesc || 'None - the learner read everything clearly!'}
+
+## Your Task: Provide DETAILED, SPECIFIC Feedback
+
+Return a JSON object with this structure:
+{
+  "summary": "A specific 1-2 sentence summary mentioning their actual scores and what they did well or need to focus on",
+  "strengths": [
+    "Be SPECIFIC - mention exact aspects they did well (e.g., 'Clear pronunciation of difficult consonant clusters', 'Good rhythm and natural pauses', 'Strong vowel sounds')",
+    "If scores are high, explain WHY that matters for ${targetLanguage} communication",
+    "Include at least 2 specific strengths even for lower scores"
+  ],
+  "improvements": [
+    "For EACH problem word, explain the SPECIFIC phonetic challenge:",
+    "- What sound/syllable is tricky?",
+    "- Why is it hard for English speakers?",
+    "- What's the correct mouth/tongue position?",
+    "If fluency is low: explain how to improve pacing with specific techniques"
+  ],
+  "encouragement": "A genuine, personalized encouraging message based on their actual performance - not generic praise",
+  "nextSteps": [
+    "For EACH problem word, give a SPECIFIC practice technique:",
+    "Example: 'For \"restaurante\" - break into res-tau-RAN-te, emphasizing the stressed syllable RAN. Practice saying just the RAN syllable first, then add the others.'",
+    "Include tongue/mouth position tips for tricky sounds",
+    "Suggest specific practice methods (shadowing, minimal pairs, etc.)",
+    "Recommend how long to practice (e.g., '5 minutes daily on these 3 words')"
+  ]
+}
+
+## ${targetLanguage} Pronunciation Tips to Consider
+${getLanguageSpecificTips(targetLanguage)}
+
+## Guidelines
+- Be SPECIFIC and DETAILED - generic feedback like "good job" or "keep practicing" is not helpful
+- For each problem word, explain the EXACT phonetic issue and HOW to fix it
+- Mention mouth/tongue positions, syllable stress patterns, and sound differences from English
+- If articulation is below 70, focus on clarity tips
+- If fluency is below 70, focus on rhythm and pacing tips
+- Return ONLY valid JSON, no markdown`;
+
+  try {
+    const feedback = await generateJSON<ReadingFeedback>(prompt);
+
+    // Validate the response has required fields
+    if (
+      feedback.summary &&
+      Array.isArray(feedback.strengths) &&
+      Array.isArray(feedback.improvements) &&
+      feedback.encouragement &&
+      Array.isArray(feedback.nextSteps)
+    ) {
+      return feedback;
+    }
+
+    throw new Error('Invalid feedback structure from Gemini');
+  } catch (error) {
+    // Log but don't throw - we'll fall back to static feedback
+    console.warn('Gemini feedback generation failed, using static fallback:', error);
+    throw error; // Re-throw so caller can use fallback
+  }
+}
+
+/**
+ * Get language-specific pronunciation tips to help Gemini give better feedback
+ */
+function getLanguageSpecificTips(language: string): string {
+  const tips: Record<string, string> = {
+    french: `
+- Nasal vowels (an, en, in, on, un) - air goes through the nose
+- Silent final consonants (except c, r, f, l - "careful")
+- Liaisons between words (les amis → "lay-za-mee")
+- The French "r" is guttural (back of throat)
+- "u" sound (lune) - round lips like "oo" but say "ee"
+- Stress is usually on the LAST syllable`,
+    spanish: `
+- The rolled "rr" sound - tongue taps rapidly against roof of mouth
+- "j" sounds like English "h" (trabajo → tra-BA-ho)
+- "ll" and "y" often sound like English "y" or "j" depending on region
+- Vowels are always short and crisp (a, e, i, o, u never change)
+- Stress rules: words ending in vowel/n/s stress second-to-last syllable
+- "ñ" is like "ny" in canyon`,
+    portuguese: `
+- Nasal vowels (ão, ãe, õe) - very important in Brazilian Portuguese
+- "lh" sounds like "li" in million
+- "nh" sounds like "ny" in canyon
+- "r" at start of word or "rr" is throaty/guttural
+- Open vs closed vowels (avô vs avó)
+- Reduction of unstressed vowels`,
+    german: `
+- "ch" after a/o/u is guttural (Bach), after e/i is softer (ich)
+- "ü" - round lips like "oo" but say "ee"
+- "ö" - round lips like "o" but say "ay"
+- "w" sounds like English "v"
+- "v" sounds like English "f"
+- Long vs short vowels affect meaning
+- Compound words: stress usually on first element`,
+    italian: `
+- Double consonants must be pronounced longer
+- "gn" sounds like "ny" (gnocchi → NYOH-kee)
+- "gli" sounds like "lyee" (famiglia)
+- "sc" before e/i sounds like "sh"
+- Open vs closed "e" and "o"
+- Stress often on second-to-last syllable
+- "c" before e/i is "ch", before a/o/u is "k"`,
+    english: `
+- Stress patterns vary and affect vowel sounds (record vs record)
+- Schwa sound (ə) in unstressed syllables
+- "th" sounds (voiced in "the", unvoiced in "think")
+- Silent letters (knight, pneumonia)
+- Linking between words (an apple → "annapple")
+- Weak forms of function words (to, for, and)`,
+  };
+
+  return tips[language.toLowerCase()] || `
+- Focus on syllable stress patterns
+- Practice tricky consonant clusters
+- Work on vowel sounds specific to this language
+- Pay attention to word linking and rhythm`;
 }
 
 /**

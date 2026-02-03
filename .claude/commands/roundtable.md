@@ -311,18 +311,17 @@ When `/roundtable` is invoked:
 
 After completing the roundtable, **automatically save the debate to Obsidian** using the MCP tools:
 
-### Folder Structure
+### Folder Structure (Organized by Rounds)
 ```
 Roundtables/
 ├── YYYY-MM-DD-topic-slug/
 │   ├── 00-summary.md          # Quick reference, final decision
-│   ├── 01-technical.md        # Technical Architect's full position
-│   ├── 02-ux-design.md        # UX/Design Strategist's full position
-│   ├── 03-product.md          # Product/Business Analyst's full position
-│   ├── 04-devils-advocate.md  # Devil's Advocate's full position
-│   ├── 05-debate.md           # All rounds of cross-examination
-│   ├── 06-solutions.md        # Solution proposals from Round 4
-│   └── 07-verdict.md          # Final decision with rationale
+│   ├── round-1-opening.md     # All experts' opening positions
+│   ├── round-2-examination.md # All experts' cross-examination
+│   ├── round-3-responses.md   # All experts' direct responses
+│   ├── round-4-solutions.md   # All experts' solution proposals
+│   ├── round-5-convergence.md # All experts' final votes
+│   └── verdict.md             # Final decision with rationale
 ```
 
 ### Summary File Format (00-summary.md)
@@ -332,9 +331,10 @@ date: {{date}}
 topic: {{topic}}
 decision: {{accept/reject/modify}}
 confidence: {{high/medium/low}}
-experts: [Technical, UX, Product, Devil's Advocate]
+experts: [Technical Architect, UX Strategist, Product Analyst, Devil's Advocate]
 rounds: {{number of rounds}}
 status: decided
+tags: [roundtable, {{topic-tag}}]
 ---
 
 # Roundtable: {{Topic}}
@@ -358,59 +358,548 @@ status: decided
 - [ ] {{Action 1}}
 - [ ] {{Action 2}}
 
+## Expert Quotes for Voice (TTS-Ready)
+
+### Technical Architect
+> "{{2-3 sentence summary in first person, conversational tone}}"
+
+### UX Strategist
+> "{{2-3 sentence summary in first person, conversational tone}}"
+
+### Product Analyst
+> "{{2-3 sentence summary in first person, conversational tone}}"
+
+### Devil's Advocate
+> "{{2-3 sentence summary in first person, conversational tone}}"
+
 ## Links
-- [[01-technical|Technical Analysis]]
-- [[02-ux-design|UX Analysis]]
-- [[03-product|Product Analysis]]
-- [[04-devils-advocate|Critical Analysis]]
-- [[05-debate|Full Debate]]
-- [[06-solutions|Solution Proposals]]
-- [[07-verdict|Final Verdict]]
+- [[round-1-opening|Round 1: Opening Positions]]
+- [[round-2-examination|Round 2: Cross-Examination]]
+- [[round-3-responses|Round 3: Direct Responses]]
+- [[round-4-solutions|Round 4: Solution Proposals]]
+- [[round-5-convergence|Round 5: Final Convergence]]
+- [[verdict|Final Verdict]]
 ```
 
-### Individual Expert Files
-Each expert file should include:
+### Round 1: Opening Positions (round-1-opening.md)
 ```markdown
 ---
-expert: {{Expert Name}}
-position: {{support/oppose/conditional}}
-confidence: {{high/medium/low}}
+round: 1
+title: Opening Positions
+date: {{date}}
+topic: {{topic}}
 ---
 
-# {{Expert Name}}'s Analysis
+# Round 1: Opening Positions
 
-## Initial Position
-{{Full analysis}}
+Each expert provides their initial analysis of the topic.
 
-## Key Arguments
-1. {{Argument 1}}
-2. {{Argument 2}}
+---
 
-## Questions Asked
-- {{Question 1}} → Answered by {{Expert}} in Round {{X}}
-- {{Question 2}} → {{Status}}
+## Technical Architect
 
-## Questions Answered
-- From {{Expert}}: "{{Question}}"
-- Response: {{Answer}}
+**Analysis**: {{Key observations from engineering perspective}}
 
-## Concerns
-- {{Concern 1}}
-- {{Concern 2}}
+**Recommendation**: {{Proposed direction}}
 
-## Quote for Voice
-> "{{A quotable 2-3 sentence summary of their position - written in first person, conversational tone, suitable for TTS playback}}"
+**Confidence**: {{High/Medium/Low}}
 
-## Final Recommendation
-{{Their vote and reasoning}}
+**Key Concerns**: {{What worries them}}
+
+**Question to Others**: {{One specific question they need answered}}
+
+### Quote for Voice
+> "{{First-person conversational summary for TTS}}"
+
+---
+
+## UX/Design Strategist
+
+**Analysis**: {{Key observations from UX perspective}}
+
+**Recommendation**: {{Proposed direction}}
+
+**Confidence**: {{High/Medium/Low}}
+
+**Key Concerns**: {{What worries them}}
+
+**Question to Others**: {{One specific question they need answered}}
+
+### Quote for Voice
+> "{{First-person conversational summary for TTS}}"
+
+---
+
+## Product/Business Analyst
+
+**Analysis**: {{Key observations from business perspective}}
+
+**Recommendation**: {{Proposed direction}}
+
+**Confidence**: {{High/Medium/Low}}
+
+**Key Concerns**: {{What worries them}}
+
+**Question to Others**: {{One specific question they need answered}}
+
+### Quote for Voice
+> "{{First-person conversational summary for TTS}}"
+
+---
+
+## Devil's Advocate
+
+**Analysis**: {{Key observations from critical perspective}}
+
+**Recommendation**: {{Proposed direction}}
+
+**Confidence**: {{High/Medium/Low}}
+
+**Key Concerns**: {{What worries them}}
+
+**Question to Others**: {{One specific question they need answered}}
+
+### Quote for Voice
+> "{{First-person conversational summary for TTS}}"
+
+---
+
+## Open Questions After Round 1
+- [ ] {{Question 1}} (From: {{Expert}}, To: {{Expert}})
+- [ ] {{Question 2}} (From: {{Expert}}, To: {{Expert}})
+- [ ] {{Question 3}} (From: {{Expert}}, To: {{Expert}})
+- [ ] {{Question 4}} (From: {{Expert}}, To: {{Expert}})
 ```
 
-### Voice-Ready Format
-The "Quote for Voice" section in each expert file should be written as if the expert is speaking directly:
-- First person ("I believe...", "My concern is...")
-- Conversational tone
-- 2-3 sentences max
+### Round 2: Cross-Examination (round-2-examination.md)
+```markdown
+---
+round: 2
+title: Cross-Examination
+date: {{date}}
+topic: {{topic}}
+---
+
+# Round 2: Cross-Examination
+
+Each expert reviews others' positions and challenges weak arguments.
+
+---
+
+## Technical Architect Reviews
+
+**Strongest Point from Others**: {{What they agree with and why}}
+
+**Weakest Argument**: {{What they challenge and why}}
+
+**Critical Question**: {{Specific question that MUST be answered}}
+
+**Updated Position**: {{Any shifts in thinking}}
+
+### Quote for Voice
+> "{{First-person critique summary for TTS}}"
+
+---
+
+## UX/Design Strategist Reviews
+
+**Strongest Point from Others**: {{What they agree with and why}}
+
+**Weakest Argument**: {{What they challenge and why}}
+
+**Critical Question**: {{Specific question that MUST be answered}}
+
+**Updated Position**: {{Any shifts in thinking}}
+
+### Quote for Voice
+> "{{First-person critique summary for TTS}}"
+
+---
+
+## Product/Business Analyst Reviews
+
+**Strongest Point from Others**: {{What they agree with and why}}
+
+**Weakest Argument**: {{What they challenge and why}}
+
+**Critical Question**: {{Specific question that MUST be answered}}
+
+**Updated Position**: {{Any shifts in thinking}}
+
+### Quote for Voice
+> "{{First-person critique summary for TTS}}"
+
+---
+
+## Devil's Advocate Reviews
+
+**Strongest Point from Others**: {{What they agree with and why}}
+
+**Weakest Argument**: {{What they challenge and why}}
+
+**Critical Question**: {{Specific question that MUST be answered}}
+
+**Updated Position**: {{Any shifts in thinking}}
+
+### Quote for Voice
+> "{{First-person critique summary for TTS}}"
+
+---
+
+## Questions Status After Round 2
+- [ ] {{New critical question 1}}
+- [ ] {{New critical question 2}}
+- [x] {{Resolved question}} - Answered in this round
+```
+
+### Round 3: Direct Responses (round-3-responses.md)
+```markdown
+---
+round: 3
+title: Direct Responses
+date: {{date}}
+topic: {{topic}}
+---
+
+# Round 3: Direct Responses
+
+Each expert MUST answer questions directed at them. No deflecting.
+
+---
+
+## Technical Architect Responds
+
+### Answering UX Strategist's Question
+**Question**: "{{The question}}"
+**Response**: {{Direct, specific answer}}
+**Evidence/Reasoning**: {{Why this answer}}
+**Remaining Uncertainty**: {{What they're still unsure about}}
+
+### Answering Product Analyst's Question (if applicable)
+**Question**: "{{The question}}"
+**Response**: {{Direct answer}}
+
+### Quote for Voice
+> "{{First-person response summary for TTS}}"
+
+---
+
+## UX/Design Strategist Responds
+
+### Answering Technical Architect's Question
+**Question**: "{{The question}}"
+**Response**: {{Direct, specific answer}}
+**Evidence/Reasoning**: {{Why this answer}}
+**Remaining Uncertainty**: {{What they're still unsure about}}
+
+### Quote for Voice
+> "{{First-person response summary for TTS}}"
+
+---
+
+## Product/Business Analyst Responds
+
+### Answering Devil's Advocate's Question
+**Question**: "{{The question}}"
+**Response**: {{Direct, specific answer}}
+**Evidence/Reasoning**: {{Why this answer}}
+**Remaining Uncertainty**: {{What they're still unsure about}}
+
+### Quote for Voice
+> "{{First-person response summary for TTS}}"
+
+---
+
+## Devil's Advocate Responds
+
+### Answering Technical Architect's Question
+**Question**: "{{The question}}"
+**Response**: {{Direct, specific answer}}
+**Evidence/Reasoning**: {{Why this answer}}
+**Remaining Uncertainty**: {{What they're still unsure about}}
+
+### Quote for Voice
+> "{{First-person response summary for TTS}}"
+
+---
+
+## Questions Resolution Status
+- [x] {{Question 1}} - Resolved
+- [x] {{Question 2}} - Resolved
+- [ ] {{Question 3}} - Still open (may need Round 3b)
+```
+
+### Round 4: Solution Proposals (round-4-solutions.md)
+```markdown
+---
+round: 4
+title: Solution Proposals
+date: {{date}}
+topic: {{topic}}
+---
+
+# Round 4: Solution Proposals
+
+Each expert proposes a CONCRETE, actionable solution.
+
+---
+
+## Technical Architect's Proposal
+
+**The Solution**: {{Specific, actionable proposal}}
+
+**Why This Works**: {{How it addresses the core problem}}
+
+**Trade-offs Accepted**: {{What we give up}}
+
+**Success Criteria**: {{How we know it worked}}
+
+**Implementation Complexity**: {{Low/Medium/High}}
+
+### Quote for Voice
+> "{{First-person proposal pitch for TTS}}"
+
+---
+
+## UX/Design Strategist's Proposal
+
+**The Solution**: {{Specific, actionable proposal}}
+
+**Why This Works**: {{How it addresses the core problem}}
+
+**Trade-offs Accepted**: {{What we give up}}
+
+**Success Criteria**: {{How we know it worked}}
+
+**User Impact**: {{How users will experience this}}
+
+### Quote for Voice
+> "{{First-person proposal pitch for TTS}}"
+
+---
+
+## Product/Business Analyst's Proposal
+
+**The Solution**: {{Specific, actionable proposal}}
+
+**Why This Works**: {{How it addresses the core problem}}
+
+**Trade-offs Accepted**: {{What we give up}}
+
+**Success Criteria**: {{How we know it worked}}
+
+**Business Impact**: {{ROI, market positioning}}
+
+### Quote for Voice
+> "{{First-person proposal pitch for TTS}}"
+
+---
+
+## Devil's Advocate's Proposal
+
+**The Solution**: {{Specific, actionable proposal - often a hybrid or minimal approach}}
+
+**Why This Works**: {{How it addresses the core problem}}
+
+**Trade-offs Accepted**: {{What we give up}}
+
+**Success Criteria**: {{How we know it worked}}
+
+**Risk Mitigation**: {{How this reduces identified risks}}
+
+### Quote for Voice
+> "{{First-person proposal pitch for TTS}}"
+
+---
+
+## Solution Comparison Matrix
+
+| Aspect | Technical | UX | Product | Devil's Advocate |
+|--------|-----------|-----|---------|------------------|
+| Core Approach | {{}} | {{}} | {{}} | {{}} |
+| Timeline | {{}} | {{}} | {{}} | {{}} |
+| Complexity | {{}} | {{}} | {{}} | {{}} |
+| Risk Level | {{}} | {{}} | {{}} | {{}} |
+```
+
+### Round 5: Final Convergence (round-5-convergence.md)
+```markdown
+---
+round: 5
+title: Final Convergence & Vote
+date: {{date}}
+topic: {{topic}}
+---
+
+# Round 5: Final Convergence & Vote
+
+Experts align on final decision through voting.
+
+---
+
+## Technical Architect's Final Position
+
+**I Support**: {{Which solution proposal, or a hybrid}}
+
+**Because**: {{Core reasoning}}
+
+**I Accept These Trade-offs**: {{What they're willing to compromise on}}
+
+**I Cannot Accept**: {{Hard lines, if any}}
+
+**Confidence**: {{High/Medium/Low}}
+
+### Quote for Voice
+> "{{First-person final stance for TTS}}"
+
+---
+
+## UX/Design Strategist's Final Position
+
+**I Support**: {{Which solution proposal, or a hybrid}}
+
+**Because**: {{Core reasoning}}
+
+**I Accept These Trade-offs**: {{What they're willing to compromise on}}
+
+**I Cannot Accept**: {{Hard lines, if any}}
+
+**Confidence**: {{High/Medium/Low}}
+
+### Quote for Voice
+> "{{First-person final stance for TTS}}"
+
+---
+
+## Product/Business Analyst's Final Position
+
+**I Support**: {{Which solution proposal, or a hybrid}}
+
+**Because**: {{Core reasoning}}
+
+**I Accept These Trade-offs**: {{What they're willing to compromise on}}
+
+**I Cannot Accept**: {{Hard lines, if any}}
+
+**Confidence**: {{High/Medium/Low}}
+
+### Quote for Voice
+> "{{First-person final stance for TTS}}"
+
+---
+
+## Devil's Advocate's Final Position
+
+**I Support**: {{Which solution proposal, or a hybrid}}
+
+**Because**: {{Core reasoning}}
+
+**I Accept These Trade-offs**: {{What they're willing to compromise on}}
+
+**I Cannot Accept**: {{Hard lines, if any}}
+
+**Confidence**: {{High/Medium/Low}}
+
+### Quote for Voice
+> "{{First-person final stance for TTS}}"
+
+---
+
+## Vote Tally
+
+| Expert | Supports | Confidence |
+|--------|----------|------------|
+| Technical Architect | {{Solution X}} | {{High/Med/Low}} |
+| UX Strategist | {{Solution X}} | {{High/Med/Low}} |
+| Product Analyst | {{Solution Y}} | {{High/Med/Low}} |
+| Devil's Advocate | {{Hybrid}} | {{High/Med/Low}} |
+
+**Result**: {{X/4 consensus on Solution Y}} or {{Unanimous on Hybrid}}
+
+## Consensus Points
+- {{Point all experts agree on}}
+- {{Point all experts agree on}}
+
+## Accepted Trade-offs
+- {{Trade-off the group accepts}}
+- {{Trade-off the group accepts}}
+
+## Dissenting Views (if any)
+- {{Expert}}: {{Their reservation, documented for "disagree and commit"}}
+```
+
+### Verdict File (verdict.md)
+```markdown
+---
+date: {{date}}
+topic: {{topic}}
+decision: {{The final decision}}
+confidence: {{high/medium/low}}
+vote: {{X/4 or unanimous}}
+---
+
+# Final Verdict: {{Topic}}
+
+## The Decision
+{{Clear, unambiguous decision statement}}
+
+## Rationale
+{{Why this is the best path forward, synthesizing all expert input}}
+
+## Implementation Path
+1. **Immediate**: {{First action to take}}
+2. **This Week**: {{Next steps}}
+3. **This Sprint**: {{Following steps}}
+4. **Future**: {{Longer-term considerations}}
+
+## Success Metrics
+- {{Metric 1}}: {{Target}}
+- {{Metric 2}}: {{Target}}
+- {{Metric 3}}: {{Target}}
+
+## Risks to Monitor
+- {{Risk 1}}: {{Mitigation strategy}}
+- {{Risk 2}}: {{Mitigation strategy}}
+
+## Resolved Questions
+| Question | Answer | Resolved In |
+|----------|--------|-------------|
+| {{Q1}} | {{A1}} | Round {{X}} |
+| {{Q2}} | {{A2}} | Round {{X}} |
+
+## Expert Final Quotes (Voice-Ready)
+
+### Technical Architect
+> "{{Final 2-3 sentence position for TTS}}"
+
+### UX Strategist
+> "{{Final 2-3 sentence position for TTS}}"
+
+### Product Analyst
+> "{{Final 2-3 sentence position for TTS}}"
+
+### Devil's Advocate
+> "{{Final 2-3 sentence position for TTS}}"
+
+---
+
+**Confidence Level**: {{High/Medium/Low}}
+**Reasoning**: {{Why this confidence level}}
+```
+
+### Voice-Ready Format Guidelines
+All "Quote for Voice" sections should be written as if the expert is speaking directly:
+- First person ("I believe...", "My concern is...", "Looking at the data...")
+- Conversational tone (not formal/written style)
+- 2-3 sentences maximum
 - Clear position stated
+- Suitable for TTS playback with ElevenLabs
+
+**Future Enhancement**: These quotes will be used with ElevenLabs to generate audio debates with 4 distinct voices:
+- Technical Architect: Professional male voice
+- UX Strategist: Warm female voice
+- Product Analyst: Confident male voice
+- Devil's Advocate: Skeptical/analytical male voice
 
 ---
 

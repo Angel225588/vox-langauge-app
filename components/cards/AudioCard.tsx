@@ -1,43 +1,51 @@
 /**
  * Audio Card Component
  *
- * Listening comprehension card where users hear audio and select the correct word.
+ * Premium listening comprehension card where users hear audio and select the correct answer.
+ * Supports both single words and longer phrases with adaptive layouts.
  *
  * Features:
- * - Large audio playback button (🔊) with press animation
- * - Real audio playback with expo-av (placeholder uses expo-speech as fallback)
- * - Visual loading state while audio loads
- * - Pulsing animation during playback
- * - Replay button (can replay without resetting quiz)
- * - Question: "What did you hear?"
+ * - Design-system aligned AudioButton components
+ * - Hero audio button with large pulse animation
+ * - Normal and slow speed playback options
+ * - Real audio playback with expo-av (TTS fallback)
+ * - Adaptive layout for short words vs long phrases
+ * - Question with visual emphasis on key phrase
  * - 4 multiple choice options with staggered entrance
  * - Visual feedback (green for correct, red for incorrect)
- * - Haptic feedback (success/error on selection, light on audio play)
- * - Auto-advances after selection (1.5s delay)
- * - Checkmark (✓) or X (✗) indicator
+ * - Haptic feedback throughout
+ * - Auto-advances on correct answer
  *
- * Learning Objective: Train listening comprehension and word recognition
+ * Learning Objective: Train listening comprehension and auditory word recognition
  *
- * UX Research: Audio-based learning enhances auditory memory and pronunciation
- *
- * REFACTORED: Now uses shared UI components for consistency
+ * @example
+ * <AudioCard
+ *   word="Where is the nearest train station?"
+ *   translation="¿Dónde está la estación de tren más cercana?"
+ *   options={['train station', 'bus stop', 'airport', 'taxi stand']}
+ *   correct_answer={0}
+ *   onNext={(answer) => handleNext()}
+ * />
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   FadeIn,
+  FadeInUp,
+  FadeInDown,
   ZoomIn,
   useAnimatedStyle,
   withSpring,
+  withSequence,
   useSharedValue,
 } from 'react-native-reanimated';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 
-// NEW: Import shared UI components
-import { DarkOverlay, AnswerOption, AnswerFeedbackOverlay } from '@/components/ui';
+// Design-system components
+import { DarkOverlay, AnswerOption, AnswerFeedbackOverlay, AudioButton, AudioButtonGroup } from '@/components/ui';
 import { useHaptics } from '@/hooks/useHaptics';
 
 interface CardProps {
@@ -45,11 +53,17 @@ interface CardProps {
 }
 
 interface AudioCardProps extends CardProps {
+  /** The word or phrase to listen to */
   word?: string;
+  /** Translation of the word/phrase */
   translation?: string;
+  /** URL to audio file (optional - falls back to TTS) */
   audio_url?: string;
+  /** Array of 4 answer options */
   options?: string[];
+  /** Index of the correct answer (0-3) */
   correct_answer?: number;
+  /** Explanation shown when user answers incorrectly */
   explanation?: string;
 }
 
@@ -62,16 +76,20 @@ export function AudioCard({
   explanation,
   onNext,
 }: AudioCardProps) {
-  // NEW: Use haptics hook instead of direct Haptics calls
   const haptics = useHaptics();
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlayingSlow, setIsPlayingSlow] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [playbackRate, setPlaybackRate] = useState(1.0);
-  const audioButtonScale = useSharedValue(1);
+
+  // Animation for success celebration
+  const containerScale = useSharedValue(1);
+
+  // Determine if this is a long phrase (for adaptive layout)
+  const isLongPhrase = (word?.length || 0) > 20;
 
   // Cleanup sound on unmount
   useEffect(() => {
@@ -82,12 +100,16 @@ export function AudioCard({
     };
   }, [sound]);
 
-  const handleSelect = (index: number) => {
+  const handleSelect = useCallback((index: number) => {
     const isCorrect = correct_answer === index;
 
-    // NEW: Clean haptic calls
     if (isCorrect) {
       haptics.success();
+      // Success celebration animation
+      containerScale.value = withSequence(
+        withSpring(1.02, { damping: 8, stiffness: 200 }),
+        withSpring(1, { damping: 15, stiffness: 150 })
+      );
     } else {
       haptics.doubleError();
     }
@@ -102,27 +124,33 @@ export function AudioCard({
         setShowResult(false);
       }, 1500);
     }
-  };
+  }, [correct_answer, haptics, containerScale, onNext]);
 
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
     onNext(selectedIndex);
     setSelectedIndex(null);
     setShowResult(false);
-  };
+  }, [onNext, selectedIndex]);
 
-  const handlePlayAudio = async () => {
-    haptics.light();
-    audioButtonScale.value = withSpring(0.9, {}, () => {
-      audioButtonScale.value = withSpring(1);
-    });
+  const playAudio = useCallback(async (rate: number = 1.0) => {
+    const isSlow = rate < 1;
 
-    if (isPlaying && sound) {
+    // Stop if already playing
+    if ((isSlow ? isPlayingSlow : isPlaying) && sound) {
       await sound.stopAsync();
       setIsPlaying(false);
+      setIsPlayingSlow(false);
       return;
     }
 
-    setIsPlaying(true);
+    // Set playing state
+    if (isSlow) {
+      setIsPlayingSlow(true);
+      setIsPlaying(false);
+    } else {
+      setIsPlaying(true);
+      setIsPlayingSlow(false);
+    }
 
     if (audio_url) {
       try {
@@ -134,10 +162,11 @@ export function AudioCard({
 
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: audio_url },
-          { shouldPlay: true, rate: playbackRate, shouldCorrectPitch: true },
+          { shouldPlay: true, rate, shouldCorrectPitch: true },
           (status) => {
             if (status.isLoaded && status.didJustFinish) {
               setIsPlaying(false);
+              setIsPlayingSlow(false);
             }
           }
         );
@@ -148,123 +177,146 @@ export function AudioCard({
         console.error('Error playing audio:', error);
         setIsLoading(false);
         setIsPlaying(false);
+        setIsPlayingSlow(false);
 
+        // Fallback to TTS
         if (word) {
           Speech.speak(word, {
-            onDone: () => setIsPlaying(false),
-            onError: () => setIsPlaying(false),
+            rate: isSlow ? 0.5 : 1.0,
+            onDone: () => {
+              setIsPlaying(false);
+              setIsPlayingSlow(false);
+            },
+            onError: () => {
+              setIsPlaying(false);
+              setIsPlayingSlow(false);
+            },
           });
         }
       }
     } else if (word) {
+      // Use TTS when no audio URL
       Speech.speak(word, {
-        onDone: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
+        rate: isSlow ? 0.5 : 1.0,
+        onDone: () => {
+          setIsPlaying(false);
+          setIsPlayingSlow(false);
+        },
+        onError: () => {
+          setIsPlaying(false);
+          setIsPlayingSlow(false);
+        },
       });
     } else {
       setIsPlaying(false);
+      setIsPlayingSlow(false);
     }
-  };
+  }, [audio_url, word, sound, isPlaying, isPlayingSlow]);
 
-  const audioButtonStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: audioButtonScale.value }],
-  }));
+  const handlePlayNormal = useCallback(() => playAudio(1.0), [playAudio]);
+  const handlePlaySlow = useCallback(() => playAudio(0.5), [playAudio]);
 
   const showWrongAnswer = showResult && selectedIndex !== correct_answer;
+  const showCorrectAnswer = showResult && selectedIndex === correct_answer;
 
-  // NEW: Helper function to determine option state
-  const getOptionState = (index: number) => {
+  const getOptionState = useCallback((index: number) => {
     if (!showResult) return 'default';
     if (correct_answer === index) return 'correct';
     if (selectedIndex === index) return 'wrong';
     return 'default';
-  };
+  }, [showResult, correct_answer, selectedIndex]);
+
+  // Animated style for success
+  const containerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: containerScale.value }],
+  }));
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, containerAnimatedStyle]}>
+      {/* Mode Indicator */}
+      <Animated.View
+        entering={FadeInDown.duration(300).delay(50)}
+        style={styles.modeChip}
+      >
+        <Text style={styles.modeEmoji}>🎧</Text>
+        <Text style={styles.modeLabel}>Listening Quiz</Text>
+      </Animated.View>
+
       <View style={styles.content}>
-        {/* Audio Play Button */}
+        {/* Audio Controls Card - Compact layout */}
         <Animated.View
           entering={ZoomIn.duration(500).springify()}
-          style={styles.audioButtonContainer}
+          style={styles.audioCardWrapper}
         >
-          <Animated.View style={audioButtonStyle}>
-            <TouchableOpacity
-              onPress={handlePlayAudio}
-              activeOpacity={0.8}
-              disabled={isLoading}
-              style={[
-                styles.audioButton,
-                {
-                  backgroundColor: isPlaying ? colors.success.DEFAULT : colors.primary.DEFAULT,
-                  shadowColor: isPlaying ? colors.success.DEFAULT : colors.primary.DEFAULT,
-                  opacity: isLoading ? 0.6 : 1,
-                },
-              ]}
-            >
-              <Text style={styles.audioIcon}>
-                {isLoading ? '⏳' : isPlaying ? '🔊' : '🔉'}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
+          <AudioButtonGroup size="compact">
+            <AudioButton
+              variant="play"
+              isPlaying={isPlaying}
+              isLoading={isLoading && !isPlayingSlow}
+              onPress={handlePlayNormal}
+              size="md"
+            />
+            <AudioButton
+              variant="slow"
+              isPlaying={isPlayingSlow}
+              isLoading={isLoading && isPlayingSlow}
+              onPress={handlePlaySlow}
+              size="md"
+            />
+          </AudioButtonGroup>
         </Animated.View>
 
-        {/* Speed Toggle */}
-        <Animated.View entering={FadeIn.duration(400).delay(350)}>
-          <TouchableOpacity
-            onPress={() => setPlaybackRate(playbackRate === 1.0 ? 0.75 : 1.0)}
-            activeOpacity={0.8}
-            style={[
-              styles.speedToggle,
-              playbackRate === 0.75 && styles.speedToggleActive,
-            ]}
+        {/* Tap to listen hint */}
+        {!isPlaying && !isPlayingSlow && (
+          <Animated.Text
+            entering={FadeIn.duration(400).delay(300)}
+            style={styles.tapHint}
           >
-            <Text style={[
-              styles.speedToggleText,
-              playbackRate === 0.75 && styles.speedToggleTextActive,
-            ]}>
-              🐌 Slow Speed {playbackRate === 0.75 ? '(Active)' : ''}
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
+            Tap to listen
+          </Animated.Text>
+        )}
 
         {/* Question */}
-        <Animated.Text
-          entering={FadeIn.duration(400).delay(300)}
-          style={styles.question}
+        <Animated.View
+          entering={FadeInUp.duration(400).delay(350)}
+          style={styles.questionContainer}
         >
-          What did you hear?
-        </Animated.Text>
+          <Text style={styles.question}>What did you hear?</Text>
+          {isLongPhrase && (
+            <Text style={styles.questionHint}>Listen carefully to the full phrase</Text>
+          )}
+        </Animated.View>
 
-        {/* NEW: Using AnswerOption component instead of inline TouchableOpacity */}
-        {options?.map((option, index) => (
-          <AnswerOption
-            key={index}
-            text={option}
-            onPress={() => handleSelect(index)}
-            disabled={showResult}
-            state={getOptionState(index)}
-            entranceDelay={100 * (index + 1) + 400}
-            hapticFeedback={false} // We handle haptics in handleSelect
-          />
-        ))}
+        {/* Options */}
+        <View style={styles.optionsContainer}>
+          {options?.map((option, index) => (
+            <AnswerOption
+              key={`${option}-${index}`}
+              text={option}
+              onPress={() => handleSelect(index)}
+              disabled={showResult}
+              state={getOptionState(index)}
+              entranceDelay={100 * (index + 1) + 400}
+              hapticFeedback={false}
+              testID={`audio-option-${index}`}
+            />
+          ))}
+        </View>
       </View>
 
-      {/* NEW: Using DarkOverlay component */}
       <DarkOverlay visible={showWrongAnswer} />
 
-      {/* NEW: Using AnswerFeedbackOverlay component */}
       <AnswerFeedbackOverlay
         visible={showWrongAnswer}
         title="Listening Tip"
         explanation={explanation}
+        correctAnswer={options?.[correct_answer ?? 0]}
         onContinue={handleContinue}
       />
-    </View>
+    </Animated.View>
   );
 }
 
-// NEW: Extracted styles for cleaner code
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -274,53 +326,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
-  audioButtonContainer: {
-    alignSelf: 'center',
-    marginBottom: spacing['2xl'],
-  },
-  audioButton: {
-    width: 120,
-    height: 120,
-    borderRadius: borderRadius.full,
+  // Mode indicator chip at top
+  modeChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  audioIcon: {
-    fontSize: 48,
-  },
-  speedToggle: {
-    alignSelf: 'flex-end',
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
-    marginRight: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    alignSelf: 'center',
+    backgroundColor: colors.background.elevated,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.background.elevated,
+    marginBottom: spacing.lg,
+    gap: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border.light,
   },
-  speedToggleActive: {
-    backgroundColor: colors.accent.purple,
+  modeEmoji: {
+    fontSize: 16,
   },
-  speedToggleText: {
+  modeLabel: {
     fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    fontWeight: typography.fontWeight.normal,
-  },
-  speedToggleTextActive: {
-    color: colors.text.primary,
     fontWeight: typography.fontWeight.semibold,
+    color: colors.text.secondary,
+  },
+  // Audio controls wrapper
+  audioCardWrapper: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  tapHint: {
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    fontStyle: 'italic',
+  },
+  // Question section
+  questionContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
   },
   question: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
     textAlign: 'center',
-    marginBottom: spacing.xl,
+  },
+  questionHint: {
+    marginTop: spacing.xs,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  // Options
+  optionsContainer: {
+    width: '100%',
   },
 });

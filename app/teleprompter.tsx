@@ -45,6 +45,7 @@ Je travaille dans une galerie d'art. J'adore mon travail parce que je vois des t
 Le soir, je retrouve mes amis au restaurant. Nous mangeons et nous parlons de notre journée. C'est la vie parisienne!`,
     difficulty: 'beginner',
     category: 'Travel',
+    language: 'french',
     wordCount: 120,
     estimatedDuration: 180,
     sourceType: 'curated',
@@ -66,6 +67,7 @@ Certainly. At my previous job, we had a project that was falling behind schedule
 Excellent example. Do you have any questions for me?`,
     difficulty: 'intermediate',
     category: 'Work',
+    language: 'english',
     wordCount: 200,
     estimatedDuration: 300,
     sourceType: 'curated',
@@ -97,6 +99,7 @@ Customer: Yes, some roasted vegetables, please.
 Waiter: I'll have that right out for you.`,
     difficulty: 'beginner',
     category: 'Food',
+    language: 'english',
     wordCount: 150,
     estimatedDuration: 240,
     sourceType: 'curated',
@@ -114,6 +117,7 @@ The key to improvement is consistent practice. Try to read a little bit every da
 Remember, everyone starts somewhere. Be patient with yourself and celebrate small victories along the way. You're doing great!`,
     difficulty: 'beginner',
     category: 'Practice',
+    language: 'english',
     wordCount: 100,
     estimatedDuration: 120,
     sourceType: 'curated',
@@ -189,11 +193,12 @@ export default function TeleprompterScreen() {
           throw new Error('Transcription failed');
         }
 
-        // Step 2: Analyze articulation
+        // Step 2: Analyze articulation (with language for AI-powered feedback)
         const analysis = await analyze(
           passage.text,
           transcriptionResult,
-          teleprompterResults.duration * 1000
+          teleprompterResults.duration * 1000,
+          passage.language // Pass language for Gemini-powered problem word filtering
         );
 
         if (!analysis) {
@@ -269,6 +274,7 @@ export default function TeleprompterScreen() {
           results={results}
           analysisResult={analysisResult}
           recordingUri={recordingUri}
+          language={passage.language}
           onPracticeAgain={handlePracticeAgain}
           onFinish={handleFinish}
         />

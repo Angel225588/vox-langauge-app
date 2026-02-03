@@ -31,8 +31,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
-import * as Speech from 'expo-speech';
 import { useRouter } from 'expo-router';
+import { googleTTS, type SupportedLanguage } from '@/lib/voice';
 import * as Haptics from 'expo-haptics';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
 import { TeleprompterResults } from './TeleprompterCard';
@@ -57,6 +57,8 @@ interface ReadingResultsCardProps {
   results: TeleprompterResults;
   analysisResult: AnalysisResult | null;
   recordingUri?: string | null;
+  /** Target language for TTS pronunciation (e.g., 'french', 'spanish', 'english') */
+  language?: string;
   onPracticeAgain: () => void;
   onFinish: () => void;
 }
@@ -65,6 +67,7 @@ export function ReadingResultsCard({
   results,
   analysisResult,
   recordingUri,
+  language = 'english',
   onPracticeAgain,
   onFinish,
 }: ReadingResultsCardProps) {
@@ -176,10 +179,24 @@ export function ReadingResultsCard({
 
   const scoreColor = getScoreColor(overallScore);
 
-  // Play word pronunciation
+  // Map language names to SupportedLanguage codes for Google TTS
+  const getLanguageCode = (lang: string): SupportedLanguage => {
+    const langMap: Record<string, SupportedLanguage> = {
+      english: 'en',
+      spanish: 'es',
+      french: 'fr',
+      portuguese: 'pt',
+      german: 'de',
+      italian: 'it',
+    };
+    return langMap[lang.toLowerCase()] || 'en';
+  };
+
+  // Play word pronunciation using Google Cloud TTS (with expo-speech fallback)
   const handlePlayWord = (word: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Speech.speak(word, { language: 'en-US', rate: 0.8 });
+    const langCode = getLanguageCode(language);
+    googleTTS.speakWord(word, langCode);
   };
 
   // Group problem words
@@ -209,7 +226,7 @@ export function ReadingResultsCard({
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Toast */}
       {toastVisible && (
-        <Animated.View style={[styles.toast, toastStyle]}>
+        <Animated.View style={[styles.toast, toastStyle, { top: insets.top + spacing.xl }]}>
           <View style={styles.toastContent}>
             <View style={styles.checkIcon}>
               <Text style={styles.checkText}>✓</Text>
@@ -918,7 +935,6 @@ const styles = StyleSheet.create({
   // Toast
   toast: {
     position: 'absolute',
-    top: 100,
     left: spacing.lg,
     right: spacing.lg,
     zIndex: 100,

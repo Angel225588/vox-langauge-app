@@ -57,6 +57,8 @@ import Animated, {
   withSpring,
   useSharedValue,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 
 // Shared UI components
@@ -84,6 +86,7 @@ export function TextInputCard({
   onNext,
 }: TextInputCardProps) {
   const haptics = useHaptics();
+  const insets = useSafeAreaInsets();
   const [input, setInput] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -145,7 +148,21 @@ export function TextInputCard({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Image at top - full width */}
+      {image_url && (
+        <Animated.View
+          entering={ZoomIn.duration(500).delay(200)}
+          style={styles.imageContainer}
+        >
+          <Image
+            source={{ uri: image_url }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        </Animated.View>
+      )}
+
       {/* Header with Hint button */}
       <View style={styles.headerContainer}>
         <Animated.Text
@@ -166,25 +183,11 @@ export function TextInputCard({
               activeOpacity={0.7}
               style={styles.hintButton}
             >
-              <Text style={styles.hintButtonText}>💡</Text>
+              <Ionicons name="bulb-outline" size={20} color={colors.accent.orange} />
             </TouchableOpacity>
           </Animated.View>
         )}
       </View>
-
-      {/* Image */}
-      {image_url && (
-        <Animated.View
-          entering={ZoomIn.duration(500).delay(200)}
-          style={styles.imageContainer}
-        >
-          <Image
-            source={{ uri: image_url }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-        </Animated.View>
-      )}
 
       {/* Translation */}
       {translation && (
@@ -196,47 +199,50 @@ export function TextInputCard({
         </Animated.Text>
       )}
 
-      {/* Input Field */}
-      <Animated.View
-        entering={FadeInDown.duration(400).delay(400)}
-        style={[inputAnimatedStyle, styles.inputWrapper]}
-      >
-        <RNTextInput
-          value={input}
-          onChangeText={setInput}
-          placeholder={
-            showHint && correct_answer
-              ? `Hint: ${correct_answer.substring(0, 2)}...`
-              : 'Type here...'
-          }
-          placeholderTextColor={showHint ? colors.accent.purple : colors.text.tertiary}
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={[
-            styles.input,
-            {
-              borderColor: getInputBorderColor(),
-              shadowColor: showResult
-                ? isCorrect ? colors.success.DEFAULT : colors.error.DEFAULT
-                : '#000',
-              shadowOpacity: showResult ? 0.4 : 0.1,
-              elevation: showResult ? 4 : 2,
-            },
-          ]}
-          editable={!showResult}
-          onFocus={() => {
-            inputScale.value = withSpring(1.02);
-            haptics.light();
-          }}
-          onBlur={() => {
-            inputScale.value = withSpring(1);
-          }}
-        />
-      </Animated.View>
+      {/* Content area with padding to avoid button overlap */}
+      <View style={styles.contentArea}>
+        {/* Input Field */}
+        <Animated.View
+          entering={FadeInDown.duration(400).delay(400)}
+          style={[inputAnimatedStyle, styles.inputWrapper]}
+        >
+          <RNTextInput
+            value={input}
+            onChangeText={setInput}
+            placeholder={
+              showHint && correct_answer
+                ? `Hint: ${correct_answer.substring(0, 2)}...`
+                : 'Type here...'
+            }
+            placeholderTextColor={showHint ? colors.accent.purple : colors.text.tertiary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={[
+              styles.input,
+              {
+                borderColor: getInputBorderColor(),
+                shadowColor: showResult
+                  ? isCorrect ? colors.success.DEFAULT : colors.error.DEFAULT
+                  : '#000',
+                shadowOpacity: showResult ? 0.4 : 0.1,
+                elevation: showResult ? 4 : 2,
+              },
+            ]}
+            editable={!showResult}
+            onFocus={() => {
+              inputScale.value = withSpring(1.02);
+              haptics.light();
+            }}
+            onBlur={() => {
+              inputScale.value = withSpring(1);
+            }}
+          />
+        </Animated.View>
+      </View>
 
-      {/* Check button - only show when not wrong answer */}
+      {/* Check button - fixed at bottom */}
       {!showWrongAnswer && (
-        <Animated.View entering={FadeInDown.duration(400).delay(500)} style={styles.buttonWrapper}>
+        <Animated.View entering={FadeInDown.duration(400).delay(500)} style={[styles.bottomActions, { paddingBottom: insets.bottom + spacing.sm }]}>
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={!input || (showResult && isCorrect)}
@@ -279,13 +285,27 @@ export function TextInputCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  imageContainer: {
+    width: '100%',
+    height: 200,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  image: {
+    width: '100%',
+    height: 200,
   },
   headerContainer: {
     width: '100%',
     position: 'relative',
     marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   header: {
     fontSize: typography.fontSize['2xl'],
@@ -295,7 +315,7 @@ const styles = StyleSheet.create({
   },
   hintButtonContainer: {
     position: 'absolute',
-    right: 0,
+    right: spacing.lg,
     top: 0,
   },
   hintButton: {
@@ -308,30 +328,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.light,
   },
-  hintButtonText: {
-    fontSize: 20,
-  },
-  imageContainer: {
-    borderRadius: borderRadius['2xl'],
-    overflow: 'hidden',
-    marginBottom: spacing.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  image: {
-    width: 200,
-    height: 200,
-    borderRadius: borderRadius.xl,
-  },
   translation: {
     fontSize: typography.fontSize.xl,
     color: colors.accent.purple,
     textAlign: 'center',
     marginBottom: spacing.xl,
     fontWeight: typography.fontWeight.semibold,
+    paddingHorizontal: spacing.lg,
+  },
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 100, // Space for fixed button
   },
   inputWrapper: {
     width: '100%',
@@ -349,8 +357,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     textAlign: 'center',
   },
-  buttonWrapper: {
-    width: '100%',
+  bottomActions: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.lg,
   },
   checkButton: {
     paddingVertical: spacing.lg,

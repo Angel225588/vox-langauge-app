@@ -17,6 +17,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -42,6 +43,7 @@ import type { VocabCardProps } from '@/types/vocabulary';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
+  const insets = useSafeAreaInsets();
   const haptics = useHaptics();
   const [showTranslation, setShowTranslation] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
@@ -49,6 +51,7 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [playingExampleIndex, setPlayingExampleIndex] = useState<number | null>(null);
 
   const { trackAudioPlay, complete } = useVocabCard({
     variant: 'introduction',
@@ -151,6 +154,48 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
       return newSet;
     });
   }, [haptics]);
+
+  const handlePlayExampleAudio = useCallback(async (example: { text: string; translation: string; audioUrl?: string }, index: number) => {
+    haptics.light();
+    trackAudioPlay();
+
+    // If already playing this example, stop it
+    if (playingExampleIndex === index) {
+      Speech.stop();
+      setPlayingExampleIndex(null);
+      return;
+    }
+
+    setPlayingExampleIndex(index);
+
+    if (example.audioUrl) {
+      try {
+        const { sound: exampleSound } = await Audio.Sound.createAsync(
+          { uri: example.audioUrl },
+          { shouldPlay: true, rate: 1.0, shouldCorrectPitch: true },
+          (status) => {
+            if (status.isLoaded && status.didJustFinish) {
+              setPlayingExampleIndex(null);
+            }
+          }
+        );
+        // Cleanup after playback
+        await exampleSound.playAsync();
+      } catch {
+        Speech.speak(example.text, {
+          rate: 0.8,
+          onDone: () => setPlayingExampleIndex(null),
+          onError: () => setPlayingExampleIndex(null),
+        });
+      }
+    } else {
+      Speech.speak(example.text, {
+        rate: 0.8,
+        onDone: () => setPlayingExampleIndex(null),
+        onError: () => setPlayingExampleIndex(null),
+      });
+    }
+  }, [playingExampleIndex, haptics, trackAudioPlay]);
 
   const handleContinue = useCallback(() => {
     haptics.medium();
@@ -353,7 +398,20 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
                     entering={FadeInUp.duration(300).delay(index * 100)}
                     style={styles.exampleItem}
                   >
-                    <Text style={styles.exampleText}>{example.text}</Text>
+                    <View style={styles.exampleHeader}>
+                      <Text style={styles.exampleText}>{example.text}</Text>
+                      <TouchableOpacity
+                        onPress={() => handlePlayExampleAudio(example, index)}
+                        activeOpacity={0.7}
+                        style={styles.exampleAudioButton}
+                      >
+                        <Ionicons
+                          name={playingExampleIndex === index ? "pause" : "volume-medium-outline"}
+                          size={18}
+                          color={playingExampleIndex === index ? colors.primary.DEFAULT : colors.text.secondary}
+                        />
+                      </TouchableOpacity>
+                    </View>
 
                     {/* Translation toggle for each example */}
                     {visibleExampleTranslations.has(index) ? (
@@ -383,8 +441,8 @@ export function IntroductionCard({ item, onComplete, onSkip }: VocabCardProps) {
         )}
       </ScrollView>
 
-      {/* Fixed Bottom Actions - Always visible, two buttons side by side */}
-      <View style={styles.bottomActions}>
+      {/* Fixed Bottom Actions - Absolutely positioned at bottom */}
+      <View style={[styles.bottomActions, { paddingBottom: insets.bottom + spacing.sm }]}>
         <View style={styles.buttonRow}>
           {/* Study Again / Know This button */}
           <TouchableOpacity
@@ -442,17 +500,18 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 16,
   },
   heroImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 16,
   },
   categoryOverlay: {
     position: 'absolute',
-    bottom: spacing.md,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
+    top: spacing.md,
+    right: spacing.md,
   },
   categoryContainer: {
     alignItems: 'center',
@@ -478,7 +537,7 @@ const styles = StyleSheet.create({
   contentAreaInner: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingBottom: 120, // Space for fixed bottom buttons
   },
   wordContainer: {
     alignItems: 'center',
@@ -614,11 +673,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.light,
   },
+  exampleHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
   exampleText: {
     fontSize: typography.fontSize.base,
     color: colors.text.primary,
-    marginBottom: spacing.sm,
     lineHeight: typography.fontSize.base * 1.5,
+    flex: 1,
+  },
+  exampleAudioButton: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
   exampleTranslationContainer: {
     flexDirection: 'row',
@@ -648,8 +723,11 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.medium,
   },
   bottomActions: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
     paddingTop: spacing.md,
     backgroundColor: colors.background.primary,
     borderTopWidth: 1,

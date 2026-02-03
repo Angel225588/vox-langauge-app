@@ -121,10 +121,40 @@ interface WhisperAPIResponse {
 // CONSTANTS
 // ============================================================================
 
-const WHISPER_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
+// API URLs
+const OPENAI_WHISPER_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // ms
 const REQUEST_TIMEOUT = 60000; // 60 seconds
+
+/**
+ * Get the Whisper API URL (supports self-hosted)
+ */
+function getWhisperApiUrl(): string {
+  const selfHostedUrl = process.env.EXPO_PUBLIC_WHISPER_SERVER_URL;
+  if (selfHostedUrl) {
+    // Self-hosted server should expose same endpoint
+    return `${selfHostedUrl}/v1/audio/transcriptions`;
+  }
+  return OPENAI_WHISPER_URL;
+}
+
+/**
+ * Get API key for Whisper (OpenAI or self-hosted)
+ */
+function getWhisperApiKey(): string | null {
+  // Check for self-hosted first
+  const selfHostedKey = process.env.EXPO_PUBLIC_WHISPER_SERVER_KEY;
+  const selfHostedUrl = process.env.EXPO_PUBLIC_WHISPER_SERVER_URL;
+
+  if (selfHostedUrl) {
+    // Self-hosted may not require API key
+    return selfHostedKey || 'self-hosted';
+  }
+
+  // Fall back to OpenAI
+  return getApiKey();
+}
 
 /**
  * Languages supported by Whisper API
@@ -161,8 +191,17 @@ function getApiKey(): string | null {
 
 /**
  * Check if Whisper API is configured and available
+ * Supports both OpenAI and self-hosted servers
  */
 export async function isWhisperAvailable(): Promise<boolean> {
+  // Check for self-hosted first
+  const selfHostedUrl = process.env.EXPO_PUBLIC_WHISPER_SERVER_URL;
+  if (selfHostedUrl) {
+    console.log('[Whisper] Self-hosted server configured:', selfHostedUrl);
+    return true;
+  }
+
+  // Check for OpenAI
   const apiKey = getApiKey();
   if (!apiKey) {
     return false;
@@ -179,6 +218,40 @@ export async function isWhisperAvailable(): Promise<boolean> {
     console.error('Error checking Whisper availability:', error);
     return false;
   }
+}
+
+/**
+ * Get current Whisper provider info
+ */
+export function getWhisperProviderInfo(): {
+  provider: 'openai' | 'self-hosted' | 'none';
+  url: string;
+  isConfigured: boolean;
+} {
+  const selfHostedUrl = process.env.EXPO_PUBLIC_WHISPER_SERVER_URL;
+  const openaiKey = getApiKey();
+
+  if (selfHostedUrl) {
+    return {
+      provider: 'self-hosted',
+      url: selfHostedUrl,
+      isConfigured: true,
+    };
+  }
+
+  if (openaiKey) {
+    return {
+      provider: 'openai',
+      url: OPENAI_WHISPER_URL,
+      isConfigured: true,
+    };
+  }
+
+  return {
+    provider: 'none',
+    url: '',
+    isConfigured: false,
+  };
 }
 
 /**
@@ -201,7 +274,7 @@ export async function transcribeAudio(
   audioUri: string,
   options?: TranscriptionOptions
 ): Promise<TranscriptionResult> {
-  const apiKey = getApiKey();
+  const apiKey = getWhisperApiKey();
 
   if (!apiKey) {
     console.warn('OpenAI API key not configured. Using mock transcription for demo purposes.');
@@ -279,6 +352,7 @@ export async function transcribeAudio(
 
 /**
  * Internal function to perform transcription with proper error handling
+ * Uses FileSystem.uploadAsync for React Native compatibility
  */
 async function transcribeWithRetry(
   audioUri: string,
@@ -286,9 +360,6 @@ async function transcribeWithRetry(
   options: TranscriptionOptions | undefined,
   attempt: number
 ): Promise<TranscriptionResult> {
-  // Create form data for multipart upload
-  const formData = new FormData();
-
   // Read audio file and append to form data
   const fileInfo = await FileSystem.getInfoAsync(audioUri);
   if (!fileInfo.exists) {
@@ -299,122 +370,88 @@ async function transcribeWithRetry(
   const extension = audioUri.split('.').pop()?.toLowerCase() || 'm4a';
   const mimeType = getMimeType(extension);
 
-  // For Expo, we need to create a proper file blob from the local URI
-  // Using fetch() on file:// URIs can fail with "Network request failed"
-  // Instead, we'll use FileSystem to read and create the blob
-  let audioBlob: Blob;
+  console.log(`[Whisper API] Attempt ${attempt}: Preparing upload...`);
+  console.log(`[Whisper API] File: ${audioUri}`);
+  console.log(`[Whisper API] Extension: ${extension}, MIME: ${mimeType}`);
+
   try {
-    // Try fetch first (works in some environments)
-    audioBlob = await fetch(audioUri).then(r => r.blob());
-  } catch (fetchError) {
-    console.warn('Fetch failed, trying FileSystem approach:', fetchError);
-    // Fallback: Read file as base64 and convert to blob
-    try {
-      const base64 = await FileSystem.readAsStringAsync(audioUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+    // Build upload parameters for FileSystem.uploadAsync
+    // This is the proper way to upload files in React Native/Expo
+    const uploadParams: Record<string, string> = {
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+      'timestamp_granularities[]': 'word',
+    };
 
-      // Convert base64 to binary
-      const binaryString = atob(base64);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-
-      // Create blob from bytes
-      audioBlob = new Blob([bytes], { type: mimeType });
-    } catch (base64Error) {
-      throw new Error(
-        `Failed to read audio file: ${fetchError}. Fallback also failed: ${base64Error}`
-      );
+    if (options?.language) {
+      uploadParams.language = options.language;
     }
-  }
 
-  formData.append('file', audioBlob, `audio.${extension}`);
+    if (options?.prompt) {
+      uploadParams.prompt = options.prompt;
+    }
 
-  // Model - using whisper-1
-  formData.append('model', 'whisper-1');
+    if (options?.temperature !== undefined) {
+      uploadParams.temperature = options.temperature.toString();
+    }
 
-  // Response format - verbose JSON for word timestamps
-  formData.append('response_format', 'verbose_json');
+    const whisperUrl = getWhisperApiUrl();
+    const isSelfHosted = whisperUrl !== OPENAI_WHISPER_URL;
 
-  // Request word-level timestamps
-  formData.append('timestamp_granularities[]', 'word');
-  formData.append('timestamp_granularities[]', 'segment');
+    console.log(`[Whisper API] Uploading via FileSystem.uploadAsync...`);
+    console.log(`[Whisper API] Using ${isSelfHosted ? 'self-hosted' : 'OpenAI'} server`);
 
-  // Optional parameters
-  if (options?.language) {
-    formData.append('language', options.language);
-  }
+    // Use FileSystem.uploadAsync - the proper React Native way
+    const uploadResult = await FileSystem.uploadAsync(
+      whisperUrl,
+      audioUri,
+      {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: 'file',
+        mimeType: mimeType,
+        parameters: uploadParams,
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+        },
+      }
+    );
 
-  if (options?.prompt) {
-    formData.append('prompt', options.prompt);
-  }
+    console.log(`[Whisper API] Response status: ${uploadResult.status}`);
 
-  if (options?.temperature !== undefined) {
-    formData.append('temperature', options.temperature.toString());
-  }
-
-  // Make API request with timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-  try {
-    console.log(`[Whisper API] Attempt ${attempt}: Sending transcription request...`);
-
-    const response = await fetch(WHISPER_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: formData,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    console.log(`[Whisper API] Response status: ${response.status}`);
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      let errorMessage = `OpenAI API error: ${response.status}`;
+    if (uploadResult.status !== 200) {
+      let errorMessage = `OpenAI API error: ${uploadResult.status}`;
 
       try {
-        const errorJson = JSON.parse(errorBody);
+        const errorJson = JSON.parse(uploadResult.body);
         errorMessage = errorJson.error?.message || errorMessage;
         console.error('[Whisper API] Error details:', errorJson);
       } catch {
-        // Use default error message
-        console.error('[Whisper API] Error body:', errorBody);
+        console.error('[Whisper API] Error body:', uploadResult.body);
       }
 
       throw new Error(errorMessage);
     }
 
-    const data: WhisperAPIResponse = await response.json();
+    const data: WhisperAPIResponse = JSON.parse(uploadResult.body);
 
     console.log('[Whisper API] Transcription successful');
+    console.log(`[Whisper API] Transcribed text: "${data.text?.substring(0, 100)}..."`);
 
     // Transform API response to our TranscriptionResult format
     return transformWhisperResponse(data);
   } catch (error: any) {
-    if (error.name === 'AbortError') {
-      throw new Error(`Transcription request timed out after ${REQUEST_TIMEOUT / 1000}s`);
-    }
+    // Log errors with more context
+    console.error(`[Whisper API] Upload failed:`, error.message);
 
-    // Log network errors with more details
-    if (error.message.includes('Network request failed')) {
-      console.error('[Whisper API] Network error - possible causes:');
-      console.error('  1. No internet connection');
-      console.error('  2. API endpoint blocked or unreachable');
-      console.error('  3. File blob conversion failed');
-      console.error('  4. CORS or network permissions issue');
-      console.error('  Original error:', error);
+    if (error.message.includes('Network request failed') || error.message.includes('network')) {
+      console.error('[Whisper API] Network error - check:');
+      console.error('  1. Internet connection');
+      console.error('  2. OpenAI API key validity');
+      console.error('  3. File exists and is readable');
     }
 
     throw error;
-  } finally {
-    clearTimeout(timeoutId);
   }
 }
 

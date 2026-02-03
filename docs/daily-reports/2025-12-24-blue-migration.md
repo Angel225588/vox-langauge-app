@@ -77,6 +77,24 @@ Updated color palette reference to reflect new blue primary colors.
 
 Expert council debate methodology for complex decisions.
 
+### 6. MMKV to AsyncStorage Migration
+
+**Files Changed**:
+- `lib/utils/levelGating.ts`
+- `app/(tabs)/home.tsx`
+- `app/(auth)/onboarding-v2/ready.tsx`
+
+**Problem**: MMKV v4.0.1 requires `react-native-nitro-modules` which doesn't work with Expo Go development mode. Caused app crash on startup.
+
+**Solution**: Replaced MMKV with AsyncStorage:
+- Made storage functions async (`storeUserLevel`, `getStoredLevel`, `clearStoredLevel`)
+- Updated home.tsx to use `useEffect` for async level loading
+- Updated ready.tsx to `await` the async storage call
+
+**Commits**:
+- `f028191` - feat(design-system): Migrate from purple to blue accent color
+- `1f8308f` - fix(storage): Replace MMKV with AsyncStorage for Expo Go compatibility
+
 ---
 
 ## Known Issues
@@ -145,6 +163,9 @@ glow: {
 - `components/cards/index.tsx`
 - `app/voice-conversation.tsx`
 - `.claude/commands/ui-ux.md`
+- `lib/utils/levelGating.ts`
+- `app/(tabs)/home.tsx`
+- `app/(auth)/onboarding-v2/ready.tsx`
 
 ### Created
 - `components/cards/GoalPage.tsx`

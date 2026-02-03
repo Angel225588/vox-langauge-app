@@ -313,3 +313,72 @@ export {
 export type {
   UserPassage,
 } from './passageStorage';
+
+// ============================================================================
+// CLOUD SYNC (Supabase)
+// ============================================================================
+
+export {
+  // Recording upload to cloud
+  uploadRecording as uploadRecordingToCloud,
+  deleteRecording as deleteRecordingFromCloud,
+
+  // Session sync
+  syncReadingSession,
+  syncReadingSessions,
+  fetchCloudSessions,
+  deleteCloudSession,
+
+  // Utilities
+  getSessionsNeedingSync,
+  readingSync,
+} from './readingSync';
+
+export type {
+  SyncResult,
+  SyncOptions,
+  ReadingSessionSupabase,
+} from './readingSync';
+
+// ============================================================================
+// SEMANTIC MATCHING
+// ============================================================================
+
+export {
+  checkSemanticMatch,
+  checkSentenceSemantics,
+  isDroppableWord,
+  getSemanticFeedback,
+  EQUIVALENT_WORDS,
+  DROPPABLE_WORDS,
+  ACCEPTABLE_SUBSTITUTIONS,
+} from './semanticMatcher';
+
+export type {
+  SemanticMatchType,
+  SemanticMatchResult,
+} from './semanticMatcher';
+
+// ============================================================================
+// EXPO-AUDIO MIGRATION (SDK 54+)
+// ============================================================================
+
+export {
+  // Hook for recording with expo-audio
+  useExpoAudioRecording,
+
+  // Recording options optimized for Whisper
+  WHISPER_RECORDING_OPTIONS,
+
+  // Utility functions
+  moveRecordingToPermanentStorage as moveRecordingToPermanentStorageNew,
+  deleteRecordingFile,
+  getRecordingInfo as getRecordingInfoNew,
+  getRecordingBase64 as getRecordingBase64New,
+} from './useExpoAudioRecording';
+
+export type {
+  RecordingResult as ExpoAudioRecordingResult,
+  UseExpoAudioRecordingOptions,
+  UseExpoAudioRecordingReturn,
+} from './useExpoAudioRecording';

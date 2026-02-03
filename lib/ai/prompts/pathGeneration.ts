@@ -112,7 +112,7 @@ export function generatePathSkeletonPrompt(
   const template = PATH_TEMPLATES[input.motivation as keyof typeof PATH_TEMPLATES];
   const hasMemory = !!userMemory;
 
-  return `You are an expert language learning curriculum designer. Create a learning path SKELETON for a ${input.target_language} learner.
+  return `You are an expert language learning curriculum designer using SCENARIO-BASED LEARNING methodology. Create a learning path SKELETON for a ${input.target_language} learner.
 
 USER CONTEXT:
 - Native Language: ${input.native_language}
@@ -129,7 +129,41 @@ ${hasMemory ? `USER PROGRESS:
 - Weaknesses: ${userMemory.weaknesses.join(', ')}
 ` : ''}
 
-${template ? `SUGGESTED PROGRESSION (adapt as needed):
+=== CRITICAL LEARNING PHILOSOPHY ===
+Users learn UNIVERSAL vocabulary WHILE specializing in their goal - NOT before.
+The top 500-2000 most used words cover 80% of all conversations.
+
+EVERY STAIR must include BOTH:
+1. Universal skills (60%): Conversations with friends, introductions, daily life, asking for help
+2. Field-specific skills (40%): Vocabulary and scenarios for their specific goal (${input.motivation})
+
+This ensures users can:
+- Handle everyday situations (meeting people, small talk, getting help)
+- Excel in their specific goal domain simultaneously
+- Never feel stuck learning only one narrow topic
+
+=== VOCABULARY TIER GUIDELINES ===
+- Steps 1-2: Core 100 words + basic field vocabulary
+- Steps 3-4: Essential 500 words + intermediate field vocabulary
+- Steps 5-6: Fluent 1000 words + advanced field vocabulary
+- Steps 7-8: Advanced 2000 words + specialized field vocabulary
+
+=== SURVIVAL PHRASES (Include in every stair) ===
+Teach these clarification expressions naturally throughout:
+- "Speak slowly, please"
+- "I didn't catch that" / "What was that again?"
+- "Can you repeat that?"
+- "What does X mean?"
+- "Do you know...?"
+
+=== QUESTION PATTERNS ===
+Each stair should introduce question patterns the user needs:
+- Steps 1-2: "What is...?", "Where is...?", "Do you...?"
+- Steps 3-4: "How do I...?", "Can you...?", "Did you...?"
+- Steps 5-6: "Have you...?", "Would you...?", "Why do you...?"
+- Steps 7-8: Complex questions, hypotheticals, negotiations
+
+${template ? `SUGGESTED PROGRESSION (adapt to include universal + field mix):
 ${template.stairProgression.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 ` : ''}
 
@@ -138,18 +172,18 @@ Create ONLY the structure - no vocabulary or detailed content yet.
 OUTPUT FORMAT (JSON):
 {
   "path_title": "Motivating title",
-  "path_description": "2-3 sentence description",
+  "path_description": "2-3 sentence description emphasizing real-world readiness",
   "total_stairs": 8,
   "estimated_completion": "3 months",
   "stairs": [
     {
       "order": 1,
-      "title": "Stair title",
+      "title": "Stair title (should blend universal + field focus)",
       "emoji": "📱",
-      "description": "What user will learn (1-2 sentences)",
+      "description": "What user will learn - mention BOTH everyday skills AND field skills (1-2 sentences)",
       "grammar_focus": ["grammar point 1", "grammar point 2"],
       "skills_required": [],
-      "skills_unlocked": ["skill 1", "skill 2"],
+      "skills_unlocked": ["universal skill", "field-specific skill"],
       "estimated_days": 7
     }
   ]
@@ -157,7 +191,9 @@ OUTPUT FORMAT (JSON):
 
 IMPORTANT:
 - Create exactly 8 stairs
-- Keep descriptions concise
+- Each stair MUST blend universal + field-specific content
+- Include survival/clarification phrases naturally
+- Descriptions should mention BOTH everyday AND goal-specific skills
 - Skills should flow logically between stairs
 - Return ONLY valid JSON`;
 }
@@ -194,7 +230,16 @@ export function generateStairContentPromptOnDemand(
 ): string {
   const hasMetrics = !!userMetrics;
 
-  return `Generate detailed learning content for this stair in a ${input.target_language} learning path.
+  // Determine vocabulary tier based on stair order
+  const vocabTierInfo = stairSkeleton.order <= 2
+    ? 'Core 100 most common words'
+    : stairSkeleton.order <= 4
+    ? 'Essential 500 most common words'
+    : stairSkeleton.order <= 6
+    ? 'Fluent 1000 most common words'
+    : 'Advanced 2000 words + specialized vocabulary';
+
+  return `Generate detailed learning content for this stair in a ${input.target_language} learning path using SCENARIO-BASED methodology.
 
 STAIR INFO:
 - Order: ${stairSkeleton.order}
@@ -209,6 +254,28 @@ USER CONTEXT:
 - Target Language: ${input.target_language}
 - Proficiency Level: ${input.proficiency_level}
 - Motivation: ${input.motivation}${input.motivation_custom ? ` (${input.motivation_custom})` : ''}
+
+=== VOCABULARY MIXING REQUIREMENT ===
+Target vocabulary tier: ${vocabTierInfo}
+
+Vocabulary MUST include BOTH types:
+- 60% Universal words: Common verbs, nouns, adjectives everyone needs (from top 2000)
+- 40% Field-specific words: Vocabulary specific to ${input.motivation}
+
+=== SURVIVAL PHRASES (Required) ===
+Include at least 2 of these clarification expressions as vocabulary items:
+- "Speak slowly, please" / "Habla más despacio, por favor"
+- "I didn't catch that" / "No entendí"
+- "Can you repeat that?" / "¿Puedes repetir?"
+- "What does X mean?" / "¿Qué significa X?"
+- "Sorry, I don't understand" / "Perdón, no entiendo"
+
+=== QUESTION PATTERNS ===
+Include vocabulary that enables these question types (based on stair ${stairSkeleton.order}):
+${stairSkeleton.order <= 2 ? '- "What is...?", "Where is...?", "Do you...?"' : ''}
+${stairSkeleton.order >= 3 && stairSkeleton.order <= 4 ? '- "How do I...?", "Can you...?", "Did you...?"' : ''}
+${stairSkeleton.order >= 5 && stairSkeleton.order <= 6 ? '- "Have you...?", "Would you...?", "Why do you...?"' : ''}
+${stairSkeleton.order >= 7 ? '- Complex questions, hypotheticals, negotiations' : ''}
 
 ${hasMetrics ? `USER PERFORMANCE (adapt content accordingly):
 - Vocabulary Mastery Rate: ${userMetrics.vocab_mastery_rate}%
@@ -232,27 +299,38 @@ OUTPUT FORMAT (JSON):
       "example_sentence": "Example sentence in ${input.target_language}",
       "example_translation": "Translation in ${input.native_language}",
       "part_of_speech": "noun/verb/adjective/etc",
-      "difficulty": "easy/medium/hard"
+      "difficulty": "easy/medium/hard",
+      "category": "universal/field-specific/survival"
     }
   ],
   "grammar_points": [
     "Clear explanation of grammar concept 1",
     "Clear explanation of grammar concept 2"
   ],
+  "question_patterns": [
+    {
+      "pattern": "Do you...?",
+      "examples": ["Do you speak English?", "Do you have...?"],
+      "when_to_use": "When asking yes/no questions about present habits or states"
+    }
+  ],
   "scenarios": [
     {
-      "title": "Scenario title",
+      "title": "Scenario title (should mix everyday + field context)",
       "description": "Brief description",
       "context": "Detailed context for role-play",
-      "key_phrases": ["phrase1", "phrase2", "phrase3"]
+      "key_phrases": ["phrase1", "phrase2", "phrase3"],
+      "survival_phrases_to_practice": ["I didn't catch that", "Can you repeat?"]
     }
   ]
 }
 
 IMPORTANT:
-- Include 10-15 vocabulary items (quality over quantity)
-- Include 2-3 realistic scenarios
-- Make content relevant to user's motivation
+- Include 10-15 vocabulary items with 60/40 universal/field split
+- Include at least 2 survival/clarification phrases
+- Include 1-2 question patterns with examples
+- Include 2-3 realistic scenarios that blend everyday + field context
+- Scenarios should give opportunities to practice survival phrases
 - Return ONLY valid JSON`;
 }
 

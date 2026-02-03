@@ -3,11 +3,17 @@
  *
  * Manages fetching and operations for user's learning path including stairs,
  * progress tracking, and path generation.
+ *
+ * Uses existing schema tables:
+ * - user_staircases: User's personalized learning paths
+ * - staircase_steps: Individual steps within each staircase
+ * - user_stair_progress: Tracks user position and completion status
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/db/supabase';
-import type { Stair } from '@/lib/db/schemas/learning';
+import { preloadNextStairContent } from '@/hooks/useStairContent';
+import { getNextStairId, getStairContent } from '@/lib/db/learningPaths';
 
 /**
  * Stair data formatted for display on home screen
@@ -38,6 +44,8 @@ export interface UseLearningPathReturn {
   refreshPath: () => Promise<void>;
   completeStair: (stairId: string) => Promise<void>;
   startStair: (stairId: string) => Promise<void>;
+  /** Pre-load content for the next stair (call at ~80% progress) */
+  preloadNextContent: (currentStairId: string) => Promise<void>;
 }
 
 /**
@@ -45,22 +53,6 @@ export interface UseLearningPathReturn {
  *
  * @param userId - The user's ID (null if not authenticated)
  * @returns Learning path data and operations
- *
- * @example
- * ```tsx
- * const { stairs, currentStair, isLoading, refreshPath } = useLearningPath(user?.id);
- *
- * if (isLoading) return <LoadingSpinner />;
- * if (!hasPath) return <CreatePathPrompt />;
- *
- * return (
- *   <StaircaseView
- *     stairs={stairs}
- *     current={currentStair}
- *     onStairPress={(id) => startStair(id)}
- *   />
- * );
- * ```
  */
 export function useLearningPath(userId: string | null): UseLearningPathReturn {
   const [stairs, setStairs] = useState<StairForDisplay[]>([]);
@@ -70,7 +62,7 @@ export function useLearningPath(userId: string | null): UseLearningPathReturn {
   const [hasPath, setHasPath] = useState(false);
 
   /**
-   * Fetch stairs for the current user's active section
+   * Fetch stairs for the current user's active staircase
    */
   const fetchStairs = useCallback(async () => {
     if (!userId) {
@@ -85,15 +77,16 @@ export function useLearningPath(userId: string | null): UseLearningPathReturn {
       setIsLoading(true);
       setError(null);
 
-      // 1. Get user's active learning path
-      const { data: pathData, error: pathError } = await supabase
-        .from('learning_paths')
-        .select('id, current_section')
+      // 1. Get user's active staircase
+      const { data: staircase, error: staircaseError } = await supabase
+        .from('user_staircases')
+        .select('id')
         .eq('user_id', userId)
+        .eq('is_active', true)
         .single();
 
-      if (pathError || !pathData) {
-        // No path exists yet
+      if (staircaseError || !staircase) {
+        // No active staircase - user hasn't completed onboarding
         setStairs([]);
         setCurrentStair(null);
         setHasPath(false);
@@ -103,40 +96,60 @@ export function useLearningPath(userId: string | null): UseLearningPathReturn {
 
       setHasPath(true);
 
-      // 2. Get active section
-      const { data: sectionData, error: sectionError } = await supabase
-        .from('sections')
-        .select('id')
-        .eq('path_id', pathData.id)
-        .eq('section_number', pathData.current_section)
-        .single();
+      // 2. Get all steps for this staircase with their progress
+      const { data: steps, error: stepsError } = await supabase
+        .from('staircase_steps')
+        .select(`
+          id,
+          step_order,
+          title,
+          emoji,
+          description,
+          vocabulary_count,
+          estimated_days
+        `)
+        .eq('staircase_id', staircase.id)
+        .order('step_order', { ascending: true });
 
-      if (sectionError || !sectionData) {
-        throw new Error('Failed to load current section');
+      if (stepsError) {
+        throw new Error('Failed to load steps');
       }
 
-      // 3. Get all stairs for this section
-      const { data: stairsData, error: stairsError } = await supabase
-        .from('stairs')
-        .select('*')
-        .eq('section_id', sectionData.id)
-        .order('order', { ascending: true });
+      // 3. Get progress for all steps
+      const stepIds = (steps || []).map(s => s.id);
+      const { data: progressData, error: progressError } = await supabase
+        .from('user_stair_progress')
+        .select('step_id, status, completed_at')
+        .eq('user_id', userId)
+        .in('step_id', stepIds);
 
-      if (stairsError) {
-        throw new Error('Failed to load stairs');
+      if (progressError) {
+        console.error('Error fetching progress:', progressError);
       }
+
+      // Create a map for quick progress lookup
+      const progressMap = new Map<string, { status: string; completed_at: string | null }>();
+      (progressData || []).forEach(p => {
+        progressMap.set(p.step_id, { status: p.status, completed_at: p.completed_at });
+      });
 
       // 4. Transform to display format
-      const displayStairs: StairForDisplay[] = (stairsData || []).map((stair) => ({
-        id: stair.id,
-        order: stair.order,
-        title: stair.title,
-        emoji: stair.emoji,
-        description: stair.description,
-        status: stair.status as 'locked' | 'current' | 'completed',
-        vocabulary_count: stair.vocabulary_count,
-        estimated_days: stair.estimated_days,
-      }));
+      const displayStairs: StairForDisplay[] = (steps || []).map((step, index) => {
+        const progress = progressMap.get(step.id);
+        // Default: first step is current, rest are locked
+        const defaultStatus = index === 0 ? 'current' : 'locked';
+
+        return {
+          id: step.id,
+          order: step.step_order,
+          title: step.title,
+          emoji: step.emoji,
+          description: step.description,
+          status: (progress?.status || defaultStatus) as 'locked' | 'current' | 'completed',
+          vocabulary_count: step.vocabulary_count,
+          estimated_days: step.estimated_days,
+        };
+      });
 
       setStairs(displayStairs);
 
@@ -174,46 +187,56 @@ export function useLearningPath(userId: string | null): UseLearningPathReturn {
       try {
         setError(null);
 
-        // 1. Mark stair as completed
+        // 1. Mark step as completed
         const { error: updateError } = await supabase
-          .from('stairs')
+          .from('user_stair_progress')
           .update({
             status: 'completed',
             completed_at: new Date().toISOString(),
+            last_activity_at: new Date().toISOString(),
           })
-          .eq('id', stairId);
+          .eq('step_id', stairId)
+          .eq('user_id', userId);
 
         if (updateError) {
-          throw new Error('Failed to complete stair');
+          throw new Error('Failed to complete step');
         }
 
-        // 2. Find next stair
+        // 2. Find next step
         const currentStairIndex = stairs.findIndex((s) => s.id === stairId);
         if (currentStairIndex === -1) {
-          throw new Error('Stair not found');
+          throw new Error('Step not found');
         }
 
         const nextStair = stairs[currentStairIndex + 1];
 
-        // 3. If there's a next stair, unlock it
+        // 3. If there's a next step, unlock it and pre-load content
         if (nextStair) {
           const { error: unlockError } = await supabase
-            .from('stairs')
+            .from('user_stair_progress')
             .update({
               status: 'current',
+              started_at: new Date().toISOString(),
+              last_activity_at: new Date().toISOString(),
             })
-            .eq('id', nextStair.id);
+            .eq('step_id', nextStair.id)
+            .eq('user_id', userId);
 
           if (unlockError) {
-            throw new Error('Failed to unlock next stair');
+            throw new Error('Failed to unlock next step');
           }
+
+          // Pre-load content for the next stair (fire-and-forget)
+          preloadNextStairContent(nextStair.id, userId).catch((err) => {
+            console.warn('[useLearningPath] Background pre-load failed:', err);
+          });
         }
 
         // 4. Refresh the data
         await refreshPath();
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to complete stair';
-        console.error('Error completing stair:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Failed to complete step';
+        console.error('Error completing step:', err);
         setError(errorMessage);
       }
     },
@@ -236,12 +259,12 @@ export function useLearningPath(userId: string | null): UseLearningPathReturn {
         // Find the stair
         const stair = stairs.find((s) => s.id === stairId);
         if (!stair) {
-          throw new Error('Stair not found');
+          throw new Error('Step not found');
         }
 
         // Don't allow starting locked stairs
         if (stair.status === 'locked') {
-          setError('This stair is locked. Complete previous stairs first.');
+          setError('This step is locked. Complete previous steps first.');
           return;
         }
 
@@ -252,25 +275,63 @@ export function useLearningPath(userId: string | null): UseLearningPathReturn {
 
         // Set as current
         const { error: updateError } = await supabase
-          .from('stairs')
+          .from('user_stair_progress')
           .update({
             status: 'current',
+            started_at: new Date().toISOString(),
+            last_activity_at: new Date().toISOString(),
           })
-          .eq('id', stairId);
+          .eq('step_id', stairId)
+          .eq('user_id', userId);
 
         if (updateError) {
-          throw new Error('Failed to start stair');
+          throw new Error('Failed to start step');
         }
 
         // Refresh the data
         await refreshPath();
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to start stair';
-        console.error('Error starting stair:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Failed to start step';
+        console.error('Error starting step:', err);
         setError(errorMessage);
       }
     },
     [userId, stairs, refreshPath]
+  );
+
+  /**
+   * Pre-load content for the next stair (call at ~80% lesson progress)
+   * This enables instant navigation to the next stair.
+   */
+  const preloadNextContent = useCallback(
+    async (currentStairId: string) => {
+      if (!userId) return;
+
+      try {
+        // Find the next stair's ID
+        const nextStairId = await getNextStairId(currentStairId);
+        if (!nextStairId) {
+          console.log('[useLearningPath] No next stair to pre-load');
+          return;
+        }
+
+        // Check if content already loaded
+        const content = await getStairContent(nextStairId);
+        if (content?.content_loaded) {
+          console.log('[useLearningPath] Next stair content already loaded');
+          return;
+        }
+
+        // Pre-load in background (fire-and-forget)
+        console.log('[useLearningPath] Pre-loading next stair content:', nextStairId);
+        preloadNextStairContent(nextStairId, userId).catch((err) => {
+          console.warn('[useLearningPath] Pre-load failed:', err);
+        });
+      } catch (err) {
+        console.warn('[useLearningPath] Error checking next stair:', err);
+      }
+    },
+    [userId]
   );
 
   // Fetch stairs when userId changes
@@ -290,108 +351,6 @@ export function useLearningPath(userId: string | null): UseLearningPathReturn {
     refreshPath,
     completeStair,
     startStair,
-  };
-}
-
-/**
- * Onboarding data for path generation
- */
-export interface OnboardingData {
-  user_id: string;
-  target_language: string;
-  native_language: string;
-  motivation: string;
-  motivation_custom?: string;
-  why_now?: string;
-  proficiency_level: 'beginner' | 'elementary' | 'intermediate' | 'advanced';
-  timeline: '1_month' | '3_months' | '6_months' | '1_year';
-  previous_attempts?: string;
-  commitment_stakes: string;
-}
-
-/**
- * Return type for usePathGeneration hook
- */
-export interface UsePathGenerationReturn {
-  isGenerating: boolean;
-  progress: number;
-  error: string | null;
-  generatePath: (userId: string, onboardingData: OnboardingData) => Promise<void>;
-}
-
-/**
- * Hook to manage learning path generation
- *
- * @returns Path generation state and operations
- *
- * @example
- * ```tsx
- * const { isGenerating, progress, error, generatePath } = usePathGeneration();
- *
- * const handleComplete = async () => {
- *   await generatePath(user.id, onboardingData);
- *   router.push('/home');
- * };
- *
- * if (isGenerating) {
- *   return <ProgressBar progress={progress} />;
- * }
- * ```
- */
-export function usePathGeneration(): UsePathGenerationReturn {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-
-  /**
-   * Generate a personalized learning path
-   */
-  const generatePath = useCallback(async (userId: string, onboardingData: OnboardingData) => {
-    try {
-      setIsGenerating(true);
-      setProgress(0);
-      setError(null);
-
-      // Step 1: Validate input (0-10%)
-      if (!userId || !onboardingData.target_language || !onboardingData.native_language) {
-        throw new Error('Invalid onboarding data');
-      }
-      setProgress(10);
-
-      // Step 2: Call AI service to generate path (10-60%)
-      setProgress(30);
-
-      // TODO: Implement actual path generation service
-      // For now, this is a placeholder
-      // const generatedPath = await createPersonalizedPath(onboardingData);
-
-      // Simulate AI generation delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setProgress(60);
-
-      // Step 3: Save to database (60-90%)
-      // TODO: Implement database save
-      // await saveLearningPath(userId, generatedPath);
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setProgress(90);
-
-      // Step 4: Complete (90-100%)
-      setProgress(100);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate learning path';
-      console.error('Error generating path:', err);
-      setError(errorMessage);
-      setProgress(0);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, []);
-
-  return {
-    isGenerating,
-    progress,
-    error,
-    generatePath,
+    preloadNextContent,
   };
 }

@@ -61,7 +61,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Hidden screens - Keep staircase for backwards compatibility but don't show in tab bar */}
+      {/* Hidden screens - Keep these for backwards compatibility but don't show in tab bar */}
       <Tabs.Screen
         name="staircase"
         options={{
@@ -72,6 +72,12 @@ export default function TabLayout() {
         name="categories"
         options={{
           href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="icon-demo"
+        options={{
+          href: null, // Hide from tab bar - development only
         }}
       />
     </Tabs>

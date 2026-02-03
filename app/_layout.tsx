@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, ReactNode } from 'react';
 import { View, Text, ActivityIndicator, useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -8,8 +8,26 @@ import { initializeFlashcardDB, insertSampleFlashcards } from '@/lib/db/flashcar
 import { initializeWordBankDatabase } from '@/lib/word-bank';
 import { initializeReadingSessionsTable } from '@/lib/reading';
 import { dbManager } from '@/lib/db/database';
+import { initializeI18n } from '@/i18n';
 import tamaguiConfig from '../tamagui.config';
 import '../global.css';
+
+// Conditional ElevenLabs provider - only works in development builds, not Expo Go
+let ElevenLabsProvider: React.ComponentType<{ children: ReactNode }> | null = null;
+try {
+  // This will throw in Expo Go since native modules aren't linked
+  ElevenLabsProvider = require('@elevenlabs/react-native').ElevenLabsProvider;
+} catch (e) {
+  console.log('[ElevenLabs] Native module not available - using Expo Go or missing dev build');
+}
+
+// Wrapper component that conditionally uses ElevenLabsProvider
+function ConditionalElevenLabsProvider({ children }: { children: ReactNode }) {
+  if (ElevenLabsProvider) {
+    return <ElevenLabsProvider>{children}</ElevenLabsProvider>;
+  }
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
@@ -22,6 +40,10 @@ export default function RootLayout() {
         // Validate environment variables
         console.log('🚀 Initializing Vox Language App...');
         logEnvironmentStatus();
+
+        // Initialize i18n
+        console.log('🌍 Initializing internationalization...');
+        await initializeI18n();
 
         const envValidation = validateEnvironment();
         if (!envValidation.valid) {
@@ -90,8 +112,9 @@ export default function RootLayout() {
   // App is ready, show normal navigation
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0A0E1A' }}>
-      <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}>
-        <Stack
+      <ConditionalElevenLabsProvider>
+        <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}>
+          <Stack
           screenOptions={{
             headerShown: false,
             contentStyle: {
@@ -104,14 +127,15 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="test-cards" options={{ headerShown: false, presentation: 'modal' }} />
-          <Stack.Screen name="reading-practice" options={{ headerShown: false }} />
           <Stack.Screen name="library" options={{ headerShown: false }} />
           <Stack.Screen name="about-lecture" options={{ headerShown: false }} />
           <Stack.Screen name="teleprompter" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           <Stack.Screen name="recordings" options={{ headerShown: false }} />
           <Stack.Screen name="completion" options={{ headerShown: false }} />
-        </Stack>
-      </TamaguiProvider>
+          <Stack.Screen name="test-elevenlabs" options={{ headerShown: false, presentation: 'modal' }} />
+          </Stack>
+        </TamaguiProvider>
+      </ConditionalElevenLabsProvider>
     </GestureHandlerRootView>
   );
 }

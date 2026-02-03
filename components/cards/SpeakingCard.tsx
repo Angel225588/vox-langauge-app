@@ -6,24 +6,30 @@
  * Features:
  * - Displays word to pronounce (large text)
  * - Shows phonetic pronunciation guide
+ * - TTS audio playback (normal & slow speed) using expo-speech
+ * - Both Listen and Slow buttons visible simultaneously
  * - Optional example sentence
  * - Real audio recording with expo-av
- * - Playback of user's recording
- * - Large record button (🎤) that toggles to stop (⏹️) while recording
- * - Animated pulsing rings during recording (2 layers)
- * - Button rotates 360° when starting recording
- * - Button scales up (1.1x) while recording
- * - Color changes: primary blue → red while recording
- * - Status text: "Tap to record" → "🔴 Recording... Tap to stop"
+ * - Pill-shaped speak button at bottom (flex: 2)
+ * - Voice level visualization during recording
  * - Haptic feedback (medium on start, success on stop)
+ * - "I can't speak" button for public situations (flex: 1)
  * - Auto-advances after stopping (500ms delay)
+ * - Gradient background changes: primary → error while recording
+ *
+ * Layout:
+ * - Audio controls at top (Listen + Slow side by side)
+ * - Word and phonetic centered
+ * - Voice level bar when recording
+ * - Pill buttons fixed at bottom
  *
  * Learning Objective: Build speaking confidence through practice and self-review
  */
 
 import React, { useState, useEffect } from 'react';
 import { Audio } from 'expo-av';
-import { View, Text, TouchableOpacity } from 'react-native';
+import * as Speech from 'expo-speech';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, {
   FadeInDown,
   FadeIn,
@@ -31,10 +37,16 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
+  withRepeat,
   useSharedValue,
+  Easing,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
+import { AudioButton, AudioButtonGroup, SpeakButton, CantSpeakButton } from '@/components/ui';
 
 interface CardProps {
   onNext?: (answer?: any) => void;
@@ -47,6 +59,12 @@ interface SpeakingCardProps extends CardProps {
   phonetic?: string;
   audio_url?: string;
   example_sentence?: string;
+  /** Expression type: verb, noun, phrase, expression, slang, etc. */
+  expressionType?: string;
+  /** Callback when user can't speak (public situation) */
+  onCantSpeak?: () => void;
+  /** Language for TTS (e.g., 'en-US', 'es-ES', 'fr-FR') */
+  language?: string;
 }
 
 export function SpeakingCard({
@@ -55,14 +73,22 @@ export function SpeakingCard({
   phonetic,
   audio_url,
   example_sentence,
+  expressionType,
   onNext,
   onComplete,
+  onCantSpeak,
+  language = 'en-US',
 }: SpeakingCardProps) {
+  const insets = useSafeAreaInsets();
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
+  const [isPlayingNormal, setIsPlayingNormal] = useState(false);
+  const [isPlayingSlow, setIsPlayingSlow] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
   const recordButtonScale = useSharedValue(1);
   const recordButtonRotation = useSharedValue(0);
+  const voiceLevelWidth = useSharedValue(0);
 
   // Request permissions on mount
   useEffect(() => {
@@ -78,7 +104,7 @@ export function SpeakingCard({
     })();
   }, []);
 
-  // Cleanup recording on unmount
+  // Cleanup recording and speech on unmount
   useEffect(() => {
     return () => {
       if (recording) {
@@ -86,8 +112,76 @@ export function SpeakingCard({
           // Ignore errors if already unloaded
         });
       }
+      Speech.stop();
     };
   }, [recording]);
+
+  // Voice level animation when recording
+  useEffect(() => {
+    if (isRecording) {
+      voiceLevelWidth.value = withRepeat(
+        withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+    } else {
+      voiceLevelWidth.value = withTiming(0, { duration: 200 });
+    }
+  }, [isRecording]);
+
+  const handlePlayAudio = async (slow: boolean = false) => {
+    try {
+      // Stop any currently playing speech
+      await Speech.stop();
+
+      if (slow && isPlayingSlow) {
+        setIsPlayingSlow(false);
+        return;
+      }
+      if (!slow && isPlayingNormal) {
+        setIsPlayingNormal(false);
+        return;
+      }
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      if (slow) {
+        setIsPlayingSlow(true);
+      } else {
+        setIsPlayingNormal(true);
+      }
+
+      Speech.speak(word || '', {
+        language: language,
+        rate: slow ? 0.5 : 1.0,
+        onDone: () => {
+          if (slow) {
+            setIsPlayingSlow(false);
+          } else {
+            setIsPlayingNormal(false);
+          }
+        },
+        onStopped: () => {
+          if (slow) {
+            setIsPlayingSlow(false);
+          } else {
+            setIsPlayingNormal(false);
+          }
+        },
+        onError: () => {
+          if (slow) {
+            setIsPlayingSlow(false);
+          } else {
+            setIsPlayingNormal(false);
+          }
+        },
+      });
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setIsPlayingNormal(false);
+      setIsPlayingSlow(false);
+    }
+  };
 
   const handleRecord = async () => {
     if (!isRecording) {
@@ -166,171 +260,234 @@ export function SpeakingCard({
     };
   });
 
+  const voiceLevelStyle = useAnimatedStyle(() => {
+    return {
+      width: `${voiceLevelWidth.value * 100}%`,
+    };
+  });
+
+  const handleCantSpeak = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (onCantSpeak) {
+      onCantSpeak();
+    } else if (onComplete) {
+      onComplete({ cantSpeak: true });
+    } else if (onNext) {
+      onNext({ cantSpeak: true });
+    }
+  };
+
+  const handleToggleTranslation = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowTranslation(!showTranslation);
+  };
+
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Animated.Text
-        entering={FadeInDown.duration(400)}
-        style={{
-          fontSize: typography.fontSize['2xl'],
-          fontWeight: typography.fontWeight.bold,
-          color: colors.text.primary,
-          textAlign: 'center',
-          marginBottom: spacing.md,
-        }}
-      >
-        Say this word
-      </Animated.Text>
-
-      <Animated.Text
-        entering={ZoomIn.duration(500).delay(200)}
-        style={{
-          fontSize: 56,
-          fontWeight: typography.fontWeight.bold,
-          color: colors.text.primary,
-          marginBottom: spacing.sm,
-        }}
-      >
-        {word}
-      </Animated.Text>
-
-      {phonetic && (
-        <Animated.Text
-          entering={FadeIn.duration(400).delay(300)}
-          style={{
-            fontSize: typography.fontSize.lg,
-            color: colors.accent.purple,
-            marginBottom: spacing.xl,
-          }}
+    <View style={styles.container}>
+      {/* Expression Type Badge - Top Right */}
+      {expressionType && (
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          style={[styles.expressionBadge, { top: insets.top + spacing.md }]}
         >
-          {phonetic}
-        </Animated.Text>
+          <Text style={styles.expressionBadgeText}>
+            {expressionType.toUpperCase()}
+          </Text>
+        </Animated.View>
       )}
 
-      {example_sentence && (
+      {/* Main Content */}
+      <View style={[styles.content, { paddingTop: insets.top + spacing.xl }]}>
+        {/* Header */}
         <Animated.Text
-          entering={FadeIn.duration(400).delay(400)}
-          style={{
-            fontSize: typography.fontSize.md,
-            color: colors.text.tertiary,
-            textAlign: 'center',
-            fontStyle: 'italic',
-            marginBottom: spacing['2xl'],
-            paddingHorizontal: spacing.lg,
-          }}
+          entering={FadeInDown.duration(400)}
+          style={styles.header}
         >
-          "{example_sentence}"
+          Listen & Speak
         </Animated.Text>
-      )}
 
-      <View style={{ position: 'relative', marginTop: spacing.xl }}>
-        {isRecording && (
-          <>
-            <Animated.View
-              style={[
-                pulseStyle,
-                {
-                  position: 'absolute',
-                  width: 140,
-                  height: 140,
-                  borderRadius: 70,
-                  backgroundColor: colors.accent.error,
-                  top: -10,
-                  left: -10,
-                },
-              ]}
-            />
-            <Animated.View
-              style={[
-                pulseStyle,
-                {
-                  position: 'absolute',
-                  width: 160,
-                  height: 160,
-                  borderRadius: 80,
-                  backgroundColor: colors.accent.error,
-                  top: -20,
-                  left: -20,
-                },
-              ]}
-            />
-          </>
+        {/* Word */}
+        <Animated.Text
+          entering={ZoomIn.duration(500).delay(100)}
+          style={styles.word}
+        >
+          {word}
+        </Animated.Text>
+
+        {/* Phonetic */}
+        {phonetic && (
+          <Animated.Text
+            entering={FadeIn.duration(400).delay(200)}
+            style={styles.phonetic}
+          >
+            /{phonetic}/
+          </Animated.Text>
         )}
 
-        <Animated.View
-          entering={ZoomIn.duration(500).delay(500).springify()}
-        >
-          <Animated.View style={recordButtonStyle}>
+        {/* Translation - Inline Toggle */}
+        {translation && (
+          <Animated.View entering={FadeIn.duration(400).delay(300)}>
             <TouchableOpacity
-              onPress={handleRecord}
-              activeOpacity={0.8}
-              style={{
-                width: 120,
-                height: 120,
-                borderRadius: borderRadius.full,
-                backgroundColor: isRecording ? colors.accent.error : colors.accent.primary,
-                alignItems: 'center',
-                justifyContent: 'center',
-                shadowColor: isRecording ? colors.accent.error : colors.accent.primary,
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.5,
-                shadowRadius: 16,
-                elevation: 8,
-              }}
+              onPress={handleToggleTranslation}
+              activeOpacity={0.7}
+              style={styles.translationToggle}
             >
-              <Text style={{ fontSize: 48 }}>{isRecording ? '⏹️' : '🎤'}</Text>
+              {showTranslation ? (
+                <Text style={styles.translationText}>{translation}</Text>
+              ) : (
+                <View style={styles.translationHidden}>
+                  <Ionicons name="eye-outline" size={16} color={colors.text.tertiary} />
+                  <Text style={styles.translationHiddenText}>Tap to see translation</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </Animated.View>
+        )}
+
+        {/* Audio Controls */}
+        <Animated.View
+          entering={FadeIn.duration(400).delay(400)}
+          style={styles.audioControlsWrapper}
+        >
+          <AudioButtonGroup size="compact" showContainer={false}>
+            <AudioButton
+              variant="play"
+              isPlaying={isPlayingNormal}
+              onPress={() => handlePlayAudio(false)}
+              size="md"
+            />
+            <AudioButton
+              variant="slow"
+              isPlaying={isPlayingSlow}
+              onPress={() => handlePlayAudio(true)}
+              size="md"
+            />
+          </AudioButtonGroup>
         </Animated.View>
+
+        {/* Voice Level Visualization (when recording) */}
+        {isRecording && (
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            style={styles.voiceLevelContainer}
+          >
+            <Animated.View style={[styles.voiceLevelBar, voiceLevelStyle]} />
+          </Animated.View>
+        )}
+
+        {/* Spacer to push buttons to bottom */}
+        <View style={{ flex: 1 }} />
       </View>
 
-      <Animated.Text
-        entering={FadeIn.duration(400).delay(600)}
-        style={{
-          fontSize: typography.fontSize.md,
-          color: isRecording ? colors.accent.error : colors.text.secondary,
-          marginTop: spacing.lg,
-          fontWeight: isRecording ? typography.fontWeight.semibold : typography.fontWeight.normal,
-        }}
-      >
-        {isRecording ? '🔴 Recording... Tap to stop' : 'Tap to record'}
-      </Animated.Text>
-
-      {/* "I Can Speak" skip option */}
-      {!isRecording && (
-        <Animated.View entering={FadeIn.duration(400).delay(700)}>
-          <TouchableOpacity
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              if (onComplete) {
-                onComplete(null);
-              } else if (onNext) {
-                onNext(null);
-              }
-            }}
-            activeOpacity={0.7}
-            style={{
-              marginTop: spacing.xl,
-              paddingVertical: spacing.md,
-              paddingHorizontal: spacing.xl,
-              borderRadius: borderRadius.xl,
-              borderWidth: 2,
-              borderColor: colors.text.tertiary,
-              backgroundColor: 'transparent',
-            }}
-          >
-            <Text
-              style={{
-                fontSize: typography.fontSize.md,
-                fontWeight: typography.fontWeight.medium,
-                color: colors.text.secondary,
-                textAlign: 'center',
-              }}
-            >
-              I can speak this ✓
-            </Text>
-          </TouchableOpacity>
+      {/* Bottom Actions */}
+      <View style={[styles.bottomActions, { paddingBottom: insets.bottom + spacing.md }]}>
+        <Animated.View
+          entering={FadeIn.duration(400).delay(500)}
+          style={styles.bottomButtonsColumn}
+        >
+          <SpeakButton
+            isRecording={isRecording}
+            onPress={handleRecord}
+          />
+          <CantSpeakButton onPress={handleCantSpeak} />
         </Animated.View>
-      )}
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+  },
+  expressionBadge: {
+    position: 'absolute',
+    right: spacing.lg,
+    backgroundColor: colors.background.card,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    zIndex: 10,
+  },
+  expressionBadgeText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.accent.purple,
+    letterSpacing: 0.5,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  header: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  word: {
+    fontSize: typography.fontSize['4xl'],
+    fontWeight: typography.fontWeight.extrabold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  phonetic: {
+    fontSize: typography.fontSize.lg,
+    color: colors.text.tertiary,
+    fontStyle: 'italic',
+    marginBottom: spacing.md,
+  },
+  translationToggle: {
+    marginBottom: spacing.xl,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  translationText: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.accent.purple,
+    textAlign: 'center',
+  },
+  translationHidden: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  translationHiddenText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+  },
+  audioControlsWrapper: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  voiceLevelContainer: {
+    width: '100%',
+    height: 4,
+    backgroundColor: colors.background.elevated,
+    borderRadius: borderRadius.sm,
+    overflow: 'hidden',
+    marginTop: spacing.lg,
+  },
+  voiceLevelBar: {
+    height: '100%',
+    backgroundColor: colors.error.DEFAULT,
+    borderRadius: borderRadius.sm,
+  },
+  bottomActions: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+    backgroundColor: colors.background.primary,
+  },
+  bottomButtonsColumn: {
+    gap: spacing.sm,
+  },
+});

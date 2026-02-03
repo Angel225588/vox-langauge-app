@@ -468,6 +468,14 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const connectAttemptedRef = useRef(false);
 
+  // Build rich scenario description for AI prompt
+  const richScenarioDescription = [
+    scenario.description,
+    scenario.context && `Setting: ${scenario.context}`,
+    scenario.aiRole && `Your role: ${scenario.aiRole}`,
+    scenario.objectives?.length > 0 && `Help the user: ${scenario.objectives.join(', ')}`,
+  ].filter(Boolean).join('\n');
+
   // ElevenLabs Conversation Hook
   const {
     status,
@@ -485,8 +493,17 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
   } = useElevenLabsConversation({
     voice,
     scenario: scenario.id,
-    scenarioDescription: scenario.description,
+    scenarioDescription: richScenarioDescription,
     userProficiency: proficiency,
+    // All overrides enabled now that voice IDs are configured correctly
+    // NOTE: Requires TTS Voice Override enabled in ElevenLabs agent Security tab
+    disableOverrides: false,
+    overrideOptions: {
+      enablePrompt: true, // Use custom scenario-based prompt with pronunciation correction
+      enableFirstMessage: true, // Use custom greeting in target language
+      enableLanguage: true, // Set agent language for STT
+      enableVoice: true, // Use custom voice from user's Voice Library
+    },
     onError: (err) => {
       console.error('[VoiceCall] Error:', err);
       haptics.error();

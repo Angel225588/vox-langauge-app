@@ -19,6 +19,7 @@ import {
   ComparisonCard,
   // Vocabulary Cards (Premium)
   IntroductionCard,
+  IntroductionCardV2,
   VocabListeningCard,
   VocabTypingCard,
   VocabSpeakingCard,
@@ -395,6 +396,87 @@ const CARD_SAMPLES = {
       examples: [
         { text: 'What a beautiful day!', translation: 'Quelle belle journée!' },
         { text: 'She has a beautiful smile.', translation: 'Elle a un beau sourire.' },
+      ],
+    },
+  ],
+  // NEW: IntroductionCardV2 with flip animation
+  'vocab-introduction-v2': [
+    {
+      id: 'vocab-v2-1',
+      word: 'Serendipity',
+      translation: 'Casualidad afortunada',
+      phonetic: 'ˌserənˈdɪpəti',
+      category: 'Abstract',
+      cefrLevel: 'C1',
+      partOfSpeech: 'noun',
+      masteryScore: 0,
+      priority: 5,
+      timesCorrect: 0,
+      timesIncorrect: 0,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 0,
+      repetitions: 0,
+      cardVariantsCompleted: { introduction: false, listening: false, typing: false, speaking: false, audioQuiz: false },
+      lastVariantShown: null,
+      imageUrl: IMAGES.flower,
+      examples: [
+        { text: 'Finding that book was pure serendipity.', translation: 'Encontrar ese libro fue pura casualidad.' },
+      ],
+    },
+    {
+      id: 'vocab-v2-2',
+      word: 'Resilience',
+      translation: 'Resiliencia',
+      phonetic: 'rɪˈzɪliəns',
+      category: 'Character',
+      cefrLevel: 'B2',
+      partOfSpeech: 'noun',
+      masteryScore: 0,
+      priority: 5,
+      timesCorrect: 0,
+      timesIncorrect: 0,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 0,
+      repetitions: 0,
+      cardVariantsCompleted: { introduction: false, listening: false, typing: false, speaking: false, audioQuiz: false },
+      lastVariantShown: null,
+      imageUrl: IMAGES.mountain,
+      examples: [
+        { text: 'Her resilience helped her overcome the challenge.', translation: 'Su resiliencia la ayudó a superar el desafío.' },
+      ],
+    },
+    {
+      id: 'vocab-v2-3',
+      word: 'Wanderlust',
+      translation: 'Pasión por viajar',
+      phonetic: 'ˈwɒndəlʌst',
+      category: 'Emotions',
+      cefrLevel: 'B2',
+      partOfSpeech: 'noun',
+      masteryScore: 0,
+      priority: 5,
+      timesCorrect: 0,
+      timesIncorrect: 0,
+      source: 'lesson',
+      exampleSentences: [],
+      addedAt: new Date().toISOString(),
+      nextReviewDate: new Date().toISOString(),
+      easeFactor: 2.5,
+      interval: 0,
+      repetitions: 0,
+      cardVariantsCompleted: { introduction: false, listening: false, typing: false, speaking: false, audioQuiz: false },
+      lastVariantShown: null,
+      imageUrl: IMAGES.forest,
+      examples: [
+        { text: 'My wanderlust takes me to new places every year.', translation: 'Mi pasión por viajar me lleva a nuevos lugares cada año.' },
       ],
     },
   ],
@@ -789,7 +871,15 @@ export default function TestCardsScreen() {
       // NEW: Vocabulary Cards (Premium)
       case 'vocab-introduction':
         return (
-          <IntroductionCard
+          <IntroductionCardV2
+            item={currentSample as VocabularyItem}
+            onComplete={(result: VocabCardResult) => handleNext(result)}
+            onSkip={() => handleNext()}
+          />
+        );
+      case 'vocab-introduction-v2':
+        return (
+          <IntroductionCardV2
             item={currentSample as VocabularyItem}
             onComplete={(result: VocabCardResult) => handleNext(result)}
             onSkip={() => handleNext()}

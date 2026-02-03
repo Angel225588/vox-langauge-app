@@ -224,7 +224,7 @@ export function WritingTaskFlow({
         <Animated.View
           entering={FadeIn.duration(300)}
           exiting={SlideOutLeft.duration(300)}
-          style={styles.stepContainer}
+          style={styles.fullContainer}
         >
           <TaskBriefCard
             task={task}
@@ -290,6 +290,9 @@ const styles = StyleSheet.create({
   },
   stepContainer: {
     flex: 1,
+  },
+  fullContainer: {
+    ...StyleSheet.absoluteFillObject,
   },
   analyzingContainer: {
     flex: 1,

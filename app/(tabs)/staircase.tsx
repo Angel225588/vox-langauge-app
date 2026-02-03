@@ -3,18 +3,32 @@
  *
  * Vertical scrolling staircase showing user's personalized learning path
  * Based on the homepage-stairs.jpg reference image
+ *
+ * Features animated reveal on first visit after onboarding:
+ * - Skeleton cards with shimmer animation during loading
+ * - 50% threshold trigger to start reveal before all stairs are ready
+ * - Sequential card reveal with spring animation (200ms stagger)
+ * - Celebration animation on completion (confetti + haptics)
+ *
+ * Uses real AI-generated data from useLearningPath hook
  */
 
-import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
-import { useState, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
+import { StairForDisplay } from '@/hooks/useLearningPath';
+import { useAnimatedStaircaseReveal, checkHasSeenStaircaseReveal, clearStaircaseRevealFlag } from '@/hooks/useAnimatedStaircaseReveal';
+import { useAuth } from '@/hooks/useAuth';
+import { SkeletonStairCard, CondensedStairCard } from '@/components/staircase';
+import LottieView from 'lottie-react-native';
+import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
 
-// Mock medals data (achievements)
+// Mock medals data (achievements) - TODO: Replace with real achievements system
 const MOCK_MEDALS = [
   {
     id: 'medal_1',
@@ -42,64 +56,71 @@ const MOCK_MEDALS = [
   },
 ];
 
-// Mock staircase data (will be replaced with real data from database)
-const MOCK_STAIRS = [
-  {
-    id: '1',
-    order: 1,
-    title: 'Professional Greetings',
-    emoji: '👋',
-    description: 'Master formal introductions for job interviews',
-    status: 'completed' as const,
-    vocabulary_count: 25,
-    estimated_days: 2,
-  },
-  {
-    id: '2',
-    order: 2,
-    title: 'Self Introduction',
-    emoji: '💼',
-    description: 'Present your background and experience confidently',
-    status: 'current' as const,
-    vocabulary_count: 35,
-    estimated_days: 3,
-  },
-  {
-    id: '3',
-    order: 3,
-    title: 'Discussing Experience',
-    emoji: '📊',
-    description: 'Talk about your work history and achievements',
-    status: 'locked' as const,
-    vocabulary_count: 45,
-    estimated_days: 4,
-  },
-  {
-    id: '4',
-    order: 4,
-    title: 'Strengths & Weaknesses',
-    emoji: '💪',
-    description: 'Answer common interview questions professionally',
-    status: 'locked' as const,
-    vocabulary_count: 40,
-    estimated_days: 3,
-  },
-  {
-    id: '5',
-    order: 5,
-    title: 'Salary Negotiation',
-    emoji: '💰',
-    description: 'Discuss compensation with confidence',
-    status: 'locked' as const,
-    vocabulary_count: 50,
-    estimated_days: 5,
-  },
-];
+// Number of skeleton cards to show during loading
+const SKELETON_COUNT = 6;
 
 export default function StaircaseScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+
+  // Confetti animation ref
+  const confettiRef = useRef<LottieView>(null);
+
+  // Track if this is first visit (for animated reveal)
+  const [isFirstVisit] = useState(() => !checkHasSeenStaircaseReveal(user?.id ?? null));
+
+  // Celebration handler
+  const handleCelebrate = useCallback(() => {
+    // Trigger haptic feedback
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Play confetti animation
+    confettiRef.current?.play();
+  }, []);
+
+  // Completion handler
+  const handleRevealComplete = useCallback(() => {
+    console.log('Staircase reveal animation complete!');
+  }, []);
+
+  // Use the animated staircase reveal hook
+  const {
+    phase,
+    stairs,
+    isCardRevealed,
+    shouldShowSkeleton,
+    error,
+    resetReveal,
+    hasSeenReveal,
+  } = useAnimatedStaircaseReveal({
+    userId: user?.id ?? null,
+    isFirstVisit,
+    onCelebrate: handleCelebrate,
+    onComplete: handleRevealComplete,
+  });
+
+  // DEV: Handler to reset the animation for testing
+  const handleDevResetAnimation = useCallback(() => {
+    if (!__DEV__) return;
+
+    clearStaircaseRevealFlag(user?.id ?? null);
+    resetReveal();
+
+    Alert.alert(
+      'Animation Reset',
+      'The staircase reveal animation has been reset. Pull down to refresh or re-navigate to this screen to see it again.',
+      [{ text: 'OK' }]
+    );
+
+    console.log('[DEV] Staircase reveal animation reset for user:', user?.id);
+  }, [user?.id, resetReveal]);
+
   const [weeklyPoints, setWeeklyPoints] = useState(1000);
   const [streak, setStreak] = useState(8);
+
+  // Determine if we have a path (stairs exist or are being revealed)
+  const hasPath = stairs.length > 0 || phase === 'generating' || phase === 'revealing';
+  const isLoading = phase === 'idle' || phase === 'generating';
 
   const handleStairPress = (stairId: string, status: string) => {
     if (status === 'locked') {
@@ -206,6 +227,33 @@ export default function StaircaseScreen() {
             >
               {streak} Day Streak
             </Text>
+
+            {/* DEV: Reset Animation Button */}
+            {__DEV__ && (
+              <TouchableOpacity
+                onPress={handleDevResetAnimation}
+                activeOpacity={0.7}
+                style={{
+                  marginLeft: spacing.md,
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: 4,
+                  backgroundColor: 'rgba(255, 100, 100, 0.2)',
+                  borderRadius: borderRadius.sm,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 100, 100, 0.4)',
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: typography.fontSize.xs,
+                    color: '#FF6464',
+                    fontWeight: typography.fontWeight.medium,
+                  }}
+                >
+                  DEV: Reset
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Title */}
@@ -358,235 +406,160 @@ export default function StaircaseScreen() {
         <View
           style={{
             paddingHorizontal: spacing.xl,
-            paddingBottom: spacing['4xl'],
+            paddingBottom: spacing['3xl'] + spacing.lg,
           }}
         >
-          {MOCK_STAIRS.map((stair, index) => (
-            <StairCard
+          {/* Skeleton Loading State - Show shimmer cards during generation */}
+          {shouldShowSkeleton && (
+            <Animated.View entering={FadeIn.duration(300)}>
+              {/* Status message */}
+              <View
+                style={{
+                  alignItems: 'center',
+                  marginBottom: spacing.lg,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: typography.fontSize.base,
+                    color: colors.text.secondary,
+                    textAlign: 'center',
+                  }}
+                >
+                  {phase === 'generating'
+                    ? 'Creating your personalized learning path...'
+                    : 'Loading your learning path...'}
+                </Text>
+              </View>
+
+              {/* Skeleton cards */}
+              {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
+                <SkeletonStairCard
+                  key={`skeleton-${index}`}
+                  index={index}
+                  isRevealing={phase === 'revealing'}
+                />
+              ))}
+            </Animated.View>
+          )}
+
+          {/* No Path State - User needs to complete onboarding */}
+          {!shouldShowSkeleton && !hasPath && phase === 'complete' && stairs.length === 0 && (
+            <Animated.View
+              entering={FadeInDown.duration(600).springify()}
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: spacing['2xl'],
+                paddingHorizontal: spacing.lg,
+              }}
+            >
+              <Text style={{ fontSize: 64, marginBottom: spacing.lg }}>🚀</Text>
+              <Text
+                style={{
+                  fontSize: typography.fontSize.xl,
+                  fontWeight: typography.fontWeight.bold,
+                  color: colors.text.primary,
+                  textAlign: 'center',
+                  marginBottom: spacing.sm,
+                }}
+              >
+                Start Your Journey
+              </Text>
+              <Text
+                style={{
+                  fontSize: typography.fontSize.base,
+                  color: colors.text.secondary,
+                  textAlign: 'center',
+                  marginBottom: spacing.xl,
+                }}
+              >
+                Complete the onboarding to get your personalized AI-generated learning path.
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push('/(auth)/onboarding-v2')}
+                activeOpacity={0.8}
+                style={{
+                  borderRadius: borderRadius.lg,
+                  overflow: 'hidden',
+                }}
+              >
+                <LinearGradient
+                  colors={colors.gradients.primary}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    paddingHorizontal: spacing.xl,
+                    paddingVertical: spacing.md,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: typography.fontSize.base,
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.text.primary,
+                    }}
+                  >
+                    Get Started
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
+          {/* Error State */}
+          {!shouldShowSkeleton && error && (
+            <Animated.View
+              entering={FadeIn.duration(300)}
+              style={{
+                alignItems: 'center',
+                paddingVertical: spacing.xl,
+              }}
+            >
+              <Text style={{ fontSize: 48, marginBottom: spacing.md }}>⚠️</Text>
+              <Text
+                style={{
+                  fontSize: typography.fontSize.base,
+                  color: colors.error.DEFAULT,
+                  textAlign: 'center',
+                }}
+              >
+                {error}
+              </Text>
+            </Animated.View>
+          )}
+
+          {/* Stairs List - Condensed cards (80px) with progress bars */}
+          {!shouldShowSkeleton && hasPath && stairs.map((stair, index) => (
+            <CondensedStairCard
               key={stair.id}
               stair={stair}
               index={index}
+              isRevealed={isCardRevealed(index)}
               onPress={() => handleStairPress(stair.id, stair.status)}
             />
           ))}
         </View>
+
+        {/* Confetti Celebration Overlay */}
+        <LottieView
+          ref={confettiRef}
+          source={require('@/assets/animations/confetti.json')}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+          }}
+          loop={false}
+          autoPlay={false}
+        />
       </ScrollView>
     </LinearGradient>
   );
 }
 
-function StairCard({
-  stair,
-  index,
-  onPress,
-}: {
-  stair: typeof MOCK_STAIRS[0];
-  index: number;
-  onPress: () => void;
-}) {
-  const getGradientColors = () => {
-    if (stair.status === 'completed') {
-      return colors.gradients.success;
-    }
-    if (stair.status === 'current') {
-      return colors.gradients.primary;
-    }
-    return ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)'];
-  };
-
-  const isLocked = stair.status === 'locked';
-  const isCurrent = stair.status === 'current';
-
-  return (
-    <Animated.View
-      entering={FadeInDown.duration(600).delay(200 + index * 150).springify()}
-      style={{
-        marginBottom: spacing.lg,
-      }}
-    >
-      <TouchableOpacity
-        onPress={onPress}
-        disabled={isLocked}
-        activeOpacity={0.9}
-        style={{
-          borderRadius: borderRadius.xl,
-          borderWidth: isCurrent ? 3 : 1,
-          borderColor: isCurrent
-            ? colors.gradients.primary[0]
-            : isLocked
-            ? 'rgba(255, 255, 255, 0.1)'
-            : 'rgba(255, 255, 255, 0.2)',
-          overflow: 'hidden',
-          opacity: isLocked ? 0.5 : 1,
-        }}
-      >
-        <LinearGradient
-          colors={getGradientColors()}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            padding: spacing.lg,
-            shadowColor: isCurrent ? colors.glow.primary : 'transparent',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: isCurrent ? 0.6 : 0,
-            shadowRadius: isCurrent ? 20 : 0,
-            elevation: isCurrent ? 12 : 0,
-          }}
-        >
-          {/* Stair Number Badge */}
-          <View
-            style={{
-              position: 'absolute',
-              top: spacing.md,
-              right: spacing.md,
-              width: 32,
-              height: 32,
-              borderRadius: borderRadius.full,
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text
-              style={{
-                fontSize: typography.fontSize.sm,
-                fontWeight: typography.fontWeight.bold,
-                color: colors.text.primary,
-              }}
-            >
-              {stair.order}
-            </Text>
-          </View>
-
-          {/* User Crown (for current stair) */}
-          {isCurrent && (
-            <View
-              style={{
-                position: 'absolute',
-                top: spacing.md,
-                left: spacing.md,
-                width: 40,
-                height: 40,
-                borderRadius: borderRadius.full,
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 24 }}>👑</Text>
-            </View>
-          )}
-
-          {/* Lock Icon (for locked stairs) */}
-          {isLocked && (
-            <View
-              style={{
-                position: 'absolute',
-                top: spacing.md,
-                left: spacing.md,
-                width: 40,
-                height: 40,
-                borderRadius: borderRadius.full,
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 24 }}>🔒</Text>
-            </View>
-          )}
-
-          {/* Content */}
-          <View style={{ marginTop: spacing.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-              <Text style={{ fontSize: 48, marginRight: spacing.md }}>{stair.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.xl,
-                    fontWeight: typography.fontWeight.bold,
-                    color: colors.text.primary,
-                    marginBottom: 4,
-                  }}
-                >
-                  {stair.title}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                  }}
-                >
-                  {stair.description}
-                </Text>
-              </View>
-            </View>
-
-            {/* Stats Row */}
-            <View
-              style={{
-                flexDirection: 'row',
-                gap: spacing.lg,
-                marginTop: spacing.md,
-                paddingTop: spacing.md,
-                borderTopWidth: 1,
-                borderTopColor: 'rgba(255, 255, 255, 0.1)',
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, marginRight: spacing.xs }}>📝</Text>
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                  }}
-                >
-                  {stair.vocabulary_count} words
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, marginRight: spacing.xs }}>⏱️</Text>
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                  }}
-                >
-                  {stair.estimated_days} days
-                </Text>
-              </View>
-              {stair.status === 'current' && (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 16, marginRight: spacing.xs }}>🎯</Text>
-                  <Text
-                    style={{
-                      fontSize: typography.fontSize.sm,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.text.primary,
-                    }}
-                  >
-                    In Progress
-                  </Text>
-                </View>
-              )}
-              {stair.status === 'completed' && (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 16, marginRight: spacing.xs }}>✅</Text>
-                  <Text
-                    style={{
-                      fontSize: typography.fontSize.sm,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.text.primary,
-                    }}
-                  >
-                    Completed
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}

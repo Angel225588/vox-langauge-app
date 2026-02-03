@@ -1,21 +1,132 @@
 # Vox Language App - Project Status
 
-**Last Updated**: 2025-12-17
-**Current Phase**: Phase 1 ✅ Complete | AI Path Generation ✅ Complete | Voice AI Planning ✅ Complete | i18n Expansion ✅ Complete | Phase 3 🚧 In Progress
+**Last Updated**: 2025-01-02
+**Current Phase**: Phase 1 ✅ Complete | AI Path Generation ✅ Complete | Voice AI MVP ✅ Complete | i18n Expansion ✅ Complete | Phase 3 🚧 In Progress
 **Version**: 1.0.0
+
+---
+
+## 🏗️ Core Architecture: Scenario-Based Learning (Jan 2, 2025)
+
+**Documents**:
+- [SCENARIO_BASED_LEARNING_ARCHITECTURE.md](./SCENARIO_BASED_LEARNING_ARCHITECTURE.md) - Core philosophy
+- [STAIRCASE_SCENARIO_MAPPING.md](./features/STAIRCASE_SCENARIO_MAPPING.md) - Complete system design
+
+**Core Insight**: Fluency comes from scenarios. Every word, phrase, and question exists to prepare users for real-world situations.
+
+### The Blended Learning Model
+
+Users learn universal vocabulary WHILE specializing - not before.
+
+```
+EVERY STAIR INCLUDES BOTH:
+├── 60% Universal: Top 2000 words, everyday situations, survival phrases
+└── 40% Field-Specific: Goal-related vocabulary and scenarios
+
+PROGRESSION BY TIER:
+├── Steps 1-2: Core 100 words + basic field vocabulary
+├── Steps 3-4: Essential 500 words + intermediate field vocabulary
+├── Steps 5-6: Fluent 1000 words + advanced field vocabulary
+└── Steps 7-8: Advanced 2000 words + specialized field vocabulary
+
+OUTCOME: Handle BOTH everyday AND specialized situations from day one
+```
+
+### Vocabulary Tiers
+
+| Tier | Words | Coverage | Steps |
+|------|-------|----------|-------|
+| Core | 1-100 | 50% | 1-2 |
+| Essential | 101-500 | 75% | 3-4 |
+| Fluent | 501-1000 | 85% | 5-6 |
+| Advanced | 1001-2000 | 92% | 7-8 |
+| Specialist | 2001+ | Domain | 9-12+ |
+
+### The Three Pillars
+
+| Pillar | Purpose | Key Elements |
+|--------|---------|--------------|
+| **1. Vocabulary Preparation** | Words you NEED for situations | Scenario bundles, street phrases, survival expressions |
+| **2. Question Mastery** | Tools to navigate conversations | "Do you?", "Did you?", "Have you?" patterns + field-specific questions |
+| **3. Real-World Practice** | Apply skills with partners | AI conversations (now) + Human partners (future) |
+
+### Every Staircase Step Contains
+
+```
+┌─────────────────────────────────────────────────┐
+│ VOCABULARY BLOCK                                 │
+│ └─ Essential words + Street phrases             │
+│ └─ Survival expressions ("I didn't catch that") │
+├─────────────────────────────────────────────────┤
+│ QUESTION MASTERY BLOCK                           │
+│ └─ Question patterns for this step              │
+│ └─ Field-specific questions (career/travel/etc) │
+├─────────────────────────────────────────────────┤
+│ PRACTICE BLOCK                                   │
+│ └─ AI Conversation scenario                     │
+│ └─ Reading/Writing exercises                    │
+└─────────────────────────────────────────────────┘
+```
+
+### Alignment Rule
+
+> All features must answer: "What scenario does this prepare the user for?"
+
+### Future: Personalization Tasks
+
+| Feature | Personalization Needed | Status |
+|---------|----------------------|--------|
+| **Voice Conversations** | Use user's current stair vocabulary, survival phrases, and question patterns | 🔜 Planned |
+| **Flashcards** | Connect to scenario-specific vocabulary bundles | 🔜 Planned |
+| **Reading Practice** | Match content to user's stair level and field | 🔜 Planned |
+
+---
+
+## 🎯 Strategic Decision: Day-One Premium Value (Dec 24, 2025)
+
+**Expert Roundtable Result**: 4/4 consensus on "Premium Victory by Level with Honest Scope"
+
+### Level-Gated Launch Strategy
+
+| Level | Day One Experience | Status |
+|-------|-------------------|--------|
+| **A1** | 10-word showcase + "Full program coming" | ⚠️ To Build |
+| **A2** | 10 words + 1 game + "Voice unlocks at B1" | ⚠️ To Build |
+| **B1** | Voice scenario (simplified) + feedback | ✅ Ready |
+| **B2+** | Full voice experience + accents | ✅ Ready |
+
+### Implementation Timeline
+
+| Week | Focus | Deliverable |
+|------|-------|-------------|
+| **1** | B1+ Launch | Voice AI + 5 scenarios + celebrations |
+| **2** | Beginner Path | 20-word showcase + 2 games + victory |
+| **3-4** | Depth | Flashcards + grammar + full A1-A2 path |
+
+### Key Insight
+> "Premium = immediate value matched to actual capability. Don't pretend we serve everyone equally when we don't."
+
+Full roundtable: `Roundtables/2025-12-24-day-one-premium-value/` in Obsidian
 
 ---
 
 ## 🎯 Project Vision
 
-Create a **self-directed language learning app** where users:
-- Choose topics they care about (categories-first approach)
-- Learn through **immediate practice** (not passive studying)
-- Build confidence through **trials, not perfection**
-- See **results from day one**
+Create a **scenario-based language learning app** where users:
+- Prepare for **real-world situations** they'll actually face
+- Learn vocabulary **connected to scenarios** (not isolated words)
+- Master **question patterns** to navigate any conversation
+- Practice with **AI and human partners** until confident
+- Use **survival phrases** when conversations get difficult
 
 ### Core Philosophy
-> "Jump in, practice immediately, learn what you need, when you need it"
+> "Fluency comes from scenarios. The words you need, the questions you ask, the phrases that save you—all connected to situations you'll actually face."
+
+### The Learning Flow
+```
+Vocabulary → Questions → AI Practice → Human Practice → Real World
+(Preparation)  (Tools)    (Safe Space)   (Authentic)     (Goal)
+```
 
 ---
 
@@ -447,33 +558,226 @@ Onboarding V2 → createPersonalizedPath() → Gemini AI/Template
 
 ---
 
-## 📝 Current Work (Updated 2025-12-17)
+## ✅ Voice Conversation MVP (COMPLETE - Dec 19, 2025)
 
-### Active Sprint: Voice Conversation System (Phase 1 MVP)
+**Status**: ✅ Complete
+**Completion Date**: 2025-12-19
 
-**Current Focus**: Implementing Gemini Live API integration for voice conversations
+### What We Built
+
+#### 1️⃣ Gemini Live API Integration ✅
+- WebSocket connection to Gemini Live API
+- Audio recording and streaming (expo-av)
+- Audio playback with WAV header generation
+- Binary message handling (ArrayBuffer → UTF-8 → JSON)
+
+#### 2️⃣ Voice & Accent System ✅
+- 8 Gemini voices (Kore, Puck, Charon, Fenrir, Aoede, Leda, Orus, Zephyr)
+- 9 regional accents via system prompt:
+  - Spanish: Latin American (🇲🇽), Spain (🇪🇸)
+  - French: France (🇫🇷), Canada (🇨🇦)
+  - English: American (🇺🇸), British (🇬🇧), Australian (🇦🇺)
+  - Portuguese: Brazil (🇧🇷), Portugal (🇵🇹)
+
+#### 3️⃣ Phone-Call Style UI ✅
+- `VoiceCallScreen` component with:
+  - Large animated avatar (120px)
+  - Pulsing/scaling animations based on state
+  - Real-time transcription (last 4 messages)
+  - Push-to-talk button (88px)
+  - End call button
+  - Session timer
+
+#### 4️⃣ Post-Call Feedback Screen ✅
+- `PostCallFeedbackScreen` component with:
+  - Animated points display with counting animation
+  - Conversation stats (duration, turns, words/turn)
+  - AI-generated feedback on performance
+  - Collapsible transcript viewer
+  - Practice Again / Done buttons
+  - Points calculation: 10pts/turn + bonuses
+
+#### 5️⃣ Accent Selector UI ✅
+- Dropdown selector in scenario selection
+- Shows flag + accent name
+- Only visible in "Live Mode"
+
+### Key Files
+- `lib/voice/geminiLive.ts` - Gemini Live API client
+- `lib/voice/types.ts` - Voice/accent types and constants
+- `hooks/useVoiceConversation.ts` - Voice conversation hook
+- `components/cards/VoiceCallScreen.tsx` - Phone-call UI
+- `components/cards/PostCallFeedbackScreen.tsx` - Feedback screen
+- `app/voice-conversation.tsx` - Main screen with accent selector
+
+### Points System
+| Action | Points |
+|--------|--------|
+| Per conversation turn | 10 pts |
+| 5+ turns bonus | +25 pts |
+| 5+ words/turn bonus | +15 pts |
+| 2+ minutes bonus | +20 pts |
+
+### Documentation
+- `docs/daily-reports/2025-12-19-voice-call-ui.md` - Full implementation details
+
+---
+
+## 🎯 NEW: Habit-Forming System & Voice Call Redesign (Jan 4, 2026)
+
+**Status**: 📋 Planning
+**Priority**: P1 (Critical for user retention and premium feel)
+
+### 1. Habit-Forming Onboarding & Practice System
+
+**Goal**: Get users addicted to good habits by helping them visualize their future commitment.
+
+**Key Research Insight**: Users who set specific practice times are 3x more likely to maintain streaks.
+
+#### Onboarding Enhancements
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Specific Time Selection** | "What time will you practice?" (not just "how often") | 📋 Planned |
+| **Duration Min/Max** | "10-20 minutes" lets users see achievable commitment | 📋 Planned |
+| **Rest Day Selection** | Choose 1-2 rest days/week (sustainable habits) | 📋 Planned |
+| **Visualization** | "In 30 days, you'll know 500 words" type projections | 📋 Planned |
+
+#### Daily Practice System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Practice Reminders** | Push notification at user's chosen time | 📋 Planned |
+| **Rest Day Indicator** | Visual calendar showing rest vs practice days | 📋 Planned |
+| **Streak Protection** | Rest days don't break streaks | 📋 Planned |
+
+### 2. Voice Call Screen Redesign (Apple-Style Phone Call UI)
+
+**Goal**: Make the voice call experience feel premium, like a real phone call with a native speaker.
+
+**Current Issues**:
+- Particle/dots animation looks "beginner level"
+- Button glow/shadow looks off
+- No character identity (just abstract visuals)
+
+#### Design Direction: Apple Phone Call Style
+
+| Element | Current | New Design |
+|---------|---------|------------|
+| **Avatar Area** | Particle sphere animation | Character photo + name |
+| **Character Identity** | Generic "AI Tutor" | Named characters (Maria, Carlos, etc.) |
+| **Buttons** | Glow with odd shadows | Clean iOS-style buttons |
+| **Background** | Dark gradient | Subtle blur or solid dark |
+
+#### Character System
+
+| Component | Technology | Status |
+|-----------|------------|--------|
+| **Avatar Images** | Gemini 3 Pro (image generation) | 🔬 Research |
+| **Voice** | ElevenLabs (Spanish beta) | 📋 Planned |
+| **Brain/Conversation** | Claude or Gemini | 📋 Planned |
+
+**Characters Needed** (per language):
+- 1 Male character
+- 1 Female character
+- Realistic faces with human imperfections (pores, texture, scars)
+
+#### Avatar Generation Strategy (Gemini 3 Pro)
+
+**Research Task**: Determine best approach for generating consistent, realistic character avatars.
+
+**Requirements**:
+- Hyper-realistic faces
+- Human imperfections (pores, skin texture, minor scars)
+- Consistent character across multiple expressions
+- Diverse ethnicities per language (Spanish: Latin American, Spanish)
+
+### 3. Motion Design Skill (Future)
+
+**Insight**: "What would this look like if a million users would love it?"
+
+**Inspiration**: Most addictive gaming phone apps - what animations/micro-interactions make them engaging?
+
+**Areas to Enhance**:
+- Lesson completion celebrations
+- Points/XP animations
+- Streak maintenance rewards
+- Level-up transitions
+- Button press feedback
+
+---
+
+## 🔧 Voice Conversation Flow Fixes (IN PROGRESS - Jan 2, 2026)
+
+**Status**: 🚧 In Progress
+**Priority**: P0 (Critical Bug Fixes)
+
+### Issues Identified
+
+| Priority | Issue | Root Cause | Status |
+|----------|-------|------------|--------|
+| **P0** | Conversation stops after ~3 exchanges | State machine race condition in `useVoiceConversation.ts` | 🚧 Fixing |
+| **P1** | Users must press mute for AI to process | Missing Voice Activity Detection (no silence detection) | 📅 Next |
+| **P2** | Generic error alerts instead of feedback screen | Error state not propagated to completion callback | 📅 Planned |
+
+### P0: State Machine Race Condition
+
+**Problem**: The `onTurnComplete` and `onPlaybackEnd` callbacks race, causing state to get stuck in 'playing' instead of returning to 'connected'. This prevents auto-record from triggering.
+
+**Solution**: Coordinated dual-flag system with `turnCompletedRef` and `playbackPendingRef` to ensure state only transitions to 'connected' when both conditions are met.
+
+**Files**:
+- `hooks/useVoiceConversation.ts`
+
+### P1: Voice Activity Detection (Silence Detection)
+
+**Problem**: Recording starts automatically but only stops on mute press or 30s timeout. Users expect auto-stop when they finish speaking.
+
+**Solution**: Add silence detection in `AudioRecorder` - detect 1.5s of silence (audio level < 8%) with minimum 0.5s speech duration.
+
+**Files**:
+- `lib/voice/audioRecorder.ts`
+- `hooks/useVoiceConversation.ts`
+
+### P2: Error Propagation
+
+**Problem**: When conversation ends due to error, app shows generic `Alert.alert()` instead of designed `PostCallFeedbackScreen`.
+
+**Solution**: Enhanced completion callback with `endReason: 'user_ended' | 'error' | 'timeout'` to distinguish error vs normal completion.
+
+**Files**:
+- `components/cards/VoiceCallScreen.tsx`
+- `app/voice-conversation.tsx`
+
+---
+
+## 📝 Current Work (Updated 2025-12-19)
+
+### ✅ Completed Sprint: Voice Conversation System (Phase 1 MVP)
+
+**Status**: COMPLETE
 
 #### Voice AI Implementation Tasks:
-1. **Sprint 1: Core Infrastructure** (Days 1-4)
-   - [ ] Audio Recording System (`lib/voice/audioRecorder.ts`)
-   - [ ] Audio Playback System (`lib/voice/audioPlayer.ts`)
-   - [ ] Gemini Live API Client (`lib/voice/geminiLive.ts`)
-   - [ ] Conversation Manager (`lib/voice/conversationManager.ts`)
+1. **Sprint 1: Core Infrastructure** ✅
+   - [x] Audio Recording System (`lib/voice/audioRecorder.ts`)
+   - [x] Audio Playback System (`lib/voice/audioPlayer.ts`)
+   - [x] Gemini Live API Client (`lib/voice/geminiLive.ts`)
+   - [x] Hybrid Conversation Manager (`lib/voice/hybridConversation.ts`)
 
-2. **Sprint 2: React Hooks & UI** (Days 5-8)
-   - [ ] Voice Conversation Hook (`hooks/useVoiceConversation.ts`)
-   - [ ] Voice Button Component
-   - [ ] Conversation Bubble Component
-   - [ ] Voice Waveform Visualization
-   - [ ] Main Voice Conversation Screen
+2. **Sprint 2: React Hooks & UI** ✅
+   - [x] Voice Conversation Hook (`hooks/useVoiceConversation.ts`)
+   - [x] Push-to-Talk Button Component
+   - [x] Real-time Transcription Display
+   - [x] Voice Waveform Visualization
+   - [x] VoiceCallScreen (phone-call style UI)
+   - [x] PostCallFeedbackScreen
 
-3. **Sprint 3: Scenarios & Polish** (Days 9-13)
-   - [ ] Scenario System (greeting, cafe, directions, shopping)
-   - [ ] Character System (4+ characters with voices)
-   - [ ] Scenario Selection Screen
-   - [ ] Conversation Results Screen
-   - [ ] Error Handling & Edge Cases
-   - [ ] Analytics & Testing
+3. **Sprint 3: Scenarios & Polish** ✅
+   - [x] Scenario System (cafe, directions, shopping, etc.)
+   - [x] Character System (5+ characters with voices)
+   - [x] Scenario Selection Screen
+   - [x] Accent Selector (9 regional accents)
+   - [x] Error Handling & Edge Cases
 
 ### Parallel Track: Core Learning Mechanics
 

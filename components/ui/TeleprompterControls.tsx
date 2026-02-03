@@ -17,8 +17,11 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
-import { RecordingState, FontSize } from '@/components/cards/TeleprompterCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// Local type definitions (component is standalone, not tied to TeleprompterCard)
+export type RecordingState = 'idle' | 'recording' | 'paused';
+export type FontSize = 'small' | 'medium' | 'large';
 
 interface TeleprompterControlsProps {
   recordingState: RecordingState;

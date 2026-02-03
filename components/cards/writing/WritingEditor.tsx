@@ -1,17 +1,15 @@
 /**
- * WritingEditor - Full-Screen Notion-Style Editor
+ * WritingEditor - Encouraging Coach Design
  *
- * Clean, distraction-free writing experience:
- * - Editable title field
- * - Large text area with real-time word count
- * - Minimal toolbar (font size, basic formatting)
- * - Auto-save draft capability
- * - Complete button when ready
- *
- * Design: Notion + Obsidian + Google Keep inspired
+ * Clean, distraction-free writing with gentle encouragement:
+ * - Category emoji + task title (read-only header)
+ * - Full-screen writing card
+ * - Milestone-based encouragement (non-distracting)
+ * - Progress bar + word count inline
+ * - Playful "Done! ✨" CTA
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,6 +21,7 @@ import {
   ScrollView,
   Keyboard,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -30,11 +29,11 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-  interpolateColor,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
+import { colors, typography, spacing, borderRadius, shadows, animation } from '@/constants/designSystem';
+import { BackButton } from '@/components/ui/BackButton';
 import { useHaptics } from '@/hooks/useHaptics';
 import type { WritingTask, TaskCategory } from './types';
 
@@ -43,40 +42,85 @@ interface WritingEditorProps {
   initialTitle?: string;
   initialContent?: string;
   onComplete: (title: string, content: string) => void;
-  onSaveDraft?: (title: string, content: string) => void;
   onBack?: () => void;
 }
 
-const FONT_SIZES = [
-  { label: 'S', size: 16 },
-  { label: 'M', size: 18 },
-  { label: 'L', size: 20 },
+// Category emojis matching TaskBriefCard
+const CATEGORY_EMOJIS: Record<TaskCategory, string> = {
+  daily_routine: '☀️',
+  self_introduction: '👋',
+  job_interview: '💼',
+  email: '📧',
+  message: '💬',
+  travel: '✈️',
+  opinion: '💡',
+  story: '📖',
+  custom: '✨',
+};
+
+// Milestone-based encouragement messages
+// Only changes at specific thresholds, not every word
+const ENCOURAGEMENT_MILESTONES = [
+  { threshold: 0, message: "Start writing! Every word counts." },
+  { threshold: 10, message: "Great start! Keep the words flowing..." },
+  { threshold: 25, message: "You're making progress! 💪" },
+  { threshold: 50, message: "Halfway there! You've got this." },
+  { threshold: 75, message: "Almost done! Just a bit more." },
+  { threshold: 100, message: "Amazing work! Finish strong! 🌟" },
 ];
+
+// Get encouragement message based on word count
+function getEncouragement(wordCount: number, minWords: number): string {
+  // If they've hit the minimum, celebrate!
+  if (minWords > 0 && wordCount >= minWords) {
+    return "You did it! Ready to submit? ✨";
+  }
+
+  // Find the appropriate milestone
+  for (let i = ENCOURAGEMENT_MILESTONES.length - 1; i >= 0; i--) {
+    if (wordCount >= ENCOURAGEMENT_MILESTONES[i].threshold) {
+      return ENCOURAGEMENT_MILESTONES[i].message;
+    }
+  }
+
+  return ENCOURAGEMENT_MILESTONES[0].message;
+}
 
 export function WritingEditor({
   task,
   initialTitle = '',
   initialContent = '',
   onComplete,
-  onSaveDraft,
   onBack,
 }: WritingEditorProps) {
+  const insets = useSafeAreaInsets();
   const haptics = useHaptics();
   const contentInputRef = useRef<TextInput>(null);
-  const [title, setTitle] = useState(initialTitle || task.title);
+
   const [content, setContent] = useState(initialContent);
-  const [fontSize, setFontSize] = useState(1); // Index into FONT_SIZES
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [startTime] = useState(Date.now());
+
+  // Track the displayed encouragement separately to prevent constant updates
+  const [displayedEncouragement, setDisplayedEncouragement] = useState(() =>
+    getEncouragement(initialContent.trim().split(/\s+/).filter(Boolean).length, task.minWords || 0)
+  );
+
+  // Debounce timer for encouragement updates
+  const encouragementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const buttonScale = useSharedValue(1);
   const progressWidth = useSharedValue(0);
+  const encouragementOpacity = useSharedValue(1);
 
   // Word count
-  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const wordCount = useMemo(() => {
+    return content.trim() ? content.trim().split(/\s+/).length : 0;
+  }, [content]);
+
   const minWords = task.minWords || 0;
-  const maxWords = task.maxWords || 500;
-  const progress = Math.min(wordCount / Math.max(minWords, 1), 1);
+  const progress = minWords > 0 ? Math.min(wordCount / minWords, 1) : Math.min(wordCount / 50, 1);
+
+  const categoryEmoji = CATEGORY_EMOJIS[task.category] || '📝';
 
   // Keyboard listeners
   useEffect(() => {
@@ -91,30 +135,50 @@ export function WritingEditor({
   // Update progress animation
   useEffect(() => {
     progressWidth.value = withTiming(progress * 100, { duration: 300 });
-  }, [progress]);
+  }, [progress, progressWidth]);
+
+  // Debounced encouragement update - only after 500ms pause
+  useEffect(() => {
+    if (encouragementTimer.current) {
+      clearTimeout(encouragementTimer.current);
+    }
+
+    encouragementTimer.current = setTimeout(() => {
+      const newEncouragement = getEncouragement(wordCount, minWords);
+      if (newEncouragement !== displayedEncouragement) {
+        // Fade out, update, fade in
+        encouragementOpacity.value = withTiming(0, { duration: 150 }, () => {
+          // This callback runs on UI thread, so we need runOnJS
+        });
+
+        // Update after fade out
+        setTimeout(() => {
+          setDisplayedEncouragement(newEncouragement);
+          encouragementOpacity.value = withTiming(1, { duration: 200 });
+        }, 150);
+      }
+    }, 500); // Wait 500ms after typing stops
+
+    return () => {
+      if (encouragementTimer.current) {
+        clearTimeout(encouragementTimer.current);
+      }
+    };
+  }, [wordCount, minWords, displayedEncouragement, encouragementOpacity]);
 
   const handleComplete = useCallback(() => {
-    if (wordCount < minWords) {
+    if (minWords > 0 && wordCount < minWords) {
       haptics.warning();
       return;
     }
     haptics.success();
-    onComplete(title, content);
-  }, [title, content, wordCount, minWords, haptics, onComplete]);
+    onComplete(task.title, content);
+  }, [task.title, content, wordCount, minWords, haptics, onComplete]);
 
-  const handleSaveDraft = useCallback(() => {
+  const handleBack = useCallback(() => {
     haptics.light();
-    onSaveDraft?.(title, content);
-  }, [title, content, haptics, onSaveDraft]);
-
-  const handleFontSizeChange = useCallback((index: number) => {
-    haptics.light();
-    setFontSize(index);
-  }, [haptics]);
-
-  const handleTitleSubmit = useCallback(() => {
-    contentInputRef.current?.focus();
-  }, []);
+    onBack?.();
+  }, [haptics, onBack]);
 
   const buttonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: buttonScale.value }],
@@ -124,64 +188,32 @@ export function WritingEditor({
     width: `${progressWidth.value}%`,
   }));
 
-  const isComplete = wordCount >= minWords;
-  const isOverLimit = maxWords && wordCount > maxWords;
+  const encouragementStyle = useAnimatedStyle(() => ({
+    opacity: encouragementOpacity.value,
+  }));
+
+  const isComplete = minWords > 0 ? wordCount >= minWords : wordCount >= 10;
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       {/* Header */}
-      <Animated.View
-        entering={FadeIn.duration(300)}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          onPress={onBack}
-          style={styles.backButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.text.secondary} />
-        </TouchableOpacity>
+      <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
+        <BackButton onPress={handleBack} />
 
-        <View style={styles.headerActions}>
-          {/* Font Size Toggle */}
-          <View style={styles.fontSizeToggle}>
-            {FONT_SIZES.map((fs, index) => (
-              <TouchableOpacity
-                key={fs.label}
-                onPress={() => handleFontSizeChange(index)}
-                style={[
-                  styles.fontSizeButton,
-                  fontSize === index && styles.fontSizeButtonActive,
-                ]}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.fontSizeLabel,
-                    fontSize === index && styles.fontSizeLabelActive,
-                  ]}
-                >
-                  {fs.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Save Draft */}
-          {onSaveDraft && (
-            <TouchableOpacity
-              onPress={handleSaveDraft}
-              style={styles.saveButton}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="save-outline" size={20} color={colors.text.secondary} />
-            </TouchableOpacity>
-          )}
+        {/* Task Title - Read Only */}
+        <View style={styles.headerTitle}>
+          <Text style={styles.headerEmoji}>{categoryEmoji}</Text>
+          <Text style={styles.headerText} numberOfLines={1}>
+            {task.title}
+          </Text>
         </View>
+
+        {/* Spacer for symmetry */}
+        <View style={styles.headerSpacer} />
       </Animated.View>
 
       {/* Editor Content */}
@@ -191,103 +223,68 @@ export function WritingEditor({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Title Input */}
-        <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-          <TextInput
-            style={styles.titleInput}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Title"
-            placeholderTextColor={colors.text.disabled}
-            returnKeyType="next"
-            onSubmitEditing={handleTitleSubmit}
-            blurOnSubmit={false}
-            maxLength={100}
-          />
-        </Animated.View>
-
-        {/* Task Reminder - Subtle */}
+        {/* Writing Card */}
         <Animated.View
-          entering={FadeIn.duration(300).delay(200)}
-          style={styles.taskReminder}
-        >
-          <Ionicons name="information-circle-outline" size={14} color={colors.text.disabled} />
-          <Text style={styles.taskReminderText} numberOfLines={2}>
-            {task.scenario}
-          </Text>
-        </Animated.View>
-
-        {/* Content Input */}
-        <Animated.View
-          entering={FadeInDown.duration(400).delay(300)}
-          style={styles.contentContainer}
+          entering={FadeInDown.duration(400).delay(100).springify()}
+          style={styles.writingCard}
         >
           <TextInput
             ref={contentInputRef}
-            style={[styles.contentInput, { fontSize: FONT_SIZES[fontSize].size }]}
+            style={styles.contentInput}
             value={content}
             onChangeText={setContent}
-            placeholder="Start writing..."
+            placeholder="Start writing here..."
             placeholderTextColor={colors.text.disabled}
             multiline
             textAlignVertical="top"
             scrollEnabled={false}
+            autoFocus
           />
         </Animated.View>
       </ScrollView>
 
-      {/* Bottom Bar */}
-      <Animated.View
-        entering={FadeIn.duration(300).delay(400)}
-        style={[styles.bottomBar, isKeyboardVisible && styles.bottomBarCompact]}
-      >
-        {/* Progress Section */}
-        <View style={styles.progressSection}>
-          <View style={styles.wordCountRow}>
-            <Text style={[
-              styles.wordCount,
-              isComplete ? styles.wordCountComplete : undefined,
-              isOverLimit ? styles.wordCountOver : undefined,
-            ]}>
-              {wordCount}
-            </Text>
-            <Text style={styles.wordTarget}>
-              {minWords > 0 ? `/ ${minWords}` : ''} words
-            </Text>
-            {isComplete && !isOverLimit && (
-              <Ionicons
-                name="checkmark-circle"
-                size={16}
-                color={colors.success.DEFAULT}
-                style={styles.checkIcon}
-              />
-            )}
-          </View>
+      {/* Bottom Section */}
+      <View style={[
+        styles.bottomSection,
+        { paddingBottom: isKeyboardVisible ? spacing.md : insets.bottom + spacing.md }
+      ]}>
+        {/* Encouragement Message - Subtle, milestone-based */}
+        <Animated.View
+          entering={FadeIn.duration(400).delay(200)}
+          style={[styles.encouragementContainer, encouragementStyle]}
+        >
+          <Text style={styles.encouragementText}>{displayedEncouragement}</Text>
+        </Animated.View>
 
-          {/* Progress Bar */}
+        {/* Progress Bar + Word Count Row */}
+        <View style={styles.progressRow}>
           <View style={styles.progressBarContainer}>
             <Animated.View
               style={[
                 styles.progressBar,
                 progressBarStyle,
-                isComplete ? styles.progressBarComplete : undefined,
-                isOverLimit ? styles.progressBarOver : undefined,
+                isComplete && styles.progressBarComplete,
               ]}
             />
           </View>
+          <View style={styles.wordCountBadge}>
+            <Text style={[styles.wordCountText, isComplete && styles.wordCountComplete]}>
+              {wordCount}{minWords > 0 ? `/${minWords}` : ''}
+            </Text>
+          </View>
         </View>
 
-        {/* Complete Button */}
-        <Animated.View style={[buttonStyle, styles.completeButtonWrapper]}>
+        {/* CTA Button */}
+        <Animated.View style={[buttonStyle, styles.buttonWrapper]}>
           <TouchableOpacity
             onPress={handleComplete}
             activeOpacity={0.9}
             disabled={!isComplete}
             onPressIn={() => {
-              buttonScale.value = withSpring(0.97);
+              buttonScale.value = withSpring(0.97, animation.spring.stiff);
             }}
             onPressOut={() => {
-              buttonScale.value = withSpring(1);
+              buttonScale.value = withSpring(1, animation.spring.default);
             }}
             style={[styles.completeButton, !isComplete && styles.completeButtonDisabled]}
           >
@@ -297,21 +294,16 @@ export function WritingEditor({
               end={{ x: 1, y: 0 }}
               style={styles.completeButtonGradient}
             >
-              <Ionicons
-                name="checkmark"
-                size={20}
-                color={isComplete ? colors.text.primary : colors.text.disabled}
-              />
               <Text style={[
                 styles.completeButtonText,
                 !isComplete && styles.completeButtonTextDisabled,
               ]}>
-                Complete
+                Done! ✨
               </Text>
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
-      </Animated.View>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -319,161 +311,123 @@ export function WritingEditor({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background.primary,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.background.card,
+  headerTitle: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
+    gap: spacing.sm,
+    marginHorizontal: spacing.md,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+  headerEmoji: {
+    fontSize: 20,
   },
-  fontSizeToggle: {
-    flexDirection: 'row',
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  fontSizeButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  fontSizeButtonActive: {
-    backgroundColor: colors.primary.DEFAULT,
-  },
-  fontSizeLabel: {
-    fontSize: typography.fontSize.sm,
+  headerText: {
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.medium,
-    color: colors.text.tertiary,
+    color: colors.text.secondary,
   },
-  fontSizeLabelActive: {
-    color: colors.text.primary,
+  headerSpacer: {
+    width: 40, // Same width as BackButton for symmetry
   },
-  saveButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
+
+  // Editor
   editorScroll: {
     flex: 1,
   },
   editorContent: {
-    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: spacing['2xl'],
   },
-  titleInput: {
-    fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  taskReminder: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.background.elevated,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.lg,
-  },
-  taskReminderText: {
-    flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: colors.text.disabled,
-    lineHeight: typography.fontSize.sm * 1.4,
-  },
-  contentContainer: {
+  writingCard: {
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    padding: spacing.lg,
     minHeight: 300,
+    ...shadows.sm,
   },
   contentInput: {
+    fontSize: typography.fontSize.lg,
     color: colors.text.primary,
-    lineHeight: 28,
+    lineHeight: typography.fontSize.lg * 1.6,
+    minHeight: 260,
   },
-  bottomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.lg,
+
+  // Bottom Section
+  bottomSection: {
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+    backgroundColor: colors.background.primary,
     borderTopWidth: 1,
     borderTopColor: colors.border.light,
-    backgroundColor: colors.background.primary,
-    gap: spacing.lg,
+    gap: spacing.md,
   },
-  bottomBarCompact: {
-    paddingVertical: spacing.md,
+
+  // Encouragement
+  encouragementContainer: {
+    alignItems: 'center',
   },
-  progressSection: {
-    flex: 1,
-  },
-  wordCountRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: spacing.xs,
-  },
-  wordCount: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-  },
-  wordCountComplete: {
-    color: colors.success.DEFAULT,
-  },
-  wordCountOver: {
-    color: colors.error.DEFAULT,
-  },
-  wordTarget: {
+  encouragementText: {
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
-    marginLeft: spacing.xs,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
-  checkIcon: {
-    marginLeft: spacing.sm,
+
+  // Progress Row
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   progressBarContainer: {
-    height: 4,
+    flex: 1,
+    height: 6,
     backgroundColor: colors.background.elevated,
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
     backgroundColor: colors.primary.DEFAULT,
-    borderRadius: 2,
+    borderRadius: 3,
   },
   progressBarComplete: {
     backgroundColor: colors.success.DEFAULT,
   },
-  progressBarOver: {
-    backgroundColor: colors.error.DEFAULT,
+  wordCountBadge: {
+    backgroundColor: colors.background.card,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
-  completeButtonWrapper: {
-    flexShrink: 0,
+  wordCountText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.secondary,
+  },
+  wordCountComplete: {
+    color: colors.success.DEFAULT,
+  },
+
+  // Button
+  buttonWrapper: {
+    width: '100%',
   },
   completeButton: {
     borderRadius: borderRadius.xl,
@@ -485,15 +439,12 @@ const styles = StyleSheet.create({
     shadowColor: 'transparent',
   },
   completeButtonGradient: {
-    flexDirection: 'row',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
   },
   completeButtonText: {
-    fontSize: typography.fontSize.base,
+    fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
   },

@@ -1,27 +1,12 @@
 /**
- * TeleprompterCard - Premium Redesign
+ * TeleprompterCard - Reading Practice Teleprompter
  *
- * An immersive, distraction-free reading experience inspired by:
- * - Spotify Karaoke (elegant word highlighting, minimal controls)
- * - Claude/Perplexity (clean, spacious, premium feel)
- * - Your design system (dark neomorphic, indigo accents)
- *
- * Key Design Decisions:
- * - Full-screen immersive text (no headers/tabs during reading)
- * - Subtle progress bar at top
- * - Tap anywhere to show/hide controls
- * - Elegant word-by-word or line highlighting
- * - Floating minimal controls
- * - No emojis - clean icons only
- *
- * @example
- * ```tsx
- * <TeleprompterCard
- *   passage={selectedPassage}
- *   onFinish={(results) => handleFinish(results)}
- *   onBack={() => router.back()}
- * />
- * ```
+ * Features:
+ * - Plain text auto-scrolling
+ * - Gradient fade overlays for reading focus
+ * - Speed slider (visible before AND during playback)
+ * - Font size toggle (S/M/L)
+ * - Practice and Record modes
  */
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -32,45 +17,33 @@ import {
   TouchableOpacity,
   Dimensions,
   StatusBar,
-  LayoutChangeEvent,
 } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withSpring,
   FadeIn,
-  FadeInUp,
-  SlideInDown,
   runOnJS,
-  useAnimatedReaction,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import * as Speech from 'expo-speech';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
 import { useAudioRecording, type Passage } from '@/lib/reading';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BackButton } from '@/components/ui/BackButton';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Reading zone - centered vertically for optimal reading
-const READING_ZONE_TOP = SCREEN_HEIGHT * 0.35;
+// Reading zone position
+const READING_ZONE_TOP = SCREEN_HEIGHT * 0.22;
 
 export type TeleprompterMode = 'practice' | 'record';
-
-// Types used by TeleprompterControls and TeleprompterSettings
-export type RecordingState = 'idle' | 'recording' | 'paused' | 'stopped';
-export type FontSize = 'small' | 'medium' | 'large';
-export type ScrollSpeed = 'slow' | 'medium' | 'fast';
+export type FontSizeOption = 'small' | 'medium' | 'large';
 
 export interface TeleprompterResults {
   duration: number;
   totalWords: number;
-  linesRead: number;
   recordingUri?: string;
 }
 
@@ -80,15 +53,16 @@ interface TeleprompterCardProps {
   onBack?: () => void;
 }
 
-// Speed configurations (no emojis)
-const SPEED_CONFIGS = [
-  { label: '0.5x', wpm: 80 },
-  { label: '0.75x', wpm: 110 },
-  { label: '1x', wpm: 140 },
-  { label: '1.25x', wpm: 175 },
-  { label: '1.5x', wpm: 210 },
-  { label: '2x', wpm: 280 },
-];
+// Font size configurations
+const FONT_SIZES: Record<FontSizeOption, { fontSize: number; lineHeight: number }> = {
+  small: { fontSize: 24, lineHeight: 38 },
+  medium: { fontSize: 32, lineHeight: 51 },
+  large: { fontSize: 40, lineHeight: 64 },
+};
+
+// WPM range
+const MIN_WPM = 60;
+const MAX_WPM = 300;
 
 export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCardProps) {
   const insets = useSafeAreaInsets();
@@ -96,143 +70,75 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
   // Audio recording
   const {
     isRecording,
-    isPaused: isRecordingPaused,
     duration: recordingDuration,
     startRecording,
-    pauseRecording,
-    resumeRecording,
     stopRecording,
     formatDuration,
   } = useAudioRecording();
 
   // State
-  const [mode, setMode] = useState<TeleprompterMode>('record');
-  const [speedIndex, setSpeedIndex] = useState(2); // Default 1x
+  const [mode, setMode] = useState<TeleprompterMode>('practice');
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
+  const [speedNormalized, setSpeedNormalized] = useState(0.5);
+  const [fontSizeOption, setFontSizeOption] = useState<FontSizeOption>('medium');
 
-  // Actual measured content height (updated after layout)
-  const [actualContentHeight, setActualContentHeight] = useState(0);
-
-  // Refs
+  // Refs - using ref for isPlaying to avoid stale closure in animation
+  const isPlayingRef = useRef(false);
   const scrollAnimationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const finishDelayRef = useRef<NodeJS.Timeout | null>(null);
-  const hasReachedEnd = useRef(false);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
 
   // Reanimated values
   const scrollY = useSharedValue(0);
-  const manualScrollOffset = useSharedValue(0);
-  const controlsOpacity = useSharedValue(1);
   const progressWidth = useSharedValue(0);
-  const isManualScrolling = useSharedValue(false);
-  const maxScrollShared = useSharedValue(0);
 
-  // Typography
-  const fontSize = 28;
-  const lineHeight = fontSize * 2.0;
-  const totalLineHeight = lineHeight + spacing.lg;
+  // Typography from selected font size
+  const { fontSize, lineHeight } = FONT_SIZES[fontSizeOption];
 
-  // Split text into paragraphs/lines (let text wrap naturally)
-  const lines = useMemo(() => {
-    return passage.text.split(/\n+/).filter(line => line.trim().length > 0);
-  }, [passage.text]);
+  // Calculate current WPM
+  const currentWpm = useMemo(() => {
+    return Math.round(MIN_WPM + speedNormalized * (MAX_WPM - MIN_WPM));
+  }, [speedNormalized]);
 
-  const totalLines = lines.length;
+  // Total words
   const totalWords = useMemo(() =>
     passage.text.split(/\s+/).filter(w => w.trim().length > 0).length,
     [passage.text]
   );
 
-  // Estimate total content height (paragraphs * estimated height per paragraph)
-  // We estimate each paragraph may wrap to ~2 lines on average
-  const estimatedContentHeight = useMemo(() => {
-    // Estimate chars per visual line based on screen width and font size
-    const charsPerLine = Math.floor(SCREEN_WIDTH / (fontSize * 0.55));
-    let totalHeight = 0;
+  // Estimate content height
+  const charsPerLine = Math.floor((SCREEN_WIDTH - spacing.xl * 2) / (fontSize * 0.55));
+  const estimatedLines = Math.ceil(passage.text.length / charsPerLine);
+  const contentHeight = estimatedLines * lineHeight;
 
-    lines.forEach(line => {
-      // Estimate how many visual lines this paragraph will wrap to
-      const visualLines = Math.max(1, Math.ceil(line.length / charsPerLine));
-      // First line gets full spacing, additional wrapped lines just get lineHeight
-      totalHeight += totalLineHeight + (visualLines - 1) * lineHeight;
-    });
-
-    return totalHeight;
-  }, [lines, fontSize, totalLineHeight, lineHeight]);
-
-  // Use actual measured height if available, otherwise use estimate
-  const totalContentHeight = actualContentHeight > 0 ? actualContentHeight : estimatedContentHeight;
-
-  // Handle content layout to get actual height
-  const handleContentLayout = useCallback((event: LayoutChangeEvent) => {
-    const { height } = event.nativeEvent.layout;
-    if (height > 0 && Math.abs(height - actualContentHeight) > 10) {
-      setActualContentHeight(height);
-    }
-  }, [actualContentHeight]);
-
-  // Calculate max scroll - allow scrolling until last line reaches reading zone
-  const maxScroll = useMemo(() => {
-    // maxScroll = total content height - one line height (so last line reaches top)
-    return Math.max(0, totalContentHeight - totalLineHeight);
-  }, [totalContentHeight, totalLineHeight]);
-
-  // Sync maxScroll to shared value for worklet access
-  useEffect(() => {
-    maxScrollShared.value = maxScroll;
-  }, [maxScroll]);
+  // Max scroll
+  const maxScroll = Math.max(0, contentHeight - SCREEN_HEIGHT * 0.3);
 
   // Calculate scroll speed based on WPM
   const getScrollSpeed = useCallback(() => {
-    const wpm = SPEED_CONFIGS[speedIndex].wpm;
-    const wordsPerSecond = wpm / 60;
-    const avgWordsPerLine = Math.max(1, totalWords / totalLines);
-    const linesPerSecond = wordsPerSecond / avgWordsPerLine;
-    return linesPerSecond * totalLineHeight;
-  }, [speedIndex, totalWords, totalLines, totalLineHeight]);
+    const wordsPerSecond = currentWpm / 60;
+    const avgCharsPerWord = 5;
+    const charsPerSecond = wordsPerSecond * avgCharsPerWord;
+    const linesPerSecond = charsPerSecond / charsPerLine;
+    return linesPerSecond * lineHeight;
+  }, [currentWpm, charsPerLine, lineHeight]);
 
-  // Auto-hide controls
-  const resetControlsTimeout = useCallback(() => {
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
-    if (isPlaying && hasStarted) {
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-        controlsOpacity.value = withTiming(0, { duration: 300 });
-      }, 3000);
-    }
-  }, [isPlaying, hasStarted, controlsOpacity]);
-
-  // Toggle controls visibility
-  const toggleControls = useCallback(() => {
-    if (!hasStarted) return;
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const newValue = !showControls;
-    setShowControls(newValue);
-    controlsOpacity.value = withTiming(newValue ? 1 : 0, { duration: 200 });
-
-    if (newValue) {
-      resetControlsTimeout();
-    }
-  }, [showControls, hasStarted, controlsOpacity, resetControlsTimeout]);
-
-  // Smooth scroll animation
+  // Smooth scroll animation - using ref to check playing state
   const startSmoothScroll = useCallback(() => {
     if (scrollAnimationRef.current) {
       cancelAnimationFrame(scrollAnimationRef.current);
     }
 
-    const targetMaxScroll = maxScroll;
     let lastTime = performance.now();
 
     const animate = (currentTime: number) => {
-      if (!isPlaying) return;
+      // Check ref instead of state to avoid stale closure
+      if (!isPlayingRef.current) return;
 
       const deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
@@ -240,36 +146,25 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
       const pixelsPerSecond = getScrollSpeed();
       const newScrollY = scrollY.value + (pixelsPerSecond * deltaTime);
 
-      // Update progress - handle division by zero
-      const progress = targetMaxScroll > 0 ? (newScrollY / targetMaxScroll) * 100 : 0;
+      // Update progress
+      const progress = maxScroll > 0 ? (newScrollY / maxScroll) * 100 : 0;
       progressWidth.value = Math.min(100, progress);
 
-      if (newScrollY >= targetMaxScroll) {
-        scrollY.value = targetMaxScroll;
+      if (newScrollY >= maxScroll) {
+        scrollY.value = maxScroll;
         progressWidth.value = 100;
-
-        // Add delay before finishing to let user read the last line
-        if (!hasReachedEnd.current) {
-          hasReachedEnd.current = true;
-          const lastLineWords = lines[lines.length - 1]?.split(/\s+/).length || 5;
-          const wpm = SPEED_CONFIGS[speedIndex].wpm;
-          const readingTime = (lastLineWords / wpm) * 60 * 1000;
-          const finishDelay = Math.min(Math.max(readingTime + 1500, 3000), 6000);
-
-          finishDelayRef.current = setTimeout(() => {
-            runOnJS(handleFinish)();
-          }, finishDelay);
-        }
+        setTimeout(() => {
+          runOnJS(handleFinish)();
+        }, 1500);
         return;
       }
 
       scrollY.value = newScrollY;
-      manualScrollOffset.value = newScrollY;
       scrollAnimationRef.current = requestAnimationFrame(animate);
     };
 
     scrollAnimationRef.current = requestAnimationFrame(animate);
-  }, [getScrollSpeed, maxScroll, isPlaying, scrollY, progressWidth, manualScrollOffset, lines, speedIndex]);
+  }, [getScrollSpeed, maxScroll, scrollY, progressWidth]);
 
   const stopSmoothScroll = useCallback(() => {
     if (scrollAnimationRef.current) {
@@ -278,35 +173,15 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     }
   }, []);
 
-  // Track current line based on scroll position
-  const updateCurrentLine = useCallback((scroll: number) => {
-    // Simple calculation: which paragraph are we at based on scroll position
-    // This is an approximation since paragraphs have variable heights
-    const lineIndex = Math.floor(scroll / totalLineHeight);
-    const clampedIndex = Math.max(0, Math.min(lineIndex, totalLines - 1));
-    setCurrentLineIndex(clampedIndex);
-  }, [totalLineHeight, totalLines]);
-
-  // Track current line using animated reaction
-  useAnimatedReaction(
-    () => scrollY.value,
-    (currentScroll) => {
-      runOnJS(updateCurrentLine)(currentScroll);
-    },
-    []
-  );
-
-  // Handle play/pause/start
+  // Handle play/pause
   useEffect(() => {
     if (isPlaying) {
       startSmoothScroll();
-      resetControlsTimeout();
     } else {
       stopSmoothScroll();
     }
-
     return () => stopSmoothScroll();
-  }, [isPlaying, startSmoothScroll, stopSmoothScroll, resetControlsTimeout]);
+  }, [isPlaying, startSmoothScroll, stopSmoothScroll]);
 
   // Restart scroll when speed changes during playback
   useEffect(() => {
@@ -314,63 +189,28 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
       stopSmoothScroll();
       startSmoothScroll();
     }
-  }, [speedIndex]);
+  }, [currentWpm]);
 
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-      if (finishDelayRef.current) {
-        clearTimeout(finishDelayRef.current);
-      }
-    };
-  }, []);
-
-  // Pan gesture for manual scrolling
+  // Pan gesture for manual scroll
   const panStartOffset = useSharedValue(0);
-
   const panGesture = Gesture.Pan()
     .onStart(() => {
       'worklet';
-      isManualScrolling.value = true;
       panStartOffset.value = scrollY.value;
     })
     .onUpdate((event) => {
       'worklet';
       const newOffset = panStartOffset.value - event.translationY;
-      manualScrollOffset.value = Math.max(0, Math.min(maxScrollShared.value, newOffset));
-    })
-    .onEnd(() => {
-      'worklet';
-      isManualScrolling.value = false;
-      scrollY.value = manualScrollOffset.value;
+      scrollY.value = Math.max(0, Math.min(maxScroll, newOffset));
     });
-
-  const tapGesture = Gesture.Tap()
-    .onEnd(() => {
-      'worklet';
-      runOnJS(toggleControls)();
-    });
-
-  const composedGesture = Gesture.Simultaneous(panGesture, tapGesture);
 
   // Animated styles
-  const contentAnimatedStyle = useAnimatedStyle(() => {
-    const currentScroll = isManualScrolling.value ? manualScrollOffset.value : scrollY.value;
-    return {
-      transform: [{ translateY: -currentScroll }],
-    };
-  });
+  const contentAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -scrollY.value }],
+  }));
 
   const progressBarStyle = useAnimatedStyle(() => ({
     width: `${progressWidth.value}%`,
-  }));
-
-  const controlsAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: controlsOpacity.value,
-    pointerEvents: controlsOpacity.value > 0.5 ? 'auto' : 'none',
   }));
 
   // Handlers
@@ -384,23 +224,11 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     startTimeRef.current = Date.now();
     setHasStarted(true);
     setIsPlaying(true);
-    resetControlsTimeout();
   };
 
-  const handlePlayPause = async () => {
+  const handlePlayPause = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    if (isPlaying) {
-      setIsPlaying(false);
-      if (mode === 'record' && isRecording && !isRecordingPaused) {
-        await pauseRecording();
-      }
-    } else {
-      setIsPlaying(true);
-      if (mode === 'record' && isRecording && isRecordingPaused) {
-        await resumeRecording();
-      }
-    }
+    setIsPlaying(!isPlaying);
   };
 
   const handleFinish = async () => {
@@ -417,14 +245,8 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     onFinish({
       duration: result ? Math.floor(result.duration / 1000) : duration,
       totalWords,
-      linesRead: currentLineIndex + 1,
       recordingUri: result?.uri,
     });
-  };
-
-  const handleStop = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    await handleFinish();
   };
 
   const handleBack = () => {
@@ -435,95 +257,28 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     onBack?.();
   };
 
-  const handleSpeedChange = (index: number) => {
+  const cycleFontSize = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSpeedIndex(index);
+    const sizes: FontSizeOption[] = ['small', 'medium', 'large'];
+    const currentIndex = sizes.indexOf(fontSizeOption);
+    const nextIndex = (currentIndex + 1) % sizes.length;
+    setFontSizeOption(sizes[nextIndex]);
   };
 
-  const handleModeChange = (newMode: TeleprompterMode) => {
-    if (hasStarted) return;
+  const handleSpeedChange = (delta: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setMode(newMode);
+    setSpeedNormalized(prev => Math.max(0, Math.min(1, prev + delta)));
   };
-
-  // Render line with highlighting - Professional teleprompter style
-  const renderLine = useCallback((line: string, lineIndex: number) => {
-    const isCurrentLine = lineIndex === currentLineIndex;
-    const isPastLine = lineIndex < currentLineIndex;
-    const isFutureLine = lineIndex > currentLineIndex;
-    const distance = Math.abs(lineIndex - currentLineIndex);
-
-    // Professional teleprompter opacity:
-    // - Current line: full brightness (reading zone)
-    // - Past lines (above): moderate visibility for reference
-    // - Future lines (below): progressive fade for "upcoming" effect
-    let opacity = 1;
-    if (isCurrentLine) {
-      opacity = 1;
-    } else if (isPastLine) {
-      opacity = distance === 1 ? 0.5 : 0.35;
-    } else if (isFutureLine) {
-      if (distance === 1) {
-        opacity = 0.6;
-      } else if (distance === 2) {
-        opacity = 0.4;
-      } else if (distance === 3) {
-        opacity = 0.25;
-      } else {
-        opacity = 0.15;
-      }
-    }
-
-    return (
-      <View
-        key={lineIndex}
-        style={[
-          styles.lineContainer,
-          { minHeight: totalLineHeight },
-        ]}
-      >
-        <Text
-          style={[
-            styles.lineText,
-            {
-              fontSize,
-              lineHeight,
-              opacity,
-              color: isCurrentLine ? colors.text.primary : colors.text.secondary,
-              fontWeight: isCurrentLine ? '600' : '400',
-            },
-          ]}
-        >
-          {line}
-        </Text>
-        {/* Subtle glow for current line */}
-        {isCurrentLine && (
-          <LinearGradient
-            colors={['transparent', 'rgba(99, 102, 241, 0.08)', 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.lineGlow}
-          />
-        )}
-      </View>
-    );
-  }, [currentLineIndex, fontSize, lineHeight, totalLineHeight]);
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" hidden={hasStarted && !showControls} />
+      <StatusBar barStyle="light-content" hidden={hasStarted} />
 
-      {/* Background */}
-      <LinearGradient
-        colors={[colors.background.primary, colors.background.secondary, '#0D1220']}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Progress Bar (top) */}
+      {/* Progress Bar (top) - only during playback */}
       {hasStarted && (
         <Animated.View
           entering={FadeIn.duration(300)}
-          style={[styles.progressContainer, { top: insets.top }]}
+          style={[styles.progressContainer, { top: insets.top + spacing.sm }]}
         >
           <View style={styles.progressTrack}>
             <Animated.View style={[styles.progressFill, progressBarStyle]} />
@@ -531,181 +286,215 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
         </Animated.View>
       )}
 
-      {/* Recording Indicator */}
-      {mode === 'record' && isRecording && (
-        <Animated.View
-          entering={FadeIn.duration(200)}
-          style={[styles.recordingIndicator, { top: insets.top + spacing.lg }]}
-        >
-          <View style={styles.recordingDot} />
-          <Text style={styles.recordingTime}>{formatDuration(recordingDuration)}</Text>
-        </Animated.View>
-      )}
+      {/* Main Content - Scrolling Text */}
+      <GestureDetector gesture={panGesture}>
+        <View style={styles.contentArea}>
+          <Animated.View style={[styles.textContent, contentAnimatedStyle]}>
+            <View style={{ height: READING_ZONE_TOP }} />
+            <Text style={[styles.text, { fontSize, lineHeight }]}>
+              {passage.text}
+            </Text>
+            <View style={{ height: SCREEN_HEIGHT }} />
+          </Animated.View>
 
-      {/* Main Content - Gesture for manual scroll + tap to toggle controls */}
-      <GestureDetector gesture={composedGesture}>
-        <Animated.View style={styles.contentArea}>
-          {/* Scrolling Text */}
-          <View style={styles.textContainer}>
-            <Animated.View style={[styles.textContent, contentAnimatedStyle]}>
-              {/* Top padding */}
-              <View style={{ height: READING_ZONE_TOP }} />
-
-              {/* Content wrapper for measuring actual height */}
-              <View onLayout={handleContentLayout}>
-                {lines.map((line, index) => renderLine(line, index))}
-              </View>
-
-              {/* Bottom padding - extra space to allow last line to scroll to reading zone */}
-              <View style={{ height: SCREEN_HEIGHT }} />
-            </Animated.View>
-          </View>
-
-          {/* Gradient overlays for fade effect */}
+          {/* Gradient overlays */}
           <LinearGradient
-            colors={[colors.background.primary, 'transparent']}
-            style={[styles.fadeOverlay, styles.fadeTop, { height: READING_ZONE_TOP * 0.6 }]}
+            colors={['#000000', 'transparent']}
+            style={[styles.fadeOverlay, styles.fadeTop, { height: READING_ZONE_TOP * 0.7 }]}
             pointerEvents="none"
           />
           <LinearGradient
-            colors={['transparent', colors.background.primary]}
+            colors={['transparent', '#000000']}
             style={[styles.fadeOverlay, styles.fadeBottom]}
             pointerEvents="none"
           />
-        </Animated.View>
+        </View>
       </GestureDetector>
 
-      {/* Controls Overlay */}
-      <Animated.View style={[styles.controlsOverlay, controlsAnimatedStyle]} pointerEvents="box-none">
-        {/* Top Bar - Back button and settings */}
-        <View style={[styles.topBar, { paddingTop: insets.top + spacing.md }]}>
-          <BackButton onPress={handleBack} variant="blur" />
+      {/* Controls Container */}
+      <View style={[styles.controlsContainer, { paddingBottom: insets.bottom + spacing.lg }]}>
 
-          {/* Mode Toggle (only before starting) */}
-          {!hasStarted && (
-            <Animated.View entering={FadeIn} style={styles.modeToggle}>
-              <TouchableOpacity
-                onPress={() => handleModeChange('practice')}
-                style={[styles.modeButton, mode === 'practice' && styles.modeButtonActive]}
-              >
-                <Text style={[styles.modeText, mode === 'practice' && styles.modeTextActive]}>
-                  Practice
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleModeChange('record')}
-                style={[styles.modeButton, mode === 'record' && styles.modeButtonActive]}
-              >
-                <Text style={[styles.modeText, mode === 'record' && styles.modeTextActive]}>
-                  Record
-                </Text>
-              </TouchableOpacity>
-            </Animated.View>
-          )}
+        {/* Speed Slider - Always visible */}
+        <View style={styles.speedSliderContainer}>
+          <TouchableOpacity
+            onPress={() => handleSpeedChange(-0.1)}
+            style={styles.speedIconButton}
+          >
+            <Ionicons name="walk-outline" size={22} color={colors.text.secondary} />
+          </TouchableOpacity>
+
+          <View style={styles.speedTrackContainer}>
+            <View style={styles.speedTrack}>
+              {/* Tick marks */}
+              {Array.from({ length: 21 }).map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.tick,
+                    i === 10 && styles.tickCenter,
+                    (i === 5 || i === 15) && styles.tickQuarter,
+                  ]}
+                />
+              ))}
+            </View>
+            {/* Knob */}
+            <View
+              style={[
+                styles.speedKnob,
+                { left: `${speedNormalized * 100}%` },
+              ]}
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={() => handleSpeedChange(0.1)}
+            style={styles.speedIconButton}
+          >
+            <Ionicons name="walk" size={22} color={colors.text.secondary} />
+          </TouchableOpacity>
         </View>
 
-        {/* Bottom Controls */}
-        <Animated.View
-          style={[styles.bottomControls, { paddingBottom: insets.bottom + spacing.lg }]}
-        >
+        {/* WPM Display */}
+        <View style={styles.wpmDisplay}>
+          <Text style={styles.wpmValue}>{currentWpm}</Text>
+          <Text style={styles.wpmLabel}> WPM</Text>
+        </View>
+
+        {/* Control Buttons Row */}
+        <View style={styles.controlsRow}>
           {!hasStarted ? (
-            // Start Button
-            <Animated.View entering={FadeInUp.delay(200)} style={styles.startContainer}>
-              {/* Speed selector */}
-              <View style={styles.speedSelector}>
-                {SPEED_CONFIGS.map((config, index) => (
-                  <TouchableOpacity
-                    key={config.label}
-                    onPress={() => handleSpeedChange(index)}
-                    style={[
-                      styles.speedButton,
-                      speedIndex === index && styles.speedButtonActive,
-                    ]}
-                  >
-                    <Text style={[
-                      styles.speedText,
-                      speedIndex === index && styles.speedTextActive,
-                    ]}>
-                      {config.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            // Pre-start controls
+            <>
+              {/* Back Button */}
+              <TouchableOpacity
+                onPress={handleBack}
+                style={styles.controlButton}
+                accessibilityLabel="Go back"
+              >
+                <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+
+              {/* Font Size Button */}
+              <TouchableOpacity
+                onPress={cycleFontSize}
+                style={styles.controlButton}
+                accessibilityLabel="Change font size"
+              >
+                <Text style={styles.fontSizeButtonText}>Aa</Text>
+                <View style={styles.fontSizeBadge}>
+                  <Text style={styles.fontSizeBadgeText}>
+                    {fontSizeOption === 'small' ? 'S' : fontSizeOption === 'medium' ? 'M' : 'L'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Mode Toggle */}
+              <View style={styles.modeToggle}>
+                <TouchableOpacity
+                  onPress={() => { setMode('practice'); Haptics.selectionAsync(); }}
+                  style={[styles.modeButton, mode === 'practice' && styles.modeButtonActive]}
+                >
+                  <Text style={[styles.modeText, mode === 'practice' && styles.modeTextActive]}>
+                    Practice
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => { setMode('record'); Haptics.selectionAsync(); }}
+                  style={[styles.modeButton, mode === 'record' && styles.modeButtonActive]}
+                >
+                  <Text style={[styles.modeText, mode === 'record' && styles.modeTextActive]}>
+                    Record
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               {/* Start Button */}
               <TouchableOpacity
                 onPress={handleStart}
-                activeOpacity={0.9}
-                style={styles.startButton}
+                style={[styles.startButton, mode === 'record' && styles.startButtonRecord]}
+                accessibilityLabel={mode === 'record' ? 'Start recording' : 'Start practice'}
               >
-                <LinearGradient
-                  colors={mode === 'record' ? ['#EF4444', '#DC2626'] : colors.gradients.primary}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.startButtonGradient}
-                >
-                  <View style={styles.startButtonIcon}>
-                    {mode === 'record' ? (
-                      <View style={styles.recordIcon} />
-                    ) : (
-                      <View style={styles.playIcon} />
-                    )}
-                  </View>
-                  <Text style={styles.startButtonText}>
-                    {mode === 'record' ? 'Start Recording' : 'Start Reading'}
-                  </Text>
-                </LinearGradient>
+                <Ionicons
+                  name={mode === 'record' ? 'mic' : 'play'}
+                  size={26}
+                  color="#FFFFFF"
+                />
               </TouchableOpacity>
-            </Animated.View>
+            </>
           ) : (
-            // Active Controls
-            <Animated.View entering={SlideInDown} style={styles.activeControls}>
-              {/* Play/Pause */}
-              <TouchableOpacity
-                onPress={handlePlayPause}
-                style={styles.controlButton}
-              >
-                <BlurView intensity={40} tint="dark" style={styles.controlButtonBlur}>
-                  {isPlaying ? (
-                    <View style={styles.pauseIcon}>
-                      <View style={styles.pauseBar} />
-                      <View style={styles.pauseBar} />
-                    </View>
-                  ) : (
-                    <View style={styles.playIconSmall} />
-                  )}
-                </BlurView>
-              </TouchableOpacity>
-
-              {/* Stop / Complete */}
-              <TouchableOpacity
-                onPress={handleStop}
-                style={[styles.controlButton, mode === 'practice' ? styles.completeButton : styles.stopButton]}
-              >
-                {mode === 'practice' ? (
-                  <View style={styles.checkmarkIcon}>
-                    <View style={styles.checkmarkShort} />
-                    <View style={styles.checkmarkLong} />
-                  </View>
-                ) : (
-                  <View style={styles.stopIcon} />
-                )}
-              </TouchableOpacity>
-
-              {/* Speed control - tap to cycle through speeds */}
+            // During playback controls
+            <>
+              {/* Rewind */}
               <TouchableOpacity
                 onPress={() => {
-                  const nextIndex = (speedIndex + 1) % SPEED_CONFIGS.length;
-                  handleSpeedChange(nextIndex);
+                  scrollY.value = Math.max(0, scrollY.value - 150);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }}
-                style={styles.speedIndicator}
+                style={styles.controlButton}
+                accessibilityLabel="Rewind"
               >
-                <Text style={styles.speedIndicatorText}>{SPEED_CONFIGS[speedIndex].label}</Text>
+                <Ionicons name="play-skip-back" size={22} color={colors.text.primary} />
               </TouchableOpacity>
-            </Animated.View>
+
+              {/* Font Size */}
+              <TouchableOpacity
+                onPress={cycleFontSize}
+                style={styles.controlButton}
+                accessibilityLabel="Change font size"
+              >
+                <Text style={styles.fontSizeButtonText}>Aa</Text>
+                <View style={styles.fontSizeBadge}>
+                  <Text style={styles.fontSizeBadgeText}>
+                    {fontSizeOption === 'small' ? 'S' : fontSizeOption === 'medium' ? 'M' : 'L'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Play/Pause - Larger center button */}
+              <TouchableOpacity
+                onPress={handlePlayPause}
+                style={[styles.playPauseButton, !isPlaying && styles.playButton]}
+                accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+              >
+                <Ionicons
+                  name={isPlaying ? 'pause' : 'play'}
+                  size={28}
+                  color="#FFFFFF"
+                />
+              </TouchableOpacity>
+
+              {/* Forward */}
+              <TouchableOpacity
+                onPress={() => {
+                  scrollY.value = Math.min(maxScroll, scrollY.value + 150);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                style={styles.controlButton}
+                accessibilityLabel="Forward"
+              >
+                <Ionicons name="play-skip-forward" size={22} color={colors.text.primary} />
+              </TouchableOpacity>
+
+              {/* Stop/Finish */}
+              <TouchableOpacity
+                onPress={handleFinish}
+                style={[styles.controlButton, styles.stopButtonSmall]}
+                accessibilityLabel="Finish"
+              >
+                <Ionicons name="stop" size={22} color="#EF4444" />
+              </TouchableOpacity>
+            </>
           )}
-        </Animated.View>
-      </Animated.View>
+        </View>
+
+        {/* Recording indicator */}
+        {hasStarted && mode === 'record' && isRecording && (
+          <View style={styles.recordingIndicator}>
+            <View style={styles.recordingDot} />
+            <Text style={styles.recordingText}>{formatDuration(recordingDuration)}</Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -713,20 +502,19 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#000000',
   },
 
   // Progress Bar
   progressContainer: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    paddingHorizontal: spacing.lg,
+    left: spacing.lg,
+    right: spacing.lg,
     zIndex: 100,
   },
   progressTrack: {
     height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -736,57 +524,20 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
 
-  // Recording Indicator
-  recordingIndicator: {
-    position: 'absolute',
-    right: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    zIndex: 100,
-  },
-  recordingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EF4444',
-  },
-  recordingTime: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.secondary,
-    fontVariant: ['tabular-nums'],
-  },
-
-  // Content Area
+  // Content
   contentArea: {
-    flex: 1,
-  },
-  textContainer: {
     flex: 1,
     overflow: 'hidden',
   },
   textContent: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
+  },
+  text: {
+    color: '#FFFFFF',
+    fontWeight: '400',
   },
 
-  // Lines
-  lineContainer: {
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  lineText: {
-    textAlign: 'left',
-  },
-  lineGlow: {
-    position: 'absolute',
-    left: -spacing.lg,
-    right: -spacing.lg,
-    top: 0,
-    bottom: 0,
-  },
-
-  // Fade Overlays
+  // Fade overlays
   fadeOverlay: {
     position: 'absolute',
     left: 0,
@@ -797,33 +548,138 @@ const styles = StyleSheet.create({
   },
   fadeBottom: {
     bottom: 0,
-    height: SCREEN_HEIGHT * 0.3,
+    height: SCREEN_HEIGHT * 0.4,
   },
 
-  // Controls Overlay
-  controlsOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'space-between',
-  },
-
-  // Top Bar
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  // Controls container
+  controlsContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
 
-  // Mode Toggle
+  // Speed Slider
+  speedSliderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(40, 40, 40, 0.95)',
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  speedIconButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  speedTrackContainer: {
+    flex: 1,
+    height: 28,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  speedTrack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 28,
+    paddingHorizontal: 8,
+  },
+  tick: {
+    width: 1,
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 0.5,
+  },
+  tickCenter: {
+    height: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  tickQuarter: {
+    height: 11,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  speedKnob: {
+    position: 'absolute',
+    width: 4,
+    height: 22,
+    backgroundColor: '#FF9500',
+    borderRadius: 2,
+    marginLeft: -2,
+    top: 3,
+  },
+
+  // WPM Display
+  wpmDisplay: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+  },
+  wpmValue: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    fontVariant: ['tabular-nums'],
+  },
+  wpmLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+  },
+
+  // Controls Row
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  controlButton: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(60, 60, 60, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Font size button
+  fontSizeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  fontSizeBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: colors.primary.DEFAULT,
+    borderRadius: 6,
+    width: 14,
+    height: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fontSizeBadgeText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Mode toggle
   modeToggle: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(60, 60, 60, 0.9)',
     borderRadius: borderRadius.full,
-    padding: 4,
+    padding: 3,
   },
   modeButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
     borderRadius: borderRadius.full,
   },
   modeButtonActive: {
@@ -831,189 +687,70 @@ const styles = StyleSheet.create({
   },
   modeText: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
     color: colors.text.tertiary,
+    fontWeight: '500',
   },
   modeTextActive: {
     color: colors.text.primary,
   },
 
-  // Bottom Controls
-  bottomControls: {
-    paddingHorizontal: spacing.lg,
-  },
-
-  // Start Container
-  startContainer: {
-    gap: spacing.lg,
-  },
-
-  // Speed Selector
-  speedSelector: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  speedButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  speedButtonActive: {
-    backgroundColor: colors.primary.DEFAULT,
-    borderColor: colors.primary.DEFAULT,
-  },
-  speedText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.tertiary,
-  },
-  speedTextActive: {
-    color: colors.text.primary,
-  },
-
-  // Start Button
+  // Start button
   startButton: {
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-    shadowColor: colors.glow.primary,
-    shadowOffset: { width: 0, height: 8 },
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary.DEFAULT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.primary.DEFAULT,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  startButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.lg,
-    gap: spacing.md,
-  },
-  startButtonIcon: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  recordIcon: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.text.primary,
-  },
-  playIcon: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 12,
-    borderTopWidth: 8,
-    borderBottomWidth: 8,
-    borderLeftColor: colors.text.primary,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    marginLeft: 2,
-  },
-  startButtonText: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
+  startButtonRecord: {
+    backgroundColor: '#EF4444',
+    shadowColor: '#EF4444',
   },
 
-  // Active Controls
-  activeControls: {
-    flexDirection: 'row',
+  // Play/Pause button (during playback)
+  playPauseButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(100, 100, 100, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.lg,
   },
-  controlButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    overflow: 'hidden',
+  playButton: {
+    backgroundColor: colors.primary.DEFAULT,
   },
-  controlButtonBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+
+  // Stop button small
+  stopButtonSmall: {
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 32,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
-  stopButton: {
-    backgroundColor: '#EF4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  completeButton: {
-    backgroundColor: colors.success.DEFAULT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkmarkIcon: {
-    width: 20,
-    height: 16,
-    position: 'relative',
-  },
-  checkmarkShort: {
-    position: 'absolute',
-    bottom: 2,
-    left: 0,
-    width: 8,
-    height: 3,
-    backgroundColor: colors.text.primary,
-    borderRadius: 2,
-    transform: [{ rotate: '45deg' }],
-  },
-  checkmarkLong: {
-    position: 'absolute',
-    bottom: 4,
-    left: 4,
-    width: 16,
-    height: 3,
-    backgroundColor: colors.text.primary,
-    borderRadius: 2,
-    transform: [{ rotate: '-45deg' }],
-  },
-  pauseIcon: {
+
+  // Recording indicator
+  recordingIndicator: {
     flexDirection: 'row',
-    gap: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingTop: spacing.xs,
   },
-  pauseBar: {
-    width: 4,
-    height: 18,
-    backgroundColor: colors.text.primary,
-    borderRadius: 2,
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
   },
-  playIconSmall: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 10,
-    borderTopWidth: 7,
-    borderBottomWidth: 7,
-    borderLeftColor: colors.text.primary,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    marginLeft: 3,
-  },
-  stopIcon: {
-    width: 18,
-    height: 18,
-    backgroundColor: colors.text.primary,
-    borderRadius: 3,
-  },
-  speedIndicator: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  speedIndicatorText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.secondary,
+  recordingText: {
+    fontSize: typography.fontSize.base,
+    color: '#EF4444',
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
 });
 

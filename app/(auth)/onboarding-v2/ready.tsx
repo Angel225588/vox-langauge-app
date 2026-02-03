@@ -155,13 +155,13 @@ export default function ReadyScreen() {
             style={styles.progressContainer}
           >
             <View style={styles.dotsContainer}>
-              {[1, 2, 3, 4, 5].map((step) => (
+              {[1, 2, 3, 4, 5, 6].map((step) => (
                 <View
                   key={step}
                   style={[
                     styles.dot,
-                    step === 5 && styles.dotActive,
-                    step < 5 && styles.dotCompleted,
+                    step === 6 && styles.dotActive,
+                    step < 6 && styles.dotCompleted,
                   ]}
                 />
               ))}

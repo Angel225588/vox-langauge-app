@@ -166,18 +166,28 @@ export async function createStairsForSection(
     }
 
     // Insert steps into staircase_steps table
-    const stepsData = stairs.map((stair, index) => ({
-      staircase_id: staircaseId,
-      step_order: stair.order,
-      title: stair.title,
-      emoji: stair.emoji,
-      description: stair.description,
-      difficulty: mapProficiencyToDifficulty(index, stairs.length),
-      estimated_days: stair.estimated_days,
-      vocabulary_count: stair.vocabulary?.length || 30,
-      skills_focus: stair.skills_unlocked || ['speaking', 'listening'],
-      scenario_tags: stair.skills_required || [],
-    }));
+    // Now also persists AI-generated content (vocabulary, scenarios, grammar_points)
+    const stepsData = stairs.map((stair, index) => {
+      const hasContent = (stair.vocabulary?.length ?? 0) > 0;
+      return {
+        staircase_id: staircaseId,
+        step_order: stair.order,
+        title: stair.title,
+        emoji: stair.emoji,
+        description: stair.description,
+        difficulty: mapProficiencyToDifficulty(index, stairs.length),
+        estimated_days: stair.estimated_days,
+        vocabulary_count: stair.vocabulary?.length || 30,
+        skills_focus: stair.skills_unlocked || ['speaking', 'listening'],
+        scenario_tags: stair.skills_required || [],
+        // Persist AI-generated content
+        vocabulary: stair.vocabulary || [],
+        scenarios: stair.scenarios || [],
+        grammar_points: stair.grammar_points || [],
+        content_loaded: stair.content_loaded ?? hasContent,
+        content_loaded_at: hasContent ? new Date().toISOString() : null,
+      };
+    });
 
     const { data: insertedSteps, error: stepsError } = await supabase
       .from('staircase_steps')
@@ -370,5 +380,309 @@ export async function hasActiveLearningPath(userId: string): Promise<boolean> {
     return !error && !!data;
   } catch {
     return false;
+  }
+}
+
+// ============================================================================
+// STAIR CONTENT OPERATIONS
+// ============================================================================
+
+/**
+ * Content stored in a stair step.
+ */
+export interface StairContent {
+  vocabulary: any[];
+  scenarios: any[];
+  grammar_points: string[];
+  content_loaded: boolean;
+  content_loaded_at: string | null;
+}
+
+/**
+ * Get the content for a specific stair step.
+ *
+ * @param stepId - The step's UUID
+ * @returns Stair content including vocabulary, scenarios, and grammar points
+ */
+export async function getStairContent(stepId: string): Promise<StairContent | null> {
+  try {
+    const { data, error } = await supabase
+      .from('staircase_steps')
+      .select('vocabulary, scenarios, grammar_points, content_loaded, content_loaded_at')
+      .eq('id', stepId)
+      .single();
+
+    if (error || !data) {
+      console.error('Error fetching stair content:', error);
+      return null;
+    }
+
+    return {
+      vocabulary: data.vocabulary || [],
+      scenarios: data.scenarios || [],
+      grammar_points: data.grammar_points || [],
+      content_loaded: data.content_loaded || false,
+      content_loaded_at: data.content_loaded_at || null,
+    };
+  } catch (error) {
+    console.error('Exception fetching stair content:', error);
+    return null;
+  }
+}
+
+/**
+ * Get the full stair info including skeleton data needed for content generation.
+ *
+ * @param stepId - The step's UUID
+ * @returns Stair skeleton data for AI content generation
+ */
+export async function getStairSkeleton(stepId: string): Promise<{
+  order: number;
+  title: string;
+  description: string;
+  grammar_focus: string[];
+  skills_required: string[];
+  skills_unlocked: string[];
+} | null> {
+  try {
+    const { data, error } = await supabase
+      .from('staircase_steps')
+      .select('step_order, title, description, grammar_points, scenario_tags, skills_focus')
+      .eq('id', stepId)
+      .single();
+
+    if (error || !data) {
+      console.error('Error fetching stair skeleton:', error);
+      return null;
+    }
+
+    return {
+      order: data.step_order,
+      title: data.title,
+      description: data.description,
+      grammar_focus: data.grammar_points || [],
+      skills_required: data.scenario_tags || [],
+      skills_unlocked: data.skills_focus || [],
+    };
+  } catch (error) {
+    console.error('Exception fetching stair skeleton:', error);
+    return null;
+  }
+}
+
+/**
+ * Update a stair's content after AI generation.
+ *
+ * @param stepId - The step's UUID
+ * @param content - The AI-generated content to store
+ * @returns True if successful, false on error
+ */
+export async function updateStairContent(
+  stepId: string,
+  content: {
+    vocabulary: any[];
+    scenarios: any[];
+    grammar_points: string[];
+  }
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('staircase_steps')
+      .update({
+        vocabulary: content.vocabulary,
+        scenarios: content.scenarios,
+        grammar_points: content.grammar_points,
+        content_loaded: true,
+        content_loaded_at: new Date().toISOString(),
+        // Update vocabulary_count to match actual content
+        vocabulary_count: content.vocabulary.length,
+      })
+      .eq('id', stepId);
+
+    if (error) {
+      console.error('Error updating stair content:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Exception updating stair content:', error);
+    return false;
+  }
+}
+
+/**
+ * Get the generation parameters from the user's active staircase.
+ * These are needed to generate AI content for stairs.
+ *
+ * @param userId - The user's UUID
+ * @returns Generation parameters or null if not found
+ */
+export async function getStaircaseParams(userId: string): Promise<{
+  target_language: string;
+  native_language: string;
+  target_accent?: string;
+  motivation: string;
+  motivation_custom?: string;
+  proficiency_level: string;
+  timeline?: string;
+  commitment_stakes?: string;
+} | null> {
+  try {
+    const { data, error } = await supabase
+      .from('user_staircases')
+      .select('generation_parameters')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !data?.generation_parameters) {
+      console.error('Error fetching staircase params:', error);
+      return null;
+    }
+
+    const params = data.generation_parameters as Record<string, any>;
+    return {
+      target_language: params.target_language || 'es',
+      native_language: params.native_language || 'en',
+      target_accent: params.target_accent,
+      motivation: params.motivation || 'general',
+      motivation_custom: params.motivation_custom,
+      proficiency_level: params.proficiency_level || 'beginner',
+      timeline: params.timeline,
+      commitment_stakes: params.commitment_stakes,
+    };
+  } catch (error) {
+    console.error('Exception fetching staircase params:', error);
+    return null;
+  }
+}
+
+/**
+ * Get the ID of the next stair after the given step.
+ *
+ * @param stepId - The current step's UUID
+ * @returns The next step's ID, or null if this is the last step
+ */
+export async function getNextStairId(stepId: string): Promise<string | null> {
+  try {
+    // First get the current step's staircase_id and order
+    const { data: currentStep, error: currentError } = await supabase
+      .from('staircase_steps')
+      .select('staircase_id, step_order')
+      .eq('id', stepId)
+      .single();
+
+    if (currentError || !currentStep) {
+      console.error('Error fetching current step:', currentError);
+      return null;
+    }
+
+    // Find the next step
+    const { data: nextStep, error: nextError } = await supabase
+      .from('staircase_steps')
+      .select('id')
+      .eq('staircase_id', currentStep.staircase_id)
+      .eq('step_order', currentStep.step_order + 1)
+      .single();
+
+    if (nextError || !nextStep) {
+      // No next step - this is the last stair
+      return null;
+    }
+
+    return nextStep.id;
+  } catch (error) {
+    console.error('Exception getting next stair:', error);
+    return null;
+  }
+}
+
+// ============================================================================
+// SCENARIO COMPLETION TRACKING
+// ============================================================================
+
+/**
+ * Record that a user completed a speaking scenario for a specific stair.
+ *
+ * @param userId - The user's UUID
+ * @param stepId - The step's UUID
+ * @param scenarioId - The scenario identifier
+ * @returns True if successful, false on error
+ */
+export async function recordScenarioCompletion(
+  userId: string,
+  stepId: string,
+  scenarioId: string
+): Promise<boolean> {
+  try {
+    // Get current progress record
+    const { data: progress, error: fetchError } = await supabase
+      .from('user_stair_progress')
+      .select('scenarios_completed')
+      .eq('user_id', userId)
+      .eq('step_id', stepId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching progress for scenario completion:', fetchError);
+      return false;
+    }
+
+    // Add scenario to array if not already present
+    const currentScenarios = progress?.scenarios_completed || [];
+    if (currentScenarios.includes(scenarioId)) {
+      // Already completed, no need to update
+      return true;
+    }
+
+    const { error: updateError } = await supabase
+      .from('user_stair_progress')
+      .update({
+        scenarios_completed: [...currentScenarios, scenarioId],
+      })
+      .eq('user_id', userId)
+      .eq('step_id', stepId);
+
+    if (updateError) {
+      console.error('Error recording scenario completion:', updateError);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Exception recording scenario completion:', error);
+    return false;
+  }
+}
+
+/**
+ * Get completed scenarios for a specific stair.
+ *
+ * @param userId - The user's UUID
+ * @param stepId - The step's UUID
+ * @returns Array of completed scenario IDs
+ */
+export async function getCompletedScenarios(
+  userId: string,
+  stepId: string
+): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('user_stair_progress')
+      .select('scenarios_completed')
+      .eq('user_id', userId)
+      .eq('step_id', stepId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching completed scenarios:', error);
+      return [];
+    }
+
+    return data?.scenarios_completed || [];
+  } catch (error) {
+    console.error('Exception fetching completed scenarios:', error);
+    return [];
   }
 }

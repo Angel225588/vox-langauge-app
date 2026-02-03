@@ -1,29 +1,32 @@
 /**
  * TaskBriefCard - Writing Task Introduction
  *
- * Professional "About this lesson" style card that presents:
- * - Task title and scenario
- * - Goal and learning objectives
- * - Recommendations before starting
- * - Start button
- *
- * Design: Clean, professional, Notion/Obsidian inspired
+ * Motivational and playful design that presents:
+ * - Category emoji + Task title
+ * - Scenario description
+ * - Collapsible tips section
+ * - Encouraging message
+ * - Playful CTA button
  */
 
-import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
   FadeInDown,
-  FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
+  interpolate,
+  Extrapolation,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
-import { useHaptics } from '@/hooks/useHaptics';
+import * as Haptics from 'expo-haptics';
+import { colors, typography, spacing, borderRadius, shadows, animation } from '@/constants/designSystem';
+import { BackButton } from '@/components/ui/BackButton';
 import type { WritingTask, TaskCategory } from './types';
 
 interface TaskBriefCardProps {
@@ -32,176 +35,190 @@ interface TaskBriefCardProps {
   onBack?: () => void;
 }
 
-const CATEGORY_ICONS: Record<TaskCategory, keyof typeof Ionicons.glyphMap> = {
-  daily_routine: 'sunny-outline',
-  self_introduction: 'person-outline',
-  job_interview: 'briefcase-outline',
-  email: 'mail-outline',
-  message: 'chatbubble-outline',
-  travel: 'airplane-outline',
-  opinion: 'bulb-outline',
-  story: 'book-outline',
-  custom: 'create-outline',
+// Category emojis for visual personality
+const CATEGORY_EMOJIS: Record<TaskCategory, string> = {
+  daily_routine: '☀️',
+  self_introduction: '👋',
+  job_interview: '💼',
+  email: '📧',
+  message: '💬',
+  travel: '✈️',
+  opinion: '💡',
+  story: '📖',
+  custom: '✨',
 };
 
-const CATEGORY_LABELS: Record<TaskCategory, string> = {
-  daily_routine: 'Daily Routine',
-  self_introduction: 'Self Introduction',
-  job_interview: 'Job Interview',
-  email: 'Email',
-  message: 'Message',
-  travel: 'Travel',
-  opinion: 'Opinion',
-  story: 'Story',
-  custom: 'Custom',
+// Encouraging messages to motivate users
+const ENCOURAGEMENT_MESSAGES = [
+  "You've got this! Just write naturally.",
+  "Don't worry about mistakes - that's how we learn!",
+  "Express yourself freely, we'll polish it together.",
+  "Take your time, there's no rush.",
+  "Every word you write makes you better!",
+];
+
+// Get difficulty label with emoji
+const getDifficultyLabel = (difficulty: string) => {
+  switch (difficulty) {
+    case 'beginner': return '🌱 Beginner';
+    case 'intermediate': return '🌿 Intermediate';
+    case 'advanced': return '🌳 Advanced';
+    default: return difficulty;
+  }
 };
 
-const DIFFICULTY_COLORS = {
-  beginner: colors.success.DEFAULT,
-  intermediate: colors.warning.DEFAULT,
-  advanced: colors.error.DEFAULT,
+// Get random encouragement message
+const getEncouragement = () => {
+  return ENCOURAGEMENT_MESSAGES[Math.floor(Math.random() * ENCOURAGEMENT_MESSAGES.length)];
 };
 
 export function TaskBriefCard({ task, onStart, onBack }: TaskBriefCardProps) {
-  const haptics = useHaptics();
+  const insets = useSafeAreaInsets();
+  const [tipsExpanded, setTipsExpanded] = useState(false);
+  const [encouragement] = useState(getEncouragement);
+
   const buttonScale = useSharedValue(1);
+  const tipsHeight = useSharedValue(0);
+  const tipsRotation = useSharedValue(0);
 
   const handleStart = useCallback(() => {
-    haptics.medium();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onStart();
-  }, [haptics, onStart]);
+  }, [onStart]);
+
+  const handleBack = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onBack?.();
+  }, [onBack]);
+
+  const toggleTips = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTipsExpanded(prev => !prev);
+    tipsHeight.value = withSpring(tipsExpanded ? 0 : 1, animation.spring.default);
+    tipsRotation.value = withSpring(tipsExpanded ? 0 : 1, animation.spring.default);
+  }, [tipsExpanded, tipsHeight, tipsRotation]);
 
   const buttonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: buttonScale.value }],
   }));
 
+  const tipsContainerStyle = useAnimatedStyle(() => ({
+    maxHeight: interpolate(
+      tipsHeight.value,
+      [0, 1],
+      [0, 300],
+      Extrapolation.CLAMP
+    ),
+    opacity: tipsHeight.value,
+    marginTop: interpolate(tipsHeight.value, [0, 1], [0, spacing.md]),
+  }));
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        rotate: `${interpolate(tipsRotation.value, [0, 1], [0, 180])}deg`,
+      },
+    ],
+  }));
+
+  const categoryEmoji = CATEGORY_EMOJIS[task.category] || '📝';
+
   return (
-    <View style={styles.container}>
-      {/* Header with back button */}
-      <Animated.View
-        entering={FadeIn.duration(300)}
-        style={styles.header}
-      >
-        {onBack && (
-          <TouchableOpacity
-            onPress={onBack}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
-          </TouchableOpacity>
-        )}
-        <View style={styles.headerBadges}>
-          <View style={styles.categoryBadge}>
-            <Ionicons
-              name={CATEGORY_ICONS[task.category]}
-              size={14}
-              color={colors.text.secondary}
-            />
-            <Text style={styles.categoryText}>{CATEGORY_LABELS[task.category]}</Text>
-          </View>
-          <View style={[styles.difficultyBadge, { backgroundColor: `${DIFFICULTY_COLORS[task.difficulty]}20` }]}>
-            <View style={[styles.difficultyDot, { backgroundColor: DIFFICULTY_COLORS[task.difficulty] }]} />
-            <Text style={[styles.difficultyText, { color: DIFFICULTY_COLORS[task.difficulty] }]}>
-              {task.difficulty.charAt(0).toUpperCase() + task.difficulty.slice(1)}
-            </Text>
-          </View>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
+        <BackButton onPress={handleBack} />
+        <View style={styles.headerSpacer} />
+        <View style={styles.difficultyBadge}>
+          <Text style={styles.difficultyText}>{getDifficultyLabel(task.difficulty)}</Text>
         </View>
       </Animated.View>
 
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={false}
+      {/* Main Content Card */}
+      <Animated.View
+        entering={FadeInDown.duration(400).delay(100).springify()}
+        style={styles.mainCard}
       >
-        {/* Task Title */}
-        <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-          <Text style={styles.title}>{task.title}</Text>
-        </Animated.View>
+        {/* Category Emoji */}
+        <View style={styles.emojiContainer}>
+          <Text style={styles.emoji}>{categoryEmoji}</Text>
+        </View>
 
-        {/* Scenario Card */}
-        <Animated.View
-          entering={FadeInDown.duration(400).delay(200)}
-          style={styles.scenarioCard}
-        >
-          <View style={styles.scenarioHeader}>
-            <Ionicons name="document-text-outline" size={18} color={colors.primary.DEFAULT} />
-            <Text style={styles.scenarioLabel}>Your Task</Text>
-          </View>
-          <Text style={styles.scenarioText}>{task.scenario}</Text>
-          {task.context && (
-            <Text style={styles.contextText}>{task.context}</Text>
-          )}
-        </Animated.View>
+        {/* Title */}
+        <Text style={styles.title}>{task.title}</Text>
 
-        {/* Goal Section */}
+        {/* Scenario */}
+        <Text style={styles.scenario}>{task.scenario}</Text>
+
+        {/* Context (if available) */}
+        {task.context && (
+          <Text style={styles.context}>{task.context}</Text>
+        )}
+      </Animated.View>
+
+      {/* Encouragement Quote */}
+      <Animated.View
+        entering={FadeInDown.duration(400).delay(200)}
+        style={styles.quoteContainer}
+      >
+        <View style={styles.quoteBar} />
+        <Text style={styles.quoteText}>{encouragement}</Text>
+      </Animated.View>
+
+      {/* Collapsible Tips */}
+      {task.recommendations && task.recommendations.length > 0 && (
         <Animated.View
           entering={FadeInDown.duration(400).delay(300)}
-          style={styles.goalSection}
+          style={styles.tipsCard}
         >
-          <View style={styles.sectionHeader}>
-            <Ionicons name="flag-outline" size={18} color={colors.secondary.DEFAULT} />
-            <Text style={styles.sectionTitle}>Learning Goal</Text>
-          </View>
-          <Text style={styles.goalText}>{task.goal}</Text>
+          <TouchableOpacity
+            onPress={toggleTips}
+            style={styles.tipsHeader}
+            activeOpacity={0.7}
+          >
+            <View style={styles.tipsHeaderLeft}>
+              <Text style={styles.tipsIcon}>💡</Text>
+              <Text style={styles.tipsLabel}>Quick tips</Text>
+            </View>
+            <Animated.View style={chevronStyle}>
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color={colors.text.tertiary}
+              />
+            </Animated.View>
+          </TouchableOpacity>
+
+          <Animated.View style={[styles.tipsContent, tipsContainerStyle]}>
+            {task.recommendations.map((tip, index) => (
+              <View key={index} style={styles.tipItem}>
+                <Text style={styles.tipBullet}>✨</Text>
+                <Text style={styles.tipText}>{tip}</Text>
+              </View>
+            ))}
+          </Animated.View>
         </Animated.View>
+      )}
 
-        {/* Recommendations */}
-        {task.recommendations.length > 0 && (
-          <Animated.View
-            entering={FadeInDown.duration(400).delay(400)}
-            style={styles.recommendationsSection}
-          >
-            <View style={styles.sectionHeader}>
-              <Ionicons name="bulb-outline" size={18} color={colors.warning.DEFAULT} />
-              <Text style={styles.sectionTitle}>Tips</Text>
-            </View>
-            <View style={styles.recommendationsList}>
-              {task.recommendations.map((tip, index) => (
-                <Animated.View
-                  key={index}
-                  entering={FadeInUp.duration(300).delay(500 + index * 80)}
-                  style={styles.recommendationItem}
-                >
-                  <View style={styles.recommendationBullet}>
-                    <Text style={styles.bulletText}>{index + 1}</Text>
-                  </View>
-                  <Text style={styles.recommendationText}>{tip}</Text>
-                </Animated.View>
-              ))}
-            </View>
-          </Animated.View>
-        )}
+      {/* Spacer */}
+      <View style={styles.spacer} />
 
-        {/* Word Count Guide */}
-        {(task.minWords || task.maxWords) && (
-          <Animated.View
-            entering={FadeIn.duration(400).delay(600)}
-            style={styles.wordGuide}
-          >
-            <Ionicons name="analytics-outline" size={16} color={colors.text.tertiary} />
-            <Text style={styles.wordGuideText}>
-              {task.minWords && task.maxWords
-                ? `Aim for ${task.minWords}-${task.maxWords} words`
-                : task.minWords
-                ? `Minimum ${task.minWords} words`
-                : `Maximum ${task.maxWords} words`}
-            </Text>
-          </Animated.View>
-        )}
-      </ScrollView>
-
-      {/* Bottom Action */}
-      <View style={styles.bottomAction}>
+      {/* Bottom CTA */}
+      <View style={[styles.bottomAction, { paddingBottom: insets.bottom + spacing.md }]}>
+        <LinearGradient
+          colors={['transparent', colors.background.primary]}
+          style={styles.bottomGradient}
+          pointerEvents="none"
+        />
         <Animated.View style={[buttonStyle, styles.buttonWrapper]}>
           <TouchableOpacity
             onPress={handleStart}
             activeOpacity={0.9}
             onPressIn={() => {
-              buttonScale.value = withSpring(0.97);
+              buttonScale.value = withSpring(0.97, animation.spring.stiff);
             }}
             onPressOut={() => {
-              buttonScale.value = withSpring(1);
+              buttonScale.value = withSpring(1, animation.spring.default);
             }}
             style={styles.startButton}
           >
@@ -212,7 +229,12 @@ export function TaskBriefCard({ task, onStart, onBack }: TaskBriefCardProps) {
               style={styles.startButtonGradient}
             >
               <Ionicons name="pencil" size={20} color={colors.text.primary} />
-              <Text style={styles.startButtonText}>Start Writing</Text>
+              <Text style={styles.startButtonText}>Let's Write!</Text>
+              {(task.minWords || task.maxWords) && (
+                <Text style={styles.wordCountText}>
+                  ({task.minWords}+ words)
+                </Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -224,184 +246,155 @@ export function TaskBriefCard({ task, onStart, onBack }: TaskBriefCardProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background.primary,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    gap: spacing.md,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  headerBadges: {
+  headerSpacer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  categoryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.card,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  categoryText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.secondary,
   },
   difficultyBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: colors.background.card,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    gap: spacing.xs,
-  },
-  difficultyDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
   difficultyText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
+    color: colors.text.secondary,
   },
-  content: {
-    flex: 1,
-  },
-  contentInner: {
-    paddingBottom: spacing.xl,
-  },
-  title: {
-    fontSize: typography.fontSize['3xl'],
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-    marginBottom: spacing.xl,
-    lineHeight: typography.fontSize['3xl'] * 1.2,
-  },
-  scenarioCard: {
+
+  // Main Card
+  mainCard: {
     backgroundColor: colors.background.card,
+    marginHorizontal: spacing.lg,
     borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
+    padding: spacing.xl,
     borderWidth: 1,
     borderColor: colors.border.light,
     ...shadows.sm,
   },
-  scenarioHeader: {
+  emojiContainer: {
+    marginBottom: spacing.md,
+  },
+  emoji: {
+    fontSize: 40,
+  },
+  title: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
+    lineHeight: typography.fontSize['2xl'] * 1.2,
+  },
+  scenario: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    lineHeight: typography.fontSize.base * 1.6,
+  },
+  context: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    fontStyle: 'italic',
+    marginTop: spacing.sm,
+    lineHeight: typography.fontSize.sm * 1.5,
+  },
+
+  // Quote
+  quoteContainer: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  quoteBar: {
+    width: 3,
+    backgroundColor: colors.primary.DEFAULT,
+    borderRadius: 2,
+    marginRight: spacing.md,
+  },
+  quoteText: {
+    flex: 1,
+    fontSize: typography.fontSize.base,
+    fontStyle: 'italic',
+    color: colors.text.secondary,
+    lineHeight: typography.fontSize.base * 1.5,
+  },
+
+  // Tips Card
+  tipsCard: {
+    backgroundColor: colors.background.card,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    overflow: 'hidden',
+  },
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  tipsHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.md,
   },
-  scenarioLabel: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.primary.DEFAULT,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  tipsIcon: {
+    fontSize: 18,
   },
-  scenarioText: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.primary,
-    lineHeight: typography.fontSize.lg * 1.6,
-  },
-  contextText: {
+  tipsLabel: {
     fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.medium,
     color: colors.text.secondary,
-    marginTop: spacing.md,
-    fontStyle: 'italic',
-    lineHeight: typography.fontSize.base * 1.5,
   },
-  goalSection: {
-    marginBottom: spacing.lg,
+  tipsContent: {
+    overflow: 'hidden',
   },
-  sectionHeader: {
+  tipItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.sm,
     marginBottom: spacing.sm,
   },
-  sectionTitle: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  tipBullet: {
+    fontSize: 14,
+    marginTop: 2,
   },
-  goalText: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.primary,
-    lineHeight: typography.fontSize.base * 1.5,
-    paddingLeft: spacing.lg + spacing.sm,
-  },
-  recommendationsSection: {
-    marginBottom: spacing.lg,
-  },
-  recommendationsList: {
-    gap: spacing.md,
-    paddingLeft: spacing.lg + spacing.sm,
-  },
-  recommendationItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  recommendationBullet: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.background.elevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  bulletText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.tertiary,
-  },
-  recommendationText: {
+  tipText: {
     flex: 1,
-    fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
-    lineHeight: typography.fontSize.base * 1.5,
-  },
-  wordGuide: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.background.elevated,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.lg,
-    alignSelf: 'flex-start',
-  },
-  wordGuideText: {
     fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
+    color: colors.text.secondary,
+    lineHeight: typography.fontSize.sm * 1.5,
   },
+
+  // Spacer
+  spacer: {
+    flex: 1,
+  },
+
+  // Bottom Action
   bottomAction: {
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
+  },
+  bottomGradient: {
+    position: 'absolute',
+    top: -24,
+    left: 0,
+    right: 0,
+    height: 24,
   },
   buttonWrapper: {
     width: '100%',
@@ -422,5 +415,10 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
+  },
+  wordCountText: {
+    fontSize: typography.fontSize.sm,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginLeft: spacing.xs,
   },
 });

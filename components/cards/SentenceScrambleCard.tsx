@@ -15,6 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Speech from 'expo-speech';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   colors,
   borderRadius,
@@ -52,6 +53,7 @@ export const SentenceScrambleCard: React.FC<SentenceScrambleCardProps> = ({
   ...baseCardProps
 }) => {
   const haptics = useHaptics();
+  const insets = useSafeAreaInsets();
   // State for word bank (available words)
   const [wordBank, setWordBank] = useState<string[]>([]);
   // State for answer area (selected words)
@@ -124,7 +126,7 @@ export const SentenceScrambleCard: React.FC<SentenceScrambleCardProps> = ({
   };
 
   return (
-    <View style={[styles.cardContainer, baseCardProps.style]}>
+    <View style={[styles.cardContainer, baseCardProps.style, { paddingTop: insets.top }]}>
       {showResultAnimation && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.lottieOverlay}>
           {showResultAnimation === 'success' ? <LottieSuccess /> : <LottieError />}
@@ -212,7 +214,7 @@ export const SentenceScrambleCard: React.FC<SentenceScrambleCardProps> = ({
         </Animated.View>
       )}
 
-      <View style={styles.controls}>
+      <View style={[styles.controls, { paddingBottom: insets.bottom + spacing.lg }]}>
         <TouchableOpacity
           onPress={handleSubmit}
           style={[

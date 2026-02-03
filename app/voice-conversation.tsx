@@ -41,8 +41,19 @@ import {
   AccentType,
   getAccentsForLanguage,
   getDefaultAccent,
+  SupportedLanguage,
 } from '@/lib/voice';
+import {
+  getScenariosForUser,
+  createUserProfile,
+  MatchedScenario,
+} from '@/lib/voice/scenarioMatcher';
 import type { ElevenLabsMessage } from '@/lib/voice/elevenLabsTypes';
+import {
+  getDefaultVoiceForLanguage,
+  getVoiceById,
+} from '@/lib/voice/elevenLabsConfig';
+import { useOnboardingV2 } from '@/hooks/useOnboardingV2';
 
 type DifficultyFilter = 'all' | 'beginner' | 'intermediate' | 'advanced';
 
@@ -92,11 +103,16 @@ interface SavedTranscript {
 
 export default function VoiceConversationScreen() {
   const router = useRouter();
+  const { data: onboardingData } = useOnboardingV2();
   const [selectedScenario, setSelectedScenario] = useState<VoiceScenario | null>(null);
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>('all');
   const [flowState, setFlowState] = useState<FlowState>('selection');
-  const [selectedAccent, setSelectedAccent] = useState<AccentType>(getDefaultAccent('es'));
+
+  // Get user's target language from onboarding (default to Spanish)
+  const targetLanguage = (onboardingData.target_language as SupportedLanguage) || 'es';
+  const [selectedAccent, setSelectedAccent] = useState<AccentType>(getDefaultAccent(targetLanguage));
   const [showAccentSelector, setShowAccentSelector] = useState(false);
+
   // Extended to include full transcript for saving
   const [lastConversation, setLastConversation] = useState<{
     messages: ConversationMessage[];
@@ -107,14 +123,32 @@ export default function VoiceConversationScreen() {
     transcript?: ElevenLabsMessage[];
   } | null>(null);
 
-  // Get available accents for the current language
-  const availableAccents = getAccentsForLanguage('es');
+  // Get available accents for the user's target language
+  const availableAccents = getAccentsForLanguage(targetLanguage);
 
-  // Get scenarios for Spanish (default language)
-  const allScenarios = getScenariosForLanguage('es');
-  const filteredScenarios = difficultyFilter === 'all'
-    ? allScenarios
-    : getScenariosByDifficulty('es', difficultyFilter);
+  // Create user profile from onboarding data for personalized scenarios
+  const userProfile = createUserProfile(
+    onboardingData.target_language,
+    onboardingData.motivation,
+    onboardingData.proficiency_level
+  );
+
+  // Get personalized scenarios based on user profile
+  const personalizedScenarios = getScenariosForUser(userProfile);
+
+  // Debug logging for onboarding data
+  console.log('[VoiceConversation] User profile from onboarding:', {
+    targetLanguage: onboardingData.target_language,
+    motivation: onboardingData.motivation,
+    proficiency: onboardingData.proficiency_level,
+    scenarioCount: personalizedScenarios.length,
+    topScenario: personalizedScenarios[0]?.title,
+  });
+
+  // Filter by difficulty if selected
+  const filteredScenarios: MatchedScenario[] = difficultyFilter === 'all'
+    ? personalizedScenarios
+    : personalizedScenarios.filter(s => s.difficulty === difficultyFilter);
 
   // Check if ElevenLabs is configured
   const hasApiKey = !!(process.env.EXPO_PUBLIC_ELEVENLABS_AGENT_ID);
@@ -400,11 +434,37 @@ export default function VoiceConversationScreen() {
       ? getCharacter(selectedScenario.characterId)
       : undefined;
 
+    // Map onboarding proficiency to ElevenLabs proficiency format
+    const proficiencyMap: Record<string, 'beginner' | 'elementary' | 'intermediate' | 'advanced' | 'native'> = {
+      'beginner': 'beginner',
+      'elementary': 'elementary',
+      'intermediate': 'intermediate',
+      'upper_intermediate': 'advanced',
+      'advanced': 'advanced',
+    };
+    const userProficiency = proficiencyMap[onboardingData.proficiency_level || 'intermediate'] || 'intermediate';
+
+    // Get the appropriate ElevenLabs voice for this scenario
+    // Try to match character name to voice, otherwise use default for language
+    const scenarioLanguage = selectedScenario.language as SupportedLanguage;
+    const characterVoiceId = character?.id ? `${scenarioLanguage === 'es' ? 'es-MX' : scenarioLanguage === 'fr' ? 'fr-FR' : 'en-US'}-${character.id}` : undefined;
+    const voiceConfig = characterVoiceId
+      ? getVoiceById(characterVoiceId)
+      : getDefaultVoiceForLanguage(scenarioLanguage);
+
+    console.log('[VoiceConversation] Using voice:', {
+      characterId: character?.id,
+      voiceId: characterVoiceId,
+      voiceConfig: voiceConfig?.name,
+      language: scenarioLanguage,
+    });
+
     return (
       <VoiceCallScreenElevenLabs
         scenario={selectedScenario}
         character={character}
-        proficiency="intermediate" // TODO: Get from user settings
+        voice={voiceConfig}
+        proficiency={userProficiency}
         onComplete={handleConversationComplete}
         onBack={handleBack}
       />
@@ -525,56 +585,84 @@ export default function VoiceConversationScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {filteredScenarios.map((scenario, index) => {
-          const scenarioIcon = getScenarioIcon(scenario);
-          const difficultyColor =
-            scenario.difficulty === 'beginner'
-              ? colors.success.DEFAULT
-              : scenario.difficulty === 'intermediate'
-              ? colors.warning.DEFAULT
-              : colors.error.DEFAULT;
+        {filteredScenarios.length === 0 ? (
+          <Animated.View entering={FadeIn.delay(100)} style={styles.emptyState}>
+            <Ionicons name="language-outline" size={48} color={colors.text.tertiary} />
+            <Text style={styles.emptyStateTitle}>No Scenarios Available</Text>
+            <Text style={styles.emptyStateText}>
+              Scenarios for {targetLanguage.toUpperCase()} are coming soon!
+            </Text>
+          </Animated.View>
+        ) : (
+          filteredScenarios.map((scenario, index) => {
+            const scenarioIcon = getScenarioIcon(scenario);
+            const difficultyColor =
+              scenario.difficulty === 'beginner'
+                ? colors.success.DEFAULT
+                : scenario.difficulty === 'intermediate'
+                ? colors.warning.DEFAULT
+                : colors.error.DEFAULT;
 
-          return (
-            <Animated.View
-              key={scenario.id}
-              entering={FadeInDown.duration(300).delay(index * 80)}
-            >
-              <Pressable
-                style={({ pressed }) => [
-                  styles.scenarioCard,
-                  pressed && styles.scenarioCardPressed,
-                ]}
-                onPress={() => handleScenarioSelect(scenario)}
+            // Check if this is a highly recommended scenario (score > 80)
+            const isRecommended = scenario.relevanceScore >= 80;
+
+            return (
+              <Animated.View
+                key={scenario.id}
+                entering={FadeInDown.duration(300).delay(index * 80)}
               >
-                {/* Icon Container with subtle glow */}
-                <View style={[styles.iconContainer, { borderColor: difficultyColor + '40' }]}>
-                  <Ionicons name={scenarioIcon} size={28} color={colors.text.primary} />
-                </View>
-
-                {/* Scenario Info */}
-                <View style={styles.scenarioInfo}>
-                  <Text style={styles.scenarioTitle}>{scenario.title}</Text>
-                  <Text style={styles.scenarioDescription} numberOfLines={2}>
-                    {scenario.description}
-                  </Text>
-
-                  {/* Difficulty indicator */}
-                  <View style={styles.difficultyRow}>
-                    <View style={[styles.difficultyDot, { backgroundColor: difficultyColor }]} />
-                    <Text style={[styles.difficultyText, { color: difficultyColor }]}>
-                      {scenario.difficulty}
-                    </Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.scenarioCard,
+                    isRecommended && styles.scenarioCardRecommended,
+                    pressed && styles.scenarioCardPressed,
+                  ]}
+                  onPress={() => handleScenarioSelect(scenario)}
+                >
+                  {/* Icon Container with subtle glow */}
+                  <View style={[styles.iconContainer, { borderColor: difficultyColor + '40' }]}>
+                    <Ionicons name={scenarioIcon} size={28} color={colors.text.primary} />
                   </View>
-                </View>
 
-                {/* Call arrow */}
-                <View style={styles.callArrow}>
-                  <Ionicons name="call" size={20} color={colors.primary.DEFAULT} />
-                </View>
-              </Pressable>
-            </Animated.View>
-          );
-        })}
+                  {/* Scenario Info */}
+                  <View style={styles.scenarioInfo}>
+                    <View style={styles.scenarioTitleRow}>
+                      <Text style={styles.scenarioTitle}>{scenario.title}</Text>
+                      {isRecommended && (
+                        <View style={styles.recommendedBadge}>
+                          <Ionicons name="star" size={10} color={colors.warning.DEFAULT} />
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.scenarioDescription} numberOfLines={2}>
+                      {scenario.description}
+                    </Text>
+
+                    {/* Match reason and difficulty */}
+                    <View style={styles.metaRow}>
+                      <View style={styles.difficultyRow}>
+                        <View style={[styles.difficultyDot, { backgroundColor: difficultyColor }]} />
+                        <Text style={[styles.difficultyText, { color: difficultyColor }]}>
+                          {scenario.difficulty}
+                        </Text>
+                      </View>
+                      {scenario.matchReason && (
+                        <Text style={styles.matchReasonText}>
+                          {scenario.matchReason}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Call arrow */}
+                  <View style={styles.callArrow}>
+                    <Ionicons name="call" size={20} color={colors.primary.DEFAULT} />
+                  </View>
+                </Pressable>
+              </Animated.View>
+            );
+          })
+        )}
 
         {/* Bottom spacing */}
         <View style={{ height: spacing.xl }} />
@@ -731,6 +819,26 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
 
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing['2xl'],
+    paddingHorizontal: spacing.lg,
+  },
+  emptyStateTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  emptyStateText: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+  },
+
   // Scenario Card - Premium Dark Style
   scenarioCard: {
     flexDirection: 'row',
@@ -741,6 +849,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     borderWidth: 1,
     borderColor: colors.border.light,
+  },
+  scenarioCardRecommended: {
+    borderColor: colors.primary.DEFAULT + '40',
+    backgroundColor: colors.background.card,
   },
   scenarioCardPressed: {
     backgroundColor: colors.background.elevated,
@@ -762,17 +874,37 @@ const styles = StyleSheet.create({
   scenarioInfo: {
     flex: 1,
   },
+  scenarioTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: 4,
+  },
   scenarioTitle: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
     color: colors.text.primary,
-    marginBottom: 4,
+  },
+  recommendedBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.warning.DEFAULT + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scenarioDescription: {
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
     marginBottom: spacing.sm,
     lineHeight: typography.fontSize.sm * 1.4,
+  },
+
+  // Meta Row (difficulty + match reason)
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 
   // Difficulty Indicator
@@ -790,6 +922,13 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.medium,
     textTransform: 'capitalize',
+  },
+
+  // Match Reason
+  matchReasonText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    fontStyle: 'italic',
   },
 
   // Call Arrow

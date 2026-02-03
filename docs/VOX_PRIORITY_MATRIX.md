@@ -159,39 +159,42 @@ interface WordGrammar {
 
 ---
 
-### P1.3: AI Conversation Partner ✅ PLANNING COMPLETE (Dec 16, 2025)
+### P1.3: AI Conversation Partner ✅ MVP COMPLETE (Dec 19, 2025)
 **Priority Score**: 9.5/10
 **User Demand**: #1 most requested feature (75% of feature discussions)
 **Research Support**: 19% speaking improvement, reduced anxiety
 **Competitive Gap**: No app does this well with judgment-free AI
 **Business Impact**: Major conversion driver
 
-| Sub-Feature | Effort | Impact | Priority |
-|-------------|--------|--------|----------|
-| Basic AI Chat (Gemini) | Medium | Critical | P1 |
-| Voice Input | Medium | High | P1 |
-| Text-to-Speech Response | Low | High | P1 |
-| 5-10 Second Hint Delay | Low | High | P1 |
-| Contextual Corrections | Medium | High | P1 |
-| Daily Free Credits (10 min) | Low | Medium | P1 |
-| Scenario Types (Casual/Interview) | Medium | Medium | P2 |
+| Sub-Feature | Effort | Impact | Priority | Status |
+|-------------|--------|--------|----------|--------|
+| Basic AI Chat (Gemini) | Medium | Critical | P1 | ✅ Done |
+| Voice Input | Medium | High | P1 | ✅ Done |
+| Text-to-Speech Response | Low | High | P1 | ✅ Done |
+| Regional Accents (9 accents) | Low | High | P1 | ✅ Done |
+| Phone-Call Style UI | Medium | High | P1 | ✅ Done |
+| Post-Call Feedback + Points | Medium | High | P1 | ✅ Done |
+| Scenario Types (5+ scenarios) | Medium | Medium | P1 | ✅ Done |
+| Contextual Corrections | Medium | High | P2 | 📅 Next |
 
 **Key Design Decision**:
-- AI must WAIT 5-10 seconds before offering hints
-- Corrections are contextual ("Try saying it like...") not binary (wrong!)
-- Never interrupt - let user finish
+- Push-to-talk interface (hold to speak, release to send)
+- Real-time transcription display
+- Accent selection via system prompt
+- Points awarded: 10pts/turn + bonuses
 
-**📋 IMPLEMENTATION PLAN APPROVED (Dec 16, 2025)**:
+**✅ MVP IMPLEMENTATION COMPLETE (Dec 19, 2025)**:
 
-Three-phase approach decided:
-1. **Phase 1 (MVP)**: Gemini Live API - Free tier, validate product-market fit
-2. **Phase 2 (Production)**: ElevenLabs + Gemini Flash - Best voice quality
-3. **Phase 3 (Scale)**: Self-hosted Chatterbox - Cost optimization at volume
+Phase 1 (MVP) complete:
+1. **Gemini Live API Integration** - WebSocket, audio streaming, binary handling
+2. **Voice & Accent System** - 8 voices, 9 regional accents
+3. **Phone-Call UI** - VoiceCallScreen with animations
+4. **Feedback System** - PostCallFeedbackScreen with points
 
 Full documentation:
 - Research: `docs/research/VOICE_AI_OPTIONS_2025.md`
 - Spec: `docs/features/VOICE_CONVERSATION_SYSTEM.md`
-- Plan: `docs/features/VOICE_CONVERSATION_IMPLEMENTATION_PLAN.md`
+- Implementation: `docs/daily-reports/2025-12-19-voice-call-ui.md`
 
 ---
 
@@ -297,7 +300,47 @@ Full documentation:
 
 ## Part 3: P2 - Important Enhancements (v1.1)
 
-### P2.0: Progressive Immersion System (NEW - Dec 2025)
+### P2.0: Cognate Learning Module "Vocabulary Unlocked" (NEW - Jan 2026)
+**Priority Score**: 8.3/10
+**User Demand**: High - reduces language anxiety, provides quick wins
+**Research Support**: Cognate Facilitation Effect (20-40% faster neural processing)
+**Competitive Gap**: No premium app owns cognate-based learning with modern UX
+**Business Impact**: Unique differentiator, premium feature potential
+
+**Roundtable Decision**: APPROVED (2026-01-21) - 4/4 expert consensus
+**Documentation**: `docs/roundtables/2026-01-21-cognate-learning-module/`
+
+| Sub-Feature | Effort | Impact | Priority | Status |
+|-------------|--------|--------|----------|--------|
+| CognateDiscoveryCard with morphing animation | Medium | High | P2 | 📅 Planned |
+| cognateEngine.ts (-tion/-ción pattern) | Low | High | P2 | 📅 Planned |
+| 50 curated words + 5 false friend warnings | Low | High | P2 | 📅 Planned |
+| "Vocabulary Unlocked" reveal flow | Medium | High | P2 | 📅 Planned |
+| Cognate badges in VocabularyCardFlow | Low | Medium | P2 | 📅 Planned |
+| Integration with VoiceCallScreen | Medium | Medium | P2 | 📅 Future |
+| Multi-pattern expansion (5 patterns) | High | Medium | P3 | 📅 Future |
+| Multi-language (French, Portuguese) | High | Medium | P3 | 📅 Future |
+
+**Phase 1 (2 weeks)**:
+- ONE pattern: -tion → -ción (50 words max)
+- A/B test with 10% of new users
+- Gates: >70% completion, +15% retention, >4.0/5 rating
+
+**Key Stats**:
+- 30-40% of English words have Spanish cognates
+- ~20,000 potential cognate pairs (90% same meaning)
+- Language Transfer teaches this free (audio-only) - we add visual/gamified UX
+
+**Implementation**:
+```
+lib/learning/cognateEngine.ts       # Pattern transformation logic
+lib/data/cognatePatterns.ts         # Curated word lists
+components/cards/CognateDiscoveryCard.tsx  # Main reveal card
+```
+
+---
+
+### P2.0.5: Progressive Immersion System (NEW - Dec 2025)
 **Priority Score**: 8.2/10
 **User Demand**: Solves "plateau" problem for intermediate+ learners
 **Research Support**: Krashen's i+1 hypothesis, Vygotsky's ZPD, scaffolding research

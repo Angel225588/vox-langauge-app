@@ -15,9 +15,7 @@ import { colors, typography, spacing, borderRadius } from '@/constants/designSys
 import { getCardsForMiniLesson, MOCK_MINI_LESSONS } from '@/lib/db/mock-mini-lessons';
 import { MiniLessonCard } from '@/lib/types/mini-lesson';
 import {
-  SingleVocabCard,
-  MultipleChoiceCard,
-  ImageQuizCard,
+  QuizCard,
   AudioCard,
   TextInputCard,
   SpeakingCard,
@@ -97,30 +95,70 @@ export default function MiniLessonFlowScreen() {
   const renderCard = () => {
     switch (currentCard.type) {
       case 'single-vocab':
+        // TODO: Implement with new card system
         return (
-          <SingleVocabCard
-            {...currentCard.content}
-            onNext={handleNext}
-          />
+          <View style={{
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            padding: spacing.xl,
+            borderRadius: borderRadius.lg,
+            alignItems: 'center',
+          }}>
+            <Text style={{ fontSize: 48, marginBottom: spacing.md, color: colors.text.primary }}>
+              {currentCard.content.word}
+            </Text>
+            <Text style={{ fontSize: 18, color: colors.text.secondary, marginBottom: spacing.sm }}>
+              {currentCard.content.phonetic}
+            </Text>
+            <Text style={{ fontSize: 24, color: colors.accent.primary }}>
+              {currentCard.content.translation}
+            </Text>
+            <TouchableOpacity
+              onPress={() => handleNext()}
+              style={{ marginTop: spacing.xl, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, backgroundColor: colors.accent.primary, borderRadius: borderRadius.md }}
+            >
+              <Text style={{ color: colors.text.primary, fontWeight: 'bold' }}>Continue</Text>
+            </TouchableOpacity>
+          </View>
         );
       case 'multiple-choice':
         return (
-          <MultipleChoiceCard
-            {...currentCard.content}
-            onNext={handleNext}
+          <QuizCard
+            word={currentCard.content.word || ''}
+            translation={currentCard.content.translation}
+            image_url={currentCard.content.image_url}
+            options={currentCard.content.options || []}
+            correct_answer={typeof currentCard.content.correct_answer === 'number'
+              ? currentCard.content.correct_answer
+              : currentCard.content.options?.indexOf(currentCard.content.correct_answer || '') || 0}
+            mode="translation"
+            onComplete={(correct) => handleNext(correct)}
           />
         );
       case 'image-quiz':
         return (
-          <ImageQuizCard
-            {...currentCard.content}
-            onNext={handleNext}
+          <QuizCard
+            word={currentCard.content.word || ''}
+            translation={currentCard.content.translation}
+            image_url={currentCard.content.image_url}
+            options={currentCard.content.options || []}
+            correct_answer={typeof currentCard.content.correct_answer === 'number'
+              ? currentCard.content.correct_answer
+              : currentCard.content.options?.indexOf(currentCard.content.correct_answer || '') || 0}
+            mode="image"
+            onComplete={(correct) => handleNext(correct)}
           />
         );
       case 'audio':
         return (
           <AudioCard
-            {...currentCard.content}
+            word={currentCard.content.word}
+            translation={currentCard.content.translation}
+            audio_url={currentCard.content.audio_url}
+            options={currentCard.content.options}
+            correct_answer={typeof currentCard.content.correct_answer === 'number'
+              ? currentCard.content.correct_answer
+              : currentCard.content.options?.indexOf(currentCard.content.correct_answer || '') || 0}
+            explanation={currentCard.content.explanation}
             onNext={handleNext}
           />
         );

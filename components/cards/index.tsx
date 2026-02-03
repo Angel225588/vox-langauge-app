@@ -57,6 +57,10 @@ export { TeleprompterCard } from './TeleprompterCard';
 export type { TeleprompterResults, TeleprompterMode, FontSizeOption } from './TeleprompterCard';
 export { ReadingResultsCard } from './ReadingResultsCard';
 
+// Dialogue Practice cards (Interactive Scenarios)
+export { DialogueTeleprompterCard } from './DialogueTeleprompterCard';
+export type { DialogueResults, DialogueMode } from './DialogueTeleprompterCard';
+
 // Speaking Feedback cards (Honest feedback + Effort points)
 export { SpeakingResultsCard } from './SpeakingResultsCard';
 
@@ -64,6 +68,7 @@ export { SpeakingResultsCard } from './SpeakingResultsCard';
 export {
   VocabCardBase,
   IntroductionCard,
+  IntroductionCardV2,
   ListeningCard as VocabListeningCard,
   TypingCard as VocabTypingCard,
   SpeakingCard as VocabSpeakingCard,

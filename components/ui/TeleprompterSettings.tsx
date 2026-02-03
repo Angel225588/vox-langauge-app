@@ -18,8 +18,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
-import { FontSize, ScrollSpeed } from '@/components/cards/TeleprompterCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// Local type definitions (component is standalone, not tied to TeleprompterCard)
+export type FontSize = 'small' | 'medium' | 'large';
+export type ScrollSpeed = 'slow' | 'medium' | 'fast';
 
 // Speed levels matching TeleprompterCard
 const SPEED_LEVELS = [

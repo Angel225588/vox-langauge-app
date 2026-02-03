@@ -1,25 +1,68 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/db/supabase';
+import { colors } from '@/constants/designSystem';
 
 export default function Index() {
   const router = useRouter();
   const { user, initialized } = useAuth();
+  const [checkingOnboarding, setCheckingOnboarding] = useState(false);
 
   useEffect(() => {
     if (!initialized) return;
 
-    // If user is authenticated, go to home
+    // If user is authenticated, check if they've completed onboarding
     if (user) {
-      router.replace('/(tabs)/home');
+      checkOnboardingStatus();
     }
   }, [user, initialized]);
 
-  if (!initialized) {
+  const checkOnboardingStatus = async () => {
+    if (!user) return;
+
+    setCheckingOnboarding(true);
+    try {
+      // Check if user has an active learning path (staircase)
+      const { data: staircase, error } = await supabase
+        .from('user_staircases')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 = no rows returned, which is expected for new users
+        console.error('Error checking onboarding status:', error);
+      }
+
+      if (staircase) {
+        // User has completed onboarding, go to home
+        console.log('User has completed onboarding, navigating to home');
+        router.replace('/(tabs)/home');
+      } else {
+        // User hasn't completed onboarding, go to onboarding
+        console.log('User needs to complete onboarding, navigating to onboarding');
+        router.replace('/(auth)/onboarding-v2/languages');
+      }
+    } catch (error) {
+      console.error('Error in checkOnboardingStatus:', error);
+      // On error, default to onboarding
+      router.replace('/(auth)/onboarding-v2/languages');
+    } finally {
+      setCheckingOnboarding(false);
+    }
+  };
+
+  // Show loading while checking auth or onboarding status
+  if (!initialized || checkingOnboarding) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#2196F3" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary }}>
+        <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+        <Text style={{ color: colors.text.secondary, marginTop: 16, fontSize: 16 }}>
+          {checkingOnboarding ? 'Checking your progress...' : 'Loading...'}
+        </Text>
       </View>
     );
   }
@@ -27,30 +70,36 @@ export default function Index() {
   // Only show welcome screen if not authenticated
   if (!user) {
     return (
-      <View className="flex-1 items-center justify-center bg-white p-6">
-        <Text className="text-4xl font-bold text-primary mb-4">
-          Vox Language
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary, padding: 24 }}>
+        <Text style={{ fontSize: 40, fontWeight: 'bold', color: colors.primary.DEFAULT, marginBottom: 16 }}>
+          🗣️ Vox Language
         </Text>
 
-        <Text className="text-xl text-gray-600 text-center mb-8">
+        <Text style={{ fontSize: 18, color: colors.text.secondary, textAlign: 'center', marginBottom: 32 }}>
           Learn through practice, not perfection
         </Text>
 
         <TouchableOpacity
-          className="bg-primary px-8 py-4 rounded-lg"
-          onPress={() => router.push('/(auth)/login')}
+          style={{
+            backgroundColor: colors.primary.DEFAULT,
+            paddingHorizontal: 32,
+            paddingVertical: 16,
+            borderRadius: 12,
+          }}
+          onPress={() => router.push('/(auth)/onboarding-v2')}
         >
-          <Text className="text-white text-lg font-semibold">
+          <Text style={{ color: colors.text.primary, fontSize: 18, fontWeight: '600' }}>
             Get Started
           </Text>
         </TouchableOpacity>
-
-        <Text className="text-gray-500 mt-6 text-center text-sm">
-          Phase 1: Authentication In Progress 🚀
-        </Text>
       </View>
     );
   }
 
-  return null;
+  // Show loading while redirecting (should be brief)
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary }}>
+      <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+    </View>
+  );
 }

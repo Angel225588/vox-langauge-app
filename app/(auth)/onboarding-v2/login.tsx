@@ -18,37 +18,54 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
+import { BackButton } from '@/components/ui/BackButton';
 import { colors, spacing, borderRadius, typography, shadows } from '@/constants/designSystem';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { signIn } = useAuth();
+  const { t } = useTranslation('onboarding');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Focus states for inputs
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
   const handleLogin = async () => {
     // Validation
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      Alert.alert('Error', t('login.errors.enter_email'));
       return;
     }
     if (!password) {
-      Alert.alert('Error', 'Please enter your password');
+      Alert.alert('Error', t('login.errors.enter_password'));
       return;
     }
 
     setLoading(true);
     try {
-      // TODO: Implement actual login with Supabase
-      // For now, just navigate to home
-      setTimeout(() => {
+      const { data, error } = await signIn(email.trim(), password);
+
+      if (error) {
+        console.error('Login error:', error);
+        Alert.alert('Login Failed', error.message || t('login.errors.invalid_credentials'));
         setLoading(false);
-        router.replace('/(tabs)/home');
-      }, 1000);
+        return;
+      }
+
+      console.log('Login successful:', data.user?.email);
+      setLoading(false);
+      router.replace('/(tabs)/home');
     } catch (error) {
       setLoading(false);
-      Alert.alert('Error', 'Invalid email or password. Please try again.');
+      console.error('Login exception:', error);
+      Alert.alert('Error', t('login.errors.unexpected_error'));
     }
   };
 
@@ -67,32 +84,29 @@ export default function LoginScreen() {
           >
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={styles.backButton}
-              >
-                <Text style={styles.backButtonText}>←</Text>
-              </TouchableOpacity>
+              <BackButton onPress={() => router.back()} />
             </View>
 
             {/* Title */}
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>Welcome Back</Text>
+              <Text style={styles.title}>{t('login.title')}</Text>
               <Text style={styles.subtitle}>
-                Sign in to continue your learning journey
+                {t('login.subtitle')}
               </Text>
             </View>
 
             {/* Form */}
             <View style={styles.formContainer}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>{t('login.email_label')}</Text>
                 <TextInput
-                  style={styles.input}
-                  placeholder="you@example.com"
+                  style={[styles.input, isEmailFocused && styles.inputFocused]}
+                  placeholder={t('login.email_placeholder')}
                   placeholderTextColor={colors.text.tertiary}
                   value={email}
                   onChangeText={setEmail}
+                  onFocus={() => setIsEmailFocused(true)}
+                  onBlur={() => setIsEmailFocused(false)}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
@@ -100,22 +114,35 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your password"
-                  placeholderTextColor={colors.text.tertiary}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+                <Text style={styles.label}>{t('login.password_label')}</Text>
+                <View style={styles.passwordInputContainer}>
+                  <TextInput
+                    style={[styles.passwordInput, isPasswordFocused && styles.passwordInputFocused]}
+                    placeholder={t('login.password_placeholder')}
+                    placeholderTextColor={colors.text.tertiary}
+                    value={password}
+                    onChangeText={setPassword}
+                    onFocus={() => setIsPasswordFocused(true)}
+                    onBlur={() => setIsPasswordFocused(false)}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    style={styles.passwordToggle}
+                    onPress={() => setShowPassword(!showPassword)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.passwordToggleIcon}>
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Forgot Password */}
               <TouchableOpacity style={styles.forgotPassword}>
-                <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                <Text style={styles.forgotPasswordText}>{t('login.forgot_password')}</Text>
               </TouchableOpacity>
 
               {/* Sign In Button */}
@@ -132,7 +159,7 @@ export default function LoginScreen() {
                   style={[styles.loginButton, shadows.glow.primary]}
                 >
                   <Text style={styles.loginButtonText}>
-                    {loading ? 'Signing In...' : 'Sign In'}
+                    {loading ? t('login.signing_in') : t('login.sign_in_button')}
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -140,9 +167,9 @@ export default function LoginScreen() {
 
             {/* Sign Up Link */}
             <View style={styles.signUpContainer}>
-              <Text style={styles.signUpText}>Don't have an account? </Text>
+              <Text style={styles.signUpText}>{t('login.no_account')} </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/onboarding-v2/signup')}>
-                <Text style={styles.signUpLink}>Sign Up</Text>
+                <Text style={styles.signUpLink}>{t('login.sign_up')}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -164,20 +191,6 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.md,
     marginBottom: spacing.lg,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.text.primary,
   },
   titleContainer: {
     marginBottom: spacing['2xl'],
@@ -214,6 +227,40 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     borderWidth: 1,
     borderColor: colors.border.light,
+  },
+  inputFocused: {
+    borderColor: colors.primary.DEFAULT,
+  },
+  passwordInputContainer: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    flex: 1,
+    height: 56,
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingRight: 56, // Make room for the toggle button
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  passwordInputFocused: {
+    borderColor: colors.primary.DEFAULT,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 0,
+    height: 56,
+    width: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  passwordToggleIcon: {
+    fontSize: 24,
   },
   forgotPassword: {
     alignSelf: 'flex-end',

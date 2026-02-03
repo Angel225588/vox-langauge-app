@@ -10,18 +10,23 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
+import { BackButton } from '@/components/ui/BackButton';
 import { useOnboardingV2, MOTIVATIONS, TARGET_LANGUAGES } from '@/hooks/useOnboardingV2';
 import { colors, spacing, borderRadius, shadows, typography } from '@/constants/designSystem';
 
 export default function YourWhyScreen() {
   const router = useRouter();
   const { data, updateData } = useOnboardingV2();
+  const { t } = useTranslation('onboarding');
 
   // Use local state for immediate UI updates
   const [selectedMotivation, setSelectedMotivation] = useState(data.motivation);
   const [customMotivation, setCustomMotivation] = useState(data.motivation_custom || '');
-  const [whyNow, setWhyNow] = useState(data.why_now || '');
+
+  // Focus states for inputs
+  const [isMainInputFocused, setIsMainInputFocused] = useState(false);
 
   const handleMotivationSelect = (motivationId: string) => {
     setSelectedMotivation(motivationId);
@@ -32,28 +37,26 @@ export default function YourWhyScreen() {
   };
 
   const handleContinue = () => {
-    const motivation = selectedMotivation === 'other' ? 'other' : selectedMotivation;
-    const motivationCustom = selectedMotivation === 'other' ? customMotivation : null;
+    // Save either the selected preset or custom text
+    const motivation = selectedMotivation === 'custom' ? 'custom' : selectedMotivation;
+    const motivationCustom = customMotivation.trim() || null;
 
-    if (motivation) {
+    if (canContinue) {
       updateData({
         motivation,
         motivation_custom: motivationCustom,
-        why_now: whyNow || null,
       });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      // TODO: Navigate to next screen (level assessment)
-      router.push('/(auth)/onboarding-v2/index'); // Placeholder - update when next screen is ready
+      router.push('/(auth)/onboarding-v2/your-level');
     }
   };
 
-  const canContinue =
-    selectedMotivation &&
-    (selectedMotivation !== 'other' || (customMotivation.trim().length > 0));
+  // Can continue if they've written something OR selected a preset
+  const canContinue = customMotivation.trim().length > 0 || (selectedMotivation && selectedMotivation !== 'custom');
 
   // Get the selected target language for display
   const targetLanguage = TARGET_LANGUAGES.find((lang) => lang.code === data.target_language);
-  const languageName = targetLanguage?.label || 'this language';
+  const languageName = targetLanguage?.label || t('your_why.default_language');
 
   return (
     <CometBackground intensity="medium">
@@ -68,23 +71,66 @@ export default function YourWhyScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Back Button */}
+          <Animated.View entering={FadeInDown.duration(400)}>
+            <BackButton onPress={() => router.back()} />
+          </Animated.View>
+
           {/* Header */}
           <Animated.View
             entering={FadeInDown.duration(600).springify()}
             style={styles.header}
           >
-            <Text style={styles.title}>What's Your Why?</Text>
+            <Text style={styles.title}>{t('your_why.title')}</Text>
             <Text style={styles.subtitle}>
-              Why do you want to learn {languageName}?
+              {t('your_why.subtitle', { language: languageName })}
             </Text>
           </Animated.View>
 
-          {/* Motivation Options */}
+          {/* Main Text Input - Write Your Why */}
           <Animated.View
             entering={FadeInDown.duration(600).delay(100).springify()}
             style={styles.section}
           >
-            <Text style={styles.sectionLabel}>Choose your main reason</Text>
+            <Text style={styles.sectionLabel}>{t('your_why.tell_us_label')}</Text>
+            <Text style={styles.sectionSubtext}>
+              {t('your_why.tell_us_subtext')}
+            </Text>
+
+            <View style={styles.mainInputContainer}>
+              <TextInput
+                style={[styles.mainInput, isMainInputFocused && styles.inputFocused]}
+                placeholder={t('your_why.tell_us_placeholder')}
+                placeholderTextColor={colors.text.tertiary}
+                value={customMotivation}
+                onChangeText={(text) => {
+                  setCustomMotivation(text);
+                  if (text.trim().length > 0) {
+                    setSelectedMotivation('custom');
+                  }
+                }}
+                onFocus={() => setIsMainInputFocused(true)}
+                onBlur={() => setIsMainInputFocused(false)}
+                multiline
+                numberOfLines={4}
+                maxLength={500}
+                textAlignVertical="top"
+              />
+              <Text style={styles.characterCount}>
+                {customMotivation.length}/500
+              </Text>
+            </View>
+          </Animated.View>
+
+          {/* Quick Selection Options */}
+          <Animated.View
+            entering={FadeInDown.duration(600).delay(200).springify()}
+            style={styles.section}
+          >
+            <Text style={styles.sectionLabel}>{t('your_why.quick_option_label')}</Text>
+            <Text style={styles.sectionSubtext}>
+              {t('your_why.quick_option_subtext')}
+            </Text>
 
             <View style={styles.motivationsGrid}>
               {MOTIVATIONS.map((motivation, index) => {
@@ -93,7 +139,7 @@ export default function YourWhyScreen() {
                 return (
                   <Animated.View
                     key={motivation.id}
-                    entering={FadeInDown.duration(400).delay(200 + index * 80).springify()}
+                    entering={FadeInDown.duration(400).delay(300 + index * 50).springify()}
                     style={styles.motivationCardWrapper}
                   >
                     <TouchableOpacity
@@ -101,10 +147,15 @@ export default function YourWhyScreen() {
                         styles.motivationCard,
                         isSelected && styles.motivationCardSelected,
                       ]}
-                      onPress={() => handleMotivationSelect(motivation.id)}
+                      onPress={() => {
+                        handleMotivationSelect(motivation.id);
+                        // Optionally populate the text input with the selection
+                        if (customMotivation.trim().length === 0) {
+                          setCustomMotivation(`${motivation.label}: ${motivation.description}`);
+                        }
+                      }}
                       activeOpacity={0.8}
                     >
-                      {/* Glow effect when selected */}
                       {isSelected && (
                         <LinearGradient
                           colors={[colors.glow.primary, 'transparent']}
@@ -112,146 +163,52 @@ export default function YourWhyScreen() {
                         />
                       )}
 
-                      <View style={styles.motivationCardContent}>
+                      <View style={styles.motivationCardContentRow}>
                         <Text style={styles.motivationEmoji}>{motivation.emoji}</Text>
-                        <Text
-                          style={[
-                            styles.motivationLabel,
-                            isSelected && styles.motivationLabelSelected,
-                          ]}
-                        >
-                          {motivation.label}
-                        </Text>
-                        <Text style={styles.motivationDescription}>
-                          {motivation.description}
-                        </Text>
-                      </View>
-
-                      {isSelected && (
-                        <View style={styles.selectedBadge}>
-                          <LinearGradient
-                            colors={colors.gradients.primary}
-                            style={styles.selectedBadgeGradient}
+                        <View style={styles.motivationTextContainer}>
+                          <Text
+                            style={[
+                              styles.motivationLabel,
+                              isSelected && styles.motivationLabelSelected,
+                            ]}
                           >
-                            <Text style={styles.selectedBadgeText}>✓</Text>
-                          </LinearGradient>
+                            {motivation.label}
+                          </Text>
+                          <Text style={styles.motivationDescription}>
+                            {motivation.description}
+                          </Text>
                         </View>
-                      )}
+                        {isSelected && (
+                          <View style={styles.checkBadge}>
+                            <Text style={styles.checkBadgeText}>✓</Text>
+                          </View>
+                        )}
+                      </View>
                     </TouchableOpacity>
                   </Animated.View>
                 );
               })}
-
-              {/* Other Option with Text Input */}
-              <Animated.View
-                entering={FadeInDown.duration(400).delay(200 + MOTIVATIONS.length * 80).springify()}
-                style={styles.motivationCardWrapper}
-              >
-                <TouchableOpacity
-                  style={[
-                    styles.motivationCard,
-                    selectedMotivation === 'other' && styles.motivationCardSelected,
-                  ]}
-                  onPress={() => handleMotivationSelect('other')}
-                  activeOpacity={0.8}
-                >
-                  {selectedMotivation === 'other' && (
-                    <LinearGradient
-                      colors={[colors.glow.primary, 'transparent']}
-                      style={styles.cardGlow}
-                    />
-                  )}
-
-                  <View style={styles.motivationCardContent}>
-                    <Text style={styles.motivationEmoji}>💭</Text>
-                    <Text
-                      style={[
-                        styles.motivationLabel,
-                        selectedMotivation === 'other' && styles.motivationLabelSelected,
-                      ]}
-                    >
-                      Other
-                    </Text>
-                    <Text style={styles.motivationDescription}>
-                      Tell us your unique reason
-                    </Text>
-                  </View>
-
-                  {selectedMotivation === 'other' && (
-                    <View style={styles.selectedBadge}>
-                      <LinearGradient
-                        colors={colors.gradients.primary}
-                        style={styles.selectedBadgeGradient}
-                      >
-                        <Text style={styles.selectedBadgeText}>✓</Text>
-                      </LinearGradient>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </Animated.View>
             </View>
-
-            {/* Custom Motivation Input */}
-            {selectedMotivation === 'other' && (
-              <Animated.View
-                entering={FadeInDown.duration(400)}
-                style={styles.customInputContainer}
-              >
-                <TextInput
-                  style={styles.customInput}
-                  placeholder="Tell us why you want to learn..."
-                  placeholderTextColor={colors.text.tertiary}
-                  value={customMotivation}
-                  onChangeText={setCustomMotivation}
-                  multiline
-                  numberOfLines={3}
-                  maxLength={200}
-                  autoFocus
-                />
-                <Text style={styles.characterCount}>
-                  {customMotivation.length}/200
-                </Text>
-              </Animated.View>
-            )}
           </Animated.View>
 
-          {/* Optional: Why Now Question */}
-          {canContinue && (
-            <Animated.View
-              entering={FadeInDown.duration(600).delay(200).springify()}
-              style={styles.section}
-            >
-              <Text style={styles.sectionLabel}>
-                What made you decide NOW? <Text style={styles.optionalText}>(Optional)</Text>
-              </Text>
-              <Text style={styles.sectionSubtext}>
-                Understanding your timing helps us personalize your learning path
-              </Text>
-
-              <View style={styles.whyNowInputContainer}>
-                <TextInput
-                  style={styles.whyNowInput}
-                  placeholder="e.g., I'm traveling to Spain next month, starting a new job, met someone special..."
-                  placeholderTextColor={colors.text.tertiary}
-                  value={whyNow}
-                  onChangeText={setWhyNow}
-                  multiline
-                  numberOfLines={4}
-                  maxLength={300}
-                />
-                <Text style={styles.characterCount}>
-                  {whyNow.length}/300
-                </Text>
-              </View>
-            </Animated.View>
-          )}
         </ScrollView>
 
         {/* Fixed Bottom Section */}
         <View style={styles.bottomSection}>
-          {/* Progress Indicator */}
-          <Animated.View entering={FadeInUp.duration(600).delay(400).springify()}>
-            <Text style={styles.progressText}>Step 2 of 5</Text>
+          {/* Progress Indicator - Dots */}
+          <Animated.View entering={FadeInUp.duration(600).delay(400).springify()} style={styles.progressContainer}>
+            <View style={styles.dotsContainer}>
+              {[1, 2, 3, 4, 5, 6].map((step) => (
+                <View
+                  key={step}
+                  style={[
+                    styles.dot,
+                    step === 2 && styles.dotActive,
+                    step < 2 && styles.dotCompleted,
+                  ]}
+                />
+              ))}
+            </View>
           </Animated.View>
 
           {/* Continue Button */}
@@ -272,11 +229,11 @@ export default function YourWhyScreen() {
                   end={{ x: 1, y: 0 }}
                   style={styles.buttonGradient}
                 >
-                  <Text style={styles.continueButtonText}>Continue</Text>
+                  <Text style={styles.continueButtonText}>{t('your_why.continue')}</Text>
                 </LinearGradient>
               ) : (
                 <View style={styles.buttonDisabled}>
-                  <Text style={styles.continueButtonTextDisabled}>Continue</Text>
+                  <Text style={styles.continueButtonTextDisabled}>{t('your_why.continue')}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -334,103 +291,11 @@ const styles = StyleSheet.create({
     lineHeight: typography.fontSize.sm * 1.5,
   },
 
-  // Motivations grid
-  motivationsGrid: {
-    gap: spacing.md,
-  },
-  motivationCardWrapper: {
-    width: '100%',
-  },
-  motivationCard: {
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.xl,
-    borderWidth: 2,
-    borderColor: colors.border.light,
-    padding: spacing.lg,
-    position: 'relative',
-    overflow: 'hidden',
-    minHeight: 100,
-  },
-  motivationCardSelected: {
-    borderColor: colors.primary.DEFAULT,
-    ...shadows.glow.primary,
-  },
-  cardGlow: {
-    position: 'absolute',
-    top: -50,
-    left: -50,
-    right: -50,
-    bottom: -50,
-    opacity: 0.1,
-  },
-  motivationCardContent: {
-    alignItems: 'center',
-  },
-  motivationEmoji: {
-    fontSize: 40,
-    marginBottom: spacing.sm,
-  },
-  motivationLabel: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
-    textAlign: 'center',
-  },
-  motivationLabelSelected: {
-    color: colors.primary.light,
-  },
-  motivationDescription: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
-    textAlign: 'center',
-  },
-  selectedBadge: {
-    position: 'absolute',
-    top: spacing.md,
-    right: spacing.md,
-  },
-  selectedBadgeGradient: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedBadgeText: {
-    color: colors.text.primary,
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.bold,
-  },
-
-  // Custom motivation input
-  customInputContainer: {
-    marginTop: spacing.md,
-  },
-  customInput: {
-    backgroundColor: colors.background.card,
-    borderWidth: 2,
-    borderColor: colors.primary.DEFAULT,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: colors.text.primary,
-    minHeight: 100,
-    textAlignVertical: 'top',
-    ...shadows.glow.primary,
-  },
-  characterCount: {
-    textAlign: 'right',
-    marginTop: spacing.xs,
-    fontSize: typography.fontSize.xs,
-    color: colors.text.tertiary,
-  },
-
-  // Why now input
-  whyNowInputContainer: {
+  // Main input for writing
+  mainInputContainer: {
     marginTop: spacing.sm,
   },
-  whyNowInput: {
+  mainInput: {
     backgroundColor: colors.background.card,
     borderWidth: 2,
     borderColor: colors.border.light,
@@ -441,21 +306,111 @@ const styles = StyleSheet.create({
     minHeight: 120,
     textAlignVertical: 'top',
   },
+  characterCount: {
+    textAlign: 'right',
+    marginTop: spacing.xs,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+  },
+
+  // Motivations grid - compact horizontal cards
+  motivationsGrid: {
+    gap: spacing.sm,
+  },
+  motivationCardWrapper: {
+    width: '100%',
+  },
+  motivationCard: {
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    padding: spacing.md,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  motivationCardSelected: {
+    borderColor: colors.primary.DEFAULT,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+  },
+  cardGlow: {
+    position: 'absolute',
+    top: -50,
+    left: -50,
+    right: -50,
+    bottom: -50,
+    opacity: 0.1,
+  },
+  motivationCardContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  motivationTextContainer: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  motivationEmoji: {
+    fontSize: 28,
+  },
+  motivationLabel: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  motivationLabelSelected: {
+    color: colors.primary.light,
+  },
+  motivationDescription: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+  },
+  checkBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary.DEFAULT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkBadgeText: {
+    color: colors.text.primary,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold,
+  },
+
+  inputFocused: {
+    borderColor: colors.primary.DEFAULT,
+  },
 
   // Bottom section
   bottomSection: {
     padding: spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? spacing.sm : spacing.md,
     backgroundColor: colors.background.primary,
     borderTopWidth: 1,
     borderTopColor: colors.border.dark,
   },
-  progressText: {
-    textAlign: 'center',
-    color: colors.text.tertiary,
-    fontSize: typography.fontSize.sm,
+  progressContainer: {
+    alignItems: 'center',
     marginBottom: spacing.md,
-    fontWeight: typography.fontWeight.medium,
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.background.elevated,
+  },
+  dotActive: {
+    width: 24,
+    backgroundColor: colors.primary.DEFAULT,
+  },
+  dotCompleted: {
+    backgroundColor: colors.primary.light,
   },
   buttonContainer: {
     width: '100%',

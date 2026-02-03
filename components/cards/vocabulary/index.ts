@@ -16,11 +16,13 @@
 
 export { VocabCardBase } from './VocabCardBase';
 export { IntroductionCard } from './IntroductionCard';
+export { IntroductionCardV2 } from './IntroductionCardV2';
 export { ListeningCard } from './ListeningCard';
 export { TypingCard } from './TypingCard';
 export { SpeakingCard } from './SpeakingCard';
 export { AudioQuizCard } from './AudioQuizCard';
 export { VocabularyCardFlow } from './VocabularyCardFlow';
+export { VocabularyPracticeScreen } from './VocabularyPracticeScreen';
 
 // Hooks
 export { useVocabCard, selectNextVariant, getFlowSequence } from './hooks/useVocabCard';

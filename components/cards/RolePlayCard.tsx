@@ -13,6 +13,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'rea
 import Animated, { FadeIn, FadeOut, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, borderRadius, spacing, shadows, typography } from '@/constants/designSystem';
 import { ResultAnimation } from '@/components/ui';
 import { LottieSuccess, LottieError } from '@/components/animations';
@@ -190,6 +191,7 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
 }) => {
   const script = CONVERSATION_SCRIPTS[scriptId];
   const haptics = useHaptics();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [turnsTaken, setTurnsTaken] = useState(0);
@@ -296,7 +298,7 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
       )}
 
       {/* Minimal Header */}
-      <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
+      <Animated.View entering={FadeInDown.duration(400)} style={[styles.header, { paddingTop: insets.top, paddingHorizontal: spacing.lg }]}>
         <View style={styles.headerContent}>
           <View style={styles.avatarContainer}>
             <Ionicons name="person" size={24} color={colors.primary.DEFAULT} />
@@ -362,7 +364,7 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
       </View>
 
       {/* Quick Reply Options - Fixed at Bottom */}
-      <View style={styles.bottomContainer}>
+      <View style={[styles.bottomContainer, { paddingBottom: insets.bottom + spacing.lg }]}>
         {userCanInteract && currentDialogue && currentDialogue.userOptions.length > 0 ? (
           <Animated.View
             entering={FadeInDown.duration(300)}
@@ -419,7 +421,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     backgroundColor: colors.background.card,
     borderBottomWidth: 1,
@@ -559,7 +560,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   bottomContainer: {
-    paddingBottom: spacing.xl,
     paddingTop: spacing.md,
     backgroundColor: colors.background.primary,
     borderTopWidth: 1,

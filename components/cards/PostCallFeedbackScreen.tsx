@@ -29,6 +29,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { colors, borderRadius, spacing, typography } from '@/constants/designSystem';
 import { ConversationMessage } from '@/lib/voice';
 import { LottieSuccess } from '@/components/animations';
@@ -40,6 +41,8 @@ import {
   getScoreColor,
 } from '@/components/feedback';
 import type { StatItem, WordToPractice } from '@/components/feedback';
+import { getEncouragement } from '@/components/feedback/types';
+import { TranscriptPage } from './TranscriptPage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -64,11 +67,26 @@ export interface PostCallFeedbackScreenProps {
   onPracticeWords?: (words: WordToPractice[]) => void;
 }
 
+/**
+ * Structured improvement item for "Areas to Improve" section
+ */
+interface ImprovementItem {
+  area: 'Vocabulary' | 'Fluency' | 'Grammar' | 'Confidence';
+  observation: string;
+  suggestion: string;
+  severity: 'minor' | 'moderate' | 'significant';
+}
+
 interface AnalysisResult {
   overallScore: number;
+  /** Short 1-2 sentence summary (always visible) */
+  summary: string;
   stats: StatItem[];
   wordsToPractice: WordToPractice[];
+  /** Renamed from tips - positive feedback */
   highlights: string[];
+  /** Structured improvement areas */
+  improvements: ImprovementItem[];
   tips: string[];
 }
 
@@ -87,6 +105,7 @@ function analyzeConversation(
   if (userMessages.length === 0) {
     return {
       overallScore: 50,
+      summary: 'Start speaking to get personalized feedback!',
       stats: [
         { icon: '🎯', value: '50', label: 'Accuracy', color: colors.warning.DEFAULT },
         { icon: '💬', value: '0', label: 'Turns' },
@@ -95,6 +114,7 @@ function analyzeConversation(
       ],
       wordsToPractice: [],
       highlights: ['Start speaking to get feedback!'],
+      improvements: [],
       tips: ['Try responding to the AI to practice your conversation skills.'],
     };
   }
@@ -132,8 +152,15 @@ function analyzeConversation(
   // Generate tips
   const tips = generateTips(overallScore, avgWordsPerTurn, hesitantCount, exchanges);
 
+  // Generate structured improvements
+  const improvements = generateImprovements(overallScore, avgWordsPerTurn, hesitantCount, exchanges);
+
+  // Generate summary
+  const summary = generateSummary(duration, exchanges, overallScore, avgWordsPerTurn);
+
   return {
     overallScore,
+    summary,
     stats: [
       {
         icon: '🎯',
@@ -147,6 +174,7 @@ function analyzeConversation(
     ],
     wordsToPractice,
     highlights,
+    improvements,
     tips,
   };
 }
@@ -244,6 +272,100 @@ function generateTips(
   return tips.slice(0, 3);
 }
 
+/**
+ * Generate a concise summary of the conversation (always visible)
+ */
+function generateSummary(
+  duration: number,
+  exchanges: number,
+  score: number,
+  avgWords: number
+): string {
+  const minutes = Math.floor(duration / 60);
+  const durationText = minutes > 0 ? `${minutes}-minute` : `${duration}-second`;
+
+  // Determine strengths and weaknesses
+  const strengths: string[] = [];
+  const weaknesses: string[] = [];
+
+  if (score >= 70) strengths.push('fluency');
+  else if (score < 50) weaknesses.push('fluency');
+
+  if (avgWords >= 10) strengths.push('vocabulary');
+  else if (avgWords < 5) weaknesses.push('vocabulary');
+
+  if (exchanges >= 5) strengths.push('engagement');
+  else if (exchanges < 3) weaknesses.push('conversation flow');
+
+  // Build summary
+  if (strengths.length > 0 && weaknesses.length === 0) {
+    return `${durationText} conversation. ${strengths.join(' and ')} excellent!`;
+  } else if (weaknesses.length > 0 && strengths.length === 0) {
+    return `${durationText} practice session. Focus on ${weaknesses.join(' and ')} next time.`;
+  } else if (strengths.length > 0 && weaknesses.length > 0) {
+    return `${durationText} conversation. ${strengths[0]} good, ${weaknesses[0]} needs work.`;
+  }
+
+  return `${durationText} conversation with ${exchanges} exchanges. Keep practicing!`;
+}
+
+/**
+ * Generate structured improvement items for "Areas to Improve" section
+ */
+function generateImprovements(
+  score: number,
+  avgWords: number,
+  hesitations: number,
+  exchanges: number
+): ImprovementItem[] {
+  const improvements: ImprovementItem[] = [];
+
+  // Hesitation / Confidence issues
+  if (hesitations > 2) {
+    improvements.push({
+      area: 'Confidence',
+      observation: `You used ${hesitations} hesitation words (um, uh, etc.)`,
+      suggestion: 'Practice common phrases to build confidence and speak more smoothly',
+      severity: hesitations > 4 ? 'significant' : 'moderate',
+    });
+  }
+
+  // Short responses / Vocabulary issues
+  if (avgWords < 8) {
+    improvements.push({
+      area: 'Vocabulary',
+      observation: `Your responses averaged ${Math.round(avgWords)} words`,
+      suggestion: 'Try adding details: describe colors, sizes, preferences, or reasons',
+      severity: avgWords < 5 ? 'significant' : 'moderate',
+    });
+  }
+
+  // Few exchanges / Fluency issues
+  if (exchanges < 4) {
+    improvements.push({
+      area: 'Fluency',
+      observation: `Conversation had only ${exchanges} exchanges`,
+      suggestion: 'Keep the conversation going by asking follow-up questions',
+      severity: exchanges < 2 ? 'significant' : 'moderate',
+    });
+  }
+
+  // Low overall score / Grammar issues (inferred)
+  if (score < 60 && improvements.length < 3) {
+    improvements.push({
+      area: 'Grammar',
+      observation: 'Some responses may have had grammar issues',
+      suggestion: 'Focus on speaking clearly with simple sentence structures',
+      severity: score < 40 ? 'significant' : 'moderate',
+    });
+  }
+
+  // Code-switching detection (basic check)
+  // In production, this would come from speech analysis
+
+  return improvements.slice(0, 4); // Max 4 improvements
+}
+
 // =============================================================================
 // Main Component
 // =============================================================================
@@ -259,17 +381,29 @@ export const PostCallFeedbackScreen: React.FC<PostCallFeedbackScreenProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const [showSuccess, setShowSuccess] = useState(true);
+  const [showTranscript, setShowTranscript] = useState(false);
+  // All sections collapsed by default - user expands what they want
   const [expandedSections, setExpandedSections] = useState({
-    transcript: false, // Collapsed by default for cleaner initial view
-    words: true,
-    highlights: true,
-    tips: true,
+    words: false,
+    highlights: false,
+    improvements: false,
+    tips: false,
   });
+
+  const handleOpenTranscript = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowTranscript(true);
+  };
 
   // Analyze conversation
   const analysis = useMemo(() => {
     return analyzeConversation(messages, duration);
   }, [messages, duration]);
+
+  // Get encouragement based on score
+  const encouragement = useMemo(() => {
+    return getEncouragement(analysis.overallScore);
+  }, [analysis.overallScore]);
 
   // Hide celebration after delay
   useEffect(() => {
@@ -322,11 +456,22 @@ export const PostCallFeedbackScreen: React.FC<PostCallFeedbackScreenProps> = ({
             delay={2200}
           />
 
+          {/* Encouragement Message */}
+          <View style={styles.encouragementContainer}>
+            <Text style={styles.encouragementEmoji}>{encouragement.emoji}</Text>
+            <Text style={styles.encouragementText}>{encouragement.message}</Text>
+          </View>
+
           <Text style={styles.scenarioTitle}>{scenarioTitle}</Text>
           <Text style={styles.scenarioMeta}>
             {characterName ? `with ${characterName} • ` : ''}
             {formatDuration(duration)}
           </Text>
+
+          {/* Summary - Always visible */}
+          <View style={styles.summaryContainer}>
+            <Text style={styles.summaryText}>{analysis.summary}</Text>
+          </View>
         </Animated.View>
 
         {/* Stats Grid */}
@@ -337,43 +482,27 @@ export const PostCallFeedbackScreen: React.FC<PostCallFeedbackScreenProps> = ({
           <StatsGrid stats={analysis.stats} delay={2600} stagger={80} />
         </Animated.View>
 
-        {/* Full Transcript Section - Detailed View */}
+        {/* View Transcript Button */}
         {messages.length > 0 && (
           <Animated.View entering={FadeInUp.delay(2600).duration(400)}>
-            <FeedbackSection
-              icon="📜"
-              title="Full Transcript"
-              badge={messages.length}
-              badgeColor={colors.primary.DEFAULT}
-              expanded={expandedSections.transcript}
-              onToggle={() => toggleSection('transcript')}
+            <TouchableOpacity
+              style={styles.transcriptButton}
+              onPress={handleOpenTranscript}
+              activeOpacity={0.8}
             >
-              <View style={styles.transcriptContainer}>
-                {messages.map((message, index) => (
-                  <View
-                    key={message.id || index}
-                    style={[
-                      styles.messageBubble,
-                      message.role === 'user'
-                        ? styles.userMessage
-                        : styles.aiMessage,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.messageRole,
-                        message.role === 'user'
-                          ? styles.userRole
-                          : styles.aiRole,
-                      ]}
-                    >
-                      {message.role === 'user' ? '👤 You' : '🤖 AI'}
-                    </Text>
-                    <Text style={styles.messageContent}>{message.content}</Text>
-                  </View>
-                ))}
+              <View style={styles.transcriptButtonContent}>
+                <View style={styles.transcriptIcon}>
+                  <Ionicons name="document-text-outline" size={22} color={colors.primary.DEFAULT} />
+                </View>
+                <View style={styles.transcriptButtonText}>
+                  <Text style={styles.transcriptButtonTitle}>View Full Transcript</Text>
+                  <Text style={styles.transcriptButtonSubtitle}>
+                    {messages.length} messages • {Math.min(messages.filter(m => m.role === 'user').length, messages.filter(m => m.role === 'assistant').length)} turns
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
               </View>
-            </FeedbackSection>
+            </TouchableOpacity>
           </Animated.View>
         )}
 
@@ -396,11 +525,11 @@ export const PostCallFeedbackScreen: React.FC<PostCallFeedbackScreenProps> = ({
           </Animated.View>
         )}
 
-        {/* Highlights Section */}
+        {/* What Went Well Section (renamed from Highlights) */}
         <Animated.View entering={FadeInUp.delay(3000).duration(400)}>
           <FeedbackSection
-            icon="⭐"
-            title="Highlights"
+            icon="✨"
+            title="What Went Well"
             expanded={expandedSections.highlights}
             onToggle={() => toggleSection('highlights')}
           >
@@ -415,24 +544,58 @@ export const PostCallFeedbackScreen: React.FC<PostCallFeedbackScreenProps> = ({
           </FeedbackSection>
         </Animated.View>
 
-        {/* Tips Section */}
-        <Animated.View entering={FadeInUp.delay(3200).duration(400)}>
-          <FeedbackSection
-            icon="💡"
-            title="Tips for Next Time"
-            expanded={expandedSections.tips}
-            onToggle={() => toggleSection('tips')}
-          >
-            <View style={styles.listSection}>
-              {analysis.tips.map((tip, index) => (
-                <View key={index} style={styles.listItem}>
-                  <View style={[styles.bulletPoint, styles.tipBullet]} />
-                  <Text style={styles.listItemText}>{tip}</Text>
-                </View>
-              ))}
-            </View>
-          </FeedbackSection>
-        </Animated.View>
+        {/* Areas to Improve Section */}
+        {analysis.improvements.length > 0 && (
+          <Animated.View entering={FadeInUp.delay(3200).duration(400)}>
+            <FeedbackSection
+              icon="📈"
+              title="Areas to Improve"
+              badge={analysis.improvements.length}
+              badgeColor={colors.warning.DEFAULT}
+              expanded={expandedSections.improvements}
+              onToggle={() => toggleSection('improvements')}
+            >
+              <View style={styles.improvementsSection}>
+                {analysis.improvements.map((item, index) => (
+                  <View key={index} style={styles.improvementItem}>
+                    <View style={styles.improvementHeader}>
+                      <View style={[
+                        styles.severityDot,
+                        item.severity === 'significant' && styles.severitySignificant,
+                        item.severity === 'moderate' && styles.severityModerate,
+                        item.severity === 'minor' && styles.severityMinor,
+                      ]} />
+                      <Text style={styles.improvementArea}>{item.area}</Text>
+                    </View>
+                    <Text style={styles.improvementObservation}>{item.observation}</Text>
+                    <Text style={styles.improvementSuggestion}>💡 {item.suggestion}</Text>
+                  </View>
+                ))}
+              </View>
+            </FeedbackSection>
+          </Animated.View>
+        )}
+
+        {/* Tips Section - kept for additional tips */}
+        {analysis.tips.length > 0 && (
+          <Animated.View entering={FadeInUp.delay(3400).duration(400)}>
+            <FeedbackSection
+              icon="💡"
+              title="Quick Tips"
+              expanded={expandedSections.tips}
+              onToggle={() => toggleSection('tips')}
+            >
+              <View style={styles.listSection}>
+                {analysis.tips.map((tip, index) => (
+                  <View key={index} style={styles.listItem}>
+                    <View style={[styles.bulletPoint, styles.tipBullet]} />
+                    <Text style={styles.listItemText}>{tip}</Text>
+                  </View>
+                ))}
+              </View>
+            </FeedbackSection>
+          </Animated.View>
+        )}
       </ScrollView>
 
       {/* Bottom Actions - Fixed */}
@@ -461,10 +624,20 @@ export const PostCallFeedbackScreen: React.FC<PostCallFeedbackScreenProps> = ({
             style={styles.primaryButtonGradient}
           >
             <Text style={styles.primaryButtonText}>Continue</Text>
-            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+            <Ionicons name="arrow-forward" size={20} color={colors.text.primary} />
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
+
+      {/* Transcript Modal */}
+      <TranscriptPage
+        visible={showTranscript}
+        messages={messages}
+        scenarioTitle={scenarioTitle}
+        characterName={characterName}
+        duration={duration}
+        onClose={() => setShowTranscript(false)}
+      />
     </View>
   );
 };
@@ -509,48 +682,80 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
     marginTop: spacing.xs,
   },
+  summaryContainer: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.lg,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary.DEFAULT,
+  },
+  summaryText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  encouragementContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  encouragementEmoji: {
+    fontSize: 24,
+  },
+  encouragementText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.text.primary,
+    textAlign: 'center',
+    flexShrink: 1,
+  },
 
   // Stats Section
   statsSection: {
     marginBottom: spacing.lg,
   },
 
-  // Transcript Section
-  transcriptContainer: {
+  // Transcript Button
+  transcriptButton: {
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border?.light || 'rgba(255,255,255,0.1)',
+  },
+  transcriptButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.md,
   },
-  messageBubble: {
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    maxWidth: '95%',
+  transcriptIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary.DEFAULT + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  userMessage: {
-    backgroundColor: colors.primary.DEFAULT + '20',
-    alignSelf: 'flex-end',
-    borderBottomRightRadius: 4,
+  transcriptButtonText: {
+    flex: 1,
   },
-  aiMessage: {
-    backgroundColor: colors.background.elevated,
-    alignSelf: 'flex-start',
-    borderBottomLeftRadius: 4,
-  },
-  messageRole: {
-    fontSize: typography.fontSize.xs,
+  transcriptButtonTitle: {
+    fontSize: typography.fontSize.base,
     fontWeight: '600',
-    marginBottom: spacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: colors.text.primary,
   },
-  userRole: {
-    color: colors.primary.DEFAULT,
-  },
-  aiRole: {
+  transcriptButtonSubtitle: {
+    fontSize: typography.fontSize.xs,
     color: colors.text.tertiary,
-  },
-  messageContent: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    lineHeight: 20,
+    marginTop: 2,
   },
 
   // List Sections (Highlights & Tips)
@@ -577,6 +782,55 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     lineHeight: 20,
+  },
+
+  // Improvements Section
+  improvementsSection: {
+    gap: spacing.md,
+  },
+  improvementItem: {
+    backgroundColor: colors.background.secondary || 'rgba(255, 193, 7, 0.05)',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.warning.DEFAULT,
+  },
+  improvementHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  severityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  severitySignificant: {
+    backgroundColor: colors.error?.DEFAULT || '#EF4444',
+  },
+  severityModerate: {
+    backgroundColor: colors.warning.DEFAULT,
+  },
+  severityMinor: {
+    backgroundColor: colors.primary.DEFAULT,
+  },
+  improvementArea: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.warning.DEFAULT,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  improvementObservation: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  improvementSuggestion: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    fontStyle: 'italic',
   },
 
   // Bottom Actions

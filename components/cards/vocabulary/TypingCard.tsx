@@ -1,31 +1,48 @@
 /**
- * TypingCard - Active Recall / Translation Card
+ * TypingCard V2 - Visual Translation Card
  *
- * "How do you say X in English?" pattern based on translation card.png
- * Category label at top, button fixed at bottom.
+ * Hero image with word overlay, bottom input that animates with keyboard.
  *
- * Features:
- * - Category badge at top
- * - Clear question header with bell icon
- * - Translation prominently displayed
- * - Neomorphic text input
- * - Hint button (shows first 2 letters)
- * - Typo tolerance
- * - Fixed button at bottom
+ * Design:
+ * - Category badge: TOP RIGHT (absolute position)
+ * - Question: H2 heading, clean (no container)
+ * - Hero image with translation word overlay
+ * - Text input at BOTTOM, animates up with keyboard
+ * - Check button inline with input
  */
 
-import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  Image,
+  Platform,
+  KeyboardAvoidingView,
+  Dimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
   FadeInDown,
+  FadeInUp,
+  FadeOut,
   ZoomIn,
   useAnimatedStyle,
+  useAnimatedKeyboard,
   withSpring,
+  withSequence,
+  withDelay,
   useSharedValue,
+  interpolate,
+  runOnJS,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
 import { useHaptics } from '@/hooks/useHaptics';
 import { DarkOverlay, AnswerFeedbackOverlay } from '@/components/ui';
@@ -54,11 +71,15 @@ function levenshteinDistance(a: string, b: string): number {
 }
 
 export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
+  const insets = useSafeAreaInsets();
   const haptics = useHaptics();
+  const keyboard = useAnimatedKeyboard();
+
   const [input, setInput] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [showSuccessCelebration, setShowSuccessCelebration] = useState(false);
 
   const { trackHintUsed, complete } = useVocabCard({
     variant: 'typing',
@@ -66,8 +87,26 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
   });
 
   // Animation values
-  const inputScale = useSharedValue(1);
-  const buttonScale = useSharedValue(1);
+  const checkButtonScale = useSharedValue(1);
+
+  // Animated style for bottom input area - moves up with keyboard
+  const inputContainerStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: interpolate(
+            keyboard.height.value,
+            [0, 400],
+            [0, -keyboard.height.value + insets.bottom]
+          ),
+        },
+      ],
+    };
+  });
+
+  const checkButtonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: checkButtonScale.value }],
+  }));
 
   const handleShowHint = useCallback(() => {
     haptics.light();
@@ -76,9 +115,12 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
   }, [haptics, trackHintUsed]);
 
   const handleSubmit = useCallback(() => {
+    if (!input.trim()) return;
+
     const userAnswer = input.toLowerCase().trim();
     const correctAnswer = item.word.toLowerCase().trim();
 
+    // Typo tolerance with Levenshtein
     let correct = userAnswer === correctAnswer;
     if (!correct) {
       const distance = levenshteinDistance(userAnswer, correctAnswer);
@@ -90,7 +132,12 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
 
     if (correct) {
       haptics.success();
-      setTimeout(() => complete(true, input), 1500);
+      setShowSuccessCelebration(true);
+      // Auto-dismiss celebration and complete after delay
+      setTimeout(() => {
+        setShowSuccessCelebration(false);
+        complete(true, input);
+      }, 1800);
     } else {
       haptics.doubleError();
     }
@@ -100,79 +147,97 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
     complete(false, input);
   }, [complete, input]);
 
-  const inputAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: inputScale.value }],
-  }));
-
-  const buttonAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: buttonScale.value }],
-  }));
-
   const showWrongAnswer = showResult && !isCorrect;
-
-  const getInputBorderColor = () => {
-    if (!showResult) return 'rgba(99, 102, 241, 0.3)';
-    return isCorrect ? colors.success.DEFAULT : colors.error.DEFAULT;
-  };
+  const hasInput = input.trim().length > 0;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      {/* Category Badge at Top */}
+    <View style={styles.container}>
+      {/* Category Badge - TOP RIGHT (Absolute, respects safe area) */}
       <Animated.View
-        entering={FadeInDown.duration(400)}
-        style={styles.categoryContainer}
+        entering={FadeIn.duration(300)}
+        style={[styles.categoryBadge, { top: insets.top + spacing.sm }]}
       >
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{item.category}</Text>
-        </View>
+        <LinearGradient
+          colors={colors.gradients.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.categoryGradient}
+        >
+          <Text style={styles.categoryText}>
+            {item.category?.toUpperCase() || 'TRANSLATION'}
+          </Text>
+        </LinearGradient>
       </Animated.View>
 
-      {/* Content Area */}
-      <View style={styles.contentArea}>
-        {/* Question Header */}
-        <Animated.View
+      {/* Main Content Area - respects safe area */}
+      <View style={[styles.contentArea, { paddingTop: insets.top + spacing.xl }]}>
+        {/* H2 Question Heading - Clean, no container */}
+        <Animated.Text
           entering={FadeInDown.duration(400).delay(100)}
-          style={styles.questionHeader}
+          style={styles.questionHeading}
         >
-          <LinearGradient
-            colors={[colors.background.card, colors.background.elevated]}
-            style={styles.questionHeaderInner}
-          >
-            <Ionicons name="language" size={20} color={colors.primary.DEFAULT} />
-            <Text style={styles.questionText}>How do you say in English?</Text>
-          </LinearGradient>
-        </Animated.View>
+          How do you say this in English?
+        </Animated.Text>
 
-        {/* Translation Display */}
+        {/* Hero Image with Word Overlay */}
         <Animated.View
-          entering={ZoomIn.duration(500).delay(200)}
-          style={styles.translationContainer}
+          entering={FadeInDown.duration(500).delay(200)}
+          style={styles.imageContainer}
         >
-          <Text style={styles.translationQuotes}>"</Text>
-          <Text style={styles.translation}>{item.translation}</Text>
-          <Text style={styles.translationQuotes}>"</Text>
-        </Animated.View>
-
-        {/* Input Section */}
-        <Animated.View
-          entering={FadeInDown.duration(400).delay(300)}
-          style={styles.inputSection}
-        >
-          {/* Hint Button */}
-          {!showHint && !showResult && (
-            <TouchableOpacity
-              onPress={handleShowHint}
-              activeOpacity={0.7}
-              style={styles.hintButton}
-            >
-              <Ionicons name="bulb-outline" size={20} color={colors.accent.orange} />
-            </TouchableOpacity>
+          {item.imageUrl ? (
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Text style={styles.placeholderEmoji}>
+                {item.category === 'food' ? '🍎' :
+                 item.category === 'animals' ? '🐕' :
+                 item.category === 'travel' ? '✈️' :
+                 item.category === 'greetings' ? '👋' :
+                 '📚'}
+              </Text>
+            </View>
           )}
 
-          <Animated.View style={[inputAnimatedStyle, styles.inputWrapper]}>
+          {/* Word Overlay on Image */}
+          <View style={styles.wordOverlay}>
+            <LinearGradient
+              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.8)']}
+              style={styles.wordOverlayGradient}
+            >
+              <Text style={styles.overlayWord}>{item.translation}</Text>
+              {item.phonetic && (
+                <Text style={styles.overlayPhonetic}>{item.phonetic}</Text>
+              )}
+            </LinearGradient>
+          </View>
+        </Animated.View>
+
+        {/* Character hint */}
+        {!showResult && (
+          <Animated.Text
+            entering={FadeIn.duration(300).delay(400)}
+            style={styles.charHint}
+          >
+            {item.word.length} letters
+          </Animated.Text>
+        )}
+      </View>
+
+      {/* Bottom Input Area - Animates with keyboard */}
+      <Animated.View
+        style={[
+          styles.bottomInputArea,
+          inputContainerStyle,
+          { paddingBottom: insets.bottom + spacing.md },
+        ]}
+      >
+        {/* Input Row with Check Button */}
+        <View style={styles.inputRow}>
+          <View style={styles.inputWrapper}>
             <TextInput
               value={input}
               onChangeText={setInput}
@@ -181,86 +246,62 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
                   ? `Hint: ${item.word.substring(0, 2)}...`
                   : 'Type your answer...'
               }
-              placeholderTextColor={showHint ? colors.accent.purple : colors.text.tertiary}
+              placeholderTextColor={showHint ? colors.accent.orange : colors.text.tertiary}
               autoCapitalize="none"
               autoCorrect={false}
               style={[
-                styles.input,
-                {
-                  borderColor: getInputBorderColor(),
-                  shadowColor: showResult
-                    ? isCorrect
-                      ? colors.success.DEFAULT
-                      : colors.error.DEFAULT
-                    : colors.primary.DEFAULT,
-                  shadowOpacity: showResult ? 0.5 : 0.2,
+                styles.textInput,
+                showResult && {
+                  borderColor: isCorrect ? colors.success.DEFAULT : colors.error.DEFAULT,
                 },
               ]}
               editable={!showResult}
-              onFocus={() => {
-                inputScale.value = withSpring(1.02);
-                haptics.light();
-              }}
-              onBlur={() => {
-                inputScale.value = withSpring(1);
-              }}
               onSubmitEditing={handleSubmit}
             />
-          </Animated.View>
 
-          {/* Character count hint */}
-          {!showResult && !showHint && (
-            <Text style={styles.charHint}>
-              {item.word.length} characters
-            </Text>
-          )}
-        </Animated.View>
-      </View>
+            {/* Hint button inside input */}
+            {!showHint && !showResult && (
+              <TouchableOpacity
+                onPress={handleShowHint}
+                style={styles.hintButtonInline}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="bulb-outline" size={20} color={colors.accent.orange} />
+              </TouchableOpacity>
+            )}
+          </View>
 
-      {/* Fixed Bottom Actions */}
-      <View style={styles.bottomActions}>
-        {!showWrongAnswer && (
-          <Animated.View style={buttonAnimatedStyle}>
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={!input || (showResult && isCorrect)}
-              activeOpacity={0.8}
-              onPressIn={() => {
-                buttonScale.value = withSpring(0.95);
-              }}
-              onPressOut={() => {
-                buttonScale.value = withSpring(1);
-              }}
-              style={[
-                styles.checkButton,
-                (!input || (showResult && isCorrect)) && styles.checkButtonDisabled,
-              ]}
-            >
+          {/* Check Button - Always visible */}
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={!hasInput || (showResult && isCorrect)}
+            activeOpacity={0.8}
+            onPressIn={() => {
+              checkButtonScale.value = withSpring(0.95);
+            }}
+            onPressOut={() => {
+              checkButtonScale.value = withSpring(1);
+            }}
+            style={styles.checkButtonContainer}
+          >
+            <Animated.View style={[styles.checkButton, checkButtonAnimatedStyle]}>
               <LinearGradient
                 colors={
-                  !input || (showResult && isCorrect)
-                    ? [colors.background.elevated, colors.background.card]
-                    : colors.gradients.primary
+                  hasInput && !showResult
+                    ? colors.gradients.success
+                    : [colors.background.elevated, colors.background.card]
                 }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
                 style={styles.checkButtonGradient}
               >
-                {showResult && isCorrect && (
-                  <Ionicons name="checkmark" size={20} color={colors.text.primary} />
-                )}
-                <Text
-                  style={[
-                    styles.checkButtonText,
-                    (!input || (showResult && isCorrect)) && styles.checkButtonTextDisabled,
-                  ]}
-                >
-                  {showResult && isCorrect ? 'Correct!' : 'Check'}
-                </Text>
+                <Ionicons
+                  name={showResult && isCorrect ? 'checkmark' : 'arrow-forward'}
+                  size={24}
+                  color={hasInput && !showResult ? colors.text.primary : colors.text.tertiary}
+                />
               </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
-        )}
+            </Animated.View>
+          </TouchableOpacity>
+        </View>
 
         {/* Skip Button */}
         {!showResult && onSkip && (
@@ -269,12 +310,12 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
             activeOpacity={0.7}
             style={styles.skipButton}
           >
-            <Text style={styles.skipButtonText}>Skip this word</Text>
+            <Text style={styles.skipText}>Skip this word</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </Animated.View>
 
-      {/* Overlays */}
+      {/* Overlays for wrong answer */}
       <DarkOverlay visible={showWrongAnswer} opacity={0.3} />
       <AnswerFeedbackOverlay
         visible={showWrongAnswer}
@@ -283,153 +324,276 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
         correctAnswer={item.word}
         onContinue={handleContinue}
       />
-    </KeyboardAvoidingView>
+
+      {/* Success Celebration Overlay - Duolingo style */}
+      {showSuccessCelebration && (
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(200)}
+          style={styles.successOverlay}
+        >
+          {/* Success Card */}
+          <Animated.View
+            entering={ZoomIn.duration(300).springify()}
+            style={styles.successCard}
+          >
+            {/* Big Checkmark */}
+            <Animated.View
+              entering={ZoomIn.duration(400).delay(100).springify()}
+              style={styles.successIconContainer}
+            >
+              <LinearGradient
+                colors={colors.gradients.success}
+                style={styles.successIconGradient}
+              >
+                <Ionicons name="checkmark" size={48} color={colors.text.primary} />
+              </LinearGradient>
+            </Animated.View>
+
+            {/* Celebration Text */}
+            <Animated.Text
+              entering={FadeInUp.duration(300).delay(200)}
+              style={styles.successTitle}
+            >
+              Excellent!
+            </Animated.Text>
+
+            <Animated.Text
+              entering={FadeInUp.duration(300).delay(300)}
+              style={styles.successSubtitle}
+            >
+              You spelled it correctly
+            </Animated.Text>
+
+            {/* Word Display */}
+            <Animated.View
+              entering={FadeInUp.duration(300).delay(400)}
+              style={styles.successWordContainer}
+            >
+              <Text style={styles.successWord}>{item.word}</Text>
+            </Animated.View>
+          </Animated.View>
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background.primary,
   },
-  categoryContainer: {
-    alignItems: 'center',
-    paddingTop: spacing.md,
-    marginBottom: spacing.md,
-  },
+
+  // Category Badge - Top Right (top is set dynamically with insets)
   categoryBadge: {
-    backgroundColor: colors.background.elevated,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-    borderColor: colors.border.light,
+    position: 'absolute',
+    right: spacing.lg,
+    zIndex: 100,
+  },
+  categoryGradient: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
   },
   categoryText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.secondary,
-  },
-  contentArea: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  questionHeader: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  questionHeaderInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.xl,
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    ...shadows.sm,
-  },
-  questionText: {
-    fontSize: typography.fontSize.lg,
+    fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
+    letterSpacing: 0.5,
   },
-  translationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.md,
+
+  // Content Area (paddingTop is set dynamically with insets)
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    justifyContent: 'flex-start',
   },
-  translationQuotes: {
-    fontSize: typography.fontSize['3xl'],
-    color: colors.text.tertiary,
-    fontWeight: typography.fontWeight.normal,
-    marginTop: -8,
-  },
-  translation: {
+
+  // H2 Question Heading - Clean
+  questionHeading: {
     fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.secondary,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
     textAlign: 'center',
-    fontStyle: 'italic',
-    marginHorizontal: spacing.sm,
+    marginBottom: spacing.xl,
   },
-  inputSection: {
-    position: 'relative',
+
+  // Hero Image Container - Square ratio to show full faces
+  imageContainer: {
+    width: '100%',
+    aspectRatio: 1, // Square to show more of the image/face
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    backgroundColor: colors.background.card,
+    ...shadows.lg,
   },
-  hintButton: {
-    position: 'absolute',
-    right: 8,
-    top: -48,
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.background.elevated,
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    zIndex: 10,
+    backgroundColor: colors.background.elevated,
   },
-  inputWrapper: {
-    width: '100%',
+  placeholderEmoji: {
+    fontSize: 80,
+    opacity: 0.8,
   },
-  input: {
-    backgroundColor: colors.background.card,
+
+  // Word Overlay on Image
+  wordOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  wordOverlayGradient: {
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.xl,
+    alignItems: 'center',
+  },
+  overlayWord: {
+    fontSize: typography.fontSize['3xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  overlayPhonetic: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+  },
+
+  // Character hint
+  charHint: {
+    textAlign: 'center',
+    marginTop: spacing.lg,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+  },
+
+  // Bottom Input Area
+  bottomInputArea: {
+    backgroundColor: colors.background.primary,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+
+  // Input Row
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  inputWrapper: {
+    flex: 1,
+    position: 'relative',
+  },
+  textInput: {
+    backgroundColor: colors.background.card,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingRight: spacing['3xl'],
+    borderRadius: borderRadius.lg,
     fontSize: typography.fontSize.lg,
     color: colors.text.primary,
     borderWidth: 2,
-    textAlign: 'center',
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
+    borderColor: colors.border.light,
   },
-  charHint: {
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
+  hintButtonInline: {
+    position: 'absolute',
+    right: spacing.md,
+    top: '50%',
+    transform: [{ translateY: -10 }],
+    padding: spacing.xs,
   },
-  bottomActions: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
-    paddingTop: spacing.md,
+
+  // Check Button
+  checkButtonContainer: {
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
   },
   checkButton: {
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
     ...shadows.md,
-    marginBottom: spacing.sm,
-  },
-  checkButtonDisabled: {
-    opacity: 0.7,
   },
   checkButtonGradient: {
-    flexDirection: 'row',
+    width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing['2xl'],
-    gap: spacing.sm,
+    borderRadius: borderRadius.lg,
   },
-  checkButtonText: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-  },
-  checkButtonTextDisabled: {
-    color: colors.text.tertiary,
-  },
+
+  // Skip Button
   skipButton: {
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
   },
-  skipButtonText: {
+  skipText: {
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
     fontWeight: typography.fontWeight.medium,
+  },
+
+  // Success Celebration Overlay - Duolingo style
+  successOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)', // Success green tint
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 200,
+  },
+  successCard: {
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing['2xl'],
+    alignItems: 'center',
+    marginHorizontal: spacing.xl,
+    borderWidth: 2,
+    borderColor: colors.success.DEFAULT,
+    ...shadows.lg,
+  },
+  successIconContainer: {
+    marginBottom: spacing.lg,
+  },
+  successIconGradient: {
+    width: 96,
+    height: 96,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successTitle: {
+    fontSize: typography.fontSize['3xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.success.DEFAULT,
+    marginBottom: spacing.xs,
+  },
+  successSubtitle: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    marginBottom: spacing.lg,
+  },
+  successWordContainer: {
+    backgroundColor: colors.success.DEFAULT + '20',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  successWord: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.success.DEFAULT,
+    letterSpacing: 1,
   },
 });
