@@ -223,7 +223,8 @@ export async function createPersonalizedPath(
         generatedPath = generateFallbackPath(
           pathInput.motivation,
           pathInput.target_language,
-          pathInput.proficiency_level
+          pathInput.proficiency_level,
+          pathInput.timeline
         );
       }
     }
@@ -385,6 +386,34 @@ function transformOnboardingToInput(
 }
 
 // ============================================================================
+// STAIR COUNT CALCULATION
+// ============================================================================
+
+/**
+ * Derives the optimal stair count from user timeline + proficiency.
+ * Returns a count between 4 and 10, with the last stair reserved for recalibration.
+ */
+export function calculateStairCount(
+  timeline: '1_month' | '3_months' | '6_months' | '1_year',
+  proficiency: 'beginner' | 'elementary' | 'intermediate' | 'advanced'
+): number {
+  const isAdvanced = proficiency === 'intermediate' || proficiency === 'advanced';
+
+  switch (timeline) {
+    case '1_month':
+      return isAdvanced ? 5 : 4;
+    case '3_months':
+      return isAdvanced ? 7 : 6;
+    case '6_months':
+      return 8;
+    case '1_year':
+      return 10;
+    default:
+      return 6;
+  }
+}
+
+// ============================================================================
 // AI GENERATION - TWO PHASE APPROACH
 // ============================================================================
 
@@ -454,7 +483,12 @@ async function generatePathSkeleton(input: PathGenerationInput): Promise<PathSke
     },
   });
 
-  const prompt = generatePathSkeletonPrompt(input);
+  const stairCount = calculateStairCount(
+    input.timeline as '1_month' | '3_months' | '6_months' | '1_year',
+    input.proficiency_level as 'beginner' | 'elementary' | 'intermediate' | 'advanced'
+  );
+
+  const prompt = generatePathSkeletonPrompt(input, undefined, stairCount);
   const result = await model.generateContent(prompt);
   const text = result.response.text();
 
@@ -462,9 +496,9 @@ async function generatePathSkeleton(input: PathGenerationInput): Promise<PathSke
 
   const skeleton = extractJSON<PathSkeleton>(text);
 
-  // Validate skeleton has 8 stairs
-  if (!skeleton.stairs || skeleton.stairs.length < 8) {
-    throw new Error('Skeleton must have at least 8 stairs');
+  // Validate skeleton has minimum stairs (flexible: 4-12)
+  if (!skeleton.stairs || skeleton.stairs.length < 4) {
+    throw new Error('Skeleton must have at least 4 stairs');
   }
 
   console.log('[PathGeneration] Skeleton validated:', skeleton.path_title);
@@ -585,16 +619,36 @@ async function generateLearningPath(input: PathGenerationInput): Promise<Generat
     }
   });
 
+  // Ensure last stair is a recalibration stair
+  const lastStair = stairs[stairs.length - 1];
+  if (!lastStair.is_recalibration) {
+    stairs.push({
+      order: stairs.length + 1,
+      title: 'Recalibration & Review',
+      emoji: '🔄',
+      description: 'Review everything you\'ve learned and assess your progress to plan your next steps.',
+      vocabulary: [],
+      grammar_points: ['Review all grammar from previous stairs'],
+      scenarios: [],
+      skills_required: stairs.map(s => s.title),
+      skills_unlocked: ['Self-assessment', 'Path adaptation'],
+      estimated_days: 3,
+      content_loaded: false,
+      is_recalibration: true,
+    });
+  }
+
   const generatedPath: GeneratedPath = {
     path_title: skeleton.path_title,
     path_description: skeleton.path_description,
-    total_stairs: skeleton.total_stairs,
+    total_stairs: stairs.length,
     estimated_completion: skeleton.estimated_completion,
     stairs,
   };
 
   console.log('[PathGeneration] Two-phase generation complete!');
   console.log('[PathGeneration] - Path:', generatedPath.path_title);
+  console.log('[PathGeneration] - Total stairs (incl. recalibration):', stairs.length);
   console.log('[PathGeneration] - First stair vocab:', firstStairContent.vocabulary.length, 'items');
 
   return generatedPath;
@@ -646,16 +700,19 @@ export async function loadStairContentOnDemand(
  * even if AI generation fails.
  *
  * Now uses skeleton approach: only first stair has full content.
+ * Stair count is derived from timeline + proficiency, with recalibration at end.
  *
  * @param motivation - User's primary motivation (career, travel, etc.)
  * @param targetLanguage - Target language being learned
  * @param proficiencyLevel - User's proficiency level
+ * @param timeline - User's timeline (optional, defaults to 3_months)
  * @returns GeneratedPath using template structure
  */
 function generateFallbackPath(
   motivation: string,
   targetLanguage: string,
-  proficiencyLevel: string
+  proficiencyLevel: string,
+  timeline: string = '3_months'
 ): GeneratedPath {
   console.log('[PathGeneration] Generating fallback path from template (skeleton approach)');
 
@@ -663,8 +720,18 @@ function generateFallbackPath(
   const templateKey = motivation as keyof typeof PATH_TEMPLATES;
   const template = PATH_TEMPLATES[templateKey] || PATH_TEMPLATES.travel;
 
+  // Calculate stair count based on timeline + proficiency
+  const stairCount = calculateStairCount(
+    timeline as '1_month' | '3_months' | '6_months' | '1_year',
+    proficiencyLevel as 'beginner' | 'elementary' | 'intermediate' | 'advanced'
+  );
+
+  // Trim template progression to fit stair count (minus 1 for recalibration)
+  const contentStairCount = stairCount - 1;
+  const progression = template.stairProgression.slice(0, contentStairCount);
+
   // Create stairs from template - only first stair gets full content
-  const stairs: GeneratedStair[] = template.stairProgression.map((title, index) => {
+  const stairs: GeneratedStair[] = progression.map((title, index) => {
     const isFirstStair = index === 0;
 
     return {
@@ -672,14 +739,12 @@ function generateFallbackPath(
       title,
       emoji: getStairEmoji(index),
       description: `Build your skills in ${title.toLowerCase()}`,
-      // Only first stair gets vocabulary - others load on-demand
       vocabulary: isFirstStair ? generateBasicVocabulary(title, 12) : [],
       grammar_points: [
         'Basic sentence structure',
         'Common verb conjugations',
         'Question formation',
       ],
-      // Only first stair gets scenarios - others load on-demand
       scenarios: isFirstStair ? [
         {
           title: `Practice ${title}`,
@@ -694,12 +759,27 @@ function generateFallbackPath(
           key_phrases: ['How are you?', 'Nice to meet you', 'See you later'],
         },
       ] : [],
-      skills_required: index === 0 ? [] : [`Skills from ${template.stairProgression[index - 1]}`],
+      skills_required: index === 0 ? [] : [`Skills from ${progression[index - 1]}`],
       skills_unlocked: [`${title} mastery`],
       estimated_days: 7,
-      // Flag for skeleton stairs that need content loaded
       ...(isFirstStair ? {} : { content_loaded: false }),
     } as GeneratedStair;
+  });
+
+  // Add recalibration stair at the end
+  stairs.push({
+    order: stairs.length + 1,
+    title: 'Recalibration & Review',
+    emoji: '🔄',
+    description: 'Review everything you\'ve learned and assess your progress to plan your next steps.',
+    vocabulary: [],
+    grammar_points: ['Review all grammar from previous stairs'],
+    scenarios: [],
+    skills_required: progression.map(t => `${t} mastery`),
+    skills_unlocked: ['Self-assessment', 'Path adaptation'],
+    estimated_days: 3,
+    content_loaded: false,
+    is_recalibration: true,
   });
 
   return {

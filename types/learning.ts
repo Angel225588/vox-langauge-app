@@ -63,6 +63,8 @@ export interface GeneratedStair {
   estimated_days: number;
   /** Flag indicating if detailed content has been loaded (skeleton stairs start with false) */
   content_loaded?: boolean;
+  /** Flag indicating this is a recalibration/review stair */
+  is_recalibration?: boolean;
 }
 
 // ============================================================================

@@ -79,15 +79,15 @@ export async function createLearningPath(
       .eq('is_active', true);
 
     // Create the new staircase
-    // NOTE: Database constraint requires total_stairs BETWEEN 8 AND 12
+    // NOTE: Database constraint requires total_stairs BETWEEN 4 AND 12
     const { data, error } = await supabase
       .from('user_staircases')
       .insert({
         user_id: userId,
         is_active: true,
         version: 1,
-        total_stairs: 8, // Minimum required by database constraint (8-12)
-        estimated_completion_days: 56, // ~8 weeks default
+        total_stairs: 6, // Default; updated after AI generation (constraint: 4-12)
+        estimated_completion_days: 42, // ~6 weeks default, updated after generation
         generation_parameters: {
           title: pathData.title,
           description: pathData.description,

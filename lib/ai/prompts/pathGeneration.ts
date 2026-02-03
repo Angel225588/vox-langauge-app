@@ -107,10 +107,13 @@ export const PATH_TEMPLATES = {
  */
 export function generatePathSkeletonPrompt(
   input: PathGenerationInput,
-  userMemory?: UserAIMemory
+  userMemory?: UserAIMemory,
+  stairCount: number = 8
 ): string {
   const template = PATH_TEMPLATES[input.motivation as keyof typeof PATH_TEMPLATES];
   const hasMemory = !!userMemory;
+  // Content stairs = total minus recalibration stair at end
+  const contentStairs = stairCount - 1;
 
   return `You are an expert language learning curriculum designer using SCENARIO-BASED LEARNING methodology. Create a learning path SKELETON for a ${input.target_language} learner.
 
@@ -143,10 +146,7 @@ This ensures users can:
 - Never feel stuck learning only one narrow topic
 
 === VOCABULARY TIER GUIDELINES ===
-- Steps 1-2: Core 100 words + basic field vocabulary
-- Steps 3-4: Essential 500 words + intermediate field vocabulary
-- Steps 5-6: Fluent 1000 words + advanced field vocabulary
-- Steps 7-8: Advanced 2000 words + specialized field vocabulary
+Distribute vocabulary tiers across the ${contentStairs} content stairs proportionally.
 
 === SURVIVAL PHRASES (Include in every stair) ===
 Teach these clarification expressions naturally throughout:
@@ -157,14 +157,10 @@ Teach these clarification expressions naturally throughout:
 - "Do you know...?"
 
 === QUESTION PATTERNS ===
-Each stair should introduce question patterns the user needs:
-- Steps 1-2: "What is...?", "Where is...?", "Do you...?"
-- Steps 3-4: "How do I...?", "Can you...?", "Did you...?"
-- Steps 5-6: "Have you...?", "Would you...?", "Why do you...?"
-- Steps 7-8: Complex questions, hypotheticals, negotiations
+Each stair should introduce question patterns the user needs, progressing from simple to complex.
 
 ${template ? `SUGGESTED PROGRESSION (adapt to include universal + field mix):
-${template.stairProgression.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+${template.stairProgression.slice(0, contentStairs).map((s, i) => `${i + 1}. ${s}`).join('\n')}
 ` : ''}
 
 Create ONLY the structure - no vocabulary or detailed content yet.
@@ -173,8 +169,8 @@ OUTPUT FORMAT (JSON):
 {
   "path_title": "Motivating title",
   "path_description": "2-3 sentence description emphasizing real-world readiness",
-  "total_stairs": 8,
-  "estimated_completion": "3 months",
+  "total_stairs": ${stairCount},
+  "estimated_completion": "estimated time",
   "stairs": [
     {
       "order": 1,
@@ -190,8 +186,9 @@ OUTPUT FORMAT (JSON):
 }
 
 IMPORTANT:
-- Create exactly 8 stairs
-- Each stair MUST blend universal + field-specific content
+- Create exactly ${contentStairs} content stairs plus 1 final "Recalibration & Review" stair (${stairCount} total)
+- The LAST stair (order ${stairCount}) MUST be titled "Recalibration & Review" with emoji "🔄" - it reviews all previous material and assesses progress
+- Each content stair MUST blend universal + field-specific content
 - Include survival/clarification phrases naturally
 - Descriptions should mention BOTH everyday AND goal-specific skills
 - Skills should flow logically between stairs
@@ -1056,9 +1053,9 @@ export function validateGeneratedPath(path: any, requireFullContent = false): pa
     throw new Error('Path missing title or description');
   }
 
-  // Database constraint requires total_stairs BETWEEN 8 AND 12
-  if (!Array.isArray(path.stairs) || path.stairs.length < 8) {
-    throw new Error('Path must have at least 8 stairs (database constraint requires 8-12)');
+  // Database constraint requires total_stairs BETWEEN 4 AND 12
+  if (!Array.isArray(path.stairs) || path.stairs.length < 4) {
+    throw new Error('Path must have at least 4 stairs (database constraint requires 4-12)');
   }
 
   for (const stair of path.stairs) {
