@@ -27,6 +27,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { hasConsent, setConsent } from '@/lib/privacy/consentManager';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
 import { PostCallFeedbackScreen, MissionBriefingScreen } from '@/components/cards';
 import VoiceCallScreenElevenLabs, {
@@ -185,7 +186,25 @@ export default function VoiceConversationScreen() {
     setFlowState('goal'); // Go to goal page first
   };
 
-  const handleStartCall = () => {
+  const handleStartCall = async () => {
+    const consented = await hasConsent('voice_recording');
+    if (!consented) {
+      Alert.alert(
+        'Voice Recording Consent',
+        'Vox sends your voice to a third-party speech service (ElevenLabs) for real-time conversation. Your audio is processed in real-time and is not stored by Vox. Do you consent to voice recording for this session?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'I Consent',
+            onPress: async () => {
+              await setConsent('voice_recording', true);
+              setFlowState('call');
+            },
+          },
+        ]
+      );
+      return;
+    }
     setFlowState('call');
   };
 

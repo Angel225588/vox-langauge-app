@@ -1,6 +1,7 @@
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { ENV } from '@/lib/config/env';
 
 // Validate environment on import
@@ -11,9 +12,43 @@ if (!ENV.isSupabaseConfigured) {
   );
 }
 
+/**
+ * Secure Storage Adapter for Supabase Auth
+ *
+ * Uses expo-secure-store (Keychain on iOS, Keystore on Android) for
+ * encrypted token storage. Falls back to a no-op on web where
+ * SecureStore is unavailable.
+ */
+const SecureStoreAdapter = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (Platform.OS === 'web') return null;
+    try {
+      return await SecureStore.getItemAsync(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (Platform.OS === 'web') return;
+    try {
+      await SecureStore.setItemAsync(key, value);
+    } catch {
+      console.warn('[SecureStore] Failed to save item:', key);
+    }
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (Platform.OS === 'web') return;
+    try {
+      await SecureStore.deleteItemAsync(key);
+    } catch {
+      console.warn('[SecureStore] Failed to remove item:', key);
+    }
+  },
+};
+
 export const supabase = createClient(ENV.SUPABASE_URL, ENV.SUPABASE_ANON_KEY, {
   auth: {
-    storage: AsyncStorage,
+    storage: SecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +19,8 @@ import { getCEFRLevel, getFeatureAccess, ProficiencyLevel } from '@/lib/utils/le
 import { useAuth } from '@/hooks/useAuth';
 import { dbManager } from '@/lib/db/database';
 import { useLanguage } from '@/i18n/hooks/useLanguage';
+import { exportUserDataAsString } from '@/lib/privacy/dataExport';
+import { deleteAllUserData } from '@/lib/privacy/dataDelete';
 import { LANGUAGES_WITH_TRANSLATIONS, type SupportedLanguageCode } from '@/i18n/types';
 import { IdentityCard } from '@/components/profile/IdentityCard';
 import { CompetencyDashboard } from '@/components/profile/CompetencyDashboard';
@@ -104,6 +106,53 @@ export default function ProfileScreen() {
               Alert.alert('Error', t('profile.unexpected_error'));
             }
           }
+        },
+      ]
+    );
+  };
+
+  const handleExportData = async () => {
+    if (!user?.id) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const json = await exportUserDataAsString(user.id);
+      await Share.share({
+        message: json,
+        title: 'Vox Language — Your Data Export',
+      });
+    } catch (err) {
+      Alert.alert('Export Failed', 'Could not export your data. Please try again.');
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    if (!user?.id) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    Alert.alert(
+      'Delete All Data',
+      'This will permanently delete your account and all data — conversations, vocabulary, scores, and preferences. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Everything',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const result = await deleteAllUserData(user.id);
+              if (result.success) {
+                resetOnboarding();
+                await signOut();
+                router.replace('/');
+              } else {
+                Alert.alert(
+                  'Partial Deletion',
+                  `Some data could not be deleted: ${result.errors.join(', ')}. Please contact support.`
+                );
+              }
+            } catch {
+              Alert.alert('Error', 'Could not delete your data. Please try again.');
+            }
+          },
         },
       ]
     );
@@ -364,11 +413,13 @@ export default function ProfileScreen() {
                 iconName="shield-checkmark-outline"
                 label="Your Data"
                 value="Protected"
+                onPress={() => router.push('/privacy-dashboard')}
                 color={colors.success.DEFAULT}
               />
               <SettingRow
                 iconName="download-outline"
                 label="Export Data"
+                onPress={handleExportData}
                 color={colors.primary.DEFAULT}
               />
               <SettingRow
@@ -380,6 +431,7 @@ export default function ProfileScreen() {
               <SettingRow
                 iconName="trash-outline"
                 label="Delete Account"
+                onPress={handleDeleteAccount}
                 danger
                 isLast
               />
