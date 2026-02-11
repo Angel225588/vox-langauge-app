@@ -350,23 +350,30 @@ export interface VoiceScenario {
   id: string;
   title: string;
   description: string;
-  language: SupportedLanguage;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  category: 'travel' | 'food' | 'shopping' | 'social' | 'professional' | 'emergency';
-  /** Character for this scenario */
-  characterId: string;
   /** Context for the AI */
   context: string;
-  /** User's role description */
-  userRole: string;
   /** AI's role description */
   aiRole: string;
   /** Learning objectives */
   objectives: string[];
+  // Optional fields (used by specific providers or generated scenarios)
+  language?: SupportedLanguage;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  category?: 'travel' | 'food' | 'shopping' | 'social' | 'professional' | 'emergency';
+  /** Character for this scenario (Gemini path) */
+  characterId?: string;
+  /** User's role description */
+  userRole?: string;
   /** Suggested phrases to use */
-  suggestedPhrases: string[];
-  /** System prompt template for AI */
-  systemPromptTemplate: string;
+  suggestedPhrases?: string[];
+  /** System prompt template for AI (Gemini path) */
+  systemPromptTemplate?: string;
+  /** Key vocabulary for this scenario (from scenario generator) */
+  keyVocabulary?: string[];
+  /** Suggested duration in seconds */
+  suggestedDuration?: number;
+  /** Stair step this scenario was generated for */
+  stairStepId?: string;
 }
 
 export interface ConversationMessage {
