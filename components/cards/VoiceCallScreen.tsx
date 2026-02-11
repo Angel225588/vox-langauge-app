@@ -45,6 +45,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, borderRadius, spacing, typography } from '@/constants/designSystem';
 import { LottieSuccess, LottieError } from '@/components/animations';
+import { TypeBadge } from '@/components/ui/TypeBadge';
 import { useHaptics } from '@/hooks/useHaptics';
 import useVoiceConversation, { ConversationState } from '@/hooks/useVoiceConversation';
 import {
@@ -269,9 +270,9 @@ const sphereStyles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: spacing.sm,
+    height: spacing.sm,
+    borderRadius: spacing.xs,
   },
   statusText: {
     fontSize: typography.fontSize.sm,
@@ -315,22 +316,22 @@ const CallButton: React.FC<CallButtonProps> = ({
     switch (variant) {
       case 'primary':
         return {
-          background: active ? colors.primary.DEFAULT : 'rgba(255, 255, 255, 0.12)',
-          iconColor: active ? '#FFFFFF' : colors.text.primary,
+          background: active ? colors.primary.DEFAULT : 'rgba(255, 255, 255, 0.12)', // translucent white for glass effect
+          iconColor: active ? colors.text.primary : colors.text.primary,
         };
       case 'secondary':
         return {
-          background: active ? colors.warning.DEFAULT : 'rgba(255, 255, 255, 0.12)',
-          iconColor: active ? '#FFFFFF' : colors.text.primary,
+          background: active ? colors.warning.DEFAULT : 'rgba(255, 255, 255, 0.12)', // translucent white for glass effect
+          iconColor: active ? colors.text.primary : colors.text.primary,
         };
       case 'destructive':
         return {
-          background: '#FF3B30', // Apple's red
-          iconColor: '#FFFFFF',
+          background: colors.error.DEFAULT,
+          iconColor: colors.text.primary,
         };
       default:
         return {
-          background: 'rgba(255, 255, 255, 0.12)',
+          background: 'rgba(255, 255, 255, 0.12)', // translucent white for glass effect
           iconColor: colors.text.primary,
         };
     }
@@ -410,13 +411,13 @@ const callButtonStyles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '50%',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderTopLeftRadius: 100,
-    borderTopRightRadius: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', // subtle glass highlight
+    borderTopLeftRadius: borderRadius.full,
+    borderTopRightRadius: borderRadius.full,
   },
   label: {
     fontSize: typography.fontSize.xs,
-    fontWeight: '500',
+    fontWeight: typography.fontWeight.medium,
     color: colors.text.secondary,
     textAlign: 'center',
   },
@@ -455,7 +456,7 @@ const messageStyles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
-    minHeight: 80,
+    minHeight: spacing['2xl'] + spacing.xl, // ~80
   },
   hint: {
     fontSize: typography.fontSize.base,
@@ -691,6 +692,9 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Type Badge - Top Right */}
+      <TypeBadge variant="custom" label="CONVERSATION" gradientColors={colors.gradients.primary} />
+
       {/* Result Animation Overlay */}
       {showResultAnimation && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.lottieOverlay}>
@@ -805,9 +809,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
   },
   liveIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: spacing.sm,
+    height: spacing.sm,
+    borderRadius: spacing.xs,
   },
   timerText: {
     fontSize: typography.fontSize.sm,
@@ -847,7 +851,7 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: '#FFFFFF',
+    color: colors.text.primary,
   },
   controlsRow: {
     flexDirection: 'row',
@@ -859,7 +863,7 @@ const styles = StyleSheet.create({
   // Overlay
   lottieOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.7)', // dark overlay for modal backdrop
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,

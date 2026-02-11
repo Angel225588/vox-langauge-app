@@ -25,6 +25,7 @@ import {
   animation,
 } from '@/constants/designSystem';
 import { ResultAnimation } from '@/components/ui';
+import { TypeBadge } from '@/components/ui/TypeBadge';
 import { LottieSuccess, LottieError } from '@/components/animations';
 import { useHaptics } from '@/hooks/useHaptics';
 
@@ -127,6 +128,7 @@ export const SentenceScrambleCard: React.FC<SentenceScrambleCardProps> = ({
 
   return (
     <View style={[styles.cardContainer, baseCardProps.style, { paddingTop: insets.top }]}>
+      <TypeBadge variant="sentence" />
       {showResultAnimation && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.lottieOverlay}>
           {showResultAnimation === 'success' ? <LottieSuccess /> : <LottieError />}
@@ -241,6 +243,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     minHeight: 500,
     justifyContent: 'flex-start',
+    position: 'relative',
     ...shadows.md,
   },
   header: {

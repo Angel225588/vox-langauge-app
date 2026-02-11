@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
 import { DarkOverlay, AnswerOption, AnswerFeedbackOverlay } from '@/components/ui';
+import { TypeBadge } from '@/components/ui/TypeBadge';
 import { useHaptics } from '@/hooks/useHaptics';
 
 interface FillInBlankCardProps {
@@ -100,6 +101,7 @@ export function FillInBlankCard({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <TypeBadge variant="grammar" />
       <DarkOverlay visible={showWrongAnswer} zIndex={1} />
 
       {/* Content Area */}
@@ -215,6 +217,7 @@ export function FillInBlankCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
   },
   contentArea: {
     flex: 1,

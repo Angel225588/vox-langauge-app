@@ -1,10 +1,10 @@
 /**
  * Your Commitment Screen
- * Step 4 of 6: Set your learning timeline
+ * Step 4 of 6: Set your learning timeline, practice time, and schedule
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Platform, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,13 +13,21 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
-import { useOnboardingV2, TIMELINES } from '@/hooks/useOnboardingV2';
+import { useOnboardingV2, TIMELINES, PRACTICE_TIME_OPTIONS, DAYS_PER_WEEK_OPTIONS, flushOnboardingState } from '@/hooks/useOnboardingV2';
 import { colors, spacing, borderRadius, shadows, typography } from '@/constants/designSystem';
 
 export default function YourCommitmentScreen() {
   const { data, updateData, nextStep } = useOnboardingV2();
   const { t } = useTranslation('onboarding');
   const [selectedTimeline, setSelectedTimeline] = useState<string | null>(data.timeline);
+  const [selectedPracticeTime, setSelectedPracticeTime] = useState<{ min: number; max: number } | null>(
+    data.min_practice_time && data.max_practice_time
+      ? { min: data.min_practice_time, max: data.max_practice_time }
+      : null
+  );
+  const [selectedDays, setSelectedDays] = useState<number | null>(data.days_per_week);
+  const [whyNow, setWhyNow] = useState(data.why_now || '');
+  const [isWhyNowFocused, setIsWhyNowFocused] = useState(false);
 
   const isValid = !!selectedTimeline;
 
@@ -28,21 +36,32 @@ export default function YourCommitmentScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (isValid) {
-      updateData({ timeline: selectedTimeline });
+      updateData({
+        timeline: selectedTimeline,
+        min_practice_time: selectedPracticeTime?.min ?? null,
+        max_practice_time: selectedPracticeTime?.max ?? null,
+        days_per_week: selectedDays,
+        why_now: whyNow.trim() || null,
+      });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       nextStep();
+      await flushOnboardingState();
       router.push('/(auth)/onboarding-v2/your-stakes');
     }
   };
 
   return (
     <CometBackground intensity="medium">
-      <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
         {/* Back Button */}
         <Animated.View
-          entering={FadeInDown.duration(400)}
+          entering={FadeInDown.duration(200)}
           style={styles.backButtonContainer}
         >
           <BackButton onPress={() => router.back()} />
@@ -50,7 +69,7 @@ export default function YourCommitmentScreen() {
 
         {/* Header */}
         <Animated.View
-          entering={FadeInDown.duration(600).springify()}
+          entering={FadeInDown.duration(300)}
           style={styles.header}
         >
           <Text style={styles.title}>{t('your_commitment.goal_question')}</Text>
@@ -59,63 +78,140 @@ export default function YourCommitmentScreen() {
           </Text>
         </Animated.View>
 
-        {/* Timeline Options */}
-        <View style={styles.timelinesContainer}>
-          {TIMELINES.map((timeline, index) => {
-            const isSelected = selectedTimeline === timeline.id;
+        {/* Scrollable Content */}
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.scrollAreaContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Timeline Options */}
+          <View style={styles.timelinesContainer}>
+            {TIMELINES.map((timeline, index) => {
+              const isSelected = selectedTimeline === timeline.id;
 
-            return (
-              <Animated.View
-                key={timeline.id}
-                entering={FadeInDown.duration(400).delay(200 + index * 100).springify()}
-              >
-                <TouchableOpacity
-                  onPress={() => handleTimelineSelect(timeline.id)}
-                  style={[
-                    styles.timelineCard,
-                    isSelected && styles.timelineCardSelected,
-                  ]}
-                  activeOpacity={0.8}
+              return (
+                <Animated.View
+                  key={timeline.id}
+                  entering={FadeInDown.duration(200).delay(100 + index * 50)}
                 >
-                  {isSelected && (
-                    <LinearGradient
-                      colors={['rgba(99, 102, 241, 0.15)', 'rgba(139, 92, 246, 0.1)']}
-                      style={StyleSheet.absoluteFill}
-                    />
-                  )}
-                  <View style={styles.timelineContent}>
-                    <Text style={styles.timelineEmoji}>{timeline.emoji}</Text>
-                    <View style={styles.timelineTextContainer}>
-                      <Text style={[
-                        styles.timelineLabel,
-                        isSelected && styles.timelineLabelSelected
-                      ]}>
-                        {timeline.label}
-                      </Text>
-                      <Text style={[
-                        styles.timelineDescription,
-                        isSelected && styles.timelineDescriptionSelected
-                      ]}>
-                        {timeline.description}
-                      </Text>
-                    </View>
+                  <TouchableOpacity
+                    onPress={() => handleTimelineSelect(timeline.id)}
+                    style={[
+                      styles.timelineCard,
+                      isSelected && styles.timelineCardSelected,
+                    ]}
+                    activeOpacity={0.8}
+                  >
                     {isSelected && (
-                      <View style={styles.checkBadge}>
-                        <Text style={styles.checkBadgeText}>✓</Text>
-                      </View>
+                      <LinearGradient
+                        colors={['rgba(0, 54, 255, 0.15)', 'rgba(0, 163, 255, 0.1)']}
+                        style={StyleSheet.absoluteFill}
+                      />
                     )}
-                  </View>
-                </TouchableOpacity>
-              </Animated.View>
-            );
-          })}
-        </View>
+                    <View style={styles.timelineContent}>
+                      <Text style={styles.timelineEmoji}>{timeline.emoji}</Text>
+                      <View style={styles.timelineTextContainer}>
+                        <Text style={[
+                          styles.timelineLabel,
+                          isSelected && styles.timelineLabelSelected
+                        ]}>
+                          {timeline.label}
+                        </Text>
+                        <Text style={[
+                          styles.timelineDescription,
+                          isSelected && styles.timelineDescriptionSelected
+                        ]}>
+                          {timeline.description}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <View style={styles.checkBadge}>
+                          <Text style={styles.checkBadgeText}>✓</Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })}
+          </View>
+
+          {/* Practice Time */}
+          <Animated.View entering={FadeInDown.duration(200).delay(350)}>
+            <Text style={styles.sectionLabel}>{t('your_commitment.practice_time_label')}</Text>
+            <View style={styles.practiceTimeGrid}>
+              {PRACTICE_TIME_OPTIONS.map((option, index) => {
+                const isSelected = selectedPracticeTime?.min === option.min && selectedPracticeTime?.max === option.max;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.practiceChip, isSelected && styles.practiceChipSelected]}
+                    onPress={() => {
+                      setSelectedPracticeTime(option);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.practiceChipText, isSelected && styles.practiceChipTextSelected]}>
+                      {option.label}
+                    </Text>
+                    <Text style={[styles.practiceChipDesc, isSelected && styles.practiceChipDescSelected]}>
+                      {option.description}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Animated.View>
+
+          {/* Days Per Week */}
+          <Animated.View entering={FadeInDown.duration(200).delay(400)}>
+            <Text style={styles.sectionLabel}>{t('your_commitment.days_label')}</Text>
+            <View style={styles.daysRow}>
+              {DAYS_PER_WEEK_OPTIONS.map((option, index) => {
+                const isSelected = selectedDays === option.days;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.dayChip, isSelected && styles.dayChipSelected]}
+                    onPress={() => {
+                      setSelectedDays(option.days);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.dayChipText, isSelected && styles.dayChipTextSelected]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Animated.View>
+
+          {/* Why Now (Optional) */}
+          <Animated.View entering={FadeInDown.duration(200).delay(450)}>
+            <Text style={styles.sectionLabel}>
+              {t('your_commitment.why_now_label')} <Text style={styles.optionalText}>{t('your_commitment.optional')}</Text>
+            </Text>
+            <TextInput
+              style={[styles.whyNowInput, isWhyNowFocused && styles.whyNowInputFocused]}
+              placeholder={t('your_commitment.why_now_placeholder')}
+              placeholderTextColor={colors.text.tertiary}
+              value={whyNow}
+              onChangeText={setWhyNow}
+              onFocus={() => setIsWhyNowFocused(true)}
+              onBlur={() => setIsWhyNowFocused(false)}
+              maxLength={300}
+            />
+          </Animated.View>
+        </ScrollView>
 
         {/* Fixed Bottom Section */}
         <View style={styles.footer}>
           {/* Progress Indicator - Dots */}
           <Animated.View
-            entering={FadeInUp.duration(600).delay(600).springify()}
+            entering={FadeInUp.duration(300).delay(300)}
             style={styles.progressContainer}
           >
             <View style={styles.dotsContainer}>
@@ -134,7 +230,7 @@ export default function YourCommitmentScreen() {
 
           {/* Continue Button */}
           <Animated.View
-            entering={FadeInUp.duration(600).delay(700).springify()}
+            entering={FadeInUp.duration(300).delay(350)}
           >
             <TouchableOpacity
               onPress={handleContinue}
@@ -159,14 +255,14 @@ export default function YourCommitmentScreen() {
               ) : (
                 <View style={styles.buttonDisabled}>
                   <Text style={styles.continueButtonTextDisabled}>
-                    Select a timeline
+                    {t('your_commitment.select_timeline')}
                   </Text>
                 </View>
               )}
             </TouchableOpacity>
           </Animated.View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </CometBackground>
   );
 }
@@ -181,7 +277,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   header: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   title: {
     fontSize: typography.fontSize['3xl'],
@@ -194,8 +290,13 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     lineHeight: typography.fontSize.base * 1.5,
   },
-  timelinesContainer: {
+  scrollArea: {
     flex: 1,
+  },
+  scrollAreaContent: {
+    paddingBottom: spacing.lg,
+  },
+  timelinesContainer: {
     gap: spacing.md,
   },
   timelineCard: {
@@ -249,6 +350,95 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
   },
+
+  // New sections
+  sectionLabel: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  optionalText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    fontWeight: typography.fontWeight.normal,
+  },
+  practiceTimeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  practiceChip: {
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    minWidth: '47%' as any,
+    alignItems: 'center',
+  },
+  practiceChipSelected: {
+    borderColor: colors.primary.DEFAULT,
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
+  },
+  practiceChipText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  practiceChipTextSelected: {
+    color: colors.primary.light,
+  },
+  practiceChipDesc: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    marginTop: 2,
+  },
+  practiceChipDescSelected: {
+    color: colors.text.secondary,
+  },
+  daysRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dayChip: {
+    flex: 1,
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  dayChipSelected: {
+    borderColor: colors.primary.DEFAULT,
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
+  },
+  dayChipText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+  },
+  dayChipTextSelected: {
+    color: colors.primary.light,
+  },
+  whyNowInput: {
+    backgroundColor: colors.background.card,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.primary,
+    minHeight: 44,
+  },
+  whyNowInputFocused: {
+    borderColor: colors.primary.DEFAULT,
+  },
+
+  // Footer
   footer: {
     paddingVertical: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? spacing['2xl'] : spacing.lg,

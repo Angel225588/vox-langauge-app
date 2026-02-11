@@ -183,7 +183,7 @@ export function PreSessionScreen({
           {/* Hero Section with Gradient + Passage Info */}
           <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.heroSection}>
             <LinearGradient
-              colors={['rgba(99, 102, 241, 0.15)', 'rgba(139, 92, 246, 0.25)', 'rgba(236, 72, 153, 0.1)']}
+              colors={['rgba(0, 54, 255, 0.15)', 'rgba(0, 163, 255, 0.25)', 'rgba(236, 72, 153, 0.1)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.heroGradient}
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: 'rgba(0, 54, 255, 0.2)',
   },
   heroDecorative: {
     ...StyleSheet.absoluteFillObject,
@@ -434,9 +434,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.25)',
+    borderColor: 'rgba(0, 54, 255, 0.25)',
     marginTop: spacing.sm,
   },
   changePassageText: {

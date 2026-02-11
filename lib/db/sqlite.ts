@@ -1,7 +1,8 @@
 import * as SQLite from 'expo-sqlite';
+import { DB_NAME } from './database';
 
-// Open database
-export const db = SQLite.openDatabaseSync('vox-language.db');
+// Open database — uses the same DB_NAME as DatabaseManager to avoid split-brain
+export const db = SQLite.openDatabaseSync(DB_NAME);
 
 /**
  * Initialize local SQLite database for offline support

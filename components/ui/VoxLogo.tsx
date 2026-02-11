@@ -31,6 +31,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 import { brandColors, logoDimensions } from '@/constants/branding';
+import { colors } from '@/constants/designSystem';
 
 // ============================================================================
 // CONFIGURATION
@@ -146,7 +147,7 @@ function CrystalPlaceholder({ size, animated }: { size: number; animated?: boole
   return (
     <Animated.View style={animated ? animatedStyle : undefined}>
       <LinearGradient
-        colors={['#6366F1', '#8B5CF6']}
+        colors={colors.gradients.primary}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[
@@ -188,7 +189,7 @@ function CrystalPlaceholder({ size, animated }: { size: number; animated?: boole
 function WordmarkPlaceholder({ width, height }: { width: number; height: number }) {
   return (
     <LinearGradient
-      colors={['#6366F1', '#8B5CF6']}
+      colors={colors.gradients.primary}
       start={{ x: 0, y: 0.5 }}
       end={{ x: 1, y: 0.5 }}
       style={{

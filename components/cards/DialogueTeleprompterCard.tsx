@@ -71,9 +71,9 @@ interface DialogueTeleprompterCardProps {
 
 // Font size configurations
 const FONT_SIZES: Record<FontSizeOption, { fontSize: number; lineHeight: number }> = {
-  small: { fontSize: 22, lineHeight: 36 },
-  medium: { fontSize: 28, lineHeight: 46 },
-  large: { fontSize: 34, lineHeight: 56 },
+  small: { fontSize: typography.fontSize.xl, lineHeight: typography.fontSize.xl * 1.6 },
+  medium: { fontSize: typography.fontSize['2xl'] + 4, lineHeight: (typography.fontSize['2xl'] + 4) * 1.6 },
+  large: { fontSize: typography.fontSize['3xl'] + 4, lineHeight: (typography.fontSize['3xl'] + 4) * 1.6 },
 };
 
 // WPM range
@@ -401,7 +401,7 @@ export function DialogueTeleprompterCard({
           </Text>
           {isUserLine && mode === 'record' && (
             <View style={styles.yourTurnBadge}>
-              <Ionicons name="mic" size={10} color="#FFF" />
+              <Ionicons name="mic" size={10} color={colors.text.primary} />
             </View>
           )}
         </View>
@@ -465,12 +465,12 @@ export function DialogueTeleprompterCard({
 
           {/* Gradient overlays */}
           <LinearGradient
-            colors={['#000000', 'transparent']}
+            colors={[colors.background.primary, 'transparent']}
             style={[styles.fadeOverlay, styles.fadeTop, { height: READING_ZONE_TOP * 0.7 }]}
             pointerEvents="none"
           />
           <LinearGradient
-            colors={['transparent', '#000000']}
+            colors={['transparent', colors.background.primary]}
             style={[styles.fadeOverlay, styles.fadeBottom]}
             pointerEvents="none"
           />
@@ -582,7 +582,7 @@ export function DialogueTeleprompterCard({
                 <Ionicons
                   name={mode === 'record' ? 'mic' : 'play'}
                   size={26}
-                  color="#FFFFFF"
+                  color={colors.text.primary}
                 />
               </TouchableOpacity>
             </>
@@ -624,7 +624,7 @@ export function DialogueTeleprompterCard({
                 <Ionicons
                   name={isPlaying ? 'pause' : 'play'}
                   size={28}
-                  color="#FFFFFF"
+                  color={colors.text.primary}
                 />
               </TouchableOpacity>
 
@@ -646,7 +646,7 @@ export function DialogueTeleprompterCard({
                 style={[styles.controlButton, styles.stopButtonSmall]}
                 accessibilityLabel="Finish"
               >
-                <Ionicons name="stop" size={22} color="#EF4444" />
+                <Ionicons name="stop" size={22} color={colors.error.DEFAULT} />
               </TouchableOpacity>
             </>
           )}
@@ -657,7 +657,7 @@ export function DialogueTeleprompterCard({
           <View style={styles.modeIndicator}>
             <View style={[
               styles.modeIndicatorDot,
-              { backgroundColor: mode === 'record' ? '#EF4444' : colors.primary.DEFAULT },
+              { backgroundColor: mode === 'record' ? colors.error.DEFAULT : colors.primary.DEFAULT },
               isTTSSpeaking && styles.modeIndicatorDotPulsing,
             ]} />
             <Text style={styles.modeIndicatorText}>
@@ -685,7 +685,7 @@ export function DialogueTeleprompterCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: colors.background.primary,
   },
 
   // Header
@@ -710,16 +710,16 @@ const styles = StyleSheet.create({
   roleChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(40, 40, 40, 0.9)',
+    backgroundColor: colors.background.elevated + 'E6', // 90% opacity
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
     gap: spacing.xs,
   },
   roleDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: spacing.sm,
+    height: spacing.sm,
+    borderRadius: borderRadius.full,
   },
   roleText: {
     fontSize: typography.fontSize.xs,
@@ -736,13 +736,13 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 2,
+    borderRadius: 2, // Intentionally tiny for thin progress bar
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: colors.primary.DEFAULT,
-    borderRadius: 2,
+    borderRadius: 2, // Intentionally tiny for thin progress bar
   },
   lineIndicator: {
     fontSize: typography.fontSize.xs,
@@ -781,10 +781,10 @@ const styles = StyleSheet.create({
   yourTurnBadge: {
     backgroundColor: colors.primary.DEFAULT,
     borderRadius: borderRadius.sm,
-    padding: 2,
+    padding: 2, // Intentionally tiny for mic icon badge
   },
   dialogueText: {
-    fontWeight: '400',
+    fontWeight: typography.fontWeight.normal,
     paddingLeft: spacing.sm + 3, // Align with border
   },
 
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
   speedSliderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(40, 40, 40, 0.95)',
+    backgroundColor: colors.background.elevated + 'F2', // 95% opacity
     borderRadius: borderRadius.lg,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -839,13 +839,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     height: 28,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
   },
   tick: {
     width: 1,
-    height: 8,
+    height: spacing.sm,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 0.5,
+    borderRadius: 1, // Intentionally tiny for 1px tick marks
   },
   tickCenter: {
     height: 14,
@@ -857,10 +857,10 @@ const styles = StyleSheet.create({
   },
   speedKnob: {
     position: 'absolute',
-    width: 4,
+    width: spacing.xs,
     height: 22,
-    backgroundColor: '#FF9500',
-    borderRadius: 2,
+    backgroundColor: colors.accent.orange,
+    borderRadius: 2, // Intentionally tiny for narrow knob
     marginLeft: -2,
     top: 3,
   },
@@ -893,38 +893,38 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(60, 60, 60, 0.9)',
+    backgroundColor: colors.background.card + 'E6', // 90% opacity
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   // Font size button
   fontSizeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
     color: colors.text.primary,
   },
   fontSizeBadge: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
+    bottom: spacing.xs,
+    right: spacing.xs,
     backgroundColor: colors.primary.DEFAULT,
-    borderRadius: 6,
+    borderRadius: borderRadius.sm,
     width: 14,
     height: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
   fontSizeBadgeText: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: 8, // Intentionally tiny for badge inside 14x14 container
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
   },
 
   // Mode toggle
   modeToggle: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(60, 60, 60, 0.9)',
+    backgroundColor: colors.background.card + 'E6', // 90% opacity
     borderRadius: borderRadius.full,
     padding: 3,
   },
@@ -939,7 +939,7 @@ const styles = StyleSheet.create({
   modeText: {
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
-    fontWeight: '500',
+    fontWeight: typography.fontWeight.medium,
   },
   modeTextActive: {
     color: colors.text.primary,
@@ -949,7 +949,7 @@ const styles = StyleSheet.create({
   startButton: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: borderRadius['2xl'],
     backgroundColor: colors.primary.DEFAULT,
     justifyContent: 'center',
     alignItems: 'center',
@@ -960,16 +960,16 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   startButtonRecord: {
-    backgroundColor: '#EF4444',
-    shadowColor: '#EF4444',
+    backgroundColor: colors.error.DEFAULT,
+    shadowColor: colors.error.DEFAULT,
   },
 
   // Play/Pause button (during playback)
   playPauseButton: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(100, 100, 100, 0.9)',
+    borderRadius: borderRadius['2xl'],
+    backgroundColor: colors.background.elevated + 'E6', // 90% opacity
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -980,7 +980,7 @@ const styles = StyleSheet.create({
   // Stop button small
   stopButtonSmall: {
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: colors.error.DEFAULT + '4D', // 30% opacity
   },
 
   // Mode indicator
@@ -994,7 +994,7 @@ const styles = StyleSheet.create({
   modeIndicatorDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: borderRadius.full,
   },
   modeIndicatorDotPulsing: {
     shadowColor: colors.primary.DEFAULT,
@@ -1006,7 +1006,7 @@ const styles = StyleSheet.create({
   modeIndicatorText: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
-    fontWeight: '500',
+    fontWeight: typography.fontWeight.medium,
   },
 
   // Warning banner
@@ -1017,7 +1017,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
-    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    backgroundColor: colors.warning.DEFAULT + '1A', // 10% opacity
     borderRadius: borderRadius.md,
   },
   warningText: {

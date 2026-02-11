@@ -16,6 +16,7 @@ import * as Speech from 'expo-speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, borderRadius, spacing, shadows, typography } from '@/constants/designSystem';
 import { ResultAnimation } from '@/components/ui';
+import { TypeBadge } from '@/components/ui/TypeBadge';
 import { LottieSuccess, LottieError } from '@/components/animations';
 import { useHaptics } from '@/hooks/useHaptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -291,6 +292,7 @@ export const RolePlayCard: React.FC<RolePlayCardProps> = ({
 
   return (
     <View style={styles.container}>
+      <TypeBadge variant="role-play" />
       {showResultAnimation && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.lottieOverlay}>
           {showResultAnimation === 'success' ? <LottieSuccess /> : <LottieError />}
@@ -416,6 +418,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
+    position: 'relative',
   },
   header: {
     flexDirection: 'row',

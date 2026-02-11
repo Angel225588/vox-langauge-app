@@ -32,7 +32,7 @@ const CATEGORY_GRADIENTS: Record<number, string[]> = {
   1: colors.gradients.secondary,    // Teal to turquoise
   2: colors.gradients.accent,       // Pink
   3: colors.gradients.warning,      // Amber
-  4: ['#8B5CF6', '#EC4899'],       // Purple to pink
+  4: ['#00A3FF', '#EC4899'],       // Blue to pink
   5: ['#06B6D4', '#3B82F6'],       // Cyan to blue
   6: ['#F59E0B', '#F97316'],       // Amber to orange
   7: ['#10B981', '#06D6A0'],       // Green to teal

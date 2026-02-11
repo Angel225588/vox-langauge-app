@@ -133,7 +133,7 @@ export function CalibratorBanner({
         <LinearGradient
           colors={
             status === 'ready'
-              ? ['#4F46E5', '#7C3AED', '#8B5CF6']
+              ? ['#0029CC', '#0036FF', '#3D6BFF']
               : status === 'completed'
                 ? ['#059669', '#10B981', '#34D399']
                 : ['#374151', '#4B5563', '#6B7280']

@@ -30,6 +30,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
+import { TypeBadge } from '@/components/ui/TypeBadge';
 import { useAudioRecording, type Passage } from '@/lib/reading';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -55,9 +56,9 @@ interface TeleprompterCardProps {
 
 // Font size configurations
 const FONT_SIZES: Record<FontSizeOption, { fontSize: number; lineHeight: number }> = {
-  small: { fontSize: 24, lineHeight: 38 },
-  medium: { fontSize: 32, lineHeight: 51 },
-  large: { fontSize: 40, lineHeight: 64 },
+  small: { fontSize: typography.fontSize['2xl'], lineHeight: typography.fontSize['2xl'] * 1.6 },
+  medium: { fontSize: typography.fontSize['3xl'], lineHeight: typography.fontSize['3xl'] * 1.6 },
+  large: { fontSize: typography.fontSize['4xl'] + 4, lineHeight: (typography.fontSize['4xl'] + 4) * 1.6 },
 };
 
 // WPM range
@@ -272,6 +273,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
 
   return (
     <View style={styles.container}>
+      <TypeBadge variant="reading" />
       <StatusBar barStyle="light-content" hidden={hasStarted} />
 
       {/* Progress Bar (top) - only during playback */}
@@ -299,12 +301,12 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
 
           {/* Gradient overlays */}
           <LinearGradient
-            colors={['#000000', 'transparent']}
+            colors={[colors.background.primary, 'transparent']}
             style={[styles.fadeOverlay, styles.fadeTop, { height: READING_ZONE_TOP * 0.7 }]}
             pointerEvents="none"
           />
           <LinearGradient
-            colors={['transparent', '#000000']}
+            colors={['transparent', colors.background.primary]}
             style={[styles.fadeOverlay, styles.fadeBottom]}
             pointerEvents="none"
           />
@@ -417,7 +419,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
                 <Ionicons
                   name={mode === 'record' ? 'mic' : 'play'}
                   size={26}
-                  color="#FFFFFF"
+                  color={colors.text.primary}
                 />
               </TouchableOpacity>
             </>
@@ -459,7 +461,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
                 <Ionicons
                   name={isPlaying ? 'pause' : 'play'}
                   size={28}
-                  color="#FFFFFF"
+                  color={colors.text.primary}
                 />
               </TouchableOpacity>
 
@@ -481,7 +483,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
                 style={[styles.controlButton, styles.stopButtonSmall]}
                 accessibilityLabel="Finish"
               >
-                <Ionicons name="stop" size={22} color="#EF4444" />
+                <Ionicons name="stop" size={22} color={colors.error.DEFAULT} />
               </TouchableOpacity>
             </>
           )}
@@ -502,7 +504,8 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: colors.background.primary,
+    position: 'relative',
   },
 
   // Progress Bar
@@ -515,13 +518,13 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 2,
+    borderRadius: 2,  // Intentionally tiny for thin progress bar
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: colors.primary.DEFAULT,
-    borderRadius: 2,
+    borderRadius: 2,  // Intentionally tiny for thin progress bar
   },
 
   // Content
@@ -533,8 +536,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   text: {
-    color: '#FFFFFF',
-    fontWeight: '400',
+    color: colors.text.primary,
+    fontWeight: typography.fontWeight.normal,
   },
 
   // Fade overlays
@@ -565,7 +568,7 @@ const styles = StyleSheet.create({
   speedSliderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(40, 40, 40, 0.95)',
+    backgroundColor: colors.background.elevated + 'F2', // 95% opacity
     borderRadius: borderRadius.lg,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -588,13 +591,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     height: 28,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
   },
   tick: {
     width: 1,
-    height: 8,
+    height: spacing.sm,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 0.5,
+    borderRadius: 1, // Intentionally tiny for 1px tick marks
   },
   tickCenter: {
     height: 14,
@@ -606,10 +609,10 @@ const styles = StyleSheet.create({
   },
   speedKnob: {
     position: 'absolute',
-    width: 4,
+    width: spacing.xs,
     height: 22,
-    backgroundColor: '#FF9500',
-    borderRadius: 2,
+    backgroundColor: colors.accent.orange,
+    borderRadius: 2, // Intentionally tiny for narrow knob
     marginLeft: -2,
     top: 3,
   },
@@ -642,38 +645,38 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(60, 60, 60, 0.9)',
+    backgroundColor: colors.background.card + 'E6', // 90% opacity
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   // Font size button
   fontSizeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
     color: colors.text.primary,
   },
   fontSizeBadge: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
+    bottom: spacing.xs,
+    right: spacing.xs,
     backgroundColor: colors.primary.DEFAULT,
-    borderRadius: 6,
+    borderRadius: borderRadius.sm,
     width: 14,
     height: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
   fontSizeBadgeText: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: 8, // Intentionally tiny for badge inside 14x14 container
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
   },
 
   // Mode toggle
   modeToggle: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(60, 60, 60, 0.9)',
+    backgroundColor: colors.background.card + 'E6', // 90% opacity
     borderRadius: borderRadius.full,
     padding: 3,
   },
@@ -688,7 +691,7 @@ const styles = StyleSheet.create({
   modeText: {
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
-    fontWeight: '500',
+    fontWeight: typography.fontWeight.medium,
   },
   modeTextActive: {
     color: colors.text.primary,
@@ -698,7 +701,7 @@ const styles = StyleSheet.create({
   startButton: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: borderRadius['2xl'],
     backgroundColor: colors.primary.DEFAULT,
     justifyContent: 'center',
     alignItems: 'center',
@@ -709,16 +712,16 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   startButtonRecord: {
-    backgroundColor: '#EF4444',
-    shadowColor: '#EF4444',
+    backgroundColor: colors.error.DEFAULT,
+    shadowColor: colors.error.DEFAULT,
   },
 
   // Play/Pause button (during playback)
   playPauseButton: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(100, 100, 100, 0.9)',
+    borderRadius: borderRadius['2xl'],
+    backgroundColor: colors.background.elevated + 'E6', // 90% opacity
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -729,7 +732,7 @@ const styles = StyleSheet.create({
   // Stop button small
   stopButtonSmall: {
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: colors.error.DEFAULT + '4D', // 30% opacity
   },
 
   // Recording indicator
@@ -743,13 +746,13 @@ const styles = StyleSheet.create({
   recordingDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    backgroundColor: '#EF4444',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.error.DEFAULT,
   },
   recordingText: {
     fontSize: typography.fontSize.base,
-    color: '#EF4444',
-    fontWeight: '600',
+    color: colors.error.DEFAULT,
+    fontWeight: typography.fontWeight.semibold,
     fontVariant: ['tabular-nums'],
   },
 });

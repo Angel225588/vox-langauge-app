@@ -20,75 +20,119 @@ import type {
   LessonProgress,
   Section,
 } from '@/types/learning';
+import { sanitizePromptInput } from '@/lib/ai/sanitize';
 
 // ============================================================================
 // PATH TEMPLATES - Base structures for different motivations
 // ============================================================================
 
+/**
+ * PATH TEMPLATES - Blended Learning Model (60% Universal + 40% Field-Specific)
+ *
+ * Architecture: Every stair blends universal everyday scenarios with
+ * field-specific vocabulary. Users learn universal language WHILE
+ * specializing in their goal.
+ *
+ * Each stair title reflects the universal scenario focus,
+ * with field-specific scenarios woven in.
+ */
 export const PATH_TEMPLATES = {
   career: {
     focus: ['formal language', 'professional vocabulary', 'business phrases'],
     stairProgression: [
-      'Professional Greetings',
-      'Self Introduction',
-      'Describing Experience',
-      'Discussing Skills',
-      'Meeting & Presentation Basics',
-      'Email & Written Communication',
-      'Salary Negotiation',
-      'Follow-up Communication',
+      'Meeting People & Professional Greetings',
+      'Talking About Yourself & Your Experience',
+      'Daily Conversations & Office Communication',
+      'Food, Plans & Business Lunches',
+      'Expressing Opinions & Meeting Dynamics',
+      'Asking Questions & Interview Skills',
+      'Handling Problems & Negotiations',
+      'Presentations & Confident Speaking',
+      'Networking & Building Connections',
     ],
   },
   travel: {
     focus: ['survival phrases', 'navigation', 'social interactions'],
     stairProgression: [
-      'Basic Greetings',
-      'Getting Around',
+      'Meeting People & Survival Greetings',
+      'Getting Around & Asking for Help',
       'Food & Restaurants',
-      'Shopping',
-      'Accommodation',
-      'Emergencies',
-      'Local Culture',
-      'Making Friends',
+      'Shopping & Daily Errands',
+      'Accommodation & Checking In',
+      'Making Friends & Social Chat',
+      'Expressing Opinions & Local Culture',
+      'Handling Problems & Emergencies',
+      'Deep Conversations & Travel Stories',
     ],
   },
-  relationship: {
+  love: {
     focus: ['casual conversation', 'emotions', 'daily life'],
     stairProgression: [
-      'Getting to Know Someone',
-      'Daily Conversations',
-      'Expressing Feelings',
-      'Making Plans',
-      'Discussing Interests',
-      'Family & Relationships',
-      'Deeper Conversations',
-      'Future Goals Together',
+      'Meeting People & First Impressions',
+      'Talking About Yourself & Getting to Know Someone',
+      'Daily Conversations & Texting',
+      'Making Plans & Going Out',
+      'Expressing Feelings & Emotions',
+      'Family Introductions & Relationships',
+      'Deeper Conversations & Opinions',
+      'Handling Disagreements & Understanding',
+      'Future Dreams & Goals Together',
     ],
   },
-  academic: {
+  education: {
     focus: ['grammar', 'reading', 'writing', 'formal register'],
     stairProgression: [
-      'Grammar Foundations',
-      'Reading Comprehension',
-      'Essay Structure',
-      'Academic Vocabulary',
-      'Note-Taking Skills',
-      'Research Discussion',
-      'Presentations',
-      'Debate & Critical Thinking',
+      'Meeting People & Campus Life',
+      'Talking About Yourself & Academic Goals',
+      'Daily Conversations & Class Participation',
+      'Reading & Comprehension Strategies',
+      'Expressing Opinions & Group Discussion',
+      'Writing & Essay Structure',
+      'Presentations & Public Speaking',
+      'Research Discussion & Critical Thinking',
+      'Debate & Advanced Academic Language',
     ],
   },
-  heritage: {
-    focus: ['family vocabulary', 'cultural expressions', 'traditions'],
+  relocation: {
+    focus: ['daily life', 'bureaucracy', 'integration'],
     stairProgression: [
-      'Family Terms',
-      'Home & Daily Life',
-      'Cultural Traditions',
-      'Storytelling',
-      'Regional Expressions',
-      'Family History',
-      'Connecting Generations',
-      'Preserving Heritage',
+      'Meeting Neighbors & Survival Greetings',
+      'Getting Around & Public Transport',
+      'Shopping, Food & Daily Errands',
+      'Asking for Help & Official Appointments',
+      'Making Friends & Social Situations',
+      'Talking About Your Life & Home',
+      'Handling Problems & Complaints',
+      'Expressing Opinions & Cultural Integration',
+      'Professional Networking & Career Setup',
+    ],
+  },
+  challenge: {
+    focus: ['well-rounded skills', 'confidence building', 'real-world fluency'],
+    stairProgression: [
+      'Meeting People & First Conversations',
+      'Talking About Yourself & Daily Life',
+      'Asking for Help & Survival Phrases',
+      'Food, Shopping & Everyday Scenarios',
+      'Expressing Opinions & Making Plans',
+      'Phone Calls, Messages & Digital Life',
+      'Handling Problems & Staying Confident',
+      'Deeper Conversations & Storytelling',
+      'Debate, Humor & Natural Fluency',
+    ],
+  },
+  custom: {
+    focus: ['personalized learning', 'real-world scenarios', 'practical fluency'],
+    stairProgression: [
+      'Meeting People & Essential Greetings',
+      'Talking About Yourself & Your Goals',
+      'Asking for Help & Survival Phrases',
+      'Daily Life & Everyday Scenarios',
+      'Food, Shopping & Social Situations',
+      'Expressing Opinions & Making Plans',
+      'Handling Problems & Building Confidence',
+      'Deeper Conversations & Cultural Exchange',
+      'Advanced Fluency & Real-World Mastery',
     ],
   },
 } as const;
@@ -115,16 +159,28 @@ export function generatePathSkeletonPrompt(
   // Content stairs = total minus recalibration stair at end
   const contentStairs = stairCount - 1;
 
+  const safeMotivationCustom = sanitizePromptInput(input.motivation_custom);
+  const safeWhyNow = sanitizePromptInput(input.why_now);
+  const safePreviousAttempts = sanitizePromptInput(input.previous_attempts);
+  const safeProfession = sanitizePromptInput(input.profession);
+  const safeProfessionCustom = sanitizePromptInput(input.profession_custom);
+
   return `You are an expert language learning curriculum designer using SCENARIO-BASED LEARNING methodology. Create a learning path SKELETON for a ${input.target_language} learner.
 
 USER CONTEXT:
 - Native Language: ${input.native_language}
 - Target Language: ${input.target_language}
-- Motivation: ${input.motivation}${input.motivation_custom ? ` (${input.motivation_custom})` : ''}
-- Why Now: ${input.why_now || 'Not specified'}
+${input.target_accent ? `- Regional Accent: ${input.target_accent} (use region-appropriate vocabulary and scenarios)` : ''}
+- Motivation: ${input.motivation}${safeMotivationCustom ? ` (${safeMotivationCustom})` : ''}
+${safeProfession ? `- Profession: ${safeProfession}${safeProfessionCustom ? ` (${safeProfessionCustom})` : ''}` : ''}
+${input.scenarios && input.scenarios.length > 0 ? `- Priority Scenarios: ${input.scenarios.join(', ')}` : ''}
+- Why Now: ${safeWhyNow || 'Not specified'}
 - Proficiency Level: ${input.proficiency_level}
 - Timeline: ${input.timeline}
-${input.previous_attempts ? `- Previous Attempts: ${input.previous_attempts}` : ''}
+${input.min_practice_time && input.max_practice_time ? `- Practice Time: ${input.min_practice_time}-${input.max_practice_time} minutes per session` : ''}
+${input.days_per_week ? `- Practice Frequency: ${input.days_per_week} days per week` : ''}
+${input.commitment_stakes ? `- Emotional Vision: ${sanitizePromptInput(input.commitment_stakes)}` : ''}
+${safePreviousAttempts ? `- Previous Attempts: ${safePreviousAttempts}` : ''}
 
 ${hasMemory ? `USER PROGRESS:
 - Current CEFR Level: ${userMemory.current_level}
@@ -185,6 +241,26 @@ OUTPUT FORMAT (JSON):
   ]
 }
 
+
+${input.scenarios && input.scenarios.length > 0 ? `=== SCENARIO PRIORITIES ===
+The user has selected these real-world scenarios as their TOP priorities:
+${input.scenarios.map((s: string, i: number) => `${i + 1}. ${s.replace(/_/g, ' ')}`).join('\n')}
+
+Weight 60% of stair content toward these priority scenarios.
+Every stair should include at least one vocabulary set or scenario related to these priorities.
+` : ''}
+${safeProfession ? `=== PROFESSION CONTEXT ===
+This user works in: ${safeProfession}${safeProfessionCustom ? ` (${safeProfessionCustom})` : ''}
+- Use industry-specific vocabulary (40% of vocab should be profession-relevant)
+- Create scenarios that reflect their professional reality
+- Include formal/informal register appropriate to their profession
+` : ''}
+${input.min_practice_time && input.days_per_week ? `=== PACING ===
+User can practice ${input.min_practice_time}-${input.max_practice_time} minutes per session, ${input.days_per_week} days per week.
+Adjust lesson density accordingly:
+- ${input.min_practice_time <= 10 ? 'Keep lessons bite-sized with 5-8 vocab items per session' : input.min_practice_time <= 20 ? 'Standard lesson density with 8-12 vocab items per session' : 'Rich lessons with 12-15 vocab items per session'}
+- Each stair should take approximately ${Math.ceil(7 / input.days_per_week * 7)} days to complete
+` : ''}
 IMPORTANT:
 - Create exactly ${contentStairs} content stairs plus 1 final "Recalibration & Review" stair (${stairCount} total)
 - The LAST stair (order ${stairCount}) MUST be titled "Recalibration & Review" with emoji "🔄" - it reviews all previous material and assesses progress
@@ -236,6 +312,8 @@ export function generateStairContentPromptOnDemand(
     ? 'Fluent 1000 most common words'
     : 'Advanced 2000 words + specialized vocabulary';
 
+  const safeMotivationCustom = sanitizePromptInput(input.motivation_custom);
+
   return `Generate detailed learning content for this stair in a ${input.target_language} learning path using SCENARIO-BASED methodology.
 
 STAIR INFO:
@@ -249,8 +327,11 @@ STAIR INFO:
 USER CONTEXT:
 - Native Language: ${input.native_language}
 - Target Language: ${input.target_language}
+${input.target_accent ? `- Regional Accent: ${input.target_accent}` : ''}
 - Proficiency Level: ${input.proficiency_level}
-- Motivation: ${input.motivation}${input.motivation_custom ? ` (${input.motivation_custom})` : ''}
+- Motivation: ${input.motivation}${safeMotivationCustom ? ` (${safeMotivationCustom})` : ''}
+${input.profession ? `- Profession: ${input.profession}` : ''}
+${input.scenarios && input.scenarios.length > 0 ? `- Priority Scenarios: ${input.scenarios.join(', ')}` : ''}
 
 === VOCABULARY MIXING REQUIREMENT ===
 Target vocabulary tier: ${vocabTierInfo}
@@ -345,18 +426,22 @@ export function generatePathPrompt(
 ): string {
   const template = PATH_TEMPLATES[input.motivation as keyof typeof PATH_TEMPLATES];
   const hasMemory = !!userMemory;
+  const safeMotivationCustom = sanitizePromptInput(input.motivation_custom);
+  const safeWhyNow = sanitizePromptInput(input.why_now);
+  const safePreviousAttempts = sanitizePromptInput(input.previous_attempts);
+  const safeCommitmentStakes = sanitizePromptInput(input.commitment_stakes);
 
   return `You are an expert language learning curriculum designer. Create a personalized ${input.target_language} learning path for a user.
 
 USER CONTEXT:
 - Native Language: ${input.native_language}
 - Target Language: ${input.target_language}
-- Motivation: ${input.motivation}${input.motivation_custom ? ` (${input.motivation_custom})` : ''}
-- Why Now: ${input.why_now || 'Not specified'}
+- Motivation: ${input.motivation}${safeMotivationCustom ? ` (${safeMotivationCustom})` : ''}
+- Why Now: ${safeWhyNow || 'Not specified'}
 - Proficiency Level: ${input.proficiency_level}
 - Timeline: ${input.timeline}
-- Commitment Stakes: ${input.commitment_stakes}
-${input.previous_attempts ? `- Previous Attempts: ${input.previous_attempts}` : ''}
+- Commitment Stakes: ${safeCommitmentStakes}
+${safePreviousAttempts ? `- Previous Attempts: ${safePreviousAttempts}` : ''}
 
 ${hasMemory ? `EXISTING USER PROGRESS:
 - Current CEFR Level: ${userMemory.current_level}

@@ -1,11 +1,12 @@
 /**
- * Your Why Screen (Onboarding V2 - Step 2 of 5)
+ * Your Why Screen (Onboarding V2 - Step 2 of 6)
  *
  * Captures user motivation for learning the language
+ * and their profession for scenario personalization
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
-import { useOnboardingV2, MOTIVATIONS, TARGET_LANGUAGES } from '@/hooks/useOnboardingV2';
+import { useOnboardingV2, MOTIVATIONS, TARGET_LANGUAGES, PROFESSIONS, flushOnboardingState } from '@/hooks/useOnboardingV2';
 import { colors, spacing, borderRadius, shadows, typography } from '@/constants/designSystem';
 
 export default function YourWhyScreen() {
@@ -24,6 +25,8 @@ export default function YourWhyScreen() {
   // Use local state for immediate UI updates
   const [selectedMotivation, setSelectedMotivation] = useState(data.motivation);
   const [customMotivation, setCustomMotivation] = useState(data.motivation_custom || '');
+  const [selectedProfession, setSelectedProfession] = useState(data.profession);
+  const [professionCustom, setProfessionCustom] = useState(data.profession_custom || '');
 
   // Focus states for inputs
   const [isMainInputFocused, setIsMainInputFocused] = useState(false);
@@ -36,7 +39,7 @@ export default function YourWhyScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     // Save either the selected preset or custom text
     const motivation = selectedMotivation === 'custom' ? 'custom' : selectedMotivation;
     const motivationCustom = customMotivation.trim() || null;
@@ -45,8 +48,11 @@ export default function YourWhyScreen() {
       updateData({
         motivation,
         motivation_custom: motivationCustom,
+        profession: selectedProfession,
+        profession_custom: selectedProfession === 'other' ? professionCustom.trim() || null : null,
       });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      await flushOnboardingState();
       router.push('/(auth)/onboarding-v2/your-level');
     }
   };
@@ -69,134 +75,152 @@ export default function YourWhyScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
         >
           {/* Back Button */}
-          <Animated.View entering={FadeInDown.duration(400)}>
+          <Animated.View entering={FadeInDown.duration(200)}>
             <BackButton onPress={() => router.back()} />
           </Animated.View>
 
-          {/* Header */}
+          {/* Single Clear Question */}
           <Animated.View
-            entering={FadeInDown.duration(600).springify()}
+            entering={FadeInDown.duration(300)}
             style={styles.header}
           >
-            <Text style={styles.title}>{t('your_why.title')}</Text>
-            <Text style={styles.subtitle}>
+            <Text style={styles.title}>
               {t('your_why.subtitle', { language: languageName })}
             </Text>
           </Animated.View>
 
-          {/* Main Text Input - Write Your Why */}
+          {/* Text Input */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(100).springify()}
-            style={styles.section}
+            entering={FadeInDown.duration(300).delay(50)}
+            style={styles.mainInputContainer}
           >
-            <Text style={styles.sectionLabel}>{t('your_why.tell_us_label')}</Text>
-            <Text style={styles.sectionSubtext}>
-              {t('your_why.tell_us_subtext')}
-            </Text>
-
-            <View style={styles.mainInputContainer}>
-              <TextInput
-                style={[styles.mainInput, isMainInputFocused && styles.inputFocused]}
-                placeholder={t('your_why.tell_us_placeholder')}
-                placeholderTextColor={colors.text.tertiary}
-                value={customMotivation}
-                onChangeText={(text) => {
-                  setCustomMotivation(text);
-                  if (text.trim().length > 0) {
-                    setSelectedMotivation('custom');
-                  }
-                }}
-                onFocus={() => setIsMainInputFocused(true)}
-                onBlur={() => setIsMainInputFocused(false)}
-                multiline
-                numberOfLines={4}
-                maxLength={500}
-                textAlignVertical="top"
-              />
-              <Text style={styles.characterCount}>
-                {customMotivation.length}/500
-              </Text>
-            </View>
+            <TextInput
+              style={[styles.mainInput, isMainInputFocused && styles.inputFocused]}
+              placeholder={t('your_why.tell_us_placeholder')}
+              placeholderTextColor={colors.text.tertiary}
+              value={customMotivation}
+              onChangeText={(text) => {
+                setCustomMotivation(text);
+                if (text.trim().length > 0) {
+                  setSelectedMotivation('custom');
+                }
+              }}
+              onFocus={() => setIsMainInputFocused(true)}
+              onBlur={() => setIsMainInputFocused(false)}
+              multiline
+              numberOfLines={3}
+              maxLength={500}
+              textAlignVertical="top"
+            />
           </Animated.View>
 
-          {/* Quick Selection Options */}
+          {/* Quick Options - compact grid */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(200).springify()}
-            style={styles.section}
+            entering={FadeInDown.duration(300).delay(100)}
           >
-            <Text style={styles.sectionLabel}>{t('your_why.quick_option_label')}</Text>
-            <Text style={styles.sectionSubtext}>
-              {t('your_why.quick_option_subtext')}
-            </Text>
-
             <View style={styles.motivationsGrid}>
               {MOTIVATIONS.map((motivation, index) => {
                 const isSelected = selectedMotivation === motivation.id;
 
                 return (
-                  <Animated.View
+                  <TouchableOpacity
                     key={motivation.id}
-                    entering={FadeInDown.duration(400).delay(300 + index * 50).springify()}
-                    style={styles.motivationCardWrapper}
+                    style={[
+                      styles.motivationCard,
+                      isSelected && styles.motivationCardSelected,
+                    ]}
+                    onPress={() => {
+                      handleMotivationSelect(motivation.id);
+                      if (customMotivation.trim().length === 0) {
+                        setCustomMotivation(`${motivation.label}: ${motivation.description}`);
+                      }
+                    }}
+                    activeOpacity={0.8}
                   >
-                    <TouchableOpacity
-                      style={[
-                        styles.motivationCard,
-                        isSelected && styles.motivationCardSelected,
-                      ]}
-                      onPress={() => {
-                        handleMotivationSelect(motivation.id);
-                        // Optionally populate the text input with the selection
-                        if (customMotivation.trim().length === 0) {
-                          setCustomMotivation(`${motivation.label}: ${motivation.description}`);
-                        }
-                      }}
-                      activeOpacity={0.8}
-                    >
+                    {isSelected && (
+                      <LinearGradient
+                        colors={[colors.glow.primary, 'transparent']}
+                        style={styles.cardGlow}
+                      />
+                    )}
+                    <View style={styles.motivationCardContentRow}>
+                      <Text style={styles.motivationEmoji}>{motivation.emoji}</Text>
+                      <Text
+                        style={[
+                          styles.motivationLabel,
+                          isSelected && styles.motivationLabelSelected,
+                        ]}
+                      >
+                        {motivation.label}
+                      </Text>
                       {isSelected && (
-                        <LinearGradient
-                          colors={[colors.glow.primary, 'transparent']}
-                          style={styles.cardGlow}
-                        />
-                      )}
-
-                      <View style={styles.motivationCardContentRow}>
-                        <Text style={styles.motivationEmoji}>{motivation.emoji}</Text>
-                        <View style={styles.motivationTextContainer}>
-                          <Text
-                            style={[
-                              styles.motivationLabel,
-                              isSelected && styles.motivationLabelSelected,
-                            ]}
-                          >
-                            {motivation.label}
-                          </Text>
-                          <Text style={styles.motivationDescription}>
-                            {motivation.description}
-                          </Text>
+                        <View style={styles.checkBadge}>
+                          <Text style={styles.checkBadgeText}>✓</Text>
                         </View>
-                        {isSelected && (
-                          <View style={styles.checkBadge}>
-                            <Text style={styles.checkBadgeText}>✓</Text>
-                          </View>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  </Animated.View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
           </Animated.View>
 
+          {/* Profession Section */}
+          <Animated.View entering={FadeInDown.duration(300).delay(150)}>
+            <Text style={styles.sectionLabel}>{t('your_why.profession_label')}</Text>
+            <View style={styles.professionGrid}>
+              {PROFESSIONS.map((profession) => {
+                const isSelected = selectedProfession === profession.id;
+                return (
+                  <TouchableOpacity
+                    key={profession.id}
+                    style={[
+                      styles.professionChip,
+                      isSelected && styles.professionChipSelected,
+                    ]}
+                    onPress={() => {
+                      setSelectedProfession(profession.id);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.professionIcon}>{profession.icon}</Text>
+                    <Text style={[
+                      styles.professionLabel,
+                      isSelected && styles.professionLabelSelected,
+                    ]}>
+                      {profession.label}
+                    </Text>
+                    {isSelected && (
+                      <View style={styles.miniCheckBadge}>
+                        <Text style={styles.miniCheckText}>✓</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Custom profession text if "other" selected */}
+            {selectedProfession === 'other' && (
+              <TextInput
+                style={[styles.mainInput, { minHeight: 44, marginTop: spacing.sm }]}
+                placeholder={t('your_why.profession_other_placeholder')}
+                placeholderTextColor={colors.text.tertiary}
+                value={professionCustom}
+                onChangeText={setProfessionCustom}
+                maxLength={100}
+              />
+            )}
+          </Animated.View>
         </ScrollView>
 
         {/* Fixed Bottom Section */}
         <View style={styles.bottomSection}>
           {/* Progress Indicator - Dots */}
-          <Animated.View entering={FadeInUp.duration(600).delay(400).springify()} style={styles.progressContainer}>
+          <Animated.View entering={FadeInUp.duration(300).delay(200)} style={styles.progressContainer}>
             <View style={styles.dotsContainer}>
               {[1, 2, 3, 4, 5, 6].map((step) => (
                 <View
@@ -213,7 +237,7 @@ export default function YourWhyScreen() {
 
           {/* Continue Button */}
           <Animated.View
-            entering={FadeInUp.duration(600).delay(500).springify()}
+            entering={FadeInUp.duration(300).delay(250)}
             style={styles.buttonContainer}
           >
             <TouchableOpacity
@@ -257,43 +281,18 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   header: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   title: {
-    fontSize: typography.fontSize['4xl'],
+    fontSize: typography.fontSize['3xl'],
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    fontSize: typography.fontSize.lg,
-    color: colors.text.secondary,
-    lineHeight: typography.fontSize.lg * 1.5,
-  },
-  section: {
-    marginBottom: spacing['2xl'],
-  },
-  sectionLabel: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
-  },
-  optionalText: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
-    color: colors.text.tertiary,
-  },
-  sectionSubtext: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
-    marginBottom: spacing.md,
-    lineHeight: typography.fontSize.sm * 1.5,
+    lineHeight: typography.fontSize['3xl'] * 1.3,
   },
 
-  // Main input for writing
+  // Text input
   mainInputContainer: {
-    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
   mainInput: {
     backgroundColor: colors.background.card,
@@ -303,35 +302,30 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     fontSize: typography.fontSize.base,
     color: colors.text.primary,
-    minHeight: 120,
+    minHeight: 80,
     textAlignVertical: 'top',
   },
-  characterCount: {
-    textAlign: 'right',
-    marginTop: spacing.xs,
-    fontSize: typography.fontSize.xs,
-    color: colors.text.tertiary,
+  inputFocused: {
+    borderColor: colors.primary.DEFAULT,
   },
 
-  // Motivations grid - compact horizontal cards
+  // Motivation option cards
   motivationsGrid: {
     gap: spacing.sm,
-  },
-  motivationCardWrapper: {
-    width: '100%',
   },
   motivationCard: {
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.lg,
     borderWidth: 1.5,
     borderColor: colors.border.light,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
     position: 'relative',
     overflow: 'hidden',
   },
   motivationCardSelected: {
     borderColor: colors.primary.DEFAULT,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
   },
   cardGlow: {
     position: 'absolute',
@@ -345,24 +339,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  motivationTextContainer: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
   motivationEmoji: {
-    fontSize: 28,
+    fontSize: 24,
+    marginRight: spacing.md,
   },
   motivationLabel: {
+    flex: 1,
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
+    fontWeight: typography.fontWeight.medium,
     color: colors.text.primary,
   },
   motivationLabelSelected: {
     color: colors.primary.light,
-  },
-  motivationDescription: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
   },
   checkBadge: {
     width: 24,
@@ -378,17 +366,64 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
   },
 
-  inputFocused: {
+  // Profession section
+  sectionLabel: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.secondary,
+    marginBottom: spacing.md,
+    marginTop: spacing.xl,
+  },
+  professionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  professionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.xs,
+  },
+  professionChipSelected: {
     borderColor: colors.primary.DEFAULT,
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
+  },
+  professionIcon: {
+    fontSize: 16,
+  },
+  professionLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.primary,
+    fontWeight: typography.fontWeight.medium,
+  },
+  professionLabelSelected: {
+    color: colors.primary.light,
+  },
+  miniCheckBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.primary.DEFAULT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniCheckText: {
+    color: colors.text.primary,
+    fontSize: 10,
+    fontWeight: typography.fontWeight.bold,
   },
 
   // Bottom section
   bottomSection: {
-    padding: spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? spacing.sm : spacing.md,
-    backgroundColor: colors.background.primary,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.dark,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? spacing['2xl'] : spacing.lg,
   },
   progressContainer: {
     alignItems: 'center',

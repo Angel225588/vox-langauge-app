@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   },
   cardSelected: {
     borderColor: colors.primary.DEFAULT,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: colors.overlay.primary10,
   },
   cardGlow: {
     ...shadows.glow.primary,
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   },
   languageCardSelected: {
     borderColor: colors.primary.DEFAULT,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: colors.overlay.primary15,
     ...shadows.glow.primary,
   },
   flag: {

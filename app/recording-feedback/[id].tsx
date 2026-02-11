@@ -325,7 +325,7 @@ export default function RecordingFeedbackDetailScreen() {
         {/* Encouragement Banner */}
         <Animated.View entering={FadeInDown.duration(400).delay(0)}>
           <LinearGradient
-            colors={['rgba(99, 102, 241, 0.2)', 'rgba(139, 92, 246, 0.1)']}
+            colors={['rgba(0, 54, 255, 0.2)', 'rgba(0, 163, 255, 0.1)']}
             style={styles.encouragementBanner}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.3)',
+    borderColor: 'rgba(0, 54, 255, 0.3)',
   },
   encouragementEmoji: {
     fontSize: 48,
@@ -1004,7 +1004,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   exampleTag: {
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: 'rgba(0, 54, 255, 0.15)',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,
@@ -1072,7 +1072,7 @@ const styles = StyleSheet.create({
   suggestionContainer: {
     flexDirection: 'row',
     gap: spacing.sm,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
     padding: spacing.sm,
     borderRadius: borderRadius.sm,
   },

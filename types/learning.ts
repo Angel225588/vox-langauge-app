@@ -25,10 +25,18 @@ export interface PathGenerationInput {
   motivation: string;
   motivation_custom?: string;
   why_now?: string;
-  proficiency_level: 'beginner' | 'elementary' | 'intermediate' | 'advanced';
+  proficiency_level: 'beginner' | 'elementary' | 'intermediate' | 'upper_intermediate' | 'advanced';
   timeline: '1_month' | '3_months' | '6_months' | '1_year';
   previous_attempts?: string;
   commitment_stakes: string;
+  // Professional context & scenarios
+  profession?: string;
+  profession_custom?: string;
+  scenarios?: string[];
+  // Practice schedule
+  min_practice_time?: number;
+  max_practice_time?: number;
+  days_per_week?: number;
 }
 
 /**

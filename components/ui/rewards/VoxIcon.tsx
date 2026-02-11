@@ -5,7 +5,7 @@
  * the voice and effort of language learning.
  *
  * Design: Hexagonal gem with 3 curved sound wave lines
- * Colors: Indigo to Purple gradient (#6366F1 to #8B5CF6)
+ * Colors: Electric Blue gradient (#0036FF to #00A3FF)
  */
 
 import React from 'react';

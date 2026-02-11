@@ -46,6 +46,7 @@ import { colors, typography, spacing, borderRadius } from '@/constants/designSys
 
 // Design-system components
 import { DarkOverlay, AnswerOption, AnswerFeedbackOverlay, AudioButton, AudioButtonGroup } from '@/components/ui';
+import { TypeBadge } from '@/components/ui/TypeBadge';
 import { useHaptics } from '@/hooks/useHaptics';
 
 interface CardProps {
@@ -233,14 +234,8 @@ export function AudioCard({
 
   return (
     <Animated.View style={[styles.container, containerAnimatedStyle]}>
-      {/* Mode Indicator */}
-      <Animated.View
-        entering={FadeInDown.duration(300).delay(50)}
-        style={styles.modeChip}
-      >
-        <Text style={styles.modeEmoji}>🎧</Text>
-        <Text style={styles.modeLabel}>Listening Quiz</Text>
-      </Animated.View>
+      {/* Type Badge - Top Right */}
+      <TypeBadge variant="listening" />
 
       <View style={styles.content}>
         {/* Audio Controls Card - Compact layout */}
@@ -320,6 +315,7 @@ export function AudioCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
   },
   content: {
     flex: 1,

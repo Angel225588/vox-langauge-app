@@ -48,7 +48,7 @@ const LEARNING_GOALS = [
     emoji: '📚',
     title: 'Academic',
     description: 'University, research, and formal writing',
-    gradient: ['#8B5CF6', '#A78BFA'],
+    gradient: ['#0036FF', '#00A3FF'],
   },
   {
     id: 'making_friends',

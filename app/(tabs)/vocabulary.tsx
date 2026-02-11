@@ -10,7 +10,7 @@
  * 4. Categories - Browse by topic
  * 5. Recently Added - Motivation through activity
  *
- * Design: Revolut-inspired, dark theme with purple accent (#6366F1)
+ * Design: Revolut-inspired, dark theme with electric blue accent (#0036FF)
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -400,13 +400,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: 'rgba(0, 54, 255, 0.15)',
     borderRadius: borderRadius.full,
     paddingVertical: spacing.xs,
     paddingLeft: spacing.md,
     paddingRight: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.3)',
+    borderColor: 'rgba(0, 54, 255, 0.3)',
   },
   filterBadgeText: {
     fontSize: typography.fontSize.sm,
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   clearFilterButton: {
     marginLeft: spacing.sm,
     padding: spacing.xs,
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    backgroundColor: 'rgba(0, 54, 255, 0.2)',
     borderRadius: borderRadius.full,
   },
 

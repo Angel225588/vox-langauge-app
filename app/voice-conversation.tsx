@@ -765,10 +765,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   accentOptionActive: {
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
   },
   accentOptionPressed: {
-    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    backgroundColor: 'rgba(0, 54, 255, 0.05)',
   },
   accentOptionText: {
     flex: 1,
@@ -936,7 +936,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },

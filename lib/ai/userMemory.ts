@@ -21,6 +21,16 @@ import type {
 } from '../../types/calibration';
 import type { MiniLessonCategory } from '../types/mini-lesson';
 
+/**
+ * Lazy accessor for the Supabase client.
+ * Avoids top-level import so that tests (which mock native modules)
+ * don't crash when this module is loaded.
+ */
+function getSupabase() {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  return require('@/lib/db/supabase').supabase;
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -122,26 +132,94 @@ export interface LessonResult {
 }
 
 // ============================================================================
-// In-Memory Store (TODO: Replace with Supabase)
+// In-Memory Cache + Supabase Persistence
 // ============================================================================
 
-const memoryStore = new Map<string, UserAIMemory>();
+/**
+ * In-memory cache for fast access. Supabase is the source of truth.
+ * On getUserMemory, we check cache first, then fall back to Supabase.
+ * On writes (init/update), we write to both cache and Supabase.
+ */
+const memoryCache = new Map<string, UserAIMemory>();
+
+/**
+ * Persist memory to the user_ai_memory Supabase table.
+ * Stores the full UserAIMemory object as JSONB for flexibility.
+ * Fails silently with a console warning — the in-memory cache keeps the app working offline.
+ */
+async function persistToSupabase(memory: UserAIMemory): Promise<void> {
+  try {
+    const sb = getSupabase();
+    const { error } = await sb
+      .from('user_ai_memory')
+      .upsert(
+        {
+          user_id: memory.user_id,
+          memory_data: memory,
+          updated_at: memory.updated_at,
+        },
+        { onConflict: 'user_id' }
+      );
+
+    if (error) {
+      console.warn('Failed to persist user AI memory to Supabase:', error.message);
+    }
+  } catch (err) {
+    // Network or other error — app continues with cache
+    console.warn('Supabase unreachable for AI memory persist:', err);
+  }
+}
+
+/**
+ * Load memory from Supabase for a given user.
+ * Returns null if not found or on error.
+ */
+async function loadFromSupabase(user_id: string): Promise<UserAIMemory | null> {
+  try {
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from('user_ai_memory')
+      .select('memory_data')
+      .eq('user_id', user_id)
+      .single();
+
+    if (error || !data?.memory_data) {
+      return null;
+    }
+
+    return data.memory_data as UserAIMemory;
+  } catch {
+    // Network or other error — return null, caller uses cache or gets null
+    return null;
+  }
+}
 
 // ============================================================================
 // Core Functions
 // ============================================================================
 
 /**
- * Initialize user memory after onboarding completion
+ * Initialize user memory after onboarding completion.
+ * Persists to Supabase and caches in-memory.
  */
 export async function initializeUserMemory(input: {
   user_id: string;
   native_language: string;
   target_language: string;
+  target_accent?: string;
   motivation: string;
   motivation_custom?: string;
   proficiency_level: string;
   commitment_stakes: string;
+  timeline?: string;
+  previous_attempts?: string;
+  why_now?: string;
+  profession?: string;
+  profession_custom?: string;
+  scenarios?: string[];
+  min_practice_time?: number;
+  max_practice_time?: number;
+  days_per_week?: number;
 }): Promise<UserAIMemory> {
   const now = new Date().toISOString();
 
@@ -194,6 +272,12 @@ export async function initializeUserMemory(input: {
     ai_observations: {
       observations: [
         `Learning ${input.target_language} for: ${input.motivation}`,
+        ...(input.profession ? [`Profession: ${input.profession}${input.profession_custom ? ` (${input.profession_custom})` : ''}`] : []),
+        ...(input.target_accent ? [`Accent preference: ${input.target_accent}`] : []),
+        ...(input.scenarios && input.scenarios.length > 0 ? [`Priority scenarios: ${input.scenarios.join(', ')}`] : []),
+        ...(input.previous_attempts ? [`Previous learning: ${input.previous_attempts}`] : []),
+        ...(input.why_now ? [`Why now: ${input.why_now}`] : []),
+        ...(input.min_practice_time ? [`Practice plan: ${input.min_practice_time}-${input.max_practice_time} min, ${input.days_per_week} days/week`] : []),
       ],
       patterns: [],
       blockers: [],
@@ -206,7 +290,9 @@ export async function initializeUserMemory(input: {
       topics_to_explore: [],
       next_milestone: 'Complete level calibration',
       estimated_time_to_next_level: 'TBD after calibration',
-      practice_frequency: '15-20 min/day',
+      practice_frequency: input.min_practice_time
+        ? `${input.min_practice_time}-${input.max_practice_time} min/day, ${input.days_per_week} days/week`
+        : '15-20 min/day',
     },
 
     // Metadata
@@ -215,25 +301,42 @@ export async function initializeUserMemory(input: {
     version: 1,
   };
 
-  // TODO: Save to Supabase
-  memoryStore.set(input.user_id, memory);
+  // Cache locally
+  memoryCache.set(input.user_id, memory);
+
+  // Persist to Supabase (non-blocking — app works offline)
+  persistToSupabase(memory);
 
   return memory;
 }
 
 /**
- * Get user's AI memory
+ * Get user's AI memory.
+ * Checks in-memory cache first, then falls back to Supabase.
  */
 export async function getUserMemory(
   user_id: string
 ): Promise<UserAIMemory | null> {
-  // TODO: Fetch from Supabase
-  const memory = memoryStore.get(user_id);
-  return memory || null;
+  // Check cache first
+  const cached = memoryCache.get(user_id);
+  if (cached) {
+    return cached;
+  }
+
+  // Fall back to Supabase
+  const fromDb = await loadFromSupabase(user_id);
+  if (fromDb) {
+    // Populate cache for next access
+    memoryCache.set(user_id, fromDb);
+    return fromDb;
+  }
+
+  return null;
 }
 
 /**
- * Update specific fields in user memory
+ * Update specific fields in user memory.
+ * Updates both in-memory cache and Supabase.
  */
 export async function updateUserMemory(
   user_id: string,
@@ -251,8 +354,11 @@ export async function updateUserMemory(
     updated_at: new Date().toISOString(),
   };
 
-  // TODO: Update in Supabase
-  memoryStore.set(user_id, updated);
+  // Update cache
+  memoryCache.set(user_id, updated);
+
+  // Persist to Supabase (non-blocking)
+  persistToSupabase(updated);
 
   return updated;
 }
@@ -456,6 +562,15 @@ export function generateMemorySummary(memory: UserAIMemory): string {
   sections.push(`- Motivation: ${memory.motivation}`);
   if (memory.motivation_custom) {
     sections.push(`- Specific Goal: ${memory.motivation_custom}`);
+  }
+  // Include profession from AI observations if available
+  const professionObs = memory.ai_observations.observations.find(o => o.startsWith('Profession:'));
+  if (professionObs) {
+    sections.push(`- ${professionObs}`);
+  }
+  const scenarioObs = memory.ai_observations.observations.find(o => o.startsWith('Priority scenarios:'));
+  if (scenarioObs) {
+    sections.push(`- ${scenarioObs}`);
   }
   sections.push('');
 

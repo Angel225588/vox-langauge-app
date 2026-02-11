@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   track: {
     height: 4,
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    backgroundColor: colors.overlay.primary20,
     borderRadius: borderRadius.full,
     overflow: 'hidden',
   },
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    backgroundColor: colors.overlay.primary20,
     alignItems: 'center',
     justifyContent: 'center',
   },

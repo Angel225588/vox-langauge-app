@@ -1,5 +1,5 @@
 /**
- * Language Selection Screen (Onboarding V2 - Step 1 of 5)
+ * Language Selection Screen (Onboarding V2 - Step 1 of 6)
  *
  * Allows users to select their native language and target language
  */
@@ -13,7 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
-import { useOnboardingV2, NATIVE_LANGUAGES, TARGET_LANGUAGES, getAccentsForLanguage } from '@/hooks/useOnboardingV2';
+import { useOnboardingV2, NATIVE_LANGUAGES, TARGET_LANGUAGES, getAccentsForLanguage, flushOnboardingState } from '@/hooks/useOnboardingV2';
 import { useLanguage } from '@/i18n/hooks/useLanguage';
 import { hasTranslations, type SupportedLanguageCode } from '@/i18n/types';
 import { colors, spacing, borderRadius, shadows, typography } from '@/constants/designSystem';
@@ -57,7 +57,7 @@ export default function LanguagesScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (nativeLanguage && targetLanguage && targetAccent) {
       updateData({
         native_language: nativeLanguage,
@@ -65,6 +65,7 @@ export default function LanguagesScreen() {
         target_accent: targetAccent,
       });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      await flushOnboardingState();
       router.push('/(auth)/onboarding-v2/your-why');
     }
   };
@@ -84,13 +85,13 @@ export default function LanguagesScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Back Button */}
-          <Animated.View entering={FadeInDown.duration(400)}>
+          <Animated.View entering={FadeInDown.duration(200)}>
             <BackButton onPress={() => router.back()} />
           </Animated.View>
 
           {/* Header */}
           <Animated.View
-            entering={FadeInDown.duration(600).springify()}
+            entering={FadeInDown.duration(300)}
             style={styles.header}
           >
             <Text style={styles.title}>{t('languages.title')}</Text>
@@ -101,7 +102,7 @@ export default function LanguagesScreen() {
 
           {/* Native Language Question */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(100).springify()}
+            entering={FadeInDown.duration(300).delay(50)}
             style={styles.section}
           >
             <Text style={styles.questionLabel}>{t('languages.native_question')}</Text>
@@ -133,12 +134,9 @@ export default function LanguagesScreen() {
                 style={styles.pickerContainer}
               >
                 <ScrollView style={styles.pickerScroll} nestedScrollEnabled>
-                  {NATIVE_LANGUAGES.map((lang, index) => (
-                    <Animated.View
-                      key={lang.code}
-                      entering={FadeInDown.duration(200).delay(index * 30)}
-                    >
+                  {NATIVE_LANGUAGES.map((lang) => (
                       <TouchableOpacity
+                        key={lang.code}
                         style={[
                           styles.pickerItem,
                           nativeLanguage === lang.code && styles.pickerItemSelected,
@@ -161,7 +159,6 @@ export default function LanguagesScreen() {
                           </View>
                         )}
                       </TouchableOpacity>
-                    </Animated.View>
                   ))}
                 </ScrollView>
               </Animated.View>
@@ -170,20 +167,19 @@ export default function LanguagesScreen() {
 
           {/* Target Language Question */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(200).springify()}
+            entering={FadeInDown.duration(300).delay(100)}
             style={styles.section}
           >
             <Text style={styles.questionLabel}>{t('languages.target_question')}</Text>
 
             <View style={styles.targetLanguagesGrid}>
-              {TARGET_LANGUAGES.map((lang, index) => {
+              {TARGET_LANGUAGES.map((lang) => {
                 const isSelected = targetLanguage === lang.code;
                 const isDisabled = nativeLanguage === lang.code;
 
                 return (
-                  <Animated.View
+                  <View
                     key={lang.code}
-                    entering={FadeInDown.duration(400).delay(300 + index * 100).springify()}
                     style={styles.targetCardWrapper}
                   >
                     <TouchableOpacity
@@ -242,7 +238,7 @@ export default function LanguagesScreen() {
                         </View>
                       )}
                     </TouchableOpacity>
-                  </Animated.View>
+                  </View>
                 );
               })}
             </View>
@@ -251,7 +247,7 @@ export default function LanguagesScreen() {
           {/* Accent Selection - Only show when target language is selected */}
           {targetLanguage && availableAccents.length > 0 && (
             <Animated.View
-              entering={FadeInDown.duration(600).delay(400).springify()}
+              entering={FadeInDown.duration(300).delay(200)}
               style={styles.section}
             >
               <Text style={styles.questionLabel}>
@@ -262,13 +258,12 @@ export default function LanguagesScreen() {
               </Text>
 
               <View style={styles.accentGrid}>
-                {availableAccents.map((accent, index) => {
+                {availableAccents.map((accent) => {
                   const isSelected = targetAccent === accent.id;
 
                   return (
-                    <Animated.View
+                    <View
                       key={accent.id}
-                      entering={FadeInDown.duration(300).delay(100 + index * 80).springify()}
                       style={styles.accentCardWrapper}
                     >
                       <TouchableOpacity
@@ -315,7 +310,7 @@ export default function LanguagesScreen() {
                           </View>
                         )}
                       </TouchableOpacity>
-                    </Animated.View>
+                    </View>
                   );
                 })}
               </View>
@@ -325,7 +320,7 @@ export default function LanguagesScreen() {
           {/* Warning if same language */}
           {nativeLanguage && targetLanguage && nativeLanguage === targetLanguage && (
             <Animated.View
-              entering={FadeInDown.duration(400)}
+              entering={FadeInDown.duration(200)}
               style={styles.warningContainer}
             >
               <Text style={styles.warningText}>
@@ -338,7 +333,7 @@ export default function LanguagesScreen() {
         {/* Fixed Bottom Section */}
         <View style={styles.bottomSection}>
           {/* Progress Indicator - Dots */}
-          <Animated.View entering={FadeInUp.duration(600).delay(400).springify()} style={styles.progressContainer}>
+          <Animated.View entering={FadeInUp.duration(300).delay(200)} style={styles.progressContainer}>
             <View style={styles.dotsContainer}>
               {[1, 2, 3, 4, 5, 6].map((step) => (
                 <View
@@ -355,7 +350,7 @@ export default function LanguagesScreen() {
 
           {/* Continue Button */}
           <Animated.View
-            entering={FadeInUp.duration(600).delay(500).springify()}
+            entering={FadeInUp.duration(300).delay(250)}
             style={styles.buttonContainer}
           >
             <TouchableOpacity
@@ -699,11 +694,9 @@ const styles = StyleSheet.create({
 
   // Bottom section
   bottomSection: {
-    padding: spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? spacing.sm : spacing.md,
-    backgroundColor: colors.background.primary,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.dark,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? spacing['2xl'] : spacing.lg,
   },
   progressContainer: {
     alignItems: 'center',

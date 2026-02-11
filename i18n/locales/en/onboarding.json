@@ -89,6 +89,8 @@
     "optional": "(Optional)",
     "why_now_subtext": "Understanding your timing helps us personalize your learning path",
     "why_now_placeholder": "e.g., I'm traveling to Spain next month, starting a new job, met someone special...",
+    "profession_label": "What's your profession?",
+    "profession_other_placeholder": "e.g., Architect, Nurse, Product Manager...",
     "continue": "Continue"
   },
   "your_level": {
@@ -110,11 +112,28 @@
     "why_matters_title": "Why this matters:",
     "why_matters_points": "• Research shows accountability increases success by 65%\n• Knowing your \"why\" keeps you going when it gets hard\n• This is for you. We're here to support your journey.",
     "subtitle": "This helps us pace your lessons and set milestones.",
-    "continue": "Continue"
+    "practice_time_label": "How much time per session?",
+    "days_label": "How many days per week?",
+    "why_now_label": "What triggered this decision?",
+    "optional": "(Optional)",
+    "why_now_placeholder": "e.g., Starting a job in Madrid next month, traveling in June...",
+    "continue": "Continue",
+    "select_timeline": "Select a timeline"
   },
   "your_stakes": {
+    "title": "What's waiting for you",
+    "title_highlight": "on the other side?",
+    "subtitle": "Visualize your success. This helps us personalize your journey.",
     "continue": "Continue",
     "select_vision": "Select your vision"
+  },
+  "your_scenarios": {
+    "title": "What conversations",
+    "title_highlight": "matter most to you?",
+    "subtitle": "Pick your top 2. We'll build your path around these real-world situations.",
+    "continue": "Continue",
+    "select_scenarios": "Pick at least 1 scenario",
+    "pick_hint": "{{count}}/2 selected"
   },
   "ready": {
     "emoji": "🎯",
@@ -124,7 +143,10 @@
       "language": "Language",
       "why": "Why",
       "level": "Level",
-      "timeline": "Timeline"
+      "timeline": "Timeline",
+      "profession": "Profession",
+      "scenarios": "Focus Areas",
+      "practice": "Practice Plan"
     },
     "cta_button": "Create My Personalized Path",
     "loading": {

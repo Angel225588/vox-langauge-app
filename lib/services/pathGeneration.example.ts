@@ -27,6 +27,14 @@ async function exampleBasicUsage() {
     previous_attempts: 'Used Duolingo for a few weeks',
     timeline: '3-6_months',
     commitment_stakes: 'I want to confidently order food and ask for directions during my trip',
+    target_accent: null,
+    stakes: null,
+    profession: null,
+    profession_custom: null,
+    scenarios: null,
+    min_practice_time: null,
+    max_practice_time: null,
+    days_per_week: null,
   };
 
   const userId = 'user_123';
@@ -124,6 +132,14 @@ async function exampleCareerPath() {
     previous_attempts: 'Took high school French 5 years ago',
     timeline: '1-3_months',
     commitment_stakes: 'My job depends on building relationships with French-speaking clients',
+    target_accent: 'fr-france',
+    stakes: null,
+    profession: 'business',
+    profession_custom: null,
+    scenarios: ['client_calls', 'networking'],
+    min_practice_time: 10,
+    max_practice_time: 20,
+    days_per_week: 5,
   };
 
   const result = await createPersonalizedPath('user_456', onboardingData);
@@ -145,6 +161,14 @@ async function exampleRelationshipPath() {
     previous_attempts: null,
     timeline: '3-6_months',
     commitment_stakes: "I want to show my partner's family that I care by trying to speak their language",
+    target_accent: null,
+    stakes: null,
+    profession: null,
+    profession_custom: null,
+    scenarios: null,
+    min_practice_time: null,
+    max_practice_time: null,
+    days_per_week: null,
   };
 
   const result = await createPersonalizedPath('user_789', onboardingData);
@@ -160,6 +184,7 @@ async function exampleErrorHandling() {
   const invalidData: OnboardingData = {
     native_language: null,
     target_language: 'Spanish',
+    target_accent: null,
     motivation: null,
     motivation_custom: null,
     why_now: null,
@@ -167,6 +192,13 @@ async function exampleErrorHandling() {
     previous_attempts: null,
     timeline: null,
     commitment_stakes: null,
+    stakes: null,
+    profession: null,
+    profession_custom: null,
+    scenarios: null,
+    min_practice_time: null,
+    max_practice_time: null,
+    days_per_week: null,
   };
 
   const result = await createPersonalizedPath('user_999', invalidData);
@@ -207,6 +239,14 @@ async function exampleCustomMotivation() {
     previous_attempts: 'Tried learning hiragana online',
     timeline: '6-12_months',
     commitment_stakes: 'I have a shelf of untranslated manga waiting for me to read them',
+    target_accent: null,
+    stakes: null,
+    profession: null,
+    profession_custom: null,
+    scenarios: null,
+    min_practice_time: null,
+    max_practice_time: null,
+    days_per_week: null,
   };
 
   const result = await createPersonalizedPath('user_manga', onboardingData);
@@ -284,7 +324,7 @@ function OnboardingCompleteScreen() {
  *
  * 2. DATA TRANSFORMATION
  *    - Converts onboarding data to PathGenerationInput format
- *    - Maps proficiency levels (e.g., "upper_intermediate" -> "intermediate")
+ *    - Maps proficiency levels (preserves "upper_intermediate" as distinct level)
  *    - Maps timelines (e.g., "3-6_months" -> "3_months")
  *
  * 3. AI GENERATION (or Fallback)

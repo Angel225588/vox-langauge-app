@@ -13,10 +13,33 @@ import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
 import { colors, spacing, borderRadius, typography, shadows } from '@/constants/designSystem';
-import { useOnboardingV2, TARGET_LANGUAGES, MOTIVATIONS, PROFICIENCY_LEVELS, TIMELINES } from '@/hooks/useOnboardingV2';
+import { useOnboardingV2, TARGET_LANGUAGES, MOTIVATIONS, PROFICIENCY_LEVELS, TIMELINES, PROFESSIONS, type OnboardingV2Data } from '@/hooks/useOnboardingV2';
 import { createPersonalizedPath } from '@/lib/services/pathGeneration';
 import { supabase } from '@/lib/db/supabase';
 import { storeUserLevel } from '@/lib/utils/levelGating';
+
+/**
+ * Returns the route for the first incomplete onboarding screen,
+ * or null if all required fields are present.
+ */
+function getFirstIncompleteScreen(data: OnboardingV2Data): string | null {
+  if (!data.native_language || !data.target_language || !data.target_accent) {
+    return '/(auth)/onboarding-v2/languages';
+  }
+  if (!data.motivation && !data.motivation_custom) {
+    return '/(auth)/onboarding-v2/your-why';
+  }
+  if (!data.proficiency_level) {
+    return '/(auth)/onboarding-v2/your-level';
+  }
+  if (!data.timeline) {
+    return '/(auth)/onboarding-v2/your-commitment';
+  }
+  if (!data.stakes && (!data.scenarios || data.scenarios.length === 0)) {
+    return '/(auth)/onboarding-v2/your-stakes';
+  }
+  return null;
+}
 
 export default function ReadyScreen() {
   const router = useRouter();
@@ -25,6 +48,18 @@ export default function ReadyScreen() {
   const { t } = useTranslation('onboarding');
   const [isBuilding, setIsBuilding] = useState(false);
   const [progress, setProgress] = useState(0);
+  const hasRedirected = useRef(false);
+
+  // Guard: redirect to the first incomplete screen if required data is missing
+  useEffect(() => {
+    if (hasRedirected.current) return;
+    const incompleteRoute = getFirstIncompleteScreen(data);
+    if (incompleteRoute) {
+      hasRedirected.current = true;
+      console.warn('[ReadyScreen] Missing onboarding data, redirecting to:', incompleteRoute);
+      router.replace(incompleteRoute);
+    }
+  }, [data]);
 
   // Get display values from store data
   const targetLang = TARGET_LANGUAGES.find(l => l.code === data.target_language);
@@ -130,6 +165,13 @@ export default function ReadyScreen() {
   };
 
   const handleCreatePath = () => {
+    // Final guard before path generation — prevent starting if data is missing
+    const incompleteRoute = getFirstIncompleteScreen(data);
+    if (incompleteRoute) {
+      console.warn('[ReadyScreen] Cannot create path — missing data. Redirecting to:', incompleteRoute);
+      router.replace(incompleteRoute);
+      return;
+    }
     setIsBuilding(true);
   };
 
@@ -144,14 +186,14 @@ export default function ReadyScreen() {
         >
           {/* Back Button */}
           {!isBuilding && (
-            <Animated.View entering={FadeInDown.duration(400)} style={styles.backButtonContainer}>
+            <Animated.View entering={FadeInDown.duration(200)} style={styles.backButtonContainer}>
               <BackButton onPress={() => router.back()} />
             </Animated.View>
           )}
 
           {/* Progress Indicator - Dots */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(200)}
+            entering={FadeInDown.duration(300).delay(100)}
             style={styles.progressContainer}
           >
             <View style={styles.dotsContainer}>
@@ -170,7 +212,7 @@ export default function ReadyScreen() {
 
           {/* Title */}
           <Animated.View
-            entering={FadeInUp.duration(800).delay(400)}
+            entering={FadeInUp.duration(400).delay(200)}
             style={styles.titleContainer}
           >
             <Text style={styles.emoji}>{t('ready.emoji')}</Text>
@@ -182,7 +224,7 @@ export default function ReadyScreen() {
 
           {/* Summary Cards */}
           <Animated.View
-            entering={FadeInUp.duration(800).delay(600)}
+            entering={FadeInUp.duration(400).delay(300)}
             style={styles.summaryContainer}
           >
             <SummaryCard
@@ -213,12 +255,45 @@ export default function ReadyScreen() {
               delay={300}
               onPress={() => router.push('/(auth)/onboarding-v2/your-commitment')}
             />
+
+            {/* Profession card - only if profession was selected */}
+            {data.profession && (
+              <SummaryCard
+                icon="💼"
+                label={t('ready.summary.profession')}
+                value={PROFESSIONS.find(p => p.id === data.profession)?.label || data.profession_custom || 'Professional'}
+                delay={350}
+                onPress={() => router.push('/(auth)/onboarding-v2/your-why')}
+              />
+            )}
+
+            {/* Scenarios card - only if scenarios were selected */}
+            {data.scenarios && data.scenarios.length > 0 && (
+              <SummaryCard
+                icon="🎯"
+                label={t('ready.summary.scenarios')}
+                value={data.scenarios.map(s => s.replace(/_/g, ' ')).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}
+                delay={400}
+                onPress={() => router.push('/(auth)/onboarding-v2/your-stakes')}
+              />
+            )}
+
+            {/* Practice schedule - only if set */}
+            {data.min_practice_time && data.days_per_week && (
+              <SummaryCard
+                icon="⏱️"
+                label={t('ready.summary.practice')}
+                value={`${data.min_practice_time}-${data.max_practice_time} min, ${data.days_per_week} days/week`}
+                delay={450}
+                onPress={() => router.push('/(auth)/onboarding-v2/your-commitment')}
+              />
+            )}
           </Animated.View>
         </ScrollView>
 
         {/* Fixed Bottom CTA */}
         <Animated.View
-          entering={FadeInUp.duration(800).delay(800)}
+          entering={FadeInUp.duration(400).delay(400)}
           style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}
         >
           {isBuilding ? (
@@ -274,8 +349,8 @@ function SummaryCard({
   useEffect(() => {
     RNAnimated.timing(fadeAnim, {
       toValue: 1,
-      duration: 600,
-      delay,
+      duration: 300,
+      delay: Math.round(delay / 2),
       useNativeDriver: true,
     }).start();
   }, []);
@@ -384,14 +459,14 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: 'rgba(0, 54, 255, 0.2)',
     ...shadows.sm,
   },
   summaryCardIcon: {
     width: 56,
     height: 56,
     borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
@@ -417,7 +492,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.sm,

@@ -1,26 +1,27 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
+import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 
 export default function CommunityScreen() {
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', padding: 24 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 16 }}>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary, padding: spacing.lg }}>
+      <Text style={{ fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.md }}>
         Community
       </Text>
-      <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 32, textAlign: 'center' }}>
+      <Text style={{ fontSize: typography.fontSize.sm, color: colors.text.disabled, marginBottom: spacing.xl, textAlign: 'center' }}>
         Phase 7: To be implemented
       </Text>
 
       <Link href="/design-showcase" asChild>
         <TouchableOpacity
           style={{
-            backgroundColor: '#6366F1',
-            paddingVertical: 12,
-            paddingHorizontal: 24,
-            borderRadius: 12,
+            backgroundColor: colors.primary.DEFAULT,
+            paddingVertical: spacing.md - 4,
+            paddingHorizontal: spacing.lg,
+            borderRadius: borderRadius.md,
           }}
         >
-          <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
+          <Text style={{ color: colors.text.primary, fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.base }}>
             View Design Showcase
           </Text>
         </TouchableOpacity>

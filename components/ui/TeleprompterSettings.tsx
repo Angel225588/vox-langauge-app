@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   optionButtonActive: {
     borderColor: colors.primary.DEFAULT,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
   },
   fontSizeSmall: {
     color: colors.text.secondary,

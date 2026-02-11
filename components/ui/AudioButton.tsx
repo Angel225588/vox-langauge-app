@@ -9,7 +9,7 @@
  * - States: idle, playing, loading
  * - Premium pulse ring animation when playing
  * - Subtle idle glow for depth
- * - Configurable sizing (sm: 36, md: 48, lg: 56)
+ * - Configurable sizing (sm: 44, md: 44, lg: 52)
  * - Haptic feedback on press
  * - Design system integrated animations
  *
@@ -56,7 +56,7 @@ export interface AudioButtonProps {
   isLoading?: boolean;
   /** Callback when button is pressed */
   onPress: () => void;
-  /** Button size - sm: 36, md: 48, lg: 56 */
+  /** Button size - sm: 44, md: 44, lg: 52 */
   size?: 'sm' | 'md' | 'lg';
   /** Whether button is disabled */
   disabled?: boolean;
@@ -65,7 +65,7 @@ export interface AudioButtonProps {
 }
 
 const SIZE_MAP = {
-  sm: 36,
+  sm: 44,
   md: 44,
   lg: 52,
 };

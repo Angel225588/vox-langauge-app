@@ -13,7 +13,7 @@ export default function DesignShowcase() {
                 source={{ uri: 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029&auto=format&fit=crop' }}
                 style={{ flex: 1 }}
             >
-                <View style={{ flex: 1, backgroundColor: 'rgba(99, 102, 241, 0.8)' }}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(0, 54, 255, 0.8)' }}>
                     <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 50 }}>
                         <YStack space="$6" marginTop="$10">
 

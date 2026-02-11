@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
         <View style={styles.content}>
           {/* Logo and Branding */}
           <Animated.View
-            entering={FadeInDown.duration(800).delay(200)}
+            entering={FadeInDown.duration(400).delay(100)}
             style={styles.logoContainer}
           >
             <View style={styles.logoWrapper}>
@@ -38,7 +38,7 @@ export default function WelcomeScreen() {
 
           {/* Slogan */}
           <Animated.View
-            entering={FadeInUp.duration(800).delay(400)}
+            entering={FadeInUp.duration(400).delay(200)}
             style={styles.sloganContainer}
           >
             <Text style={styles.slogan}>{t('welcome.slogan_line1')}</Text>
@@ -50,7 +50,7 @@ export default function WelcomeScreen() {
 
           {/* Auth Buttons */}
           <Animated.View
-            entering={FadeInUp.duration(600).delay(600)}
+            entering={FadeInUp.duration(300).delay(300)}
             style={styles.buttonsContainer}
           >
             {/* Primary Button - Continue with Email */}
@@ -74,7 +74,7 @@ export default function WelcomeScreen() {
 
           {/* Sign In Link */}
           <Animated.View
-            entering={FadeIn.duration(600).delay(800)}
+            entering={FadeIn.duration(300).delay(400)}
             style={[styles.signInContainer, { paddingBottom: insets.bottom + spacing.lg }]}
           >
             <Text style={styles.signInText}>{t('welcome.already_have_account')} </Text>
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   secondaryButtonPressed: {
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
     borderColor: colors.primary.light,
   },
   secondaryButtonContent: {

@@ -68,17 +68,17 @@ const CATEGORY_IMAGES: Record<string, string> = {
 
 // Category gradient overlays (for text readability over images)
 const CATEGORY_VISUALS: Record<string, { emoji: string; gradient: readonly [string, string] }> = {
-  'social': { emoji: '👋', gradient: ['rgba(99, 102, 241, 0.85)', 'rgba(139, 92, 246, 0.9)'] as const },
+  'social': { emoji: '👋', gradient: ['rgba(0, 54, 255, 0.85)', 'rgba(0, 163, 255, 0.9)'] as const },
   'travel': { emoji: '✈️', gradient: ['rgba(6, 182, 212, 0.85)', 'rgba(59, 130, 246, 0.9)'] as const },
   'food': { emoji: '🍳', gradient: ['rgba(245, 158, 11, 0.85)', 'rgba(239, 68, 68, 0.9)'] as const },
   'work': { emoji: '💼', gradient: ['rgba(16, 185, 129, 0.85)', 'rgba(5, 150, 105, 0.9)'] as const },
   'daily life': { emoji: '🏠', gradient: ['rgba(236, 72, 153, 0.85)', 'rgba(244, 114, 182, 0.9)'] as const },
-  'culture': { emoji: '🎭', gradient: ['rgba(139, 92, 246, 0.85)', 'rgba(168, 85, 247, 0.9)'] as const },
+  'culture': { emoji: '🎭', gradient: ['rgba(0, 163, 255, 0.85)', 'rgba(168, 85, 247, 0.9)'] as const },
   'health': { emoji: '🏃', gradient: ['rgba(34, 197, 94, 0.85)', 'rgba(22, 163, 74, 0.9)'] as const },
   'education': { emoji: '📚', gradient: ['rgba(59, 130, 246, 0.85)', 'rgba(29, 78, 216, 0.9)'] as const },
-  'technology': { emoji: '💻', gradient: ['rgba(99, 102, 241, 0.85)', 'rgba(79, 70, 229, 0.9)'] as const },
+  'technology': { emoji: '💻', gradient: ['rgba(0, 54, 255, 0.85)', 'rgba(79, 70, 229, 0.9)'] as const },
   'nature': { emoji: '🌿', gradient: ['rgba(34, 197, 94, 0.85)', 'rgba(21, 128, 61, 0.9)'] as const },
-  'default': { emoji: '📖', gradient: ['rgba(99, 102, 241, 0.85)', 'rgba(139, 92, 246, 0.9)'] as const },
+  'default': { emoji: '📖', gradient: ['rgba(0, 54, 255, 0.85)', 'rgba(0, 163, 255, 0.9)'] as const },
 };
 
 // ============================================================================

@@ -51,6 +51,7 @@ import { colors, typography, spacing, borderRadius } from '@/constants/designSys
 
 // Shared UI components
 import { DarkOverlay, AnswerOption, AnswerFeedbackOverlay } from '@/components/ui';
+import { TypeBadge } from '@/components/ui/TypeBadge';
 import { useHaptics } from '@/hooks/useHaptics';
 
 interface QuizCardProps {
@@ -169,14 +170,8 @@ export function QuizCard({
 
   return (
     <Animated.View style={[styles.container, containerAnimatedStyle]}>
-      {/* Mode Indicator Chip */}
-      <Animated.View
-        entering={FadeInDown.duration(300).delay(50)}
-        style={styles.modeChip}
-      >
-        <Text style={styles.modeEmoji}>{config.emoji}</Text>
-        <Text style={styles.modeLabel}>{config.label}</Text>
-      </Animated.View>
+      {/* Type Badge - Top Right */}
+      <TypeBadge variant="quiz" />
 
       <View style={styles.content}>
         {/* Image Section */}
@@ -291,6 +286,7 @@ export function QuizCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
   },
   // Mode indicator chip at top
   modeChip: {

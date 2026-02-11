@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     gap: spacing.xs,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.3)',
+    borderColor: 'rgba(0, 54, 255, 0.3)',
     ...shadows.sm,
   },
   typeBadgeText: {

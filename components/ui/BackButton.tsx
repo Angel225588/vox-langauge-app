@@ -168,9 +168,9 @@ const styles = StyleSheet.create({
 
   // Variants
   containerDefault: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: colors.overlay.light8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: colors.overlay.light10,
   },
   containerLight: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
@@ -178,9 +178,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   containerBlur: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.overlay.light10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: colors.overlay.light12,
     overflow: 'hidden',
   },
 

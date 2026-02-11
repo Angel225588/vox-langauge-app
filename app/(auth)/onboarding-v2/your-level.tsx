@@ -1,6 +1,6 @@
 /**
  * Your Level Screen
- * Step 3 of 5: Assess proficiency level
+ * Step 3 of 6: Assess proficiency level
  */
 
 import React, { useState } from 'react';
@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
-import { useOnboardingV2, PROFICIENCY_LEVELS, TARGET_LANGUAGES } from '@/hooks/useOnboardingV2';
+import { useOnboardingV2, PROFICIENCY_LEVELS, TARGET_LANGUAGES, flushOnboardingState } from '@/hooks/useOnboardingV2';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
 
 export default function YourLevelScreen() {
@@ -23,13 +23,14 @@ export default function YourLevelScreen() {
   // Focus state for input
   const [isInputFocused, setIsInputFocused] = useState(false);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedLevel) {
       updateData({
         proficiency_level: selectedLevel,
         previous_attempts: previousAttempts.trim() || null,
       });
       nextStep();
+      await flushOnboardingState();
       router.push('/(auth)/onboarding-v2/your-commitment');
     }
   };
@@ -54,22 +55,6 @@ export default function YourLevelScreen() {
             {/* Back Button */}
             <View style={styles.backButtonContainer}>
               <BackButton onPress={() => router.back()} />
-            </View>
-
-            {/* Progress Indicator - Dots */}
-            <View style={styles.header}>
-              <View style={styles.dotsContainer}>
-                {[1, 2, 3, 4, 5, 6].map((step) => (
-                  <View
-                    key={step}
-                    style={[
-                      styles.dot,
-                      step === 3 && styles.dotActive,
-                      step < 3 && styles.dotCompleted,
-                    ]}
-                  />
-                ))}
-              </View>
             </View>
 
             {/* Question */}
@@ -147,6 +132,21 @@ export default function YourLevelScreen() {
 
           {/* Continue Button */}
           <View style={styles.footer}>
+            {/* Progress Indicator - Dots */}
+            <View style={styles.progressContainer}>
+              <View style={styles.dotsContainer}>
+                {[1, 2, 3, 4, 5, 6].map((step) => (
+                  <View
+                    key={step}
+                    style={[
+                      styles.dot,
+                      step === 3 && styles.dotActive,
+                      step < 3 && styles.dotCompleted,
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
             <TouchableOpacity
               onPress={handleContinue}
               disabled={!selectedLevel}
@@ -190,10 +190,6 @@ const styles = StyleSheet.create({
   },
   backButtonContainer: {
     marginBottom: spacing.md,
-  },
-  header: {
-    marginBottom: spacing.xl,
-    alignItems: 'center',
   },
   dotsContainer: {
     flexDirection: 'row',
@@ -299,9 +295,13 @@ const styles = StyleSheet.create({
     borderColor: colors.primary.DEFAULT,
   },
   footer: {
-    padding: spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? spacing.sm : spacing.md,
-    backgroundColor: colors.background.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? spacing['2xl'] : spacing.lg,
+  },
+  progressContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   continueButton: {
     borderRadius: borderRadius.xl,

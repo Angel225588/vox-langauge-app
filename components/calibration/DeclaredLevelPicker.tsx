@@ -47,9 +47,9 @@ function LevelOption({ option, isSelected, onSelect, index }: LevelOptionProps) 
   }));
 
   const borderStyle = useAnimatedStyle(() => ({
-    borderColor: `rgba(99, 102, 241, ${borderOpacity.value})`,
+    borderColor: `rgba(0, 54, 255, ${borderOpacity.value})`,
     backgroundColor: isSelected
-      ? 'rgba(99, 102, 241, 0.1)'
+      ? 'rgba(0, 54, 255, 0.1)'
       : colors.background.card,
   }));
 

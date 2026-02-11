@@ -166,7 +166,7 @@ function FeatureItem({
           width: 56,
           height: 56,
           borderRadius: borderRadius.md,
-          backgroundColor: 'rgba(99, 102, 241, 0.2)',
+          backgroundColor: 'rgba(0, 54, 255, 0.2)',
           alignItems: 'center',
           justifyContent: 'center',
           marginRight: spacing.md,

@@ -155,7 +155,7 @@ export default function RecordingsScreen() {
 
         <TouchableOpacity onPress={toggleFilters} style={styles.filterButton}>
           <LinearGradient
-            colors={showFilters ? colors.gradients.primary : ['rgba(99, 102, 241, 0.2)', 'rgba(139, 92, 246, 0.1)'] as const}
+            colors={showFilters ? colors.gradients.primary : ['rgba(0, 54, 255, 0.2)', 'rgba(0, 163, 255, 0.1)'] as const}
             style={styles.filterButtonGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -483,7 +483,7 @@ function getDifficultyColor(difficulty: string) {
     case 'advanced':
       return { backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: colors.error.DEFAULT };
     default:
-      return { backgroundColor: 'rgba(99, 102, 241, 0.2)', borderColor: colors.primary.DEFAULT };
+      return { backgroundColor: 'rgba(0, 54, 255, 0.2)', borderColor: colors.primary.DEFAULT };
   }
 }
 
@@ -700,12 +700,12 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
   },
   noAnalysisContainer: {
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
     borderRadius: borderRadius.sm,
     padding: spacing.sm,
     marginTop: spacing.xs,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: 'rgba(0, 54, 255, 0.2)',
   },
   noAnalysisText: {
     fontSize: typography.fontSize.xs,

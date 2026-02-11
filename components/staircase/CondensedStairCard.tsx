@@ -75,8 +75,8 @@ export function CondensedStairCard({
 
   // Get background colors based on status
   const getBackgroundColor = () => {
-    if (isCurrent) return 'rgba(0, 54, 255, 0.15)'; // Primary blue tint
-    if (isCompleted) return 'rgba(16, 185, 129, 0.1)'; // Success green tint
+    if (isCurrent) return colors.overlay.primary15; // Primary blue tint
+    if (isCompleted) return colors.overlay.success10; // Success green tint
     return 'rgba(255, 255, 255, 0.03)'; // Subtle for locked
   };
 
@@ -84,7 +84,7 @@ export function CondensedStairCard({
   const getBorderColor = () => {
     if (isCurrent) return colors.primary.DEFAULT;
     if (isCompleted) return colors.success.DEFAULT;
-    return 'rgba(255, 255, 255, 0.1)';
+    return colors.overlay.light10;
   };
 
   // Get progress bar fill percentage
@@ -98,7 +98,7 @@ export function CondensedStairCard({
   const getProgressGradient = (): readonly [string, string] => {
     if (isCompleted) return colors.gradients.success;
     if (isCurrent) return colors.gradients.primary;
-    return ['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)'];
+    return [colors.overlay.light10, colors.overlay.light5];
   };
 
   // Get status icon
@@ -111,8 +111,8 @@ export function CondensedStairCard({
   // Status icon background color
   const getStatusIconBg = () => {
     if (isCompleted) return 'rgba(16, 185, 129, 0.2)';
-    if (isCurrent) return 'rgba(0, 54, 255, 0.2)';
-    return 'rgba(255, 255, 255, 0.1)';
+    if (isCurrent) return colors.overlay.primary20;
+    return colors.overlay.light10;
   };
 
   return (
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: colors.overlay.light8,
     borderRadius: borderRadius.full,
     overflow: 'hidden',
   },

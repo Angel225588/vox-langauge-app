@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TamaguiProvider } from 'tamagui';
 import { validateEnvironment, logEnvironmentStatus } from '@/lib/config/env';
+import { colors } from '@/constants/designSystem';
 import { initializeFlashcardDB, insertSampleFlashcards } from '@/lib/db/flashcards';
 import { initializeWordBankDatabase } from '@/lib/word-bank';
 import { initializeReadingSessionsTable } from '@/lib/reading';
@@ -101,7 +102,7 @@ export default function RootLayout() {
   if (!isReady) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#2196F3" />
+        <ActivityIndicator size="large" color={colors.accent.blue} />
         <Text className="text-lg text-gray-600 mt-4">
           Initializing...
         </Text>

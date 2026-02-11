@@ -45,9 +45,9 @@ export const logoFiles = {
 export const brandColors = {
   // Primary brand colors
   primary: {
-    indigo: '#6366F1',
-    purple: '#8B5CF6',
-    gradient: ['#6366F1', '#8B5CF6'] as const,
+    blue: '#0036FF',
+    lightBlue: '#00A3FF',
+    gradient: ['#0036FF', '#00A3FF'] as const,
   },
 
   // Background colors
@@ -84,7 +84,7 @@ export const brandColors = {
 
   // Glow effects (for shadows and highlights)
   glow: {
-    primary: 'rgba(99, 102, 241, 0.5)',
+    primary: 'rgba(0, 54, 255, 0.5)',
     purple: 'rgba(139, 92, 246, 0.5)',
     teal: 'rgba(6, 214, 160, 0.5)',
     coral: 'rgba(255, 107, 107, 0.5)',
@@ -139,14 +139,14 @@ export const brandTypography = {
 export const brandGradients = {
   // Main brand gradient (indigo to purple)
   primary: {
-    colors: ['#6366F1', '#8B5CF6'] as const,
+    colors: ['#0036FF', '#00A3FF'] as const,
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
 
   // Horizontal gradient (for text, wordmarks)
   horizontal: {
-    colors: ['#6366F1', '#8B5CF6'] as const,
+    colors: ['#0036FF', '#00A3FF'] as const,
     start: { x: 0, y: 0.5 },
     end: { x: 1, y: 0.5 },
   },

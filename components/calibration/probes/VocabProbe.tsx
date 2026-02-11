@@ -301,19 +301,19 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xl,
     padding: spacing.xl,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: 'rgba(0, 54, 255, 0.2)',
   },
 
   // Category Badge
   categoryBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: 'rgba(0, 54, 255, 0.15)',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.3)',
+    borderColor: 'rgba(0, 54, 255, 0.3)',
   },
   categoryText: {
     fontSize: typography.fontSize.sm,

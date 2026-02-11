@@ -19,7 +19,7 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { borderRadius, spacing } from '@/constants/designSystem';
+import { borderRadius, spacing, colors } from '@/constants/designSystem';
 
 /**
  * Props for the SkeletonStairCard component
@@ -47,8 +47,8 @@ const SHIMMER_DURATION = 1500;
 const ENTRANCE_DELAY_PER_CARD = 100;
 
 // Skeleton colors matching the design system
-const SKELETON_BACKGROUND = 'rgba(255, 255, 255, 0.05)';
-const SKELETON_ELEMENT = 'rgba(255, 255, 255, 0.08)';
+const SKELETON_BACKGROUND = colors.overlay.light5;
+const SKELETON_ELEMENT = colors.overlay.light8;
 
 // Shimmer gradient colors (subtle white shimmer)
 const SHIMMER_COLORS = [
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg, // Matches CondensedStairCard
     backgroundColor: SKELETON_BACKGROUND,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: colors.overlay.light10,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     overflow: 'hidden',

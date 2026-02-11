@@ -68,6 +68,7 @@ export async function createLearningPath(
     motivation: string;
     proficiency_level: string;
     timeline: string;
+    total_stairs?: number;
   }
 ): Promise<{ id: string } | null> {
   try {
@@ -78,16 +79,18 @@ export async function createLearningPath(
       .eq('user_id', userId)
       .eq('is_active', true);
 
+    // Clamp total_stairs to DB constraint range (4-12)
+    const totalStairs = Math.min(12, Math.max(4, pathData.total_stairs || 6));
+
     // Create the new staircase
-    // NOTE: Database constraint requires total_stairs BETWEEN 4 AND 12
     const { data, error } = await supabase
       .from('user_staircases')
       .insert({
         user_id: userId,
         is_active: true,
         version: 1,
-        total_stairs: 6, // Default; updated after AI generation (constraint: 4-12)
-        estimated_completion_days: 42, // ~6 weeks default, updated after generation
+        total_stairs: totalStairs,
+        estimated_completion_days: totalStairs * 7, // ~1 week per stair
         generation_parameters: {
           title: pathData.title,
           description: pathData.description,
@@ -168,7 +171,6 @@ export async function createStairsForSection(
     // Insert steps into staircase_steps table
     // Now also persists AI-generated content (vocabulary, scenarios, grammar_points)
     const stepsData = stairs.map((stair, index) => {
-      const hasContent = (stair.vocabulary?.length ?? 0) > 0;
       return {
         staircase_id: staircaseId,
         step_order: stair.order,
@@ -184,8 +186,6 @@ export async function createStairsForSection(
         vocabulary: stair.vocabulary || [],
         scenarios: stair.scenarios || [],
         grammar_points: stair.grammar_points || [],
-        content_loaded: stair.content_loaded ?? hasContent,
-        content_loaded_at: hasContent ? new Date().toISOString() : null,
       };
     });
 
@@ -196,7 +196,10 @@ export async function createStairsForSection(
 
     if (stepsError) {
       console.error('Error creating steps:', stepsError);
-      return false;
+      console.error('Error details:', JSON.stringify(stepsError, null, 2));
+      console.error('Steps data sample (first step):', JSON.stringify(stepsData[0], null, 2).slice(0, 500));
+      console.error('Steps count:', stepsData.length);
+      throw new Error(`DB insert failed: ${stepsError.message || stepsError.code || JSON.stringify(stepsError)}`);
     }
 
     // Create progress records for each step
@@ -236,7 +239,8 @@ export async function createStairsForSection(
     return true;
   } catch (error) {
     console.error('Exception creating stairs:', error);
-    return false;
+    // Re-throw to surface the actual error message
+    throw error;
   }
 }
 

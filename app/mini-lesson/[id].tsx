@@ -98,7 +98,7 @@ export default function MiniLessonFlowScreen() {
         // TODO: Implement with new card system
         return (
           <View style={{
-            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            backgroundColor: 'rgba(0, 54, 255, 0.1)',
             padding: spacing.xl,
             borderRadius: borderRadius.lg,
             alignItems: 'center',

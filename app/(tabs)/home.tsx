@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 import { VoxIcon } from '@/components/ui/rewards';
 import { Icon } from '@/components/ui/Icon';
 import { CalibratorBanner } from '@/components/learning/CalibratorBanner';
+import { KPIStrip } from '@/components/home/KPIStrip';
 import { useLearningPath, StairForDisplay } from '@/hooks/useLearningPath';
 import { CondensedStairCard } from '@/components/staircase';
 import { supabase } from '@/lib/db/supabase';
@@ -256,6 +257,20 @@ export default function HomeScreen() {
 
         <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
 
+          {/* KPI Strip */}
+          <Animated.View
+            entering={FadeInDown.duration(400)}
+            style={{ paddingHorizontal: spacing.xl, marginBottom: spacing.lg }}
+          >
+            <KPIStrip
+              dailyProgress={3}
+              dailyGoal={5}
+              articulation={74}
+              fluency={72}
+              cefrLevel={featureAccess.cefr || 'A1'}
+            />
+          </Animated.View>
+
           {/* Level-Gated Voice CTA */}
           {featureAccess.showVoiceCTA && (
             <Animated.View
@@ -332,7 +347,7 @@ export default function HomeScreen() {
                   padding: spacing.lg,
                   backgroundColor: colors.background.card,
                   borderWidth: 1,
-                  borderColor: 'rgba(99, 102, 241, 0.3)',
+                  borderColor: 'rgba(0, 54, 255, 0.3)',
                   borderStyle: 'dashed',
                 }}
               >
@@ -341,7 +356,7 @@ export default function HomeScreen() {
                     width: 56,
                     height: 56,
                     borderRadius: borderRadius.full,
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    backgroundColor: 'rgba(0, 54, 255, 0.1)',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginRight: spacing.md,
@@ -369,7 +384,7 @@ export default function HomeScreen() {
                 <View style={{ marginTop: spacing.md }}>
                   <View style={{
                     height: 4,
-                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                    backgroundColor: 'rgba(0, 54, 255, 0.2)',
                     borderRadius: borderRadius.full,
                     overflow: 'hidden',
                   }}>

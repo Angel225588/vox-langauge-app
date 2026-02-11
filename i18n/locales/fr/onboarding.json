@@ -17,6 +17,8 @@
     "target_question": "Quelle langue voulez-vous apprendre ?",
     "your_native_language": "Votre langue maternelle",
     "same_language_warning": "Veuillez sélectionner des langues différentes pour maternelle et cible",
+    "accent_question": "Quel accent souhaitez-vous apprendre ?",
+    "accent_subtitle": "Cela personnalisera vos conversations vocales",
     "continue": "Continuer"
   },
   "login": {
@@ -110,9 +112,13 @@
     "why_matters_title": "Pourquoi c'est important :",
     "why_matters_points": "• Les recherches montrent que la responsabilité augmente le succès de 65%\n• Connaître votre \"pourquoi\" vous aide à continuer quand ça devient difficile\n• C'est pour vous. Nous sommes là pour soutenir votre parcours.",
     "subtitle": "Cela nous aide à adapter le rythme de vos leçons et à fixer des objectifs.",
-    "continue": "Continuer"
+    "continue": "Continuer",
+    "select_timeline": "Sélectionnez un délai"
   },
   "your_stakes": {
+    "title": "Ce qui vous attend",
+    "title_highlight": "de l'autre côté",
+    "subtitle": "Visualisez votre succès. Cela nous aide à personnaliser votre parcours.",
     "continue": "Continuer",
     "select_vision": "Sélectionnez votre vision"
   },

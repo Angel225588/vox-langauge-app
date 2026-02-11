@@ -140,7 +140,7 @@ export default function StaircaseScreen() {
 
   return (
     <LinearGradient
-      colors={[colors.background.primary, colors.background.secondary, '#1A1F3A']}
+      colors={[colors.background.primary, colors.background.secondary, colors.background.card]}
       style={{ flex: 1 }}
     >
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -175,7 +175,7 @@ export default function StaircaseScreen() {
               }}
               activeOpacity={0.8}
             >
-              <Text style={{ fontSize: 20, marginRight: spacing.xs }}>🇬🇧</Text>
+              <Text style={{ fontSize: typography.fontSize.xl, marginRight: spacing.xs }}>🇬🇧</Text>
               <Text
                 style={{
                   fontSize: typography.fontSize.sm,
@@ -192,7 +192,7 @@ export default function StaircaseScreen() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                backgroundColor: 'rgba(0, 54, 255, 0.2)',
                 paddingHorizontal: spacing.md,
                 paddingVertical: spacing.sm,
                 borderRadius: borderRadius.full,
@@ -200,7 +200,7 @@ export default function StaircaseScreen() {
                 borderColor: colors.gradients.primary[0],
               }}
             >
-              <Text style={{ fontSize: 20, marginRight: spacing.xs }}>⚡</Text>
+              <Text style={{ fontSize: typography.fontSize.xl, marginRight: spacing.xs }}>⚡</Text>
               <Text
                 style={{
                   fontSize: typography.fontSize.base,
@@ -222,7 +222,7 @@ export default function StaircaseScreen() {
               marginTop: spacing.sm,
             }}
           >
-            <Text style={{ fontSize: 24, marginRight: spacing.sm }}>🔥</Text>
+            <Text style={{ fontSize: typography.fontSize['2xl'], marginRight: spacing.sm }}>🔥</Text>
             <Text
               style={{
                 fontSize: typography.fontSize.lg,
@@ -241,17 +241,17 @@ export default function StaircaseScreen() {
                 style={{
                   marginLeft: spacing.md,
                   paddingHorizontal: spacing.sm,
-                  paddingVertical: 4,
-                  backgroundColor: 'rgba(255, 100, 100, 0.2)',
+                  paddingVertical: spacing.xs,
+                  backgroundColor: 'rgba(239, 68, 68, 0.2)',
                   borderRadius: borderRadius.sm,
                   borderWidth: 1,
-                  borderColor: 'rgba(255, 100, 100, 0.4)',
+                  borderColor: 'rgba(239, 68, 68, 0.4)',
                 }}
               >
                 <Text
                   style={{
                     fontSize: typography.fontSize.xs,
-                    color: '#FF6464',
+                    color: colors.error.light,
                     fontWeight: typography.fontWeight.medium,
                   }}
                 >
@@ -331,14 +331,14 @@ export default function StaircaseScreen() {
                 }}
               >
                 <LinearGradient
-                  colors={['#FFD700', '#FFA500']} // Gold gradient for medal
+                  colors={[colors.warning.light, colors.accent.orange]} // Gold gradient for medal
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
                     padding: spacing.md,
-                    shadowColor: '#FFD700',
+                    shadowColor: colors.warning.light,
                     shadowOffset: { width: 0, height: 8 },
                     shadowOpacity: 0.4,
                     shadowRadius: 12,
@@ -348,21 +348,21 @@ export default function StaircaseScreen() {
                   {/* 3D Medal Icon */}
                   <View
                     style={{
-                      width: 64,
-                      height: 64,
+                      width: spacing['3xl'],
+                      height: spacing['3xl'],
                       borderRadius: borderRadius.full,
                       backgroundColor: 'rgba(255, 255, 255, 0.3)',
                       alignItems: 'center',
                       justifyContent: 'center',
                       marginRight: spacing.md,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 4 },
+                      shadowColor: colors.background.primary,
+                      shadowOffset: { width: 0, height: spacing.xs },
                       shadowOpacity: 0.3,
                       shadowRadius: 6,
                       elevation: 6,
                     }}
                   >
-                    <Text style={{ fontSize: 40 }}>{medal.emoji}</Text>
+                    <Text style={{ fontSize: typography.fontSize['4xl'] + 4 }}>{medal.emoji}</Text>
                   </View>
 
                   {/* Medal Info */}
@@ -371,7 +371,7 @@ export default function StaircaseScreen() {
                       style={{
                         fontSize: typography.fontSize.base,
                         fontWeight: typography.fontWeight.bold,
-                        color: '#000',
+                        color: colors.background.primary,
                         marginBottom: 2,
                       }}
                     >
@@ -380,7 +380,7 @@ export default function StaircaseScreen() {
                     <Text
                       style={{
                         fontSize: typography.fontSize.sm,
-                        color: '#333',
+                        color: colors.border.light,
                       }}
                     >
                       {medal.description}
@@ -392,7 +392,7 @@ export default function StaircaseScreen() {
                     style={{
                       backgroundColor: 'rgba(255, 255, 255, 0.9)',
                       paddingHorizontal: spacing.sm,
-                      paddingVertical: 4,
+                      paddingVertical: spacing.xs,
                       borderRadius: borderRadius.full,
                     }}
                   >
@@ -400,7 +400,7 @@ export default function StaircaseScreen() {
                       style={{
                         fontSize: typography.fontSize.xs,
                         fontWeight: typography.fontWeight.bold,
-                        color: '#FF6B00',
+                        color: colors.accent.orange,
                       }}
                     >
                       NEW!
@@ -464,7 +464,7 @@ export default function StaircaseScreen() {
                 paddingHorizontal: spacing.lg,
               }}
             >
-              <Text style={{ fontSize: 64, marginBottom: spacing.lg }}>🚀</Text>
+              <Text style={{ fontSize: spacing['3xl'], marginBottom: spacing.lg }}>🚀</Text>
               <Text
                 style={{
                   fontSize: typography.fontSize.xl,
@@ -526,7 +526,7 @@ export default function StaircaseScreen() {
                 paddingVertical: spacing.xl,
               }}
             >
-              <Text style={{ fontSize: 48, marginBottom: spacing.md }}>⚠️</Text>
+              <Text style={{ fontSize: typography.fontSize['5xl'], marginBottom: spacing.md }}>⚠️</Text>
               <Text
                 style={{
                   fontSize: typography.fontSize.base,

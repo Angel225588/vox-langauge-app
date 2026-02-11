@@ -681,12 +681,12 @@ export function getScenarioById(id: string): DialogueScenario | undefined {
  * Get category display info
  */
 export const CATEGORY_INFO: Record<ScenarioCategory, { label: string; icon: string; color: string }> = {
-  greetings: { label: 'Greetings', icon: 'hand-left', color: '#6366F1' },
+  greetings: { label: 'Greetings', icon: 'hand-left', color: '#0036FF' },
   travel: { label: 'Travel', icon: 'airplane', color: '#06D6A0' },
   food: { label: 'Food & Dining', icon: 'restaurant', color: '#F59E0B' },
   shopping: { label: 'Shopping', icon: 'cart', color: '#EC4899' },
   emergency: { label: 'Emergency', icon: 'warning', color: '#EF4444' },
-  social: { label: 'Social', icon: 'people', color: '#8B5CF6' },
+  social: { label: 'Social', icon: 'people', color: '#00A3FF' },
   work: { label: 'Work', icon: 'briefcase', color: '#3B82F6' },
   daily: { label: 'Daily Life', icon: 'home', color: '#10B981' },
 };

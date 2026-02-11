@@ -256,3 +256,45 @@ This file tracks all automated code reviews triggered by commits.
 - **Time**: 2026-01-24 22:17:11
 - **Status**: Pending review via /master-review
 
+
+## Commit Review Triggered
+- **Commit**: 765542c
+- **Message**: feat: Major update — UI system, voice migration, cards, docs, and tooling
+- **Time**: 2026-02-03 18:39:02
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 3bed8ac
+- **Message**: fix: End-to-end onboarding and user flow fixes
+- **Time**: 2026-02-03 19:02:49
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 595ca39
+- **Message**: fix(tests): Resolve all 5 failing test suites (87/87 passing)
+- **Time**: 2026-02-03 20:09:54
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 0f54320
+- **Message**: feat(staircase): Flexible stair count with recalibration architecture
+- **Time**: 2026-02-03 20:23:04
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 64d22cd
+- **Message**: feat: Complete Phase 0 — FSRS integration, API proxy, flashcard migration
+- **Time**: 2026-02-11 10:41:51
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: a7f1dd3
+- **Message**: feat(phase1): Conversation AI engine — session storage, feedback, vocab loop, scenarios
+- **Time**: 2026-02-11 11:24:11
+- **Status**: Pending review via /master-review
+

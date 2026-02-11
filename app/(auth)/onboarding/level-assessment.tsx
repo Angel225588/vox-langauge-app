@@ -43,7 +43,7 @@ const PROFICIENCY_LEVELS = [
     emoji: '🌲',
     title: 'Upper Intermediate',
     description: "I'm fluent but want to improve",
-    gradient: ['#8B5CF6', '#A78BFA'],
+    gradient: ['#0036FF', '#00A3FF'],
   },
   {
     id: 'advanced' as Level,

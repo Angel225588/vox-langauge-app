@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sortChipActive: {
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    backgroundColor: 'rgba(0, 54, 255, 0.2)',
     borderColor: colors.primary.DEFAULT,
   },
   sortChipText: {
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    backgroundColor: 'rgba(0, 54, 255, 0.2)',
     borderRadius: borderRadius.sm,
   },
   categoryText: {

@@ -664,10 +664,10 @@ const styles = StyleSheet.create({
     marginTop: spacing['3xl'],
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(0, 54, 255, 0.1)',
     borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: 'rgba(0, 54, 255, 0.2)',
   },
   tipText: {
     color: colors.text.secondary,

@@ -5,13 +5,13 @@ import { themes, tokens } from '@tamagui/themes'
 // Define custom color tokens for Vox Language App
 const customColors = {
   // Light mode colors
-  primary: '#6366F1', // Indigo - main brand color
-  primaryHover: '#4F46E5',
-  primaryActive: '#4338CA',
+  primary: '#0036FF', // Electric Blue - main brand color
+  primaryHover: '#3D6BFF',
+  primaryActive: '#0029CC',
 
-  secondary: '#EC4899', // Pink - accent color
-  secondaryHover: '#DB2777',
-  secondaryActive: '#BE185D',
+  secondary: '#06D6A0', // Teal - accent color
+  secondaryHover: '#4ECDC4',
+  secondaryActive: '#04B384',
 
   success: '#10B981', // Green - correct answers
   successHover: '#059669',
@@ -43,16 +43,16 @@ const customColors = {
   // Borders
   border: '#E5E7EB',
   borderHover: '#D1D5DB',
-  borderFocus: '#6366F1',
+  borderFocus: '#0036FF',
 
   // Dark mode colors
-  primaryDark: '#818CF8',
-  primaryDarkHover: '#6366F1',
-  primaryDarkActive: '#4F46E5',
+  primaryDark: '#3D6BFF',
+  primaryDarkHover: '#0036FF',
+  primaryDarkActive: '#0029CC',
 
-  secondaryDark: '#F472B6',
-  secondaryDarkHover: '#EC4899',
-  secondaryDarkActive: '#DB2777',
+  secondaryDark: '#4ECDC4',
+  secondaryDarkHover: '#06D6A0',
+  secondaryDarkActive: '#04B384',
 
   successDark: '#34D399',
   errorDark: '#F87171',
@@ -74,7 +74,7 @@ const customColors = {
 
   borderDark: '#374151',
   borderDarkHover: '#4B5563',
-  borderDarkFocus: '#818CF8',
+  borderDarkFocus: '#3D6BFF',
 }
 
 // Create custom tokens

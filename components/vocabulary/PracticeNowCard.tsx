@@ -71,7 +71,7 @@ export function PracticeNowCard({ wordsDue, onPress, loading = false }: Practice
           <Animated.View style={[styles.iconContainer, pulseStyle]}>
             {hasWordsDue ? (
               <LinearGradient
-                colors={['rgba(99, 102, 241, 0.2)', 'rgba(99, 102, 241, 0.1)']}
+                colors={['rgba(0, 54, 255, 0.2)', 'rgba(0, 54, 255, 0.1)']}
                 style={styles.iconGradient}
               >
                 <Icon name="flash" size="xl" color="primary" />
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: 'rgba(0, 54, 255, 0.2)',
     ...shadows.md,
   },
   cardEmpty: {

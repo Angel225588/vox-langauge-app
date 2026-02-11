@@ -31,6 +31,7 @@ import {
   ClaudeError,
 } from './claudeClient';
 import { generateWithGemini, GeminiError } from './gemini';
+import { sanitizePromptInput } from './sanitize';
 import type {
   GeneratedPath,
   GeneratedStair,
@@ -310,14 +311,17 @@ export class AIOrchestrator extends EventEmitter {
       advanced: 'B2',
     };
 
+    const safeMotivationCustom = sanitizePromptInput(input.motivation_custom);
+    const safeWhyNow = sanitizePromptInput(input.why_now);
+
     return {
       nativeLanguage: input.native_language,
       targetLanguage: input.target_language,
       currentLevel: levelToCEFR[input.proficiency_level] || 'A1',
-      learningGoals: input.motivation_custom
-        ? [input.motivation, input.motivation_custom]
+      learningGoals: safeMotivationCustom
+        ? [input.motivation, safeMotivationCustom]
         : [input.motivation],
-      interests: input.why_now ? [input.why_now] : [],
+      interests: safeWhyNow ? [safeWhyNow] : [],
       dailyTimeMinutes: 15, // Default, can be expanded
       motivation: input.motivation,
       timeline: input.timeline,

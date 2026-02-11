@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: 'rgba(99, 102, 241, 0.3)',
+    backgroundColor: 'rgba(0, 54, 255, 0.3)',
   },
   saveText: {
     fontSize: typography.fontSize.base,

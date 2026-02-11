@@ -63,6 +63,7 @@ import { colors, typography, spacing, borderRadius } from '@/constants/designSys
 
 // Shared UI components
 import { DarkOverlay, AnswerFeedbackOverlay } from '@/components/ui';
+import { TypeBadge } from '@/components/ui/TypeBadge';
 import { useHaptics } from '@/hooks/useHaptics';
 
 interface CardProps {
@@ -91,6 +92,7 @@ export function TextInputCard({
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
   const inputScale = useSharedValue(1);
 
   const handleShowHint = () => {
@@ -133,6 +135,7 @@ export function TextInputCard({
     setShowResult(false);
     setIsCorrect(false);
     setShowHint(false);
+    setShowTranslation(false);
   };
 
   const inputAnimatedStyle = useAnimatedStyle(() => ({
@@ -149,6 +152,7 @@ export function TextInputCard({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <TypeBadge variant="typing" />
       {/* Image at top - full width */}
       {image_url && (
         <Animated.View
@@ -189,14 +193,25 @@ export function TextInputCard({
         )}
       </View>
 
-      {/* Translation */}
+      {/* Translation - tap to reveal */}
       {translation && (
-        <Animated.Text
-          entering={FadeIn.duration(400).delay(300)}
-          style={styles.translation}
-        >
-          {translation}
-        </Animated.Text>
+        <Animated.View entering={FadeIn.duration(400).delay(300)}>
+          {showTranslation ? (
+            <Text style={styles.translation}>{translation}</Text>
+          ) : (
+            <TouchableOpacity
+              onPress={() => {
+                setShowTranslation(true);
+                haptics.light();
+              }}
+              activeOpacity={0.7}
+              style={styles.revealButton}
+            >
+              <Ionicons name="eye-outline" size={18} color={colors.text.tertiary} />
+              <Text style={styles.revealButtonText}>Show translation</Text>
+            </TouchableOpacity>
+          )}
+        </Animated.View>
       )}
 
       {/* Content area with padding to avoid button overlap */}
@@ -285,6 +300,7 @@ export function TextInputCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
   },
   imageContainer: {
     width: '100%',
@@ -335,6 +351,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     fontWeight: typography.fontWeight.semibold,
     paddingHorizontal: spacing.lg,
+  },
+  revealButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xl,
+    paddingVertical: spacing.sm,
+  },
+  revealButtonText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    fontWeight: typography.fontWeight.medium,
   },
   contentArea: {
     flex: 1,

@@ -13,6 +13,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useFlashcardSession } from '@/hooks/useFlashcard';
 import { useAuth } from '@/hooks/useAuth';
 import { SimpleQuality } from '@/types/flashcard';
+import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 
 // Import card components
 import LearningCard from '@/components/flashcards/LearningCard';
@@ -86,9 +87,9 @@ export default function FlashcardSessionScreen() {
   // Loading state
   if (isLoading && !currentCard) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={{ fontSize: 18, color: '#6B7280', marginTop: 16 }}>Loading session...</Text>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary }}>
+        <ActivityIndicator size="large" color={colors.accent.blue} />
+        <Text style={{ fontSize: typography.fontSize.lg, color: colors.text.disabled, marginTop: spacing.md }}>Loading session...</Text>
       </View>
     );
   }
@@ -96,21 +97,21 @@ export default function FlashcardSessionScreen() {
   // Error state
   if (error) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 24 }}>
-        <Text style={{ fontSize: 32, marginBottom: 16 }}>😕</Text>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 8 }}>Oops!</Text>
-        <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>{error}</Text>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary, paddingHorizontal: spacing.lg }}>
+        <Text style={{ fontSize: typography.fontSize['2xl'], marginBottom: spacing.md }}>😕</Text>
+        <Text style={{ fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>Oops!</Text>
+        <Text style={{ fontSize: typography.fontSize.base, color: colors.text.disabled, textAlign: 'center', marginBottom: spacing.lg }}>{error}</Text>
         <TouchableOpacity
           style={{
-            backgroundColor: '#2196F3',
-            paddingHorizontal: 24,
-            paddingVertical: 12,
-            borderRadius: 12
+            backgroundColor: colors.accent.blue,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.md,
+            borderRadius: borderRadius.md
           }}
           onPress={() => router.back()}
           activeOpacity={0.8}
         >
-          <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>Go Back</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.bold }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -119,25 +120,25 @@ export default function FlashcardSessionScreen() {
   // No active session or no current card
   if (!isSessionActive || !currentCard) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 24 }}>
-        <Text style={{ fontSize: 32, marginBottom: 16 }}>🎉</Text>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 8 }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary, paddingHorizontal: spacing.lg }}>
+        <Text style={{ fontSize: typography.fontSize['2xl'], marginBottom: spacing.md }}>🎉</Text>
+        <Text style={{ fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>
           No Cards to Review
         </Text>
-        <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>
+        <Text style={{ fontSize: typography.fontSize.base, color: colors.text.disabled, textAlign: 'center', marginBottom: spacing.lg }}>
           Great job! You've reviewed all your flashcards for today.
         </Text>
         <TouchableOpacity
           style={{
-            backgroundColor: '#2196F3',
-            paddingHorizontal: 24,
-            paddingVertical: 12,
-            borderRadius: 12
+            backgroundColor: colors.accent.blue,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.md,
+            borderRadius: borderRadius.md
           }}
           onPress={() => router.back()}
           activeOpacity={0.8}
         >
-          <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>Done</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.bold }}>Done</Text>
         </TouchableOpacity>
       </View>
     );
@@ -147,14 +148,14 @@ export default function FlashcardSessionScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       {/* Header with progress */}
       <Animated.View
         entering={FadeIn.duration(300)}
         style={{
-          backgroundColor: '#FFFFFF',
-          paddingHorizontal: 24,
-          paddingVertical: 16,
+          backgroundColor: colors.background.card,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.md,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.05,
@@ -163,21 +164,21 @@ export default function FlashcardSessionScreen() {
         }}
       >
         {/* Progress Bar */}
-        <View style={{ marginBottom: 12 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <Text style={{ fontSize: 14, color: '#6B7280' }}>
+        <View style={{ marginBottom: spacing.md }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
+            <Text style={{ fontSize: typography.fontSize.sm, color: colors.text.disabled }}>
               Card {currentCardNumber} of {totalCards}
             </Text>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#2196F3' }}>
+            <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.accent.blue }}>
               {pointsEarned} pts
             </Text>
           </View>
-          <View style={{ width: '100%', height: 8, backgroundColor: '#E5E7EB', borderRadius: 9999, overflow: 'hidden' }}>
+          <View style={{ width: '100%', height: spacing.sm, backgroundColor: colors.border.light, borderRadius: borderRadius.full, overflow: 'hidden' }}>
             <View
               style={{
                 height: '100%',
-                backgroundColor: '#2196F3',
-                borderRadius: 9999,
+                backgroundColor: colors.accent.blue,
+                borderRadius: borderRadius.full,
                 width: `${progressPercentage}%`
               }}
             />
@@ -188,23 +189,23 @@ export default function FlashcardSessionScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
           <View
             style={{
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 9999,
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm,
+              borderRadius: borderRadius.full,
               backgroundColor:
-                cardType === 'learning' ? '#DBEAFE' :
-                cardType === 'listening' ? '#D1FAE5' :
-                '#E9D5FF'
+                cardType === 'learning' ? `${colors.accent.blue}20` :
+                cardType === 'listening' ? `${colors.success.DEFAULT}20` :
+                `${colors.accent.purple}20`
             }}
           >
             <Text
               style={{
-                fontSize: 14,
-                fontWeight: '600',
+                fontSize: typography.fontSize.sm,
+                fontWeight: typography.fontWeight.semibold,
                 color:
-                  cardType === 'learning' ? '#1D4ED8' :
-                  cardType === 'listening' ? '#047857' :
-                  '#7C3AED'
+                  cardType === 'learning' ? colors.accent.blue :
+                  cardType === 'listening' ? colors.success.DEFAULT :
+                  colors.accent.purple
               }}
             >
               {cardType === 'learning'
@@ -218,7 +219,7 @@ export default function FlashcardSessionScreen() {
       </Animated.View>
 
       {/* Card Content */}
-      <View style={{ flex: 1, paddingHorizontal: 24, paddingVertical: 32 }}>
+      <View style={{ flex: 1, paddingHorizontal: spacing.lg, paddingVertical: spacing.xl }}>
         {cardType === 'learning' && (
           <Animated.View
             key={`learning-${flashcard.id}`}
@@ -279,36 +280,36 @@ export default function FlashcardSessionScreen() {
       <Animated.View
         entering={FadeIn.duration(400).delay(200)}
         style={{
-          backgroundColor: '#FFFFFF',
-          paddingHorizontal: 24,
-          paddingVertical: 24,
+          backgroundColor: colors.background.card,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.lg,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
-          shadowRadius: 8,
+          shadowRadius: spacing.sm,
           elevation: 5,
         }}
       >
-        <Text style={{ textAlign: 'center', fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+        <Text style={{ textAlign: 'center', fontSize: typography.fontSize.sm, color: colors.text.disabled, marginBottom: spacing.md }}>
           How well did you know this?
         </Text>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
           {/* Forgot */}
           <TouchableOpacity
             style={{
               flex: 1,
-              backgroundColor: '#EF4444',
-              paddingVertical: 16,
-              borderRadius: 12,
+              backgroundColor: colors.error.DEFAULT,
+              paddingVertical: spacing.md,
+              borderRadius: borderRadius.md,
               alignItems: 'center',
             }}
             activeOpacity={0.8}
             onPress={() => handleQualityRating('forgot')}
             disabled={isLoading}
           >
-            <Text style={{ fontSize: 16, fontWeight: 'bold' }}>😕</Text>
-            <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14, marginTop: 4 }}>
+            <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold }}>😕</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
               Forgot
             </Text>
           </TouchableOpacity>
@@ -317,17 +318,17 @@ export default function FlashcardSessionScreen() {
           <TouchableOpacity
             style={{
               flex: 1,
-              backgroundColor: '#F59E0B',
-              paddingVertical: 16,
-              borderRadius: 12,
+              backgroundColor: colors.warning.DEFAULT,
+              paddingVertical: spacing.md,
+              borderRadius: borderRadius.md,
               alignItems: 'center',
             }}
             activeOpacity={0.8}
             onPress={() => handleQualityRating('remembered')}
             disabled={isLoading}
           >
-            <Text style={{ fontSize: 16, fontWeight: 'bold' }}>🤔</Text>
-            <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14, marginTop: 4 }}>
+            <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold }}>🤔</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
               Remembered
             </Text>
           </TouchableOpacity>
@@ -336,17 +337,17 @@ export default function FlashcardSessionScreen() {
           <TouchableOpacity
             style={{
               flex: 1,
-              backgroundColor: '#10B981',
-              paddingVertical: 16,
-              borderRadius: 12,
+              backgroundColor: colors.success.DEFAULT,
+              paddingVertical: spacing.md,
+              borderRadius: borderRadius.md,
               alignItems: 'center',
             }}
             activeOpacity={0.8}
             onPress={() => handleQualityRating('easy')}
             disabled={isLoading}
           >
-            <Text style={{ fontSize: 16, fontWeight: 'bold' }}>😄</Text>
-            <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14, marginTop: 4 }}>
+            <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold }}>😄</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
               Easy
             </Text>
           </TouchableOpacity>
@@ -354,12 +355,12 @@ export default function FlashcardSessionScreen() {
 
         {/* Skip Button */}
         <TouchableOpacity
-          style={{ marginTop: 16, paddingVertical: 12, alignItems: 'center' }}
+          style={{ marginTop: spacing.md, paddingVertical: spacing.md, alignItems: 'center' }}
           onPress={handleSkip}
           disabled={isLoading}
           activeOpacity={0.6}
         >
-          <Text style={{ color: '#6B7280', fontWeight: '500' }}>Skip →</Text>
+          <Text style={{ color: colors.text.disabled, fontWeight: typography.fontWeight.medium }}>Skip →</Text>
         </TouchableOpacity>
       </Animated.View>
 
@@ -375,7 +376,7 @@ export default function FlashcardSessionScreen() {
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <ActivityIndicator size="large" color="#2196F3" />
+          <ActivityIndicator size="large" color={colors.accent.blue} />
         </View>
       )}
       </View>

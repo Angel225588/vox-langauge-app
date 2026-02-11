@@ -67,7 +67,7 @@ export function LevelCheckBanner({
       style={styles.container}
     >
       <LinearGradient
-        colors={['rgba(99, 102, 241, 0.15)', 'rgba(139, 92, 246, 0.08)']}
+        colors={['rgba(0, 54, 255, 0.15)', 'rgba(0, 163, 255, 0.08)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: 'rgba(0, 54, 255, 0.2)',
   },
   dismissButton: {
     position: 'absolute',
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: 'rgba(0, 54, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,

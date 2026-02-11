@@ -132,12 +132,12 @@ const waveStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    height: 40,
+    gap: spacing.xs,
+    height: spacing['3xl'] * 0.625, // 40
   },
   bar: {
-    width: 4,
-    borderRadius: 2,
+    width: spacing.xs,
+    borderRadius: spacing.xs / 2,
     backgroundColor: colors.primary.DEFAULT,
   },
 });
@@ -657,7 +657,7 @@ export const VoiceRolePlayCard: React.FC<VoiceRolePlayCardProps> = ({
               <LinearGradient
                 colors={
                   isRecording
-                    ? [colors.error.DEFAULT, '#FF6B6B']
+                    ? [colors.error.DEFAULT, colors.error.light]
                     : colors.gradients.primary
                 }
                 style={styles.pttButtonGradient}
@@ -729,9 +729,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   avatarContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: spacing['2xl'] - spacing.xs, // 44
+    height: spacing['2xl'] - spacing.xs, // 44
+    borderRadius: borderRadius.xl, // ~22
     backgroundColor: colors.background.elevated,
     alignItems: 'center',
     justifyContent: 'center',
@@ -739,10 +739,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary.DEFAULT,
   },
   avatarEmoji: {
-    fontSize: 24,
+    fontSize: typography.fontSize['2xl'],
   },
   headerText: {
-    gap: 2,
+    gap: 2, // intentionally small for tight text grouping
   },
   characterName: {
     fontSize: typography.fontSize.base,
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
     backgroundColor: colors.background.elevated,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
@@ -776,9 +776,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.card,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: spacing.sm,
+    height: spacing.sm,
+    borderRadius: spacing.xs,
   },
   statusText: {
     fontSize: typography.fontSize.sm,
@@ -787,19 +787,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: spacing.md,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 2, // intentionally small for compact badge
     borderRadius: borderRadius.sm,
   },
   modeBadgeHybrid: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success.DEFAULT,
   },
   modeBadgeLive: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: colors.warning.DEFAULT,
   },
   modeBadgeText: {
-    fontSize: 10,
+    fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.bold,
-    color: '#FFFFFF',
+    color: colors.text.primary,
     letterSpacing: 0.5,
   },
   chatContainer: {
@@ -877,11 +877,11 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     backgroundColor: colors.primary.DEFAULT,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: spacing.xs, // small radius for chat bubble tail effect
   },
   aiBubble: {
     backgroundColor: colors.background.card,
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: spacing.xs, // small radius for chat bubble tail effect
     borderWidth: 1,
     borderColor: colors.border.light,
   },
@@ -954,23 +954,23 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   endButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: spacing['2xl'],
+    height: spacing['2xl'],
+    borderRadius: spacing.lg,
     backgroundColor: colors.background.elevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pttButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: spacing['2xl'] + spacing.xl, // 80
+    height: spacing['2xl'] + spacing.xl, // 80
+    borderRadius: borderRadius['3xl'],
     overflow: 'hidden',
     elevation: 4,
     shadowColor: colors.primary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: spacing.xs },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: spacing.sm,
   },
   pttButtonActive: {
     transform: [{ scale: 1.1 }],
@@ -985,16 +985,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stopButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: spacing['2xl'],
+    height: spacing['2xl'],
+    borderRadius: spacing.lg,
     backgroundColor: colors.background.elevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stopButtonPlaceholder: {
-    width: 48,
-    height: 48,
+    width: spacing['2xl'],
+    height: spacing['2xl'],
   },
   instructionText: {
     fontSize: typography.fontSize.sm,
@@ -1004,7 +1004,7 @@ const styles = StyleSheet.create({
   },
   lottieOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.7)', // dark overlay for modal backdrop
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,

@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   chipSelected: {
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: 'rgba(0, 54, 255, 0.15)',
     borderColor: colors.primary.DEFAULT,
   },
   loadingChip: {

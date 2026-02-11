@@ -91,22 +91,22 @@ export default function LessonScreen() {
             <TouchableOpacity
               onPress={handleBackPress}
               style={{
-                width: 40,
-                height: 40,
+                width: spacing.xl + spacing.sm,
+                height: spacing.xl + spacing.sm,
                 borderRadius: borderRadius.full,
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 20, color: colors.text.primary }}>←</Text>
+              <Text style={{ fontSize: typography.fontSize.xl, color: colors.text.primary }}>←</Text>
             </TouchableOpacity>
 
             {/* Banner Content */}
             <View>
               <Text
                 style={{
-                  fontSize: 36,
+                  fontSize: typography.fontSize['4xl'],
                   fontWeight: typography.fontWeight.bold,
                   color: colors.text.primary,
                   marginBottom: spacing.xs,
@@ -116,7 +116,7 @@ export default function LessonScreen() {
               </Text>
               <Text
                 style={{
-                  fontSize: typography.fontSize.md,
+                  fontSize: typography.fontSize.base,
                   color: colors.text.secondary,
                   marginBottom: spacing.lg,
                 }}
@@ -138,7 +138,7 @@ export default function LessonScreen() {
                 <View
                   style={{
                     width: '100%',
-                    height: 8,
+                    height: spacing.sm,
                     backgroundColor: 'rgba(255, 255, 255, 0.2)',
                     borderRadius: borderRadius.full,
                     overflow: 'hidden',
@@ -149,7 +149,7 @@ export default function LessonScreen() {
                     style={{
                       width: `${progressPercentage}%`,
                       height: '100%',
-                      backgroundColor: colors.accent.success,
+                      backgroundColor: colors.success.DEFAULT,
                     }}
                   />
                 </View>
@@ -164,7 +164,7 @@ export default function LessonScreen() {
           style={{
             paddingHorizontal: spacing.xl,
             paddingTop: spacing.xl,
-            paddingBottom: spacing['4xl'],
+            paddingBottom: spacing['3xl'] + spacing.xl,
           }}
         >
           {miniLessons.map((miniLesson, index) => {
@@ -189,19 +189,19 @@ export default function LessonScreen() {
 const getCategoryBadge = (category: MiniLessonCategory) => {
   switch (category) {
     case 'vocabulary':
-      return { color: '#3B82F6', label: 'Vocabulary' }; // Blue
+      return { color: colors.accent.blue, label: 'Vocabulary' }; // Blue
     case 'listening':
-      return { color: '#10B981', label: 'Listening' }; // Green
+      return { color: colors.success.DEFAULT, label: 'Listening' }; // Green
     case 'speaking':
-      return { color: '#8B5CF6', label: 'Speaking' }; // Purple
+      return { color: colors.accent.purple, label: 'Speaking' }; // Purple
     case 'reading':
-      return { color: '#F59E0B', label: 'Reading' }; // Orange
+      return { color: colors.warning.DEFAULT, label: 'Reading' }; // Amber
     case 'grammar':
-      return { color: '#EC4899', label: 'Grammar' }; // Pink
+      return { color: colors.accent.pink, label: 'Grammar' }; // Pink
     case 'test':
-      return { color: '#EAB308', label: 'Test' }; // Gold
+      return { color: colors.warning.DEFAULT, label: 'Test' }; // Amber
     default:
-      return { color: '#6B7280', label: 'Lesson' }; // Gray
+      return { color: colors.text.disabled, label: 'Lesson' }; // Gray
   }
 };
 
@@ -276,8 +276,8 @@ function MiniLessonCard({
           {/* Icon */}
           <View
             style={{
-              width: 64,
-              height: 64,
+              width: spacing['3xl'],
+              height: spacing['3xl'],
               borderRadius: borderRadius.full,
               backgroundColor: 'rgba(255, 255, 255, 0.15)',
               alignItems: 'center',
@@ -286,11 +286,11 @@ function MiniLessonCard({
             }}
           >
             {isLocked ? (
-              <Text style={{ fontSize: 32 }}>🔒</Text>
+              <Text style={{ fontSize: typography.fontSize['3xl'] + 2 }}>🔒</Text>
             ) : isCompleted ? (
-              <Text style={{ fontSize: 32 }}>✅</Text>
+              <Text style={{ fontSize: typography.fontSize['3xl'] + 2 }}>✅</Text>
             ) : (
-              <Text style={{ fontSize: 32 }}>{miniLesson.icon}</Text>
+              <Text style={{ fontSize: typography.fontSize['3xl'] + 2 }}>{miniLesson.icon}</Text>
             )}
           </View>
 
@@ -327,9 +327,9 @@ function MiniLessonCard({
               >
                 <Text
                   style={{
-                    fontSize: 10,
+                    fontSize: typography.fontSize.xs - 2,
                     fontWeight: typography.fontWeight.bold,
-                    color: '#FFFFFF',
+                    color: colors.text.primary,
                   }}
                 >
                   {categoryBadge.label.toUpperCase()}
@@ -338,7 +338,7 @@ function MiniLessonCard({
 
               {/* Duration */}
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 14, marginRight: 4 }}>⏱️</Text>
+                <Text style={{ fontSize: typography.fontSize.sm, marginRight: spacing.xs }}>⏱️</Text>
                 <Text
                   style={{
                     fontSize: typography.fontSize.xs,
@@ -351,7 +351,7 @@ function MiniLessonCard({
 
               {/* Card Count */}
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 14, marginRight: 4 }}>📝</Text>
+                <Text style={{ fontSize: typography.fontSize.sm, marginRight: spacing.xs }}>📝</Text>
                 <Text
                   style={{
                     fontSize: typography.fontSize.xs,

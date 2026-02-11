@@ -205,7 +205,7 @@ export function ResultsCard({ result, onContinue }: ResultsCardProps) {
           style={[styles.celebrationContainer, celebrationStyle]}
         >
           <LinearGradient
-            colors={['rgba(99, 102, 241, 0.2)', 'rgba(139, 92, 246, 0.1)']}
+            colors={['rgba(0, 54, 255, 0.2)', 'rgba(0, 163, 255, 0.1)']}
             style={styles.celebrationGradient}
           >
             <Text style={styles.celebrationEmoji}>🎉</Text>
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: 'rgba(0, 54, 255, 0.2)',
   },
   celebrationEmoji: {
     fontSize: 48,
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: borderRadius.sm,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: 'rgba(0, 54, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.sm,
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   tag: {
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: 'rgba(0, 54, 255, 0.15)',
     paddingVertical: 4,
     paddingHorizontal: spacing.sm,
     borderRadius: borderRadius.sm,

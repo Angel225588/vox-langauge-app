@@ -19,6 +19,8 @@ export interface OnboardingV2Data {
   motivation: string | null;
   motivation_custom: string | null;
   why_now: string | null;
+  profession: string | null;
+  profession_custom: string | null;
 
   // Screen 3: Your Level
   proficiency_level: string | null;
@@ -26,9 +28,13 @@ export interface OnboardingV2Data {
 
   // Screen 4: Your Commitment (timeline)
   timeline: string | null;
+  min_practice_time: number | null;
+  max_practice_time: number | null;
+  days_per_week: number | null;
 
-  // Screen 5: Your Stakes (what's waiting on the other side)
+  // Screen 5: Your Scenarios (was Your Stakes)
   stakes: string | null;
+  scenarios: string[] | null;
   commitment_stakes: string | null; // Legacy - kept for backwards compatibility
 }
 
@@ -36,8 +42,10 @@ interface OnboardingV2Store {
   data: OnboardingV2Data;
   currentStep: number;
   totalSteps: number;
+  _hasHydrated: boolean;
 
   // Actions
+  setHasHydrated: (hydrated: boolean) => void;
   updateData: (updates: Partial<OnboardingV2Data>) => void;
   setStep: (step: number) => void;
   nextStep: () => void;
@@ -56,10 +64,16 @@ const initialData: OnboardingV2Data = {
   motivation: null,
   motivation_custom: null,
   why_now: null,
+  profession: null,
+  profession_custom: null,
   proficiency_level: null,
   previous_attempts: null,
   timeline: null,
+  min_practice_time: null,
+  max_practice_time: null,
+  days_per_week: null,
   stakes: null,
+  scenarios: null,
   commitment_stakes: null, // Legacy
 };
 
@@ -69,6 +83,9 @@ export const useOnboardingV2 = create<OnboardingV2Store>()(
       data: initialData,
       currentStep: 1,
       totalSteps: 6, // Languages, Why, Level, Commitment, Stakes, Ready
+      _hasHydrated: false,
+
+      setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
 
       updateData: (updates) =>
         set((state) => ({
@@ -124,9 +141,27 @@ export const useOnboardingV2 = create<OnboardingV2Store>()(
       storage: createJSONStorage(() => AsyncStorage),
       // Only persist the data, not the step (users should restart onboarding flow)
       partialize: (state) => ({ data: state.data }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
+
+/**
+ * Waits for the Zustand persist middleware to flush state to AsyncStorage.
+ * Call this after updateData() and before router.push() to prevent data loss
+ * from a race condition between in-memory state updates and async persistence.
+ *
+ * Uses a short delay to allow the persist middleware's subscribe handler to
+ * write the new state to AsyncStorage before navigation triggers a remount.
+ */
+export async function flushOnboardingState(): Promise<void> {
+  // Zustand persist middleware subscribes to state changes and writes
+  // to AsyncStorage asynchronously. We need to give it time to flush.
+  // AsyncStorage.setItem is async — a small delay ensures the write completes.
+  await new Promise(resolve => setTimeout(resolve, 50));
+}
 
 // Language options
 export const NATIVE_LANGUAGES = [
@@ -181,6 +216,121 @@ export const STAKES_OPTIONS = [
   { id: 'career', label: 'A career breakthrough', emoji: '🚀', subtext: 'The role, the raise, the respect' },
   { id: 'travel', label: 'A richer travel experience', emoji: '🌍', subtext: 'Actually living the culture, not just visiting' },
   { id: 'confidence', label: 'A more confident me', emoji: '✨', subtext: 'No more "sorry, I don\'t speak..."' },
+];
+
+// Profession options
+export const PROFESSIONS = [
+  { id: 'business', label: 'Business & Management', icon: '💼' },
+  { id: 'tech', label: 'Tech & Engineering', icon: '💻' },
+  { id: 'healthcare', label: 'Healthcare & Medical', icon: '🏥' },
+  { id: 'legal', label: 'Legal & Law', icon: '⚖️' },
+  { id: 'education', label: 'Education & Academia', icon: '📚' },
+  { id: 'creative', label: 'Creative & Media', icon: '🎨' },
+  { id: 'hospitality', label: 'Hospitality & Tourism', icon: '🏨' },
+  { id: 'government', label: 'Government & Diplomacy', icon: '🏛️' },
+  { id: 'student', label: 'Student', icon: '🎓' },
+  { id: 'other', label: 'Other', icon: '🔧' },
+];
+
+// Scenarios organized by profession context
+export const SCENARIOS_BY_CONTEXT: Record<string, Array<{ id: string; label: string; icon: string; description: string }>> = {
+  business: [
+    { id: 'pitching_ideas', label: 'Pitching Ideas', icon: '💡', description: 'Present proposals to stakeholders' },
+    { id: 'negotiating_deals', label: 'Negotiating Deals', icon: '🤝', description: 'Close deals and reach agreements' },
+    { id: 'leading_meetings', label: 'Leading Meetings', icon: '📋', description: 'Run meetings with confidence' },
+    { id: 'networking', label: 'Networking Events', icon: '🥂', description: 'Build professional relationships' },
+    { id: 'client_calls', label: 'Client Calls', icon: '📞', description: 'Handle calls with international clients' },
+    { id: 'email_writing', label: 'Professional Emails', icon: '✉️', description: 'Write clear business communication' },
+  ],
+  tech: [
+    { id: 'code_reviews', label: 'Code Reviews', icon: '🔍', description: 'Discuss technical decisions with teams' },
+    { id: 'standups', label: 'Daily Standups', icon: '🗓️', description: 'Share progress and blockers' },
+    { id: 'tech_presentations', label: 'Tech Presentations', icon: '📊', description: 'Present technical topics clearly' },
+    { id: 'interviews', label: 'Tech Interviews', icon: '💻', description: 'Ace technical interviews' },
+    { id: 'client_demos', label: 'Client Demos', icon: '🖥️', description: 'Demo products to stakeholders' },
+    { id: 'documentation', label: 'Documentation', icon: '📝', description: 'Write clear technical docs' },
+  ],
+  healthcare: [
+    { id: 'patient_consultations', label: 'Patient Consultations', icon: '🩺', description: 'Communicate diagnoses clearly' },
+    { id: 'medical_history', label: 'Taking Medical History', icon: '📋', description: 'Gather patient information' },
+    { id: 'colleague_handoffs', label: 'Colleague Handoffs', icon: '🔄', description: 'Transfer care effectively' },
+    { id: 'medical_conferences', label: 'Medical Conferences', icon: '🎤', description: 'Present research findings' },
+    { id: 'emergency_communication', label: 'Emergency Situations', icon: '🚨', description: 'Communicate under pressure' },
+    { id: 'patient_education', label: 'Patient Education', icon: '📖', description: 'Explain treatments simply' },
+  ],
+  legal: [
+    { id: 'client_intake', label: 'Client Intake', icon: '📝', description: 'Gather case details from clients' },
+    { id: 'courtroom', label: 'Courtroom Language', icon: '⚖️', description: 'Argue cases with precision' },
+    { id: 'contract_review', label: 'Contract Discussion', icon: '📄', description: 'Negotiate contract terms' },
+    { id: 'depositions', label: 'Depositions', icon: '🎤', description: 'Conduct formal questioning' },
+    { id: 'legal_writing', label: 'Legal Writing', icon: '✍️', description: 'Draft legal documents' },
+    { id: 'mediation', label: 'Mediation', icon: '🤝', description: 'Facilitate dispute resolution' },
+  ],
+  education: [
+    { id: 'lecturing', label: 'Giving Lectures', icon: '🎓', description: 'Teach with clarity and engagement' },
+    { id: 'student_feedback', label: 'Student Feedback', icon: '💬', description: 'Give constructive feedback' },
+    { id: 'academic_writing', label: 'Academic Writing', icon: '📝', description: 'Write papers and proposals' },
+    { id: 'conference_talks', label: 'Conference Talks', icon: '🎤', description: 'Present at academic events' },
+    { id: 'parent_meetings', label: 'Parent Meetings', icon: '👨‍👩‍👧', description: 'Discuss student progress' },
+    { id: 'collaboration', label: 'Research Collaboration', icon: '🔬', description: 'Work with international teams' },
+  ],
+  creative: [
+    { id: 'client_briefs', label: 'Client Briefs', icon: '🎯', description: 'Understand and discuss creative direction' },
+    { id: 'pitch_presentations', label: 'Creative Pitches', icon: '💡', description: 'Sell your creative vision' },
+    { id: 'feedback_sessions', label: 'Feedback Sessions', icon: '💬', description: 'Give and receive creative critique' },
+    { id: 'content_creation', label: 'Content Creation', icon: '📱', description: 'Create multilingual content' },
+    { id: 'interviews_media', label: 'Media Interviews', icon: '🎙️', description: 'Handle press and interviews' },
+    { id: 'collaboration_creative', label: 'Creative Collaboration', icon: '🤝', description: 'Work with international creatives' },
+  ],
+  hospitality: [
+    { id: 'guest_reception', label: 'Guest Reception', icon: '🏨', description: 'Welcome and assist guests' },
+    { id: 'complaint_handling', label: 'Complaint Handling', icon: '🛎️', description: 'Resolve guest issues' },
+    { id: 'tour_guiding', label: 'Tour Guiding', icon: '🗺️', description: 'Lead tours in another language' },
+    { id: 'restaurant_service', label: 'Restaurant Service', icon: '🍽️', description: 'Menu explanation and service' },
+    { id: 'event_coordination', label: 'Event Coordination', icon: '🎉', description: 'Organize multilingual events' },
+    { id: 'travel_advice', label: 'Travel Advice', icon: '✈️', description: 'Give local recommendations' },
+  ],
+  government: [
+    { id: 'diplomatic_meetings', label: 'Diplomatic Meetings', icon: '🏛️', description: 'Formal diplomatic discussions' },
+    { id: 'public_speaking', label: 'Public Speaking', icon: '🎤', description: 'Address diverse audiences' },
+    { id: 'policy_discussion', label: 'Policy Discussion', icon: '📋', description: 'Debate policy in committees' },
+    { id: 'constituent_services', label: 'Constituent Services', icon: '🤝', description: 'Help multilingual communities' },
+    { id: 'international_relations', label: 'International Relations', icon: '🌐', description: 'Cross-border communication' },
+    { id: 'report_writing', label: 'Report Writing', icon: '📝', description: 'Write official documents' },
+  ],
+  student: [
+    { id: 'classroom_participation', label: 'Classroom Participation', icon: '🙋', description: 'Ask questions and join discussions' },
+    { id: 'study_groups', label: 'Study Groups', icon: '📚', description: 'Collaborate with classmates' },
+    { id: 'presentations', label: 'Class Presentations', icon: '📊', description: 'Present projects and research' },
+    { id: 'office_hours', label: 'Office Hours', icon: '🏢', description: 'Discuss work with professors' },
+    { id: 'social_campus', label: 'Campus Social Life', icon: '🎒', description: 'Make friends and socialize' },
+    { id: 'job_interviews', label: 'Job Interviews', icon: '💼', description: 'Land your first role' },
+  ],
+  default: [
+    { id: 'daily_conversations', label: 'Daily Conversations', icon: '💬', description: 'Chat naturally with anyone' },
+    { id: 'travel_situations', label: 'Travel Situations', icon: '✈️', description: 'Navigate airports, hotels, restaurants' },
+    { id: 'making_friends', label: 'Making Friends', icon: '🤝', description: 'Build real relationships' },
+    { id: 'professional_meetings', label: 'Professional Meetings', icon: '💼', description: 'Meetings and presentations' },
+    { id: 'phone_calls', label: 'Phone Calls', icon: '📞', description: 'Handle calls with confidence' },
+    { id: 'social_events', label: 'Social Events', icon: '🥂', description: 'Small talk and networking' },
+  ],
+};
+
+// Practice time options
+export const PRACTICE_TIME_OPTIONS = [
+  { min: 5, max: 10, label: '5-10 min', description: 'Quick sessions' },
+  { min: 10, max: 20, label: '10-20 min', description: 'Focused learning' },
+  { min: 20, max: 30, label: '20-30 min', description: 'Deep practice' },
+  { min: 30, max: 60, label: '30-60 min', description: 'Intensive study' },
+];
+
+// Days per week options
+export const DAYS_PER_WEEK_OPTIONS = [
+  { days: 3, label: '3', description: 'Light' },
+  { days: 4, label: '4', description: 'Moderate' },
+  { days: 5, label: '5', description: 'Committed' },
+  { days: 6, label: '6', description: 'Intensive' },
+  { days: 7, label: '7', description: 'Daily' },
 ];
 
 // Accent options by target language

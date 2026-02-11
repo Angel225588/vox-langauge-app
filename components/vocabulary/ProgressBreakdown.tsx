@@ -46,7 +46,7 @@ export function ProgressBreakdown({ words, onCategoryPress, loading = false }: P
       emoji: '💪',
       count: strongCount,
       color: colors.success.DEFAULT,
-      bgColor: 'rgba(16, 185, 129, 0.1)',
+      bgColor: colors.overlay.success10,
     },
     {
       key: 'learning',
@@ -54,7 +54,7 @@ export function ProgressBreakdown({ words, onCategoryPress, loading = false }: P
       emoji: '📚',
       count: learningCount,
       color: colors.warning.DEFAULT,
-      bgColor: 'rgba(245, 158, 11, 0.1)',
+      bgColor: colors.overlay.warning10,
     },
     {
       key: 'new',
@@ -62,7 +62,7 @@ export function ProgressBreakdown({ words, onCategoryPress, loading = false }: P
       emoji: '🌱',
       count: newCount,
       color: colors.primary.light,
-      bgColor: 'rgba(99, 102, 241, 0.1)',
+      bgColor: colors.overlay.primary10,
     },
   ];
 
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: colors.overlay.light5,
   },
   loadingCard: {
     height: 120,
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   progressBarContainer: {
     width: '100%',
     height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.overlay.light10,
     borderRadius: borderRadius.full,
     overflow: 'hidden',
   },

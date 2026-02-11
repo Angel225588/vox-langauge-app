@@ -81,7 +81,7 @@ function Option({ option, index, isSelected, showFeedback, isCorrect, disabled, 
       }
     } else if (isSelected) {
       borderColor = colors.primary.DEFAULT;
-      backgroundColor = 'rgba(99, 102, 241, 0.1)';
+      backgroundColor = 'rgba(0, 54, 255, 0.1)';
     }
 
     return {
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
   },
   contextBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: 'rgba(0, 54, 255, 0.15)',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,

@@ -15,7 +15,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#6366F1', // Indigo to match dark mode theme
+        tabBarActiveTintColor: '#0036FF', // Electric blue to match dark mode theme
         tabBarInactiveTintColor: '#9CA3AF', // Gray
         tabBarStyle: {
           backgroundColor: '#1F2937', // Dark background

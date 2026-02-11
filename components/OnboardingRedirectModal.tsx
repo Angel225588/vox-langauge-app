@@ -52,7 +52,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
               borderRadius: borderRadius.xl,
               padding: spacing.xxl,
               borderWidth: 1,
-              borderColor: 'rgba(99, 102, 241, 0.3)',
+              borderColor: 'rgba(0, 54, 255, 0.3)',
               shadowColor: colors.glow.primary,
               shadowOffset: { width: 0, height: 20 },
               shadowOpacity: 0.4,
@@ -74,11 +74,11 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
                   width: 80,
                   height: 80,
                   borderRadius: borderRadius.full,
-                  backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                  backgroundColor: 'rgba(0, 54, 255, 0.15)',
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderWidth: 2,
-                  borderColor: 'rgba(99, 102, 241, 0.3)',
+                  borderColor: 'rgba(0, 54, 255, 0.3)',
                 }}
               >
                 <Text style={{ fontSize: 48 }}>✨</Text>
@@ -140,7 +140,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
                       width: 40,
                       height: 40,
                       borderRadius: borderRadius.full,
-                      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                      backgroundColor: 'rgba(0, 54, 255, 0.1)',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}

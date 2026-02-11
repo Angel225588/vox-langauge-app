@@ -145,7 +145,7 @@ function StairItem({ index, title, emoji, isVisible, isActive, delay }: StairIte
     <Animated.View style={[styles.stairItem, containerStyle]}>
       <LinearGradient
         colors={isActive
-          ? ['rgba(99, 102, 241, 0.2)', 'rgba(139, 92, 246, 0.1)']
+          ? [colors.overlay.primary20, 'rgba(0, 163, 255, 0.1)']
           : ['rgba(26, 31, 58, 0.8)', 'rgba(26, 31, 58, 0.6)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 6,
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    backgroundColor: colors.overlay.primary20,
     borderRadius: borderRadius.full,
     overflow: 'hidden',
   },

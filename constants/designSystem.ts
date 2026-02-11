@@ -78,6 +78,24 @@ export const colors = {
     dark: '#1F2937',
   },
 
+  // Overlay/opacity tokens (replaces scattered inline rgba values)
+  overlay: {
+    light5: 'rgba(255, 255, 255, 0.05)',   // Subtle surface highlight
+    light8: 'rgba(255, 255, 255, 0.08)',   // Card hover, subtle borders
+    light10: 'rgba(255, 255, 255, 0.1)',   // Visible borders
+    light12: 'rgba(255, 255, 255, 0.12)',  // Prominent borders
+    light20: 'rgba(255, 255, 255, 0.2)',   // Semi-visible
+    dark30: 'rgba(0, 0, 0, 0.3)',          // Light overlay
+    dark50: 'rgba(0, 0, 0, 0.5)',          // Medium overlay
+    dark70: 'rgba(0, 0, 0, 0.7)',          // Dark overlay
+    primary10: 'rgba(0, 54, 255, 0.1)',    // Primary subtle bg
+    primary15: 'rgba(0, 54, 255, 0.15)',   // Primary border
+    primary20: 'rgba(0, 54, 255, 0.2)',    // Primary highlight
+    success10: 'rgba(16, 185, 129, 0.1)',  // Success subtle bg
+    warning10: 'rgba(245, 158, 11, 0.1)',  // Warning subtle bg
+    error10: 'rgba(239, 68, 68, 0.1)',     // Error subtle bg
+  },
+
   // Glow effects (for box shadows)
   glow: {
     primary: 'rgba(0, 54, 255, 0.5)',       // Blue glow
