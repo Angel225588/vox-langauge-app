@@ -21,6 +21,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { generateReadingContent, type ReadingPassage } from '@/lib/ai/practiceGenerator';
+import { savePracticeScore } from '@/lib/db/competencyMetrics';
 
 // ─── Palette (matches practice tab) ───
 const C = {
@@ -98,6 +99,18 @@ export default function PracticeReadingScreen() {
     : 0;
 
   const totalQ = passage?.comprehensionQuestions.length || 0;
+
+  // Save score when entering score phase
+  useEffect(() => {
+    if (phase !== 'score' || !user?.id || totalQ === 0) return;
+    const pct = Math.round((score / totalQ) * 100);
+    savePracticeScore(user.id, 'reading', {
+      communication: pct,
+      scenario: pct,
+      fluency: Math.round(pct * 0.8),
+      articulation: Math.round(pct * 0.7),
+    }).catch(() => {});
+  }, [phase]);
 
   // ═══ LOADING ═══
   if (phase === 'loading') {

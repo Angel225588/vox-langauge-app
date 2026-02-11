@@ -26,6 +26,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { generateWritingContent, type WritingPrompt } from '@/lib/ai/practiceGenerator';
 import { generateWithGemini } from '@/lib/ai/gemini';
 import { sanitizePromptInput } from '@/lib/ai/sanitize';
+import { savePracticeScore } from '@/lib/db/competencyMetrics';
 
 // ─── Palette ───
 const C = {
@@ -118,11 +119,13 @@ Respond in JSON:
 }`;
 
       const raw = await generateWithGemini(feedbackPrompt);
+      let resultScore = 70;
       // Extract JSON from response
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]) as WritingFeedback;
         setFeedback(parsed);
+        resultScore = parsed.score || 70;
       } else {
         setFeedback({
           score: 70,
@@ -132,6 +135,15 @@ Respond in JSON:
         });
       }
       setPhase('feedback');
+      // Save score to competency metrics
+      if (user?.id) {
+        savePracticeScore(user.id, 'writing', {
+          articulation: resultScore,
+          communication: resultScore,
+          fluency: Math.round(resultScore * 0.85),
+          scenario: Math.round(resultScore * 0.8),
+        }).catch(() => {});
+      }
     } catch (err) {
       console.error('[Writing] Feedback generation failed:', err);
       setFeedback({
@@ -141,6 +153,11 @@ Respond in JSON:
         improvements: ['Practice with more writing prompts'],
       });
       setPhase('feedback');
+      if (user?.id) {
+        savePracticeScore(user.id, 'writing', {
+          articulation: 65, communication: 65, fluency: 55, scenario: 52,
+        }).catch(() => {});
+      }
     } finally {
       setSubmitting(false);
     }

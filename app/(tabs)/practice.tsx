@@ -35,6 +35,8 @@ import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { getConversationStats } from '@/lib/db/conversations';
 import { getUserMemory } from '@/lib/ai/userMemory';
+import { getCompetencySnapshot } from '@/lib/metrics/competencyEngine';
+import type { ScoreTrend } from '@/lib/db/competencyMetrics';
 
 // ─── PRACTICE ZONE PALETTE ───
 const PZ = {
@@ -306,40 +308,53 @@ export default function PracticeScreen() {
   const [kpiData, setKpiData] = useState({
     articulation: 0,
     fluency: 0,
+    communication: 0,
+    scenario: 0,
     totalVocab: 0,
     totalPoints: 0,
     streak: 0,
     dailyPercent: 0,
   });
+  const [trends, setTrends] = useState<ScoreTrend[]>([]);
 
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
       try {
-        const [stats, memory] = await Promise.all([
+        const [snapshot, stats, memory] = await Promise.all([
+          getCompetencySnapshot(user.id),
           getConversationStats(user.id),
           getUserMemory(user.id),
         ]);
         setKpiData({
-          articulation: stats?.avgArticulation || 0,
-          fluency: stats?.avgFluency || 0,
+          articulation: snapshot.averages.articulation || stats?.avgArticulation || 0,
+          fluency: snapshot.averages.fluency || stats?.avgFluency || 0,
+          communication: snapshot.averages.communication || stats?.avgCommunication || 0,
+          scenario: snapshot.averages.scenario || stats?.avgScenario || 0,
           totalVocab: memory?.total_vocab_learned || 0,
-          totalPoints: (stats?.totalSessions || 0) * 50 + (memory?.total_lessons_completed || 0) * 25,
+          totalPoints: (stats?.totalSessions || 0) * 50 + (memory?.total_lessons_completed || 0) * 25 + snapshot.totalSessions * 30,
           streak: memory?.current_streak || 0,
           dailyPercent: memory?.total_lessons_completed
             ? Math.min(100, Math.round((memory.total_lessons_completed % 5) / 5 * 100))
             : 0,
         });
+        setTrends(snapshot.trends);
       } catch (err) {
         console.warn('[Practice] Failed to load KPI data:', err);
       }
     })();
   }, [user?.id]);
 
+  const getTrend = (kpi: string) => {
+    const t = trends.find(tr => tr.kpi === kpi);
+    if (!t || t.direction === 'stable') return '';
+    return t.direction === 'improving' ? `+${t.delta}` : `${t.delta}`;
+  };
+
   const KPI_ITEMS = [
-    { label: 'Articulation', value: kpiData.articulation, suffix: '/100', color: PZ.cyan, trend: '' },
-    { label: 'Fluency', value: kpiData.fluency, suffix: '/100', color: PZ.blueLight, trend: '' },
-    { label: 'Words', value: kpiData.totalVocab, suffix: '', color: PZ.green, trend: '' },
+    { label: 'Articulation', value: kpiData.articulation, suffix: '/100', color: PZ.cyan, trend: getTrend('articulation') },
+    { label: 'Fluency', value: kpiData.fluency, suffix: '/100', color: PZ.blueLight, trend: getTrend('fluency') },
+    { label: 'Communication', value: kpiData.communication, suffix: '/100', color: PZ.green, trend: getTrend('communication') },
   ];
 
   // Shimmer animation for Flow card
@@ -393,10 +408,15 @@ export default function PracticeScreen() {
         contentContainerStyle={s.scrollContent}
         bounces
       >
-        {/* ═══ 3 KPI BOXES ═══ */}
+        {/* ═══ KPI BOXES (tap to open dashboard) ═══ */}
         <Animated.View entering={FadeInDown.duration(350).delay(40)} style={s.kpiRow}>
           {KPI_ITEMS.map((kpi, i) => (
-            <View key={kpi.label} style={s.kpiBox}>
+            <TouchableOpacity
+              key={kpi.label}
+              style={s.kpiBox}
+              activeOpacity={0.7}
+              onPress={() => router.push('/competency-dashboard' as any)}
+            >
               <Text style={s.kpiLabel}>{kpi.label}</Text>
               <AnimNum
                 to={kpi.value}
@@ -406,9 +426,15 @@ export default function PracticeScreen() {
                 delay={300 + i * 100}
               />
               <View style={s.trendRow}>
-                <Text style={s.trendText}>{'\u2191'} {kpi.trend}</Text>
+                {kpi.trend ? (
+                  <Text style={[s.trendText, { color: kpi.trend.startsWith('+') ? PZ.green : PZ.rose }]}>
+                    {kpi.trend.startsWith('+') ? '\u2191' : '\u2193'} {kpi.trend}
+                  </Text>
+                ) : (
+                  <Text style={[s.trendText, { color: PZ.dim }]}>{'\u2500'}</Text>
+                )}
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </Animated.View>
 

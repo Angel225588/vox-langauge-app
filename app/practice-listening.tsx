@@ -21,6 +21,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { generateListeningContent, type ListeningExercise } from '@/lib/ai/practiceGenerator';
+import { savePracticeScore } from '@/lib/db/competencyMetrics';
 import * as Speech from 'expo-speech';
 
 // ─── Palette ───
@@ -119,6 +120,18 @@ export default function PracticeListeningScreen() {
       }, 0)
     : 0;
   const totalQ = exercise?.comprehensionQuestions.length || 0;
+
+  // Save score when entering score phase
+  useEffect(() => {
+    if (phase !== 'score' || !user?.id || totalQ === 0) return;
+    const pct = Math.round((score / totalQ) * 100);
+    savePracticeScore(user.id, 'listening', {
+      fluency: pct,
+      communication: pct,
+      articulation: Math.round(pct * 0.8),
+      scenario: Math.round(pct * 0.7),
+    }).catch(() => {});
+  }, [phase]);
 
   // ═══ LOADING ═══
   if (phase === 'loading') {
