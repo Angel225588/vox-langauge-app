@@ -39,18 +39,30 @@ export interface Flashcard {
 
 /**
  * User's progress on a specific flashcard
- * Tracks spaced repetition data (SM-2 algorithm)
+ * Tracks spaced repetition data (SM-2 legacy + FSRS).
+ * New cards use FSRS; existing SM-2 cards migrate on next review.
  */
 export interface UserFlashcardProgress {
   id: string;
   user_id: string;
   flashcard_id: string;
 
-  // SM-2 Algorithm fields
+  // SM-2 Algorithm fields (legacy, kept for backward compat)
   ease_factor: number; // Default: 2.5, min: 1.3
   interval: number; // Days until next review
   repetitions: number; // Number of successful reviews in a row
   next_review: string; // ISO date string for next review
+
+  // FSRS fields (new — preferred algorithm)
+  algorithm: 'sm2' | 'fsrs'; // Which algorithm is active
+  fsrs_stability?: number; // Memory stability
+  fsrs_difficulty?: number; // Card difficulty
+  fsrs_elapsed_days?: number; // Days since last review
+  fsrs_scheduled_days?: number; // Days until next scheduled review
+  fsrs_reps?: number; // Total FSRS review count
+  fsrs_lapses?: number; // Times forgotten
+  fsrs_state?: number; // 0=New, 1=Learning, 2=Review, 3=Relearning
+  fsrs_last_review?: string | null; // ISO date of last FSRS review
 
   // Tracking fields
   total_reviews: number; // Total number of times reviewed

@@ -17,7 +17,7 @@ import {
 // ============================================================================
 
 const MIGRATION_TABLE = 'word_bank_migrations';
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 /**
  * Migration metadata
@@ -152,36 +152,54 @@ const migration_v1: Migration = {
 };
 
 /**
- * V2 - Example future migration (template)
- * Uncomment and modify when needed
+ * V2 - Add FSRS columns to word_bank
+ * Adds FSRS spaced repetition fields alongside existing SM-2 columns.
+ * New words use FSRS by default; existing words migrate on next review.
  */
-/*
 const migration_v2: Migration = {
   version: 2,
-  name: 'add_column_example',
+  name: 'add_fsrs_columns',
 
   async up(db: SQLite.SQLiteDatabase) {
-    console.log('Running migration v2: Add new column');
-    await db.execAsync(`
-      ALTER TABLE ${WORD_BANK_TABLE}
-      ADD COLUMN new_field TEXT DEFAULT NULL;
-    `);
-  },
+    console.log('Running migration v2: Add FSRS columns to word_bank');
 
-  async down(db: SQLite.SQLiteDatabase) {
-    console.log('Rolling back migration v2');
-    // SQLite doesn't support DROP COLUMN easily
-    // Would need to recreate table without the column
+    const columns = [
+      "algorithm TEXT NOT NULL DEFAULT 'fsrs'",
+      'fsrs_stability REAL DEFAULT 0',
+      'fsrs_difficulty REAL DEFAULT 0',
+      'fsrs_elapsed_days INTEGER DEFAULT 0',
+      'fsrs_scheduled_days INTEGER DEFAULT 0',
+      'fsrs_reps INTEGER DEFAULT 0',
+      'fsrs_lapses INTEGER DEFAULT 0',
+      'fsrs_state INTEGER DEFAULT 0',
+      'fsrs_last_review TEXT',
+    ];
+
+    for (const col of columns) {
+      try {
+        await db.execAsync(
+          `ALTER TABLE ${WORD_BANK_TABLE} ADD COLUMN ${col};`
+        );
+      } catch {
+        // Column already exists — safe to ignore
+      }
+    }
+
+    // Mark existing words as SM-2 so they migrate on next review
+    await db.execAsync(
+      `UPDATE ${WORD_BANK_TABLE} SET algorithm = 'sm2' WHERE repetitions > 0;`
+    );
+
+    console.log('  FSRS columns added to word_bank');
   },
 };
-*/
 
 /**
  * All migrations in order
  */
 const MIGRATIONS: Migration[] = [
   migration_v1,
-  // migration_v2, // Add future migrations here
+  migration_v2,
 ];
 
 // ============================================================================

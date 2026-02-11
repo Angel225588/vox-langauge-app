@@ -82,6 +82,24 @@ Run `/security` in Claude Code to execute a comprehensive security audit with ou
 | Moderate | 1 week | Schedule fix |
 | Low | Next sprint | Plan fix |
 
+## Known Dependency Vulnerabilities
+
+*Last audited: 2026-02-11 | Status: 5 HIGH (all transitive, no fix available, accepted risk)*
+
+### Resolved (auto-fixed)
+- `@isaacs/brace-expansion` (high) - Uncontrolled Resource Consumption
+- `lodash` (moderate) - Prototype Pollution in `_.unset` and `_.omit`
+- `react-server-dom-webpack` (high) - DoS vulnerabilities
+
+### Unresolvable (transitive dependencies)
+| Package | Severity | Issue | Root Cause |
+|---------|----------|-------|------------|
+| `tar` <=7.5.6 | High | Arbitrary File Overwrite, Symlink Poisoning, Hardlink Path Traversal | Transitive dep of `expo-edge-speech` via `expo@52.0.49` -> `@expo/cli` -> `cacache` -> `tar@6.2.1`. No fix available upstream. |
+
+**Risk Assessment**: The `tar` vulnerabilities affect file extraction operations. In the context of a React Native mobile app, these are low practical risk since `tar` is only used during development/build tooling (not at runtime on device). The vulnerable version comes from `expo-edge-speech` which pins an older Expo SDK.
+
+**Mitigation**: Monitor `expo-edge-speech` for updates to a newer Expo SDK. Consider replacing the package if it remains unmaintained.
+
 ## Code Security Standards
 
 ### Input Validation

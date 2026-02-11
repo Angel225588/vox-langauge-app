@@ -14,6 +14,11 @@ import {
   ReviewSession,
 } from '@/types/flashcard';
 import { initializeSM2, calculateSM2, isDueForReview } from '@/lib/spaced-repetition/sm2';
+import {
+  initializeFSRS,
+  reviewCard as fsrsReviewCard,
+  type FSRSCardState,
+} from '@/lib/spaced-repetition/fsrs';
 import { dbManager } from './database';
 
 /**
@@ -98,11 +103,63 @@ export async function initializeFlashcardDB(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_reviews_session ON flashcard_reviews(session_id);
   `);
 
+    // FSRS migration — add columns if they don't exist (safe to re-run)
+    await addFSRSColumns(db);
+
     console.log('✅ Flashcard database initialized');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
     throw error;
   }
+}
+
+/**
+ * Add FSRS columns to user_flashcard_progress (idempotent).
+ * Uses ALTER TABLE ADD COLUMN which is a no-op if column already exists in SQLite.
+ */
+async function addFSRSColumns(db: any): Promise<void> {
+  const columns = [
+    "algorithm TEXT NOT NULL DEFAULT 'fsrs'",
+    'fsrs_stability REAL DEFAULT 0',
+    'fsrs_difficulty REAL DEFAULT 0',
+    'fsrs_elapsed_days INTEGER DEFAULT 0',
+    'fsrs_scheduled_days INTEGER DEFAULT 0',
+    'fsrs_reps INTEGER DEFAULT 0',
+    'fsrs_lapses INTEGER DEFAULT 0',
+    'fsrs_state INTEGER DEFAULT 0',
+    'fsrs_last_review TEXT',
+  ];
+
+  for (const col of columns) {
+    try {
+      await db.execAsync(
+        `ALTER TABLE user_flashcard_progress ADD COLUMN ${col};`
+      );
+    } catch {
+      // Column already exists — safe to ignore
+    }
+  }
+}
+
+/**
+ * Build FSRSCardState from UserFlashcardProgress fields
+ */
+function progressToFSRSState(progress: UserFlashcardProgress): FSRSCardState {
+  if (progress.algorithm === 'fsrs' && progress.fsrs_stability != null) {
+    return {
+      due: progress.next_review,
+      stability: progress.fsrs_stability!,
+      difficulty: progress.fsrs_difficulty!,
+      elapsed_days: progress.fsrs_elapsed_days!,
+      scheduled_days: progress.fsrs_scheduled_days!,
+      reps: progress.fsrs_reps!,
+      lapses: progress.fsrs_lapses!,
+      state: progress.fsrs_state!,
+      last_review: progress.fsrs_last_review ?? null,
+    };
+  }
+  // First-time FSRS — initialize fresh card
+  return initializeFSRS();
 }
 
 /**
@@ -200,8 +257,8 @@ export async function getOrCreateProgress(
     return existing;
   }
 
-  // Create new progress with SM-2 defaults
-  const sm2 = initializeSM2();
+  // Create new progress with FSRS defaults (new cards always use FSRS)
+  const fsrsState = initializeFSRS();
   const id = `progress_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const now = new Date().toISOString();
 
@@ -209,10 +266,22 @@ export async function getOrCreateProgress(
     id,
     user_id: userId,
     flashcard_id: flashcardId,
-    ease_factor: sm2.easeFactor,
-    interval: sm2.interval,
-    repetitions: sm2.repetitions,
-    next_review: sm2.nextReview.toISOString(),
+    // Legacy SM-2 fields (kept for backward compat, seeded with defaults)
+    ease_factor: 2.5,
+    interval: 0,
+    repetitions: 0,
+    next_review: fsrsState.due,
+    // FSRS fields
+    algorithm: 'fsrs',
+    fsrs_stability: fsrsState.stability,
+    fsrs_difficulty: fsrsState.difficulty,
+    fsrs_elapsed_days: fsrsState.elapsed_days,
+    fsrs_scheduled_days: fsrsState.scheduled_days,
+    fsrs_reps: fsrsState.reps,
+    fsrs_lapses: fsrsState.lapses,
+    fsrs_state: fsrsState.state,
+    fsrs_last_review: fsrsState.last_review,
+    // Tracking
     total_reviews: 0,
     correct_count: 0,
     incorrect_count: 0,
@@ -221,8 +290,12 @@ export async function getOrCreateProgress(
   };
 
   await db.runAsync(
-    `INSERT INTO user_flashcard_progress (id, user_id, flashcard_id, ease_factor, interval, repetitions, next_review, total_reviews, correct_count, incorrect_count, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO user_flashcard_progress
+     (id, user_id, flashcard_id, ease_factor, interval, repetitions, next_review,
+      algorithm, fsrs_stability, fsrs_difficulty, fsrs_elapsed_days, fsrs_scheduled_days,
+      fsrs_reps, fsrs_lapses, fsrs_state, fsrs_last_review,
+      total_reviews, correct_count, incorrect_count, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       newProgress.id,
       newProgress.user_id,
@@ -231,6 +304,15 @@ export async function getOrCreateProgress(
       newProgress.interval,
       newProgress.repetitions,
       newProgress.next_review,
+      newProgress.algorithm,
+      newProgress.fsrs_stability,
+      newProgress.fsrs_difficulty,
+      newProgress.fsrs_elapsed_days,
+      newProgress.fsrs_scheduled_days,
+      newProgress.fsrs_reps,
+      newProgress.fsrs_lapses,
+      newProgress.fsrs_state,
+      newProgress.fsrs_last_review,
       newProgress.total_reviews,
       newProgress.correct_count,
       newProgress.incorrect_count,
@@ -253,14 +335,6 @@ export async function updateFlashcardProgress(
   const db = await dbManager.getDatabase();
   const progress = await getOrCreateProgress(userId, flashcardId);
 
-  // Calculate new SM-2 values
-  const sm2Result = calculateSM2({
-    quality,
-    easeFactor: progress.ease_factor,
-    interval: progress.interval,
-    repetitions: progress.repetitions,
-  });
-
   // Update counters
   const isCorrect = quality >= 3;
   const newTotalReviews = progress.total_reviews + 1;
@@ -268,17 +342,34 @@ export async function updateFlashcardProgress(
   const newIncorrectCount = progress.incorrect_count + (isCorrect ? 0 : 1);
   const now = new Date().toISOString();
 
+  // Use FSRS for all cards (migrate SM-2 cards on first review)
+  const currentFSRS = progressToFSRSState(progress);
+  const fsrsResult = fsrsReviewCard(currentFSRS, quality);
+  const newCard = fsrsResult.card;
+
   await db.runAsync(
     `UPDATE user_flashcard_progress
-     SET ease_factor = ?, interval = ?, repetitions = ?, next_review = ?,
+     SET algorithm = 'fsrs',
+         next_review = ?,
+         interval = ?,
+         fsrs_stability = ?, fsrs_difficulty = ?,
+         fsrs_elapsed_days = ?, fsrs_scheduled_days = ?,
+         fsrs_reps = ?, fsrs_lapses = ?, fsrs_state = ?,
+         fsrs_last_review = ?,
          total_reviews = ?, correct_count = ?, incorrect_count = ?,
          last_reviewed_at = ?, updated_at = ?
      WHERE id = ?`,
     [
-      sm2Result.easeFactor,
-      sm2Result.interval,
-      sm2Result.repetitions,
-      sm2Result.nextReview.toISOString(),
+      newCard.due,
+      newCard.scheduled_days,
+      newCard.stability,
+      newCard.difficulty,
+      newCard.elapsed_days,
+      newCard.scheduled_days,
+      newCard.reps,
+      newCard.lapses,
+      newCard.state,
+      newCard.last_review,
       newTotalReviews,
       newCorrectCount,
       newIncorrectCount,
@@ -288,13 +379,19 @@ export async function updateFlashcardProgress(
     ]
   );
 
-  // Return updated progress
   return {
     ...progress,
-    ease_factor: sm2Result.easeFactor,
-    interval: sm2Result.interval,
-    repetitions: sm2Result.repetitions,
-    next_review: sm2Result.nextReview.toISOString(),
+    algorithm: 'fsrs',
+    next_review: newCard.due,
+    interval: newCard.scheduled_days,
+    fsrs_stability: newCard.stability,
+    fsrs_difficulty: newCard.difficulty,
+    fsrs_elapsed_days: newCard.elapsed_days,
+    fsrs_scheduled_days: newCard.scheduled_days,
+    fsrs_reps: newCard.reps,
+    fsrs_lapses: newCard.lapses,
+    fsrs_state: newCard.state,
+    fsrs_last_review: newCard.last_review,
     total_reviews: newTotalReviews,
     correct_count: newCorrectCount,
     incorrect_count: newIncorrectCount,

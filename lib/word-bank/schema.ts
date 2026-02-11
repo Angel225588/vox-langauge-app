@@ -240,7 +240,7 @@ export interface WordBankEntry {
   cefr_level: string;
   part_of_speech?: string | null;
 
-  // Learning State (SM-2)
+  // Learning State (SM-2 legacy + FSRS)
   mastery_score: number;
   priority: number;
   ease_factor: number;
@@ -248,6 +248,17 @@ export interface WordBankEntry {
   repetitions: number;
   next_review_date?: string | null;
   last_review_date?: string | null;
+
+  // FSRS fields (added in migration v2)
+  algorithm?: 'sm2' | 'fsrs';
+  fsrs_stability?: number;
+  fsrs_difficulty?: number;
+  fsrs_elapsed_days?: number;
+  fsrs_scheduled_days?: number;
+  fsrs_reps?: number;
+  fsrs_lapses?: number;
+  fsrs_state?: number;
+  fsrs_last_review?: string | null;
 
   // History
   times_correct: number;

@@ -11,6 +11,8 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { sanitizePromptInput } from './sanitize';
+import { supabase } from '@/lib/db/supabase';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -227,22 +229,76 @@ function getClient(): Anthropic | null {
 // ============================================================================
 
 /**
+ * Call Claude via Supabase Edge Function (production path).
+ * The API key lives server-side in Supabase secrets — never in the client bundle.
+ */
+async function generateViaEdgeFunction(
+  prompt: string,
+  systemPrompt?: string
+): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    console.warn('[ClaudeClient] No auth session — cannot call Edge Function');
+    return null;
+  }
+
+  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+
+  const response = await fetch(
+    `${supabaseUrl}/functions/v1/generate-learning-path`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ prompt, systemPrompt }),
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new ClaudeError(
+      `Edge function error: ${body.error || response.statusText}`,
+      'EDGE_FUNCTION_ERROR',
+      response.status === 429 || response.status >= 500
+    );
+  }
+
+  const result = await response.json();
+  return result.text ?? null;
+}
+
+/**
  * Sends a prompt to Claude and returns the raw text response.
- * Includes retry logic with exponential backoff for transient failures.
  *
- * @param prompt - The prompt to send to Claude
- * @param systemPrompt - Optional system prompt for context
- * @returns The raw text response from Claude, or null if Claude is unavailable
- * @throws {ClaudeError} If all retry attempts fail or a non-retryable error occurs
+ * Production: Uses Supabase Edge Function (API key stays server-side).
+ * Development: Falls back to direct SDK if ANTHROPIC_API_KEY is set locally.
+ *
+ * Includes retry logic with exponential backoff for transient failures.
  */
 export async function generateWithClaude(
   prompt: string,
   systemPrompt?: string
 ): Promise<string | null> {
+  // Production path: Edge Function proxy (preferred)
+  const hasLocalKey = !!process.env.ANTHROPIC_API_KEY;
+  const hasSupabaseUrl = !!process.env.EXPO_PUBLIC_SUPABASE_URL;
+
+  if (hasSupabaseUrl && !hasLocalKey) {
+    // No local key → must go through Edge Function
+    return generateViaEdgeFunction(prompt, systemPrompt);
+  }
+
+  // Development fallback: direct SDK (when running locally with env key)
   const client = getClient();
 
   if (!client) {
-    // Graceful fallback - Claude not available
+    // Try Edge Function as last resort
+    if (hasSupabaseUrl) {
+      return generateViaEdgeFunction(prompt, systemPrompt);
+    }
     return null;
   }
 
@@ -386,16 +442,20 @@ export async function generateLearningPathPlan(
     return null;
   }
 
+  const safeGoals = profile.learningGoals.map(g => sanitizePromptInput(g)).filter(Boolean);
+  const safeInterests = profile.interests.map(i => sanitizePromptInput(i)).filter(Boolean);
+  const safeMotivation = sanitizePromptInput(profile.motivation);
+
   const prompt = `Create a personalized learning path plan for a language learner with the following profile:
 
 ## User Profile
 - Native Language: ${profile.nativeLanguage}
 - Target Language: ${profile.targetLanguage}
 - Current Level: ${profile.currentLevel}
-- Learning Goals: ${profile.learningGoals.join(', ')}
-- Interests: ${profile.interests.join(', ')}
+- Learning Goals: ${safeGoals.join(', ')}
+- Interests: ${safeInterests.join(', ')}
 - Daily Practice Time: ${profile.dailyTimeMinutes} minutes
-${profile.motivation ? `- Motivation: ${profile.motivation}` : ''}
+${safeMotivation ? `- Motivation: ${safeMotivation}` : ''}
 ${profile.timeline ? `- Timeline: ${profile.timeline}` : ''}
 
 ## Requirements
