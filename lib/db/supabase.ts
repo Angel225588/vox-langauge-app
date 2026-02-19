@@ -1,6 +1,6 @@
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { ENV } from '@/lib/config/env';
 
@@ -12,18 +12,29 @@ if (!ENV.isSupabaseConfigured) {
   );
 }
 
+// Try to load SecureStore — unavailable in Expo Go
+let SecureStore: typeof import('expo-secure-store') | null = null;
+try {
+  SecureStore = require('expo-secure-store');
+} catch {
+  console.warn('[Auth] expo-secure-store unavailable, falling back to AsyncStorage');
+}
+
 /**
  * Secure Storage Adapter for Supabase Auth
  *
  * Uses expo-secure-store (Keychain on iOS, Keystore on Android) for
- * encrypted token storage. Falls back to a no-op on web where
- * SecureStore is unavailable.
+ * encrypted token storage. Falls back to AsyncStorage in Expo Go
+ * or on web where SecureStore is unavailable.
  */
 const SecureStoreAdapter = {
   getItem: async (key: string): Promise<string | null> => {
     if (Platform.OS === 'web') return null;
     try {
-      return await SecureStore.getItemAsync(key);
+      if (SecureStore) {
+        return await SecureStore.getItemAsync(key);
+      }
+      return await AsyncStorage.getItem(key);
     } catch {
       return null;
     }
@@ -31,7 +42,11 @@ const SecureStoreAdapter = {
   setItem: async (key: string, value: string): Promise<void> => {
     if (Platform.OS === 'web') return;
     try {
-      await SecureStore.setItemAsync(key, value);
+      if (SecureStore) {
+        await SecureStore.setItemAsync(key, value);
+      } else {
+        await AsyncStorage.setItem(key, value);
+      }
     } catch {
       console.warn('[SecureStore] Failed to save item:', key);
     }
@@ -39,7 +54,11 @@ const SecureStoreAdapter = {
   removeItem: async (key: string): Promise<void> => {
     if (Platform.OS === 'web') return;
     try {
-      await SecureStore.deleteItemAsync(key);
+      if (SecureStore) {
+        await SecureStore.deleteItemAsync(key);
+      } else {
+        await AsyncStorage.removeItem(key);
+      }
     } catch {
       console.warn('[SecureStore] Failed to remove item:', key);
     }

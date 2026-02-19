@@ -73,6 +73,8 @@ export interface VoiceCallScreenElevenLabsProps {
   voice?: ElevenLabsVoiceConfig;
   /** User's proficiency level */
   proficiency?: ProficiencyLevel;
+  /** Target session duration in seconds (from onboarding practice time) */
+  targetDuration?: number;
   /** Callback when call ends */
   onComplete: (result: VoiceCallCompletionResult) => void;
   /** Callback to go back */
@@ -456,6 +458,7 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
   character,
   voice,
   proficiency = 'intermediate',
+  targetDuration,
   onComplete,
   onBack,
 }) => {
@@ -495,6 +498,7 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
     scenario: scenario.id,
     scenarioDescription: richScenarioDescription,
     userProficiency: proficiency,
+    targetDuration,
     // All overrides enabled now that voice IDs are configured correctly
     // NOTE: Requires TTS Voice Override enabled in ElevenLabs agent Security tab
     disableOverrides: false,
@@ -605,6 +609,20 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Timer color based on progress toward target
+  const getTimerColor = (): string => {
+    if (!targetDuration || targetDuration <= 0) return colors.text.primary;
+    const ratio = sessionTime / targetDuration;
+    if (ratio >= 1.0) return colors.warning.DEFAULT; // Over target — subtle pulse
+    if (ratio >= 0.8) return colors.warning.DEFAULT;  // Approaching target
+    return colors.success.DEFAULT;                     // Under target
+  };
+
+  // Timer display text: show "elapsed / target" when target exists
+  const timerDisplay = targetDuration
+    ? `${formatTime(sessionTime)} / ${formatTime(targetDuration)}`
+    : formatTime(sessionTime);
+
   return (
     <View style={styles.container}>
       {/* Result Animation Overlay */}
@@ -620,7 +638,10 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
         style={[styles.header, { paddingTop: insets.top + spacing.sm }]}
       >
         <View style={styles.headerCenter}>
-          <View style={styles.timerPill}>
+          <View style={[
+            styles.timerPill,
+            (targetDuration && sessionTime >= targetDuration) ? styles.timerPillOvertime : undefined,
+          ]}>
             <View
               style={[
                 styles.liveIndicator,
@@ -635,7 +656,7 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
                 },
               ]}
             />
-            <Text style={styles.timerText}>{formatTime(sessionTime)}</Text>
+            <Text style={[styles.timerText, { color: getTimerColor() }]}>{timerDisplay}</Text>
           </View>
         </View>
       </Animated.View>
@@ -747,6 +768,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
+  },
+  timerPillOvertime: {
+    borderWidth: 1,
+    borderColor: colors.warning.DEFAULT + '40',
   },
   liveIndicator: {
     width: spacing.sm,

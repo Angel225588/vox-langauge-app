@@ -13,7 +13,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
-import { useOnboardingV2, SCENARIOS_BY_CONTEXT, flushOnboardingState } from '@/hooks/useOnboardingV2';
+import {
+  useOnboardingV2,
+  SCENARIOS_BY_CONTEXT,
+  flushOnboardingState,
+  shouldShowProfession,
+  getOnboardingDots,
+  getScreenStep,
+} from '@/hooks/useOnboardingV2';
 import { useTranslation } from 'react-i18next';
 import { colors, spacing, borderRadius, shadows, typography } from '@/constants/designSystem';
 
@@ -27,6 +34,10 @@ export default function YourScenariosScreen() {
   const scenarioOptions = SCENARIOS_BY_CONTEXT[profession] || SCENARIOS_BY_CONTEXT['default'];
 
   const [selectedScenarios, setSelectedScenarios] = useState<string[]>(data.scenarios || []);
+
+  const showProfession = shouldShowProfession(data.motivations);
+  const dots = getOnboardingDots(showProfession);
+  const currentStep = getScreenStep('your-stakes', showProfession);
 
   const handleScenarioToggle = (scenarioId: string) => {
     setSelectedScenarios(prev => {
@@ -146,13 +157,13 @@ export default function YourScenariosScreen() {
             style={styles.progressContainer}
           >
             <View style={styles.dotsContainer}>
-              {[1, 2, 3, 4, 5, 6].map((step) => (
+              {dots.map((step) => (
                 <View
                   key={step}
                   style={[
                     styles.dot,
-                    step === 5 && styles.dotActive,
-                    step < 5 && styles.dotCompleted,
+                    step === currentStep && styles.dotActive,
+                    step < currentStep && styles.dotCompleted,
                   ]}
                 />
               ))}

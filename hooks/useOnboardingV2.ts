@@ -15,24 +15,31 @@ export interface OnboardingV2Data {
   target_language: string | null;
   target_accent: string | null;  // e.g., 'es-latam', 'es-spain', 'en-american', 'en-british', 'fr-france', 'fr-canada'
 
-  // Screen 2: Your Why
-  motivation: string | null;
-  motivation_custom: string | null;
-  why_now: string | null;
+  // Screen 2: Your Why (multi-select chips + free text)
+  motivation: string | null;          // Primary motivation (first selected, for backwards compat)
+  motivations: string[] | null;       // All selected motivation chip IDs
+  motivation_custom: string | null;   // Free-text motivation
+
+  // Screen 3: Your Profession (conditional — career/relocation/education only)
   profession: string | null;
   profession_custom: string | null;
 
-  // Screen 3: Your Level
+  // Screen 4: Your Level
   proficiency_level: string | null;
   previous_attempts: string | null;
 
-  // Screen 4: Your Commitment (timeline)
+  // Screen 5: Why Now? (optional)
+  why_now: string | null;
+
+  // Screen 6: Your Goals (timeline only)
   timeline: string | null;
+
+  // Screen 7: Your Routine (practice time + days)
   min_practice_time: number | null;
   max_practice_time: number | null;
   days_per_week: number | null;
 
-  // Screen 5: Your Scenarios (was Your Stakes)
+  // Screen 8: Conversations That Matter (scenarios)
   stakes: string | null;
   scenarios: string[] | null;
   commitment_stakes: string | null; // Legacy - kept for backwards compatibility
@@ -62,12 +69,13 @@ const initialData: OnboardingV2Data = {
   target_language: null,
   target_accent: null,
   motivation: null,
+  motivations: null,
   motivation_custom: null,
-  why_now: null,
   profession: null,
   profession_custom: null,
   proficiency_level: null,
   previous_attempts: null,
+  why_now: null,
   timeline: null,
   min_practice_time: null,
   max_practice_time: null,
@@ -82,7 +90,7 @@ export const useOnboardingV2 = create<OnboardingV2Store>()(
     (set, get) => ({
       data: initialData,
       currentStep: 1,
-      totalSteps: 6, // Languages, Why, Level, Commitment, Stakes, Ready
+      totalSteps: 8, // Max: Languages, Why, Profession, Level, WhyNow, Goals, Routine, Stakes (Ready is summary)
       _hasHydrated: false,
 
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
@@ -117,15 +125,19 @@ export const useOnboardingV2 = create<OnboardingV2Store>()(
           case 1: // Languages + Accent
             return !!data.native_language && !!data.target_language && !!data.target_accent;
           case 2: // Your Why
-            return !!data.motivation || !!data.motivation_custom;
-          case 3: // Your Level
+            return (!!data.motivations && data.motivations.length > 0) || !!data.motivation || !!data.motivation_custom;
+          case 3: // Your Profession (conditional) or Your Level
+            return !!data.profession || !shouldShowProfession(data.motivations);
+          case 4: // Your Level
             return !!data.proficiency_level;
-          case 4: // Your Commitment (Timeline)
-            return !!data.timeline;
-          case 5: // Your Stakes (What's waiting)
-            return !!data.stakes;
-          case 6: // Ready (always complete if we get here)
+          case 5: // Why Now (optional — always passes)
             return true;
+          case 6: // Your Goals (Timeline)
+            return !!data.timeline;
+          case 7: // Your Routine (optional — always passes)
+            return true;
+          case 8: // Conversations That Matter
+            return !!data.stakes || (!!data.scenarios && data.scenarios.length > 0);
           default:
             return false;
         }
@@ -318,10 +330,10 @@ export const SCENARIOS_BY_CONTEXT: Record<string, Array<{ id: string; label: str
 
 // Practice time options
 export const PRACTICE_TIME_OPTIONS = [
-  { min: 5, max: 10, label: '5-10 min', description: 'Quick sessions' },
-  { min: 10, max: 20, label: '10-20 min', description: 'Focused learning' },
-  { min: 20, max: 30, label: '20-30 min', description: 'Deep practice' },
-  { min: 30, max: 60, label: '30-60 min', description: 'Intensive study' },
+  { min: 5, max: 10, label: '5-10 min', description: 'Express session' },
+  { min: 10, max: 20, label: '10-20 min', description: 'Focused practice' },
+  { min: 20, max: 30, label: '20-30 min', description: 'Deep dive' },
+  { min: 30, max: 60, label: '30-60 min', description: 'Full immersion' },
 ];
 
 // Days per week options
@@ -398,4 +410,54 @@ export const ACCENT_OPTIONS: Record<string, Array<{
 // Helper to get accents for a language
 export function getAccentsForLanguage(languageCode: string) {
   return ACCENT_OPTIONS[languageCode] || [];
+}
+
+// Why Now preset chips for the Why Now screen
+export const WHY_NOW_PRESETS = [
+  { id: 'new_job', label: 'New job starting soon', icon: '💼' },
+  { id: 'trip_planned', label: 'Trip planned', icon: '✈️' },
+  { id: 'moving_abroad', label: 'Moving to a new country', icon: '🌍' },
+  { id: 'partner_family', label: 'Partner/family speaks the language', icon: '💕' },
+  { id: 'career_opportunity', label: 'Career opportunity', icon: '🚀' },
+  { id: 'personal_goal', label: 'Personal goal for this year', icon: '🎯' },
+];
+
+// Motivations that trigger the Profession screen
+const PROFESSION_MOTIVATIONS = ['career', 'relocation', 'education'];
+
+/**
+ * Determines if the Profession screen should show based on selected motivations.
+ * Shows when motivation includes career, relocation, or education.
+ */
+export function shouldShowProfession(motivations: string[] | null): boolean {
+  if (!motivations || motivations.length === 0) return false;
+  return motivations.some(m => PROFESSION_MOTIVATIONS.includes(m));
+}
+
+/**
+ * Returns the total number of progress dots based on whether Profession screen shows.
+ * Without profession: 8 screens (Languages, Why, Level, WhyNow, Goals, Routine, Stakes, Ready)
+ * With profession: 9 screens (adds Profession after Why)
+ */
+export function getOnboardingDots(showProfession: boolean): number[] {
+  const total = showProfession ? 9 : 8;
+  return Array.from({ length: total }, (_, i) => i + 1);
+}
+
+/**
+ * Screen-to-step mapping for progress dots.
+ * Returns the 1-based step number for a given screen.
+ */
+export function getScreenStep(screenName: string, showProfession: boolean): number {
+  const withProfession = [
+    'languages', 'your-why', 'your-profession', 'your-level',
+    'why-now', 'your-commitment', 'your-routine', 'your-stakes', 'ready',
+  ];
+  const withoutProfession = [
+    'languages', 'your-why', 'your-level',
+    'why-now', 'your-commitment', 'your-routine', 'your-stakes', 'ready',
+  ];
+  const flow = showProfession ? withProfession : withoutProfession;
+  const index = flow.indexOf(screenName);
+  return index >= 0 ? index + 1 : 1;
 }

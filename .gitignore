@@ -1,5 +1,9 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+# NotebookLM CLI (cloned tool, not project code)
+notebooklm-mcp-cli/
+cookies.txt*
+
 # dependencies
 node_modules/
 

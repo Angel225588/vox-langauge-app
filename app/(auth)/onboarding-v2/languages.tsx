@@ -13,7 +13,16 @@ import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
-import { useOnboardingV2, NATIVE_LANGUAGES, TARGET_LANGUAGES, getAccentsForLanguage, flushOnboardingState } from '@/hooks/useOnboardingV2';
+import {
+  useOnboardingV2,
+  NATIVE_LANGUAGES,
+  TARGET_LANGUAGES,
+  getAccentsForLanguage,
+  flushOnboardingState,
+  shouldShowProfession,
+  getOnboardingDots,
+  getScreenStep,
+} from '@/hooks/useOnboardingV2';
 import { useLanguage } from '@/i18n/hooks/useLanguage';
 import { hasTranslations, type SupportedLanguageCode } from '@/i18n/types';
 import { colors, spacing, borderRadius, shadows, typography } from '@/constants/designSystem';
@@ -72,6 +81,11 @@ export default function LanguagesScreen() {
 
   // Require accent selection when a target language is selected
   const canContinue = nativeLanguage && targetLanguage && targetAccent && nativeLanguage !== targetLanguage;
+
+  // Dynamic progress dots (use stored motivations from any previous pass)
+  const showProfession = shouldShowProfession(data.motivations);
+  const dots = getOnboardingDots(showProfession);
+  const currentStep = getScreenStep('languages', showProfession);
 
   const selectedNativeLanguage = NATIVE_LANGUAGES.find((lang) => lang.code === nativeLanguage);
   const selectedTargetLanguage = TARGET_LANGUAGES.find((lang) => lang.code === targetLanguage);
@@ -335,13 +349,13 @@ export default function LanguagesScreen() {
           {/* Progress Indicator - Dots */}
           <Animated.View entering={FadeInUp.duration(300).delay(200)} style={styles.progressContainer}>
             <View style={styles.dotsContainer}>
-              {[1, 2, 3, 4, 5, 6].map((step) => (
+              {dots.map((step) => (
                 <View
                   key={step}
                   style={[
                     styles.dot,
-                    step === 1 && styles.dotActive,
-                    step < 1 && styles.dotCompleted,
+                    step === currentStep && styles.dotActive,
+                    step < currentStep && styles.dotCompleted,
                   ]}
                 />
               ))}

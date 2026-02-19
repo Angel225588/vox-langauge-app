@@ -43,6 +43,11 @@ import {
   createSection,
   createStairsForSection,
 } from '@/lib/db/learningPaths';
+import {
+  queryVoxLibrary,
+  getUserVoxCategories,
+} from '@/lib/services/voxLibrary';
+import type { VoxLibraryResult, VoxVocabulary, CEFRLevel } from '@/types/voxLibrary';
 
 // ============================================================================
 // TYPES
@@ -57,6 +62,7 @@ export interface OnboardingData {
   target_language: string | null;
   target_accent: string | null;  // User's preferred accent (e.g., 'es-latam', 'en-british')
   motivation: string | null;
+  motivations: string[] | null;
   motivation_custom: string | null;
   why_now: string | null;
   proficiency_level: string | null;
@@ -108,6 +114,24 @@ export interface PathCreationOptions {
    * Useful for A/B testing or when Claude quota is exceeded.
    */
   forceGeminiOnly?: boolean;
+}
+
+// ============================================================================
+// CEFR MAPPING
+// ============================================================================
+
+/**
+ * Maps internal proficiency level strings to CEFR levels for Vox Library queries.
+ */
+function mapProficiencyToCEFR(proficiency: string): CEFRLevel {
+  const map: Record<string, CEFRLevel> = {
+    beginner: 'A1',
+    elementary: 'A2',
+    intermediate: 'B1',
+    upper_intermediate: 'B2',
+    advanced: 'C1',
+  };
+  return map[proficiency] || 'A1';
 }
 
 // ============================================================================
@@ -179,6 +203,37 @@ export async function createPersonalizedPath(
     const pathInput = transformOnboardingToInput(userId, onboardingData);
     console.log('[PathGeneration] Transformed input:', JSON.stringify(pathInput, null, 2));
 
+    // Step 2b: Query Vox Library for curated content (non-blocking — fallback if it fails)
+    let libraryResult: VoxLibraryResult | null = null;
+    let userCategories: string[] = [];
+    try {
+      const languagePair = `${pathInput.native_language}-${pathInput.target_language}`;
+      const cefrLevel = mapProficiencyToCEFR(pathInput.proficiency_level);
+
+      const [libResult, userCats] = await Promise.all([
+        queryVoxLibrary({
+          profession: pathInput.profession || 'general',
+          scenarios: pathInput.scenarios || [],
+          cefr_level: cefrLevel,
+          language_pair: languagePair,
+          target_language: pathInput.target_language,
+          native_language: pathInput.native_language,
+        }),
+        getUserVoxCategories(userId).catch(() => []),
+      ]);
+
+      libraryResult = libResult;
+      userCategories = userCats.map((c) => c.category_slug);
+
+      console.log('[PathGeneration] Vox Library loaded:', {
+        scenarios: libraryResult.total_scenario_count,
+        vocab: libraryResult.total_vocab_count,
+        userCategories: userCategories.length,
+      });
+    } catch (libError) {
+      console.warn('[PathGeneration] Vox Library query failed (using AI-only):', libError);
+    }
+
     // Step 3: Generate the learning path
     let generatedPath: GeneratedPath;
     let usedClaude = false;
@@ -222,7 +277,9 @@ export async function createPersonalizedPath(
             pathInput.motivation,
             pathInput.target_language,
             pathInput.proficiency_level,
-            pathInput.timeline
+            pathInput.timeline,
+            libraryResult,
+            userCategories
           );
         }
       }
@@ -242,7 +299,9 @@ export async function createPersonalizedPath(
           pathInput.motivation,
           pathInput.target_language,
           pathInput.proficiency_level,
-          pathInput.timeline
+          pathInput.timeline,
+          libraryResult,
+          userCategories
         );
       }
     }
@@ -752,9 +811,12 @@ function generateFallbackPath(
   motivation: string,
   targetLanguage: string,
   proficiencyLevel: string,
-  timeline: string = '3_months'
+  timeline: string = '3_months',
+  libraryResult?: VoxLibraryResult | null,
+  userCategories?: string[]
 ): GeneratedPath {
   console.log('[PathGeneration] Generating fallback path from template (skeleton approach)');
+  console.log('[PathGeneration] Library available:', !!libraryResult, '| User categories:', userCategories?.length ?? 0);
 
   // Get template for motivation, default to 'travel' if not found
   const templateKey = motivation as keyof typeof PATH_TEMPLATES;
@@ -770,6 +832,9 @@ function generateFallbackPath(
   const contentStairCount = stairCount - 1;
   const progression = template.stairProgression.slice(0, contentStairCount);
 
+  // Build a combined library vocab pool (scenarios vocab + additional), boosted by user categories
+  const libraryVocab = buildLibraryVocabPool(libraryResult, userCategories);
+
   // Create stairs from template - only first stair gets full content
   // Each stair gets vocabulary and scenarios that match its blended theme
   const stairs: GeneratedStair[] = progression.map((title, index) => {
@@ -780,7 +845,7 @@ function generateFallbackPath(
       title,
       emoji: getStairEmoji(index),
       description: getStairDescription(title, motivation),
-      vocabulary: isFirstStair ? generateStairVocabulary(title, motivation, 12, targetLanguage) : [],
+      vocabulary: isFirstStair ? generateStairVocabulary(title, motivation, 12, targetLanguage, libraryVocab) : [],
       grammar_points: getStairGrammarPoints(index),
       scenarios: isFirstStair ? generateStairScenarios(title, motivation) : [],
       skills_required: index === 0 ? [] : [`${progression[index - 1]} mastery`],
@@ -822,6 +887,81 @@ function generateFallbackPath(
     estimated_completion: getEstimatedCompletion(stairs.length, proficiencyLevel),
     stairs,
   };
+}
+
+// ============================================================================
+// VOX LIBRARY VOCAB POOL
+// ============================================================================
+
+/**
+ * Builds a flat list of vocabulary from Vox Library results, prioritizing
+ * items that match the user's "Add to my Vox" categories.
+ *
+ * Returns vocab formatted for stair generation (word, translation, etc.).
+ */
+function buildLibraryVocabPool(
+  libraryResult?: VoxLibraryResult | null,
+  userCategories?: string[]
+): Array<{ word: string; translation: string; part_of_speech: string; difficulty: string; example_sentence: string; example_translation: string }> | null {
+  if (!libraryResult) return null;
+
+  const pool: Array<{ word: string; translation: string; part_of_speech: string; difficulty: string; example_sentence: string; example_translation: string; _priority: number }> = [];
+
+  // Collect vocab from scenarios
+  for (const scenario of libraryResult.scenarios) {
+    for (const v of scenario.vocabulary) {
+      pool.push({
+        word: v.word,
+        translation: v.translation,
+        part_of_speech: v.part_of_speech,
+        difficulty: v.difficulty,
+        example_sentence: v.example_sentence || `Example: ${v.word}`,
+        example_translation: v.example_translation || `Ejemplo: ${v.translation}`,
+        _priority: v.relevance === 'core' ? 3 : v.relevance === 'supporting' ? 2 : 1,
+      });
+    }
+  }
+
+  // Collect additional vocabulary
+  for (const v of libraryResult.additional_vocabulary) {
+    pool.push({
+      word: v.word,
+      translation: v.translation,
+      part_of_speech: v.part_of_speech,
+      difficulty: v.difficulty,
+      example_sentence: v.example_sentence || `Example: ${v.word}`,
+      example_translation: v.example_translation || `Ejemplo: ${v.translation}`,
+      _priority: 1,
+    });
+  }
+
+  // Boost priority for items matching user's "Add to my Vox" categories
+  if (userCategories && userCategories.length > 0) {
+    for (const item of pool) {
+      // Check if word's topic tags overlap with user categories
+      // (VoxVocabulary has topic_tags and profession_tags — we boost matches)
+      const matchesUserCategory = userCategories.some(
+        (cat) => item.word.toLowerCase().includes(cat.toLowerCase())
+      );
+      if (matchesUserCategory) {
+        item._priority += 2;
+      }
+    }
+  }
+
+  // Deduplicate by word, keeping highest priority version
+  const seen = new Map<string, typeof pool[0]>();
+  for (const item of pool) {
+    const existing = seen.get(item.word);
+    if (!existing || item._priority > existing._priority) {
+      seen.set(item.word, item);
+    }
+  }
+
+  // Sort by priority descending, then return without _priority field
+  return Array.from(seen.values())
+    .sort((a, b) => b._priority - a._priority)
+    .map(({ _priority, ...rest }) => rest);
 }
 
 // ============================================================================
@@ -1053,37 +1193,78 @@ function getVocabTheme(stairTitle: string): string {
 
 /**
  * Generates stair-specific vocabulary following the Blended Learning Model.
- * 60% universal words + 40% field-specific words, matched to the stair's theme.
+ *
+ * **Primary source**: Vox Library (if available) — curated, CEFR-tagged, profession-specific.
+ * **Fallback**: Hardcoded UNIVERSAL_VOCAB / FIELD_VOCAB dictionaries.
+ *
+ * When library vocab is available, we take from it first (already prioritized
+ * by category match and user preferences). We only fall back to hardcoded
+ * dictionaries if the library returns insufficient items.
  */
-function generateStairVocabulary(stairTitle: string, motivation: string, count: number, targetLanguage?: string): any[] {
+function generateStairVocabulary(
+  stairTitle: string,
+  motivation: string,
+  count: number,
+  targetLanguage?: string,
+  libraryVocab?: Array<{ word: string; translation: string; part_of_speech: string; difficulty: string; example_sentence: string; example_translation: string }> | null
+): any[] {
+  // PRIMARY: Use Vox Library vocab if available and sufficient
+  if (libraryVocab && libraryVocab.length >= count) {
+    console.log('[PathGeneration] Using Vox Library vocab for stair:', stairTitle, `(${count} items)`);
+    return libraryVocab.slice(0, count);
+  }
+
+  // HYBRID: Use whatever library vocab we have + pad with hardcoded
+  const fromLibrary = libraryVocab ? [...libraryVocab] : [];
+  const remaining = count - fromLibrary.length;
+
+  if (remaining <= 0) {
+    return fromLibrary.slice(0, count);
+  }
+
+  // FALLBACK: Use hardcoded dictionaries for the remainder
   const theme = getVocabTheme(stairTitle);
-  // Select language-appropriate universal vocabulary (French gets French fallback)
   const vocabSource = targetLanguage === 'fr' ? UNIVERSAL_VOCAB_FR : UNIVERSAL_VOCAB;
   const universal = vocabSource[theme] || vocabSource['daily_conversations'] || UNIVERSAL_VOCAB['daily_conversations'];
 
-  // Get field-specific vocab for this motivation + theme
   const motivationVocab = FIELD_VOCAB[motivation as keyof typeof FIELD_VOCAB];
   const fieldSpecific = motivationVocab?.[theme] || [];
 
-  // Blend: take ~60% universal, ~40% field-specific
-  const universalCount = Math.ceil(count * 0.6);
-  const fieldCount = count - universalCount;
+  // Blend hardcoded: 60% universal + 40% field-specific
+  const universalCount = Math.ceil(remaining * 0.6);
+  const fieldCount = remaining - universalCount;
 
-  const blended = [
-    ...universal.slice(0, universalCount),
-    ...fieldSpecific.slice(0, fieldCount),
+  // Filter out words already in library results to avoid duplicates
+  const libraryWords = new Set(fromLibrary.map((v) => v.word.toLowerCase()));
+  const filteredUniversal = universal.filter((v) => !libraryWords.has(v.word.toLowerCase()));
+  const filteredField = fieldSpecific.filter((v) => !libraryWords.has(v.word.toLowerCase()));
+
+  const hardcoded = [
+    ...filteredUniversal.slice(0, universalCount),
+    ...filteredField.slice(0, fieldCount),
   ];
 
-  // If we don't have enough, pad with remaining universal
-  while (blended.length < count && blended.length < universal.length + fieldSpecific.length) {
-    const remaining = [...universal, ...fieldSpecific].filter(
-      v => !blended.some(b => b.word === v.word)
-    );
-    if (remaining.length === 0) break;
-    blended.push(remaining[0]);
+  // Pad if still short
+  if (hardcoded.length < remaining) {
+    const allHardcoded = [...filteredUniversal, ...filteredField];
+    const usedWords = new Set([...libraryWords, ...hardcoded.map((v) => v.word.toLowerCase())]);
+    for (const v of allHardcoded) {
+      if (hardcoded.length >= remaining) break;
+      if (!usedWords.has(v.word.toLowerCase())) {
+        hardcoded.push(v);
+        usedWords.add(v.word.toLowerCase());
+      }
+    }
   }
 
-  return blended.slice(0, count);
+  const combined = [...fromLibrary, ...hardcoded];
+
+  if (fromLibrary.length > 0) {
+    console.log('[PathGeneration] Hybrid vocab for stair:', stairTitle,
+      `(${fromLibrary.length} library + ${hardcoded.length} hardcoded)`);
+  }
+
+  return combined.slice(0, count);
 }
 
 /**

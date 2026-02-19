@@ -52,163 +52,267 @@ export const getElevenLabsAgentId = (): string => {
  */
 export const ELEVENLABS_VOICES: ElevenLabsVoiceConfig[] = [
   // ==========================================================================
+  // French Voices (France)
+  // ==========================================================================
+  {
+    id: 'fr-FR-laurent',
+    name: 'Laurent',
+    language: 'fr',
+    accent: 'fr-france',
+    flag: '🇫🇷',
+    elevenLabsVoiceId: 'E2GGABFSQPIOYY1JHFKK',
+    description: 'Clear Parisian French voice - Male',
+    gender: 'male',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['default', 'professional', 'clear'],
+  },
+  {
+    id: 'fr-FR-hugo',
+    name: 'Hugo',
+    language: 'fr',
+    accent: 'fr-france',
+    flag: '🇫🇷',
+    elevenLabsVoiceId: 'ONHBKUZWVF2KZTC5R1FA',
+    description: 'Professional Parisian French voice - Male',
+    gender: 'male',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['professional', 'formal'],
+  },
+  {
+    id: 'fr-FR-amandine',
+    name: 'Amandine',
+    language: 'fr',
+    accent: 'fr-france',
+    flag: '🇫🇷',
+    elevenLabsVoiceId: '8HHGAPBTKYQNWGDWDZUX',
+    description: 'Warm Parisian French voice - Female',
+    gender: 'female',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['friendly', 'warm'],
+  },
+  {
+    id: 'fr-FR-ariane',
+    name: 'Ariane',
+    language: 'fr',
+    accent: 'fr-france',
+    flag: '🇫🇷',
+    elevenLabsVoiceId: 'QVHOKJQDXE7DMSW0P94Q',
+    description: 'Elegant Parisian French voice - Female',
+    gender: 'female',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['elegant', 'professional'],
+  },
+  {
+    id: 'fr-FR-lucienne',
+    name: 'Lucienne',
+    language: 'fr',
+    accent: 'fr-france',
+    flag: '🇫🇷',
+    elevenLabsVoiceId: '1ELBY1NHGDSRQW2XCXHH',
+    description: 'Natural Parisian French voice - Female',
+    gender: 'female',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['casual', 'natural'],
+  },
+
+  // ==========================================================================
+  // French Voices (Canada / Québécois)
+  // ==========================================================================
+  {
+    id: 'fr-CA-aimee',
+    name: 'Aimée',
+    language: 'fr',
+    accent: 'fr-canada',
+    flag: '🇨🇦',
+    elevenLabsVoiceId: '1GVO3XVDFSZXBCKDRKVE',
+    description: 'Québécois French voice - Female',
+    gender: 'female',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['default', 'friendly', 'casual'],
+  },
+
+  // ==========================================================================
   // English Voices (American)
   // ==========================================================================
   {
-    id: 'en-US-daniel',
-    name: 'Daniel',
+    id: 'en-US-roger',
+    name: 'Roger',
     language: 'en',
     accent: 'en-american',
     flag: '🇺🇸',
-    elevenLabsVoiceId: 'd6dMXDDMQ9zlhV3hOfx0',
+    elevenLabsVoiceId: 'CJVIGSPECDISJOAOYHRM',
     description: 'Clear American English voice - Male',
     gender: 'male',
     proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
-    tags: ['default', 'american', 'clear', 'male'],
+    tags: ['default', 'professional', 'clear'],
   },
   {
-    id: 'en-US-josh',
-    name: 'Josh',
+    id: 'en-US-charlie',
+    name: 'Charlie',
     language: 'en',
     accent: 'en-american',
     flag: '🇺🇸',
-    elevenLabsVoiceId: 'Rsz5u2Huh1hPlPr0oxRQ',
+    elevenLabsVoiceId: 'IKNHGLJQNKBBV7DKYDFE',
     description: 'Friendly American English voice - Male',
     gender: 'male',
-    proficiencyLevels: ['intermediate', 'advanced'],
-    tags: ['american', 'friendly', 'male'],
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['friendly', 'casual'],
   },
   {
-    id: 'en-GB-bradley',
-    name: 'Bradley',
+    id: 'en-US-eric',
+    name: 'Eric',
     language: 'en',
-    accent: 'en-british',
-    flag: '🇬🇧',
-    elevenLabsVoiceId: 'tczmcUWPAdiP3gKQPrv7',
-    description: 'British English voice - Male',
-    gender: 'male',
-    proficiencyLevels: ['intermediate', 'advanced'],
-    tags: ['british', 'male'],
-  },
-  {
-    id: 'en-GB-british',
-    name: 'British Voice',
-    language: 'en',
-    accent: 'en-british',
-    flag: '🇬🇧',
-    elevenLabsVoiceId: 'lcMyyd2HUfFzxdCaC4Ta',
-    description: 'British English voice',
+    accent: 'en-american',
+    flag: '🇺🇸',
+    elevenLabsVoiceId: 'CWJ2SZ2DSTIVIGELDH5V',
+    description: 'Professional American English voice - Male',
     gender: 'male',
     proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
-    tags: ['british'],
+    tags: ['professional', 'formal'],
+  },
+  {
+    id: 'en-US-laura',
+    name: 'Laura',
+    language: 'en',
+    accent: 'en-american',
+    flag: '🇺🇸',
+    elevenLabsVoiceId: 'FGYGYTFPW7KEINZ7BCPQ',
+    description: 'Warm American English voice - Female',
+    gender: 'female',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['warm', 'professional'],
+  },
+  {
+    id: 'en-US-sarah',
+    name: 'Sarah',
+    language: 'en',
+    accent: 'en-american',
+    flag: '🇺🇸',
+    elevenLabsVoiceId: 'EWJUFQIYS4WBPNKHPVVO',
+    description: 'Clear American English voice - Female',
+    gender: 'female',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['clear', 'natural'],
+  },
+  {
+    id: 'en-US-aria',
+    name: 'Aria',
+    language: 'en',
+    accent: 'en-american',
+    flag: '🇺🇸',
+    elevenLabsVoiceId: '9BWD5ZSSRQ9SRLM5UGVL',
+    description: 'Friendly American English voice - Female',
+    gender: 'female',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['friendly', 'casual'],
+  },
+
+  // ==========================================================================
+  // English Voices (British)
+  // ==========================================================================
+  {
+    id: 'en-GB-george',
+    name: 'George',
+    language: 'en',
+    accent: 'en-british',
+    flag: '🇬🇧',
+    elevenLabsVoiceId: 'JBFDZMGIOHLQGAT0K1H6',
+    description: 'British English voice - Male',
+    gender: 'male',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['default', 'professional', 'formal'],
+  },
+  {
+    id: 'en-GB-lily',
+    name: 'Lily',
+    language: 'en',
+    accent: 'en-british',
+    flag: '🇬🇧',
+    elevenLabsVoiceId: 'PAL6SFDLBGHCEQVJLBC1',
+    description: 'British English voice - Female',
+    gender: 'female',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['elegant', 'warm'],
   },
 
   // ==========================================================================
   // Spanish Voices (Latin America)
   // ==========================================================================
   {
-    id: 'es-LATAM-daniel',
-    name: 'Daniel',
+    id: 'es-LATAM-andres',
+    name: 'Andrés',
     language: 'es',
     accent: 'es-latam',
     flag: '🇲🇽',
-    elevenLabsVoiceId: 'T7BErSAR6r6NDaGdTLKB',
-    description: 'Spanish American voice - Male',
+    elevenLabsVoiceId: '26F0LNSHPYIALXXV3CX4',
+    description: 'Latin American Spanish voice - Male',
     gender: 'male',
     proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
-    tags: ['default', 'latam', 'male'],
+    tags: ['default', 'friendly', 'clear'],
   },
   {
-    id: 'es-LATAM-lucas',
-    name: 'Lucas',
+    id: 'es-LATAM-manuel',
+    name: 'Manuel',
     language: 'es',
     accent: 'es-latam',
     flag: '🇲🇽',
-    elevenLabsVoiceId: 'YX5i6O5LlgNrFlUpGn1d',
-    description: 'Spanish Latino voice - Male',
+    elevenLabsVoiceId: 'BO4FNBG68KHIDWYC3B0E',
+    description: 'Professional Latin American Spanish voice - Male',
     gender: 'male',
-    proficiencyLevels: ['intermediate', 'advanced'],
-    tags: ['latam', 'latino', 'male'],
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['professional', 'formal'],
   },
   {
-    id: 'es-LATAM-voice',
-    name: 'Latino Voice',
+    id: 'es-LATAM-valentina',
+    name: 'Valentina',
     language: 'es',
     accent: 'es-latam',
     flag: '🇲🇽',
-    elevenLabsVoiceId: 'zl7szWVBXnpgrJmAalgz',
-    description: 'Spanish Latino voice',
-    gender: 'male',
-    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
-    tags: ['latam', 'latino'],
-  },
-
-  // ==========================================================================
-  // Spanish Voices (Spain)
-  // ==========================================================================
-  {
-    id: 'es-ES-jesus',
-    name: 'Jesús',
-    language: 'es',
-    accent: 'es-spain',
-    flag: '🇪🇸',
-    elevenLabsVoiceId: 'w0bwoKPMZRfwi8VMJpEx',
-    description: 'Spanish (Spain) voice - Male',
-    gender: 'male',
-    proficiencyLevels: ['intermediate', 'advanced'],
-    tags: ['spain', 'castilian', 'male'],
-  },
-  {
-    id: 'es-ES-jesus-firm',
-    name: 'Jesús (Firm)',
-    language: 'es',
-    accent: 'es-spain',
-    flag: '🇪🇸',
-    elevenLabsVoiceId: '5IDdqnXnlsZ1FCxoOFYg',
-    description: 'Spanish (Spain) firm voice - Male',
-    gender: 'male',
-    proficiencyLevels: ['advanced'],
-    tags: ['spain', 'firm', 'male'],
-  },
-
-  // ==========================================================================
-  // French Voices
-  // ==========================================================================
-  {
-    id: 'fr-FR-voice1',
-    name: 'French Voice 1',
-    language: 'fr',
-    accent: 'fr-france',
-    flag: '🇫🇷',
-    elevenLabsVoiceId: '5jCmrHdxbpU36l1wb3Ke',
-    description: 'French voice - Parisian',
-    gender: 'male',
-    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
-    tags: ['default', 'parisian', 'french'],
-  },
-  {
-    id: 'fr-FR-voice2',
-    name: 'French Voice 2',
-    language: 'fr',
-    accent: 'fr-france',
-    flag: '🇫🇷',
-    elevenLabsVoiceId: 'GFj5Qf6cNQ3Lgp8VKBwc',
-    description: 'French voice',
-    gender: 'male',
-    proficiencyLevels: ['intermediate', 'advanced'],
-    tags: ['parisian', 'french'],
-  },
-  {
-    id: 'fr-FR-woman',
-    name: 'French Woman',
-    language: 'fr',
-    accent: 'fr-france',
-    flag: '🇫🇷',
-    elevenLabsVoiceId: 'GoEy5CmodqJy0T9AxjLk',
-    description: 'French female voice',
+    elevenLabsVoiceId: 'LBNDG6BAMYPMHDLBZLNE',
+    description: 'Warm Latin American Spanish voice - Female',
     gender: 'female',
     proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
-    tags: ['parisian', 'french', 'female'],
+    tags: ['warm', 'friendly'],
+  },
+
+  // ==========================================================================
+  // Spanish Voices (Spain / Castilian)
+  // ==========================================================================
+  {
+    id: 'es-ES-pablo',
+    name: 'Pablo',
+    language: 'es',
+    accent: 'es-spain',
+    flag: '🇪🇸',
+    elevenLabsVoiceId: 'UJCPCBQGPBQCNAEF9Y0L',
+    description: 'Castilian Spanish voice - Male',
+    gender: 'male',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['default', 'clear', 'professional'],
+  },
+  {
+    id: 'es-ES-sergio',
+    name: 'Sergio',
+    language: 'es',
+    accent: 'es-spain',
+    flag: '🇪🇸',
+    elevenLabsVoiceId: 'GSNWWLVMJEKCKBQWMRVO',
+    description: 'Professional Castilian Spanish voice - Male',
+    gender: 'male',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['professional', 'formal'],
+  },
+  {
+    id: 'es-ES-isabel',
+    name: 'Isabel',
+    language: 'es',
+    accent: 'es-spain',
+    flag: '🇪🇸',
+    elevenLabsVoiceId: 'HWJOLVM1OQ1BYUQ2GSRE',
+    description: 'Castilian Spanish voice - Female',
+    gender: 'female',
+    proficiencyLevels: ['beginner', 'elementary', 'intermediate', 'advanced'],
+    tags: ['elegant', 'warm'],
   },
 ];
 
@@ -312,6 +416,8 @@ interface PromptContext {
   scenario: string;
   scenarioDescription?: string;
   emotionInstruction?: string;
+  /** Target session duration in seconds for timed lessons */
+  targetDurationSeconds?: number;
 }
 
 /**
@@ -369,7 +475,13 @@ When you notice unclear speech or likely mispronunciation in the transcript:
 ## CRITICAL: Plain Text Only
 - NO XML tags (<voice>, <Lily>, etc.)
 - NO markup of any kind
-- Just natural speech text`;
+- Just natural speech text${context.targetDurationSeconds ? `
+
+## SESSION TIMING
+- This is a timed practice session (~${Math.round(context.targetDurationSeconds / 60)} minutes).
+- When you notice the conversation has been going for a while, start naturally wrapping up.
+- Use a natural closing appropriate to the language and scenario.
+- Do NOT mention the timer or say "time is up". End the conversation naturally.` : ''}`;
 }
 
 /**

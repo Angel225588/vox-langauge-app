@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated as RNAnimated, ScrollView, Platform, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,7 +14,18 @@ import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
 import { colors, spacing, borderRadius, typography, shadows } from '@/constants/designSystem';
-import { useOnboardingV2, TARGET_LANGUAGES, MOTIVATIONS, PROFICIENCY_LEVELS, TIMELINES, PROFESSIONS, type OnboardingV2Data } from '@/hooks/useOnboardingV2';
+import {
+  useOnboardingV2,
+  TARGET_LANGUAGES,
+  MOTIVATIONS,
+  PROFICIENCY_LEVELS,
+  TIMELINES,
+  PROFESSIONS,
+  shouldShowProfession,
+  getOnboardingDots,
+  getScreenStep,
+  type OnboardingV2Data,
+} from '@/hooks/useOnboardingV2';
 import { createPersonalizedPath } from '@/lib/services/pathGeneration';
 import { supabase } from '@/lib/db/supabase';
 import { storeUserLevel } from '@/lib/utils/levelGating';
@@ -26,15 +38,21 @@ function getFirstIncompleteScreen(data: OnboardingV2Data): string | null {
   if (!data.native_language || !data.target_language || !data.target_accent) {
     return '/(auth)/onboarding-v2/languages';
   }
-  if (!data.motivation && !data.motivation_custom) {
+  if (!data.motivation && !data.motivation_custom && (!data.motivations || data.motivations.length === 0)) {
     return '/(auth)/onboarding-v2/your-why';
+  }
+  // Profession is conditional — only check if it should show
+  if (shouldShowProfession(data.motivations) && !data.profession) {
+    return '/(auth)/onboarding-v2/your-profession';
   }
   if (!data.proficiency_level) {
     return '/(auth)/onboarding-v2/your-level';
   }
+  // Why Now is optional — skip check
   if (!data.timeline) {
     return '/(auth)/onboarding-v2/your-commitment';
   }
+  // Routine is optional — skip check
   if (!data.stakes && (!data.scenarios || data.scenarios.length === 0)) {
     return '/(auth)/onboarding-v2/your-stakes';
   }
@@ -51,25 +69,40 @@ export default function ReadyScreen() {
   const hasRedirected = useRef(false);
 
   // Guard: redirect to the first incomplete screen if required data is missing
+  // Skip this guard when path generation is in progress or completed (reset() clears
+  // data which would otherwise cause a false redirect back to onboarding).
   useEffect(() => {
     if (hasRedirected.current) return;
+    if (isBuilding || pathGenerationStarted.current) return;
     const incompleteRoute = getFirstIncompleteScreen(data);
     if (incompleteRoute) {
       hasRedirected.current = true;
       console.warn('[ReadyScreen] Missing onboarding data, redirecting to:', incompleteRoute);
       router.replace(incompleteRoute);
     }
-  }, [data]);
+  }, [data, isBuilding]);
+
+  // Dynamic progress dots
+  const showProfession = shouldShowProfession(data.motivations);
+  const dots = getOnboardingDots(showProfession);
+  const currentStep = getScreenStep('ready', showProfession);
 
   // Get display values from store data
   const targetLang = TARGET_LANGUAGES.find(l => l.code === data.target_language);
-  const motivation = MOTIVATIONS.find(m => m.id === data.motivation);
   const level = PROFICIENCY_LEVELS.find(l => l.id === data.proficiency_level);
   const timeline = TIMELINES.find(t => t.id === data.timeline);
 
+  // Build motivation display — handle multi-select
+  const motivationLabels = (data.motivations || [])
+    .map(id => MOTIVATIONS.find(m => m.id === id)?.label)
+    .filter(Boolean);
+  const motivationDisplay = motivationLabels.length > 0
+    ? motivationLabels.join(', ')
+    : data.motivation_custom || data.motivation || 'Not set';
+
   const userData = {
     target_language: targetLang ? `${targetLang.flag} ${targetLang.label}` : data.target_language || 'Not set',
-    motivation: motivation ? motivation.label : data.motivation_custom || data.motivation || 'Not set',
+    motivation: motivationDisplay,
     proficiency_level: level ? level.label : data.proficiency_level || 'Not set',
     timeline: timeline ? timeline.label : data.timeline || 'Not set',
   };
@@ -145,9 +178,13 @@ export default function ReadyScreen() {
       setBuildingStatus(t('ready.loading.ready'));
 
       // Navigate to countdown screen after completion
+      // IMPORTANT: Navigate FIRST, then reset onboarding data.
+      // If reset() fires before navigation, the useEffect guard sees empty data
+      // and redirects back to onboarding (race condition).
       setTimeout(() => {
-        reset();
         router.replace('/(auth)/onboarding-v2/creating-plan');
+        // Delay reset slightly so navigation commits first
+        setTimeout(() => reset(), 100);
       }, 500);
 
     } catch (error) {
@@ -197,13 +234,13 @@ export default function ReadyScreen() {
             style={styles.progressContainer}
           >
             <View style={styles.dotsContainer}>
-              {[1, 2, 3, 4, 5, 6].map((step) => (
+              {dots.map((step) => (
                 <View
                   key={step}
                   style={[
                     styles.dot,
-                    step === 6 && styles.dotActive,
-                    step < 6 && styles.dotCompleted,
+                    step === currentStep && styles.dotActive,
+                    step < currentStep && styles.dotCompleted,
                   ]}
                 />
               ))}
@@ -228,28 +265,28 @@ export default function ReadyScreen() {
             style={styles.summaryContainer}
           >
             <SummaryCard
-              icon="🌍"
+              icon="globe-outline"
               label={t('ready.summary.language')}
               value={userData.target_language}
               delay={0}
               onPress={() => router.push('/(auth)/onboarding-v2/languages')}
             />
             <SummaryCard
-              icon="💡"
+              icon="bulb-outline"
               label={t('ready.summary.why')}
               value={userData.motivation}
               delay={100}
               onPress={() => router.push('/(auth)/onboarding-v2/your-why')}
             />
             <SummaryCard
-              icon="📊"
+              icon="bar-chart-outline"
               label={t('ready.summary.level')}
               value={userData.proficiency_level}
               delay={200}
               onPress={() => router.push('/(auth)/onboarding-v2/your-level')}
             />
             <SummaryCard
-              icon="⏱️"
+              icon="time-outline"
               label={t('ready.summary.timeline')}
               value={userData.timeline}
               delay={300}
@@ -259,33 +296,44 @@ export default function ReadyScreen() {
             {/* Profession card - only if profession was selected */}
             {data.profession && (
               <SummaryCard
-                icon="💼"
+                icon="briefcase-outline"
                 label={t('ready.summary.profession')}
                 value={PROFESSIONS.find(p => p.id === data.profession)?.label || data.profession_custom || 'Professional'}
                 delay={350}
-                onPress={() => router.push('/(auth)/onboarding-v2/your-why')}
+                onPress={() => router.push('/(auth)/onboarding-v2/your-profession')}
+              />
+            )}
+
+            {/* Why Now card - only if set */}
+            {data.why_now && (
+              <SummaryCard
+                icon="flame-outline"
+                label={t('ready.summary.why_now')}
+                value={data.why_now}
+                delay={375}
+                onPress={() => router.push('/(auth)/onboarding-v2/why-now')}
+              />
+            )}
+
+            {/* Practice routine - only if set */}
+            {data.min_practice_time && (
+              <SummaryCard
+                icon="calendar-outline"
+                label={t('ready.summary.routine')}
+                value={`${data.min_practice_time}-${data.max_practice_time} min${data.days_per_week ? `, ${data.days_per_week} days/week` : ''}`}
+                delay={400}
+                onPress={() => router.push('/(auth)/onboarding-v2/your-routine')}
               />
             )}
 
             {/* Scenarios card - only if scenarios were selected */}
             {data.scenarios && data.scenarios.length > 0 && (
               <SummaryCard
-                icon="🎯"
+                icon="navigate-outline"
                 label={t('ready.summary.scenarios')}
                 value={data.scenarios.map(s => s.replace(/_/g, ' ')).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}
-                delay={400}
-                onPress={() => router.push('/(auth)/onboarding-v2/your-stakes')}
-              />
-            )}
-
-            {/* Practice schedule - only if set */}
-            {data.min_practice_time && data.days_per_week && (
-              <SummaryCard
-                icon="⏱️"
-                label={t('ready.summary.practice')}
-                value={`${data.min_practice_time}-${data.max_practice_time} min, ${data.days_per_week} days/week`}
                 delay={450}
-                onPress={() => router.push('/(auth)/onboarding-v2/your-commitment')}
+                onPress={() => router.push('/(auth)/onboarding-v2/your-stakes')}
               />
             )}
           </Animated.View>
@@ -377,7 +425,7 @@ function SummaryCard({
         style={styles.summaryCard}
       >
         <View style={styles.summaryCardIcon}>
-          <Text style={styles.summaryCardEmoji}>{icon}</Text>
+          <Ionicons name={icon as any} size={20} color={colors.primary.light} />
         </View>
         <View style={styles.summaryCardContent}>
           <Text style={styles.summaryCardLabel}>{label}</Text>

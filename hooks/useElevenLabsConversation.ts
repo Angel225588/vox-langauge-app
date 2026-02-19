@@ -82,6 +82,11 @@ export interface UseElevenLabsConversationProps {
    */
   slowSpeechMode?: SlowSpeechSpeed;
   /**
+   * Target session duration in seconds (from onboarding practice time).
+   * Used to instruct the AI to naturally wrap up the conversation.
+   */
+  targetDuration?: number;
+  /**
    * Disable all overrides and use agent defaults
    * Use this if overrides cause connection issues
    * @default false
@@ -120,6 +125,8 @@ export interface UseElevenLabsConversationReturn {
   currentSession: ConversationSession | null;
   sessionDuration: number;
   turnCount: number;
+  /** Target session duration in seconds (from onboarding) */
+  targetDuration: number | undefined;
 
   // Error state
   error: Error | null;
@@ -147,6 +154,7 @@ export function useElevenLabsConversation(
     onSessionEnd,
     onError,
     slowSpeechMode = 'normal',
+    targetDuration,
     disableOverrides = false,
     overrideOptions = {},
   } = props;
@@ -176,6 +184,7 @@ export function useElevenLabsConversation(
       currentSession: null,
       sessionDuration: 0,
       turnCount: 0,
+      targetDuration: undefined,
       error: notAvailableError,
       startSession: async () => {
         onError?.(notAvailableError);
@@ -231,6 +240,7 @@ export function useElevenLabsConversation(
     scenario,
     scenarioDescription,
     emotionInstruction,
+    targetDurationSeconds: targetDuration,
   });
 
   const firstMessage = voice ? getFirstMessage({
@@ -524,6 +534,7 @@ export function useElevenLabsConversation(
     currentSession,
     sessionDuration,
     turnCount,
+    targetDuration,
 
     // Error state
     error,

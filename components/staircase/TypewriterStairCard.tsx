@@ -14,6 +14,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { StairIcon } from '@/lib/utils/stairIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useAnimatedStyle,
@@ -217,7 +218,7 @@ export function TypewriterStairCard({
           <View style={styles.contentRow}>
             {/* Emoji with bounce animation */}
             <Animated.View style={[styles.emojiContainer, emojiAnimatedStyle]}>
-              <Text style={styles.emoji}>{stair.emoji}</Text>
+              <StairIcon value={stair.emoji} size={28} fontSize={28} />
             </Animated.View>
 
             {/* Text Content */}

@@ -238,6 +238,159 @@ export function createUserProfile(
 }
 
 // =============================================================================
+// Enhanced User Profile (uses full onboarding data)
+// =============================================================================
+
+export interface EnhancedUserProfile extends UserProfile {
+  profession: string | null;
+  selectedScenarios: string[];  // from onboarding scenarios[]
+  motivations: string[];        // all motivations, not just primary
+  practiceTimeMinutes: { min: number; max: number } | null;
+}
+
+/**
+ * Maps professions to scenario categories they're likely interested in
+ */
+const PROFESSION_TO_CATEGORIES: Record<string, VoiceScenario['category'][]> = {
+  tech: ['professional'],
+  finance: ['professional'],
+  marketing: ['professional', 'social'],
+  sales: ['professional', 'social'],
+  healthcare: ['professional', 'emergency'],
+  legal: ['professional'],
+  education: ['professional', 'social'],
+  hospitality: ['food', 'social', 'travel'],
+  consulting: ['professional', 'social'],
+  engineering: ['professional'],
+  design: ['professional', 'social'],
+  real_estate: ['professional', 'social'],
+  government: ['professional'],
+  nonprofit: ['professional', 'social'],
+};
+
+/**
+ * Maps onboarding scenario tags to scenario categories
+ */
+const ONBOARDING_SCENARIO_TO_CATEGORY: Record<string, VoiceScenario['category'][]> = {
+  ordering_food: ['food'],
+  asking_directions: ['travel'],
+  job_interview: ['professional'],
+  small_talk: ['social'],
+  shopping: ['shopping'],
+  medical: ['emergency'],
+  business_meeting: ['professional'],
+  travel: ['travel'],
+  daily_life: ['food', 'shopping', 'social'],
+  dating: ['social'],
+  phone_calls: ['professional', 'social'],
+  presentations: ['professional'],
+};
+
+/**
+ * Create an enhanced user profile from full onboarding data.
+ * Uses profession, all motivations, selected scenarios, and practice time.
+ */
+export function createEnhancedUserProfile(onboardingData: {
+  target_language: string | null;
+  motivation: string | null;
+  motivations: string[] | null;
+  proficiency_level: string | null;
+  profession: string | null;
+  scenarios: string[] | null;
+  min_practice_time: number | null;
+  max_practice_time: number | null;
+}): EnhancedUserProfile {
+  return {
+    targetLanguage: (onboardingData.target_language as SupportedLanguage) || 'es',
+    motivation: (onboardingData.motivation as MotivationType) || null,
+    proficiencyLevel: (onboardingData.proficiency_level as ProficiencyType) || null,
+    profession: onboardingData.profession || null,
+    selectedScenarios: onboardingData.scenarios || [],
+    motivations: (onboardingData.motivations || []) as string[],
+    practiceTimeMinutes: onboardingData.min_practice_time && onboardingData.max_practice_time
+      ? { min: onboardingData.min_practice_time, max: onboardingData.max_practice_time }
+      : null,
+  };
+}
+
+/**
+ * Get personalized scenarios using the enhanced profile with full onboarding data.
+ * Adds scoring for profession match and onboarding scenario selections.
+ */
+export function getEnhancedScenariosForUser(profile: EnhancedUserProfile): MatchedScenario[] {
+  const { targetLanguage, motivation, proficiencyLevel, profession, selectedScenarios } = profile;
+
+  const allScenarios = getScenariosForLanguage(targetLanguage);
+  if (allScenarios.length === 0) return [];
+
+  const matchedScenarios: MatchedScenario[] = allScenarios.map((scenario) => {
+    let score = 50;
+    let reason = 'General practice';
+
+    // Score based on difficulty match (+25)
+    if (proficiencyLevel) {
+      const appropriateDifficulties = PROFICIENCY_TO_DIFFICULTY[proficiencyLevel];
+      if (appropriateDifficulties.includes(scenario.difficulty)) {
+        score += 25;
+        reason = `Matches your ${proficiencyLevel} level`;
+      } else {
+        score -= 20;
+      }
+    }
+
+    // Score based on category match with motivation (+25)
+    if (motivation) {
+      const preferredCategories = MOTIVATION_TO_CATEGORIES[motivation];
+      if (preferredCategories.includes(scenario.category)) {
+        score += 25;
+        reason = MOTIVATION_DESCRIPTIONS[motivation];
+      } else {
+        score -= 10;
+      }
+    }
+
+    // Bonus for matching both difficulty AND motivation (+15)
+    if (proficiencyLevel && motivation) {
+      const appropriateDifficulties = PROFICIENCY_TO_DIFFICULTY[proficiencyLevel];
+      const preferredCategories = MOTIVATION_TO_CATEGORIES[motivation];
+      if (
+        appropriateDifficulties.includes(scenario.difficulty) &&
+        preferredCategories.includes(scenario.category)
+      ) {
+        score += 15;
+        reason = `${MOTIVATION_DESCRIPTIONS[motivation]} at your level`;
+      }
+    }
+
+    // ENHANCED: Score based on profession match (+20)
+    if (profession && scenario.category) {
+      const professionKey = profession.toLowerCase().replace(/\s+/g, '_');
+      const professionCategories = PROFESSION_TO_CATEGORIES[professionKey] || [];
+      if (professionCategories.includes(scenario.category)) {
+        score += 20;
+        reason = `Relevant to your profession`;
+      }
+    }
+
+    // ENHANCED: Score based on onboarding scenario selections (+15)
+    if (selectedScenarios.length > 0 && scenario.category) {
+      const matchedCategories = selectedScenarios.flatMap(
+        tag => ONBOARDING_SCENARIO_TO_CATEGORY[tag] || []
+      );
+      if (matchedCategories.includes(scenario.category)) {
+        score += 15;
+        reason = `Matches your conversation priorities`;
+      }
+    }
+
+    const normalizedScore = Math.max(0, Math.min(100, score));
+    return { ...scenario, relevanceScore: normalizedScore, matchReason: reason };
+  });
+
+  return matchedScenarios.sort((a, b) => b.relevanceScore - a.relevanceScore);
+}
+
+// =============================================================================
 // Stair-Aware Scenario Matching
 // =============================================================================
 
@@ -308,11 +461,8 @@ export function getScenariosForStair(
 
     // Score based on skills focus match (+25)
     // Check if scenario category or tags match stair's skills focus
-    const scenarioCategory = scenario.category.toLowerCase();
-    const scenarioKeywords = [
-      scenarioCategory,
-      ...(scenario.tags || []).map(t => t.toLowerCase()),
-    ];
+    const scenarioCategory = (scenario.category || '').toLowerCase();
+    const scenarioKeywords = [scenarioCategory];
 
     const hasSkillsMatch = scenarioKeywords.some(
       keyword => skillsSet.has(keyword) || tagsSet.has(keyword)

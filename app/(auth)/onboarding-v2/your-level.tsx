@@ -11,7 +11,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
-import { useOnboardingV2, PROFICIENCY_LEVELS, TARGET_LANGUAGES, flushOnboardingState } from '@/hooks/useOnboardingV2';
+import {
+  useOnboardingV2,
+  PROFICIENCY_LEVELS,
+  TARGET_LANGUAGES,
+  flushOnboardingState,
+  shouldShowProfession,
+  getOnboardingDots,
+  getScreenStep,
+} from '@/hooks/useOnboardingV2';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
 
 export default function YourLevelScreen() {
@@ -23,6 +31,11 @@ export default function YourLevelScreen() {
   // Focus state for input
   const [isInputFocused, setIsInputFocused] = useState(false);
 
+  // Dynamic progress dots
+  const showProfession = shouldShowProfession(data.motivations);
+  const dots = getOnboardingDots(showProfession);
+  const currentStep = getScreenStep('your-level', showProfession);
+
   const handleContinue = async () => {
     if (selectedLevel) {
       updateData({
@@ -31,7 +44,7 @@ export default function YourLevelScreen() {
       });
       nextStep();
       await flushOnboardingState();
-      router.push('/(auth)/onboarding-v2/your-commitment');
+      router.push('/(auth)/onboarding-v2/why-now');
     }
   };
 
@@ -135,13 +148,13 @@ export default function YourLevelScreen() {
             {/* Progress Indicator - Dots */}
             <View style={styles.progressContainer}>
               <View style={styles.dotsContainer}>
-                {[1, 2, 3, 4, 5, 6].map((step) => (
+                {dots.map((step) => (
                   <View
                     key={step}
                     style={[
                       styles.dot,
-                      step === 3 && styles.dotActive,
-                      step < 3 && styles.dotCompleted,
+                      step === currentStep && styles.dotActive,
+                      step < currentStep && styles.dotCompleted,
                     ]}
                   />
                 ))}

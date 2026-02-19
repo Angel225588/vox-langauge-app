@@ -298,3 +298,31 @@ This file tracks all automated code reviews triggered by commits.
 - **Time**: 2026-02-11 11:24:11
 - **Status**: Pending review via /master-review
 
+
+## Commit Review Triggered
+- **Commit**: 83ee497
+- **Message**: feat: Vox Library architecture + onboarding persistence fix + Add to my Vox
+- **Time**: 2026-02-11 13:11:49
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 1a7f96e
+- **Message**: feat(phase1): Complete Phase 1 — AI practice generator, real KPIs, all practice modes
+- **Time**: 2026-02-11 17:48:32
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 33e599e
+- **Message**: feat(phase2): Competency metrics — scoring engine, dashboard, trend tracking
+- **Time**: 2026-02-11 18:20:19
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 71d5ce5
+- **Message**: feat(phase3): Privacy & Trust — consent flows, data export/delete, secure storage, privacy dashboard
+- **Time**: 2026-02-11 18:39:41
+- **Status**: Pending review via /master-review
+

@@ -46,7 +46,9 @@ import {
 } from '@/lib/voice';
 import {
   getScenariosForUser,
+  getEnhancedScenariosForUser,
   createUserProfile,
+  createEnhancedUserProfile,
   MatchedScenario,
 } from '@/lib/voice/scenarioMatcher';
 import type { ElevenLabsMessage } from '@/lib/voice/elevenLabsTypes';
@@ -127,21 +129,25 @@ export default function VoiceConversationScreen() {
   // Get available accents for the user's target language
   const availableAccents = getAccentsForLanguage(targetLanguage);
 
-  // Create user profile from onboarding data for personalized scenarios
-  const userProfile = createUserProfile(
-    onboardingData.target_language,
-    onboardingData.motivation,
-    onboardingData.proficiency_level
-  );
+  // Calculate target session duration from onboarding practice time
+  const targetDurationSeconds = onboardingData.min_practice_time
+    ? onboardingData.min_practice_time * 60  // Use minimum as target
+    : 300; // Default 5 min
 
-  // Get personalized scenarios based on user profile
-  const personalizedScenarios = getScenariosForUser(userProfile);
+  // Create enhanced user profile from full onboarding data for personalized scenarios
+  const enhancedProfile = createEnhancedUserProfile(onboardingData);
+
+  // Get personalized scenarios using enhanced profile (uses profession, scenarios, motivations)
+  const personalizedScenarios = getEnhancedScenariosForUser(enhancedProfile);
 
   // Debug logging for onboarding data
-  console.log('[VoiceConversation] User profile from onboarding:', {
+  console.log('[VoiceConversation] Enhanced user profile from onboarding:', {
     targetLanguage: onboardingData.target_language,
     motivation: onboardingData.motivation,
+    motivations: onboardingData.motivations,
+    profession: onboardingData.profession,
     proficiency: onboardingData.proficiency_level,
+    selectedScenarios: onboardingData.scenarios,
     scenarioCount: personalizedScenarios.length,
     topScenario: personalizedScenarios[0]?.title,
   });
@@ -344,43 +350,43 @@ export default function VoiceConversationScreen() {
         return {
           yourRole: 'A customer ordering coffee',
           theirRole: 'A friendly barista',
-          characterEmoji: '☕',
+          characterIcon: 'cafe-outline',
         };
       } else if (scenarioId.includes('restaurant')) {
         return {
           yourRole: 'A customer ordering food',
           theirRole: 'A restaurant waiter',
-          characterEmoji: '🍽️',
+          characterIcon: 'restaurant-outline',
         };
       } else if (scenarioId.includes('direction')) {
         return {
           yourRole: 'A tourist asking for directions',
           theirRole: 'A helpful local',
-          characterEmoji: '🗺️',
+          characterIcon: 'map-outline',
         };
       } else if (scenarioId.includes('shop')) {
         return {
           yourRole: 'A customer shopping',
           theirRole: 'A store clerk',
-          characterEmoji: '🛍️',
+          characterIcon: 'cart-outline',
         };
       } else if (scenarioId.includes('hotel')) {
         return {
           yourRole: 'A guest checking in',
           theirRole: 'A hotel receptionist',
-          characterEmoji: '🏨',
+          characterIcon: 'bed-outline',
         };
       } else if (scenarioId.includes('airport') || scenarioId.includes('travel')) {
         return {
           yourRole: 'A traveler at the airport',
           theirRole: 'An airline staff member',
-          characterEmoji: '✈️',
+          characterIcon: 'airplane-outline',
         };
       } else {
         return {
           yourRole: 'Yourself, practicing conversation',
           theirRole: character?.name || 'A native speaker',
-          characterEmoji: '💬',
+          characterIcon: 'chatbubbles-outline',
         };
       }
     };
@@ -435,10 +441,10 @@ export default function VoiceConversationScreen() {
         title={selectedScenario.title}
         description={selectedScenario.description}
         difficulty={selectedScenario.difficulty as 'beginner' | 'intermediate' | 'advanced'}
-        duration="~5 min"
+        duration={`~${Math.round(targetDurationSeconds / 60)} min`}
         yourRole={roles.yourRole}
         theirRole={roles.theirRole}
-        characterEmoji={roles.characterEmoji}
+        characterEmoji={roles.characterIcon}
         objectives={objectives}
         onStartCall={handleStartCall}
         onPreviewVocabulary={handlePreviewVocabulary}
@@ -463,18 +469,13 @@ export default function VoiceConversationScreen() {
     };
     const userProficiency = proficiencyMap[onboardingData.proficiency_level || 'intermediate'] || 'intermediate';
 
-    // Get the appropriate ElevenLabs voice for this scenario
-    // Try to match character name to voice, otherwise use default for language
+    // Get the appropriate ElevenLabs voice for the scenario language
     const scenarioLanguage = selectedScenario.language as SupportedLanguage;
-    const characterVoiceId = character?.id ? `${scenarioLanguage === 'es' ? 'es-MX' : scenarioLanguage === 'fr' ? 'fr-FR' : 'en-US'}-${character.id}` : undefined;
-    const voiceConfig = characterVoiceId
-      ? getVoiceById(characterVoiceId)
-      : getDefaultVoiceForLanguage(scenarioLanguage);
+    const voiceConfig = getDefaultVoiceForLanguage(scenarioLanguage);
 
     console.log('[VoiceConversation] Using voice:', {
-      characterId: character?.id,
-      voiceId: characterVoiceId,
       voiceConfig: voiceConfig?.name,
+      voiceId: voiceConfig?.elevenLabsVoiceId,
       language: scenarioLanguage,
     });
 
@@ -484,6 +485,7 @@ export default function VoiceConversationScreen() {
         character={character}
         voice={voiceConfig}
         proficiency={userProficiency}
+        targetDuration={targetDurationSeconds}
         onComplete={handleConversationComplete}
         onBack={handleBack}
       />

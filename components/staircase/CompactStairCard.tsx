@@ -14,6 +14,7 @@
 
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { StairIcon } from '@/lib/utils/stairIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useAnimatedStyle,
@@ -142,7 +143,7 @@ export function CompactStairCard({
           <Animated.View style={[styles.contentRow, contentAnimatedStyle]}>
             {/* Emoji */}
             <View style={styles.emojiContainer}>
-              <Text style={styles.emoji}>{stair.emoji}</Text>
+              <StairIcon value={stair.emoji} size={28} fontSize={28} />
             </View>
 
             {/* Text Content */}

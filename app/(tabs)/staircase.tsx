@@ -17,6 +17,7 @@ import { View, Text, ScrollView, TouchableOpacity, Dimensions, Alert } from 'rea
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 import { useState, useRef, useCallback } from 'react';
 import { StairForDisplay } from '@/hooks/useLearningPath';
@@ -32,7 +33,7 @@ const { width, height } = Dimensions.get('window');
 const MOCK_MEDALS = [
   {
     id: 'medal_1',
-    emoji: '🥇',
+    icon: 'trophy' as const,
     title: 'First Stair Completed',
     description: 'Completed your first learning stair',
     tier: 'gold',
@@ -40,7 +41,7 @@ const MOCK_MEDALS = [
   },
   {
     id: 'medal_2',
-    emoji: '🔥',
+    icon: 'flame' as const,
     title: '7 Day Streak',
     description: 'Maintained a 7-day learning streak',
     tier: 'gold',
@@ -48,7 +49,7 @@ const MOCK_MEDALS = [
   },
   {
     id: 'medal_3',
-    emoji: '📚',
+    icon: 'library' as const,
     title: 'Vocabulary Master',
     description: 'Learned 100 new words',
     tier: 'silver',
@@ -133,9 +134,9 @@ export default function StaircaseScreen() {
       return;
     }
 
-    // Navigate to lesson flow for this stair
-    console.log('Starting stair:', stairId);
-    router.push(`/lesson/${stairId}`);
+    // Navigate to stair session flow
+    console.log('Starting stair session:', stairId);
+    router.push(`/stair-session/${stairId}`);
   };
 
   return (
@@ -222,7 +223,7 @@ export default function StaircaseScreen() {
               marginTop: spacing.sm,
             }}
           >
-            <Text style={{ fontSize: typography.fontSize['2xl'], marginRight: spacing.sm }}>🔥</Text>
+            <Ionicons name="flame" size={28} color={colors.warning.DEFAULT} style={{ marginRight: spacing.sm }} />
             <Text
               style={{
                 fontSize: typography.fontSize.lg,
@@ -362,7 +363,7 @@ export default function StaircaseScreen() {
                       elevation: 6,
                     }}
                   >
-                    <Text style={{ fontSize: typography.fontSize['4xl'] + 4 }}>{medal.emoji}</Text>
+                    <Ionicons name={medal.icon} size={32} color={colors.background.primary} />
                   </View>
 
                   {/* Medal Info */}
@@ -464,7 +465,7 @@ export default function StaircaseScreen() {
                 paddingHorizontal: spacing.lg,
               }}
             >
-              <Text style={{ fontSize: spacing['3xl'], marginBottom: spacing.lg }}>🚀</Text>
+              <Ionicons name="rocket" size={40} color={colors.primary.DEFAULT} style={{ marginBottom: spacing.lg }} />
               <Text
                 style={{
                   fontSize: typography.fontSize.xl,

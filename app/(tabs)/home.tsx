@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
 import { useState, useEffect } from 'react';
 import { VoxIcon } from '@/components/ui/rewards';
@@ -28,7 +29,7 @@ const { width, height } = Dimensions.get('window');
 const MOCK_MEDALS = [
   {
     id: 'medal_1',
-    emoji: '🥇',
+    icon: 'trophy' as const,
     title: 'First Stair Completed',
     description: 'Completed your first learning stair',
     tier: 'gold',
@@ -36,7 +37,7 @@ const MOCK_MEDALS = [
   },
   {
     id: 'medal_2',
-    emoji: '🔥',
+    icon: 'flame' as const,
     title: '7 Day Streak',
     description: 'Maintained a 7-day learning streak',
     tier: 'gold',
@@ -44,7 +45,7 @@ const MOCK_MEDALS = [
   },
   {
     id: 'medal_3',
-    emoji: '📚',
+    icon: 'library' as const,
     title: 'Vocabulary Master',
     description: 'Learned 100 new words',
     tier: 'silver',
@@ -58,7 +59,7 @@ const MOCK_STAIRS = [
     id: '1',
     order: 1,
     title: 'Professional Greetings',
-    emoji: '👋',
+    emoji: 'hand-left-outline',
     description: 'Master formal introductions for job interviews',
     status: 'completed' as const,
     vocabulary_count: 25,
@@ -68,7 +69,7 @@ const MOCK_STAIRS = [
     id: '2',
     order: 2,
     title: 'Self Introduction',
-    emoji: '💼',
+    emoji: 'briefcase-outline',
     description: 'Present your background and experience confidently',
     status: 'current' as const,
     vocabulary_count: 35,
@@ -78,7 +79,7 @@ const MOCK_STAIRS = [
     id: '3',
     order: 3,
     title: 'Discussing Experience',
-    emoji: '📊',
+    emoji: 'bar-chart-outline',
     description: 'Talk about your work history and achievements',
     status: 'locked' as const,
     vocabulary_count: 45,
@@ -88,7 +89,7 @@ const MOCK_STAIRS = [
     id: '4',
     order: 4,
     title: 'Strengths & Weaknesses',
-    emoji: '💪',
+    emoji: 'shield-checkmark-outline',
     description: 'Answer common interview questions professionally',
     status: 'locked' as const,
     vocabulary_count: 40,
@@ -98,7 +99,7 @@ const MOCK_STAIRS = [
     id: '5',
     order: 5,
     title: 'Salary Negotiation',
-    emoji: '💰',
+    emoji: 'cash-outline',
     description: 'Discuss compensation with confidence',
     status: 'locked' as const,
     vocabulary_count: 50,

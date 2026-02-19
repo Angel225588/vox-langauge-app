@@ -1,13 +1,12 @@
 /**
- * Your Why Screen (Onboarding V2 - Step 2)
+ * Your Profession Screen (Onboarding V2 - Conditional Step 3)
  *
- * Captures user motivation for learning the language.
- * Multi-select chips + large free-text input.
- * Conditional navigation: career/relocation/education → profession screen, else → level screen.
+ * Only shown when motivation includes career, relocation, or education.
+ * Profession chips grid + custom "Other" input.
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Platform, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,8 +16,7 @@ import { CometBackground } from '@/components/ui/CometBackground';
 import { BackButton } from '@/components/ui/BackButton';
 import {
   useOnboardingV2,
-  MOTIVATIONS,
-  TARGET_LANGUAGES,
+  PROFESSIONS,
   flushOnboardingState,
   shouldShowProfession,
   getOnboardingDots,
@@ -26,59 +24,31 @@ import {
 } from '@/hooks/useOnboardingV2';
 import { colors, spacing, borderRadius, shadows, typography } from '@/constants/designSystem';
 
-export default function YourWhyScreen() {
+export default function YourProfessionScreen() {
   const router = useRouter();
   const { data, updateData } = useOnboardingV2();
   const { t } = useTranslation('onboarding');
 
-  // Multi-select chips state
-  const [selectedMotivations, setSelectedMotivations] = useState<string[]>(data.motivations || (data.motivation ? [data.motivation] : []));
-  const [customMotivation, setCustomMotivation] = useState(data.motivation_custom || '');
-  const [isMainInputFocused, setIsMainInputFocused] = useState(false);
+  const [selectedProfession, setSelectedProfession] = useState(data.profession);
+  const [professionCustom, setProfessionCustom] = useState(data.profession_custom || '');
 
-  const handleMotivationToggle = (motivationId: string) => {
-    setSelectedMotivations(prev => {
-      if (prev.includes(motivationId)) {
-        return prev.filter(id => id !== motivationId);
-      }
-      return [...prev, motivationId];
-    });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  };
+  const showProfession = shouldShowProfession(data.motivations);
+  const dots = getOnboardingDots(showProfession);
+  const currentStep = getScreenStep('your-profession', showProfession);
+
+  const canContinue = !!selectedProfession && (selectedProfession !== 'other' || professionCustom.trim().length > 0);
 
   const handleContinue = async () => {
     if (!canContinue) return;
 
-    const motivationCustom = customMotivation.trim() || null;
-    const primaryMotivation = selectedMotivations.length > 0 ? selectedMotivations[0] : 'custom';
-
     updateData({
-      motivation: primaryMotivation,
-      motivations: selectedMotivations.length > 0 ? selectedMotivations : null,
-      motivation_custom: motivationCustom,
+      profession: selectedProfession,
+      profession_custom: selectedProfession === 'other' ? professionCustom.trim() || null : null,
     });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     await flushOnboardingState();
-
-    // Conditional navigation: career/relocation/education → profession, else → level
-    if (shouldShowProfession(selectedMotivations)) {
-      router.push('/(auth)/onboarding-v2/your-profession');
-    } else {
-      router.push('/(auth)/onboarding-v2/your-level');
-    }
+    router.push('/(auth)/onboarding-v2/your-level');
   };
-
-  // Can continue if they've written something OR selected at least one chip
-  const canContinue = customMotivation.trim().length > 0 || selectedMotivations.length > 0;
-
-  // Get the selected target language for display
-  const targetLanguage = TARGET_LANGUAGES.find((lang) => lang.code === data.target_language);
-  const languageName = targetLanguage?.label || t('your_why.default_language');
-
-  // Progress dots
-  const showProfession = shouldShowProfession(selectedMotivations);
-  const dots = getOnboardingDots(showProfession);
-  const currentStep = getScreenStep('your-why', showProfession);
 
   return (
     <CometBackground intensity="medium">
@@ -97,73 +67,61 @@ export default function YourWhyScreen() {
             <BackButton onPress={() => router.back()} />
           </Animated.View>
 
-          {/* Title */}
+          {/* Header */}
           <Animated.View entering={FadeInDown.duration(300)} style={styles.header}>
-            <Text style={styles.title}>
-              {t('your_why.subtitle', { language: languageName })}
-            </Text>
+            <Text style={styles.title}>{t('your_profession.title')}</Text>
+            <Text style={styles.subtitle}>{t('your_profession.subtitle')}</Text>
           </Animated.View>
 
-          {/* Large Text Input — Primary */}
-          <Animated.View entering={FadeInDown.duration(300).delay(50)} style={styles.mainInputContainer}>
-            <TextInput
-              style={[styles.mainInput, isMainInputFocused && styles.inputFocused]}
-              placeholder={t('your_why.tell_us_placeholder')}
-              placeholderTextColor={colors.text.tertiary}
-              value={customMotivation}
-              onChangeText={setCustomMotivation}
-              onFocus={() => setIsMainInputFocused(true)}
-              onBlur={() => setIsMainInputFocused(false)}
-              multiline
-              numberOfLines={5}
-              maxLength={500}
-              textAlignVertical="top"
-            />
-          </Animated.View>
-
-          {/* Multi-select Motivation Chips — Complement */}
+          {/* Profession Chips Grid */}
           <Animated.View entering={FadeInDown.duration(300).delay(100)}>
-            <Text style={styles.chipsLabel}>{t('your_why.quick_option_label')}</Text>
-            <View style={styles.motivationsGrid}>
-              {MOTIVATIONS.map((motivation) => {
-                const isSelected = selectedMotivations.includes(motivation.id);
-
+            <View style={styles.professionGrid}>
+              {PROFESSIONS.map((profession) => {
+                const isSelected = selectedProfession === profession.id;
                 return (
                   <TouchableOpacity
-                    key={motivation.id}
+                    key={profession.id}
                     style={[
-                      styles.motivationCard,
-                      isSelected && styles.motivationCardSelected,
+                      styles.professionChip,
+                      isSelected && styles.professionChipSelected,
                     ]}
-                    onPress={() => handleMotivationToggle(motivation.id)}
+                    onPress={() => {
+                      setSelectedProfession(profession.id);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    }}
                     activeOpacity={0.8}
                   >
+                    <Text style={styles.professionIcon}>{profession.icon}</Text>
+                    <Text style={[
+                      styles.professionLabel,
+                      isSelected && styles.professionLabelSelected,
+                    ]}>
+                      {profession.label}
+                    </Text>
                     {isSelected && (
-                      <LinearGradient
-                        colors={[colors.glow.primary, 'transparent']}
-                        style={styles.cardGlow}
-                      />
+                      <View style={styles.checkBadge}>
+                        <Text style={styles.checkBadgeText}>✓</Text>
+                      </View>
                     )}
-                    <View style={styles.motivationCardContentRow}>
-                      <Text style={styles.motivationEmoji}>{motivation.emoji}</Text>
-                      <Text
-                        style={[
-                          styles.motivationLabel,
-                          isSelected && styles.motivationLabelSelected,
-                        ]}
-                      >
-                        {motivation.label}
-                      </Text>
-                      {isSelected && (
-                        <View style={styles.checkBadge}>
-                          <Text style={styles.checkBadgeText}>✓</Text>
-                        </View>
-                      )}
-                    </View>
                   </TouchableOpacity>
                 );
               })}
             </View>
+
+            {/* Custom profession input for "Other" */}
+            {selectedProfession === 'other' && (
+              <Animated.View entering={FadeInDown.duration(200)} style={styles.customInputContainer}>
+                <TextInput
+                  style={styles.customInput}
+                  placeholder={t('your_profession.other_placeholder')}
+                  placeholderTextColor={colors.text.tertiary}
+                  value={professionCustom}
+                  onChangeText={setProfessionCustom}
+                  maxLength={100}
+                  autoFocus
+                />
+              </Animated.View>
+            )}
           </Animated.View>
         </ScrollView>
 
@@ -200,11 +158,11 @@ export default function YourWhyScreen() {
                   end={{ x: 1, y: 0 }}
                   style={styles.buttonGradient}
                 >
-                  <Text style={styles.continueButtonText}>{t('your_why.continue')}</Text>
+                  <Text style={styles.continueButtonText}>{t('your_profession.continue')}</Text>
                 </LinearGradient>
               ) : (
                 <View style={styles.buttonDisabled}>
-                  <Text style={styles.continueButtonTextDisabled}>{t('your_why.continue')}</Text>
+                  <Text style={styles.continueButtonTextDisabled}>{t('your_profession.continue')}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -228,98 +186,79 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   header: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   title: {
     fontSize: typography.fontSize['3xl'],
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
-    lineHeight: typography.fontSize['3xl'] * 1.3,
-  },
-
-  // Large text input
-  mainInputContainer: {
-    marginBottom: spacing.lg,
-  },
-  mainInput: {
-    backgroundColor: colors.background.card,
-    borderWidth: 2,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    fontSize: typography.fontSize.lg,
-    color: colors.text.primary,
-    minHeight: 140,
-    textAlignVertical: 'top',
-    lineHeight: typography.fontSize.lg * 1.5,
-  },
-  inputFocused: {
-    borderColor: colors.primary.DEFAULT,
-  },
-
-  // Chips label
-  chipsLabel: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.secondary,
     marginBottom: spacing.sm,
   },
+  subtitle: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    lineHeight: typography.fontSize.base * 1.5,
+  },
 
-  // Multi-select motivation chips
-  motivationsGrid: {
+  // Profession chips
+  professionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  motivationCard: {
+  professionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.lg,
     borderWidth: 1.5,
     borderColor: colors.border.light,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
-    position: 'relative',
-    overflow: 'hidden',
+    gap: spacing.sm,
   },
-  motivationCardSelected: {
+  professionChipSelected: {
     borderColor: colors.primary.DEFAULT,
     backgroundColor: 'rgba(0, 54, 255, 0.1)',
   },
-  cardGlow: {
-    position: 'absolute',
-    top: -50,
-    left: -50,
-    right: -50,
-    bottom: -50,
-    opacity: 0.1,
+  professionIcon: {
+    fontSize: 20,
   },
-  motivationCardContentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  motivationEmoji: {
-    fontSize: 24,
-    marginRight: spacing.md,
-  },
-  motivationLabel: {
-    flex: 1,
+  professionLabel: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.medium,
     color: colors.text.primary,
+    fontWeight: typography.fontWeight.medium,
   },
-  motivationLabelSelected: {
+  professionLabelSelected: {
     color: colors.primary.light,
   },
   checkBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: colors.primary.DEFAULT,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkBadgeText: {
     color: colors.text.primary,
-    fontSize: typography.fontSize.sm,
+    fontSize: 11,
     fontWeight: typography.fontWeight.bold,
+  },
+
+  // Custom input
+  customInputContainer: {
+    marginTop: spacing.md,
+  },
+  customInput: {
+    backgroundColor: colors.background.card,
+    borderWidth: 1.5,
+    borderColor: colors.primary.DEFAULT,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    minHeight: 48,
   },
 
   // Bottom section

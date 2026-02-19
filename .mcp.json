@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "notebooklm-mcp": {
+      "type": "stdio",
+      "command": "/Users/angelpolanco/.local/bin/notebooklm-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}

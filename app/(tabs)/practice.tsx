@@ -60,17 +60,18 @@ const PZ = {
 
 // ─── GRID (routes wired to AI-powered practice screens) ───
 const GRID_ITEMS = [
-  { title: 'Vocabulary', sub: 'Flashcard flow', emoji: '\u{1F4C7}', color: PZ.green, route: '/flashcard/session' },
-  { title: 'Reading', sub: 'AI passage', emoji: '\u{1F4D6}', color: PZ.purple, route: '/practice-reading' },
-  { title: 'Writing', sub: 'AI prompt', emoji: '\u270F\uFE0F', color: PZ.gold, route: '/practice-writing' },
-  { title: 'Listening', sub: 'Comprehension', emoji: '\u{1F3A7}', color: PZ.rose, route: '/practice-listening' },
+  { title: 'Vocabulary', sub: 'Flashcard flow', icon: 'albums-outline' as const, color: PZ.green, route: '/flashcard/session' },
+  { title: 'Reading', sub: 'AI passage', icon: 'book-outline' as const, color: PZ.purple, route: '/practice-reading' },
+  { title: 'Writing', sub: 'AI prompt', icon: 'create-outline' as const, color: PZ.gold, route: '/practice-writing' },
+  { title: 'Listening', sub: 'Comprehension', icon: 'headset-outline' as const, color: PZ.rose, route: '/practice-listening' },
+  { title: 'Library', sub: 'Scenario decks', icon: 'library-outline' as const, color: PZ.cyan, route: '/vox-library' },
 ];
 
 const FLOW_STEPS = [
-  { emoji: '\u{1F4C7}', label: 'Vocab', color: PZ.green },
-  { emoji: '\u{1F4D6}', label: 'Read', color: PZ.purple },
-  { emoji: '\u270F\uFE0F', label: 'Write', color: PZ.gold },
-  { emoji: '\u{1F4DE}', label: 'AI Call', color: PZ.cyan },
+  { icon: 'albums-outline' as const, label: 'Vocab', color: PZ.green },
+  { icon: 'book-outline' as const, label: 'Read', color: PZ.purple },
+  { icon: 'create-outline' as const, label: 'Write', color: PZ.gold },
+  { icon: 'call-outline' as const, label: 'AI Call', color: PZ.cyan },
 ];
 
 const CONTENT_WIDTH = Dimensions.get('window').width - 32;
@@ -494,9 +495,12 @@ export default function PracticeScreen() {
 
         {/* ═══ 2x2 PRACTICE GRID ═══ */}
         <Animated.View entering={FadeInDown.duration(400).delay(180)} style={s.gridContainer}>
-          {[0, 2].map((startIdx) => (
+          {[0, 2, 4].map((startIdx) => {
+            const row = GRID_ITEMS.slice(startIdx, startIdx + 2);
+            if (row.length === 0) return null;
+            return (
             <View key={startIdx} style={s.gridRow}>
-              {GRID_ITEMS.slice(startIdx, startIdx + 2).map((card) => (
+              {row.map((card) => (
                 <TouchableOpacity
                   key={card.title}
                   style={[s.gridCard, { backgroundColor: card.color + '08' }]}
@@ -509,7 +513,7 @@ export default function PracticeScreen() {
                       { backgroundColor: card.color + '14', borderColor: card.color + '20' },
                     ]}
                   >
-                    <Text style={{ fontSize: 19 }}>{card.emoji}</Text>
+                    <Ionicons name={card.icon} size={19} color={card.color} />
                   </View>
                   <View>
                     <Text style={s.gridTitle}>{card.title}</Text>
@@ -518,7 +522,8 @@ export default function PracticeScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-          ))}
+          );
+          })}
         </Animated.View>
 
         {/* ═══ FLOW CARD ═══ */}
@@ -587,7 +592,7 @@ export default function PracticeScreen() {
                           { backgroundColor: step.color + '14', borderColor: step.color + '20' },
                         ]}
                       >
-                        <Text style={{ fontSize: 12 }}>{step.emoji}</Text>
+                        <Ionicons name={step.icon} size={12} color={step.color} />
                       </View>
                       <Text style={s.stepLabel}>{step.label}</Text>
                     </View>

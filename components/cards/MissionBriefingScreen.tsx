@@ -78,7 +78,7 @@ export const MissionBriefingScreen: React.FC<MissionBriefingScreenProps> = ({
   duration = '~5 min',
   yourRole,
   theirRole,
-  characterEmoji = '🧑‍💼',
+  characterEmoji = 'person-outline',
   characterName,
   objectives,
   onStartCall,
@@ -185,7 +185,7 @@ export const MissionBriefingScreen: React.FC<MissionBriefingScreenProps> = ({
           <View style={styles.avatarContainer}>
             <View style={styles.avatarRing}>
               <View style={styles.avatarInner}>
-                <Text style={styles.avatarEmoji}>{characterEmoji}</Text>
+                <Ionicons name={characterEmoji as any} size={40} color={colors.text.primary} />
               </View>
             </View>
           </View>

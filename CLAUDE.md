@@ -1,5 +1,39 @@
 # CLAUDE.md - Project Instructions for Claude Code
 
+## NotebookLM — Single Source of Truth
+
+**Notebook ID**: `2bf69003-b9cb-4d10-a40f-68b60777cb95`
+**URL**: https://notebooklm.google.com/notebook/2bf69003-b9cb-4d10-a40f-68b60777cb95
+
+All project knowledge, architectural decisions, feature specs, and documentation live in this NotebookLM notebook. It is the **first source of truth** for the Vox Language App.
+
+### How to Use
+- **Query before searching**: When you need project context (architecture, features, decisions, brand guidelines), query the notebook first via the `nlm` CLI before searching files or the web.
+- **Update after implementing**: After completing a feature or making an architectural decision, add a source or note to the notebook documenting what was done and why.
+- **Debugging**: Query the notebook for context on how systems work before diving into code.
+
+### CLI Commands (Quick Reference)
+```bash
+# Query the notebook (RAG-powered answers from all sources)
+nlm notebook query 2bf69003-b9cb-4d10-a40f-68b60777cb95 "your question here"
+
+# Add a new source (after feature completion)
+nlm source add 2bf69003-b9cb-4d10-a40f-68b60777cb95 --file path/to/doc.md --title "Title"
+nlm source add 2bf69003-b9cb-4d10-a40f-68b60777cb95 --text "Decision: We chose X because Y" --title "Architecture Decision"
+
+# List all sources in the notebook
+nlm source list 2bf69003-b9cb-4d10-a40f-68b60777cb95
+```
+
+### Current Sources (17)
+- CLAUDE.md, Product Roadmap, Master Features, Feature Specs
+- AI Conversation, Voice Conversation, Word Bank & FSRS, Scenarios
+- Data Privacy & GDPR, Progressive Immersion, Learning Path System
+- Storage Strategy, UI Design System, Gemini API Integration
+- Brand Identity, Color Palette, Phase 1 Onboarding & Staircase
+
+---
+
 ## Git Workflow
 
 **Always push commits to GitHub after committing.** After any commit, run:

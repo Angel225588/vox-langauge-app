@@ -83,7 +83,7 @@
     "tell_us_label": "Tell us in your own words",
     "tell_us_subtext": "The more detail you share, the more personalized your learning path will be",
     "tell_us_placeholder": "I want to learn this language because...",
-    "quick_option_label": "Or choose a quick option",
+    "quick_option_label": "Or select what resonates with you",
     "quick_option_subtext": "Tap to select, or use as inspiration for your answer above",
     "why_now_label": "What made you decide NOW?",
     "optional": "(Optional)",
@@ -93,12 +93,26 @@
     "profession_other_placeholder": "e.g., Architect, Nurse, Product Manager...",
     "continue": "Continue"
   },
+  "your_profession": {
+    "title": "What do you do?",
+    "subtitle": "This helps us tailor scenarios and vocabulary to your professional world.",
+    "other_placeholder": "e.g., Architect, Nurse, Product Manager...",
+    "continue": "Continue"
+  },
   "your_level": {
     "title": "Where are you in your",
     "title_suffix": "journey?",
     "previous_attempts_label": "What have you tried before?",
     "previous_attempts_subtext": "We understand learning is hard. We're here to help make it stick this time.",
     "previous_attempts_placeholder": "E.g., Duolingo, classes in school, watching movies...",
+    "continue": "Continue"
+  },
+  "why_now": {
+    "title": "What's driving you\nright now?",
+    "subtitle": "Understanding your timing helps us prioritize what matters most.",
+    "placeholder": "What triggered this decision to start learning now?",
+    "presets_label": "Common triggers",
+    "skip": "Skip",
     "continue": "Continue"
   },
   "your_commitment": {
@@ -119,6 +133,14 @@
     "why_now_placeholder": "e.g., Starting a job in Madrid next month, traveling in June...",
     "continue": "Continue",
     "select_timeline": "Select a timeline"
+  },
+  "your_routine": {
+    "title": "Your Practice Time",
+    "subtitle": "We'll tailor every session to fit your schedule. No wasted time.",
+    "time_label": "Time per session",
+    "days_label": "Days per week",
+    "continue": "Continue",
+    "select_time": "Select session length"
   },
   "your_stakes": {
     "title": "What's waiting for you",
@@ -145,6 +167,8 @@
       "level": "Level",
       "timeline": "Timeline",
       "profession": "Profession",
+      "why_now": "Trigger",
+      "routine": "Routine",
       "scenarios": "Focus Areas",
       "practice": "Practice Plan"
     },
