@@ -362,6 +362,28 @@ Gamification exists to **support learning**, not replace it:
 
 4. **Professional Tone Alert**: If copy, UI text, or notifications use childish language, excessive enthusiasm, guilt-tripping, or emojis where icons should be — **STOP and flag it**. Say: "This doesn't match our professional tone. Our brand voice is confident, direct, and respectful. Here's the professional alternative: [suggest]."
 
+## Change Impact Analysis — MANDATORY Before Editing
+
+Before modifying ANY screen, component, or route file, Claude MUST perform this analysis:
+
+### 1. Trace Navigation Chains
+- What routes/screens link TO this file? (grep for the file's route path)
+- What routes/screens does this file link TO? (check all router.push/navigate calls)
+- Is this file the ONLY entry point for a downstream flow?
+
+### 2. Evaluate Scope
+- If changing a route path: what was the old path, and does anything else use it?
+- If changing grid items/buttons: what flows do the current routes power?
+- If archiving/removing a file: is it the only bridge to other features?
+
+### 3. Change Only What Was Asked
+- UI-only requests (colors, icons, layout) must NOT change route paths or feature wiring
+- Route changes require explicit confirmation: "This changes [card] from [old route] to [new route]. The old route powered [feature flow]. Proceed?"
+- Never archive or remove a screen without verifying no other screen depends on it
+
+### 4. Orphan Check (Post-Edit)
+After editing, grep to verify that every route referenced in the change is still reachable from at least one navigation path. If a route loses its only entry point, flag it: "Warning: [route] has no UI entry point after this change."
+
 ---
 
 ## Claude Code Permissions — Whitelist & Escalation
@@ -447,6 +469,38 @@ These actions have consequences that should be reviewed:
 - Bypass security checks (--no-verify)
 - Remove privacy-related code or consent flows
 ```
+
+---
+
+## Staircase Generation Lifecycle
+
+The staircase (learning path) uses a progressive generation model to balance instant UX with personalized AI content.
+
+### Path Skeleton (Template-Based, Instant, $0)
+- Generated from onboarding scenarios in `lib/services/previewStairs.ts`
+- Each scenario expands into 2-3 progressive lessons:
+  - **Beginners** (`starting_fresh`, `basics`): 3 per scenario — Essentials → In Practice → Fluency
+  - **Intermediate+** (`conversational`, `confident`, `near_fluent`): 2 per scenario — Core Skills → Advanced
+- Recalibration stair appended at end. Total capped at 12 (DB constraint).
+- Stored in AsyncStorage for unauthenticated display.
+
+### Content Generation (AI, On-Demand)
+- **Stair 1 content**: Generated via Gemini after skeleton is displayed on home screen (future)
+- **Subsequent stairs**: Generated at ~80% completion of previous stair (future)
+- **Feedback loop**: Each lesson uses previous lesson's performance data to personalize (future)
+- **Cost model**: 1 API call per active lesson, not bulk generation
+
+### Reveal Animation
+- Cards appear one-by-one with 250ms stagger (orchestrated in `home.tsx`)
+- Title types character-by-character (30ms/char) in `CondensedStairCard.tsx`
+- Description fades in after title completes (200ms)
+- Icon scales in with spring animation
+
+### Key Files
+- `lib/services/previewStairs.ts` — skeleton generation from onboarding data
+- `components/staircase/CondensedStairCard.tsx` — card with typing reveal animation
+- `app/(tabs)/home.tsx` — stagger orchestration
+- `app/(auth)/onboarding-v3/creating-path.tsx` — 3-second calm screen before reveal
 
 ---
 

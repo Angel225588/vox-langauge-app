@@ -44,12 +44,12 @@ export default function Index() {
       } else {
         // User hasn't completed onboarding, go to onboarding
         console.log('User needs to complete onboarding, navigating to onboarding');
-        router.replace('/(auth)/onboarding-v2/languages');
+        router.replace('/(auth)/onboarding-v3');
       }
     } catch (error) {
       console.error('Error in checkOnboardingStatus:', error);
       // On error, default to onboarding
-      router.replace('/(auth)/onboarding-v2/languages');
+      router.replace('/(auth)/onboarding-v3');
     } finally {
       setCheckingOnboarding(false);
     }
@@ -86,7 +86,7 @@ export default function Index() {
             paddingVertical: 16,
             borderRadius: 12,
           }}
-          onPress={() => router.push('/(auth)/onboarding-v2')}
+          onPress={() => router.push('/(auth)/onboarding-v3')}
         >
           <Text style={{ color: colors.text.primary, fontSize: 18, fontWeight: '600' }}>
             Get Started

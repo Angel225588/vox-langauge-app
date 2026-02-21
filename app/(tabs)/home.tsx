@@ -12,15 +12,17 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { VoxIcon } from '@/components/ui/rewards';
 import { Icon } from '@/components/ui/Icon';
 import { CalibratorBanner } from '@/components/learning/CalibratorBanner';
-import { KPIStrip } from '@/components/home/KPIStrip';
+
 import { useLearningPath, StairForDisplay } from '@/hooks/useLearningPath';
 import { CondensedStairCard } from '@/components/staircase';
 import { supabase } from '@/lib/db/supabase';
+import { useUserMetrics } from '@/hooks/useUserMetrics';
 import { getStoredLevel, getFeatureAccess, getVoiceUnlockMessage } from '@/lib/utils/levelGating';
+import { loadPreviewStairs } from '@/lib/services/previewStairs';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
@@ -110,9 +112,7 @@ const MOCK_STAIRS = [
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation('home');
-  // Default to 0 - will be populated from user data when available
-  const [weeklyPoints, setWeeklyPoints] = useState(0);
-  const [streak, setStreak] = useState(0);
+  const { metrics } = useUserMetrics();
   const [userId, setUserId] = useState<string | null>(null);
   const [userLevel, setUserLevel] = useState<string | null>(null);
 
@@ -136,11 +136,58 @@ export default function HomeScreen() {
     getUser();
   }, []);
 
-  // Use the learning path hook - falls back to mock data if no path exists
+  // Use the learning path hook - falls back to preview/mock data if no path exists
   const { stairs: realStairs, isLoading, hasPath, completeStair } = useLearningPath(userId);
 
-  // Use real stairs if available, otherwise use mock data
-  const stairs = hasPath && realStairs.length > 0 ? realStairs : MOCK_STAIRS;
+  // Load preview stairs from onboarding (personalized but no auth)
+  const [previewStairs, setPreviewStairs] = useState<StairForDisplay[] | null>(null);
+  useEffect(() => {
+    loadPreviewStairs().then(setPreviewStairs);
+  }, []);
+
+  // Priority: real Supabase stairs > preview stairs from onboarding > mock data
+  const stairs = hasPath && realStairs.length > 0
+    ? realStairs
+    : previewStairs && previewStairs.length > 0
+      ? previewStairs
+      : MOCK_STAIRS;
+
+  // ─── Staggered Stair Reveal Animation ─────────────
+  // Reveals stairs one by one with 250ms delay between each.
+  // Uses a stable stairsKey to restart reveal when the actual stairs data changes
+  // (e.g., preview stairs loading from AsyncStorage replaces MOCK_STAIRS).
+  const [revealedCount, setRevealedCount] = useState(0);
+  const revealTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const stairsKey = stairs.map(s => s.id).join(',');
+
+  useEffect(() => {
+    if (isLoading || stairs.length === 0) return;
+
+    // Reset and restart reveal for new stairs data
+    setRevealedCount(0);
+    if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+
+    const total = stairs.length;
+    let current = 0;
+    const revealNext = () => {
+      current++;
+      setRevealedCount(current);
+      if (current < total) {
+        revealTimerRef.current = setTimeout(revealNext, 250);
+      }
+    };
+    // First card appears after a short initial delay
+    revealTimerRef.current = setTimeout(revealNext, 300);
+
+    return () => {
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+    };
+  }, [isLoading, stairsKey]);
+
+  const isStairRevealed = useCallback(
+    (index: number) => index < revealedCount,
+    [revealedCount],
+  );
 
   const handleStairPress = (stairId: string, status: string) => {
     if (status === 'locked') {
@@ -218,7 +265,7 @@ export default function HomeScreen() {
                     marginLeft: spacing.xs,
                   }}
                 >
-                  {weeklyPoints}
+                  {metrics.totalPoints.toLocaleString()}
                 </Text>
               </TouchableOpacity>
 
@@ -236,7 +283,7 @@ export default function HomeScreen() {
                     marginLeft: spacing.xs,
                   }}
                 >
-                  {streak}
+                  {metrics.streak}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -257,20 +304,6 @@ export default function HomeScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-
-          {/* KPI Strip */}
-          <Animated.View
-            entering={FadeInDown.duration(400)}
-            style={{ paddingHorizontal: spacing.xl, marginBottom: spacing.lg }}
-          >
-            <KPIStrip
-              dailyProgress={3}
-              dailyGoal={5}
-              articulation={74}
-              fluency={72}
-              cefrLevel={featureAccess.cefr || 'A1'}
-            />
-          </Animated.View>
 
           {/* Level-Gated Voice CTA */}
           {featureAccess.showVoiceCTA && (
@@ -302,7 +335,7 @@ export default function HomeScreen() {
                       justifyContent: 'center',
                       marginRight: spacing.md,
                     }}>
-                      <Text style={{ fontSize: 28 }}>🎙️</Text>
+                      <Ionicons name="mic" size={28} color="#fff" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{
@@ -362,7 +395,7 @@ export default function HomeScreen() {
                     justifyContent: 'center',
                     marginRight: spacing.md,
                   }}>
-                    <Text style={{ fontSize: 28 }}>🔒</Text>
+                    <Ionicons name="lock-closed" size={28} color={colors.primary.DEFAULT} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{
@@ -432,6 +465,7 @@ export default function HomeScreen() {
                   key={stair.id}
                   stair={stair}
                   index={index}
+                  isRevealed={isStairRevealed(index)}
                   onPress={() => handleStairPress(stair.id, stair.status)}
                 />
               ))}
