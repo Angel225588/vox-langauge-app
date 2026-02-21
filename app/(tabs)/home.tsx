@@ -456,7 +456,7 @@ export default function HomeScreen() {
           {!isLoading && (
             <View
               style={{
-                paddingHorizontal: spacing.xl,
+                paddingHorizontal: spacing.md,
                 paddingBottom: spacing.lg,
               }}
             >

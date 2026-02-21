@@ -216,15 +216,15 @@ export function CondensedStairCard({
         >
           {/* Line 1: Emoji + Order.Title + Status Icon */}
           <View style={styles.topRow}>
-            {/* Emoji — scales in */}
-            <Animated.View style={iconAnimatedStyle}>
-              <StairIcon value={stair.emoji} size={20} fontSize={20} />
+            {/* Icon — scales in, white on gradient */}
+            <Animated.View style={[iconAnimatedStyle, styles.iconWrapper]}>
+              <StairIcon value={stair.emoji} size={22} fontSize={22} color="#FFFFFF" />
             </Animated.View>
 
             {/* Order + Title — types in character by character */}
             <Text
               style={[styles.title, { color: getTitleColor() }]}
-              numberOfLines={1}
+              numberOfLines={2}
               ellipsizeMode="tail"
             >
               {displayedTitle}
@@ -283,8 +283,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardContent: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     justifyContent: 'center',
   },
   glowOverlay: {
@@ -306,13 +306,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  iconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   title: {
     flex: 1,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
     letterSpacing: -0.3,
-    minHeight: 20,
+    lineHeight: typography.fontSize.base * 1.3,
   },
   statusIcon: {
     width: 28,
@@ -325,17 +335,17 @@ const styles = StyleSheet.create({
 
   // Line 2 - Description
   descriptionContainer: {
-    paddingLeft: 28,
+    paddingLeft: 32 + spacing.sm, // Align with title (icon wrapper + gap)
     marginBottom: spacing.xs,
   },
   description: {
-    fontSize: typography.fontSize.xs,
+    fontSize: typography.fontSize.sm,
     letterSpacing: -0.1,
   },
 
   // Line 3 - Progress Bar
   progressContainer: {
-    paddingLeft: 28,
+    paddingLeft: 32 + spacing.sm,
     paddingRight: 28 + spacing.sm,
   },
   progressTrack: {
