@@ -1,6 +1,8 @@
 /**
  * Vox Language App - Design System
- * Immersive, depth-focused color palette with gradients and glow effects
+ * Glassmorphic dark theme — frosted glass surfaces over deep space backgrounds
+ * Colors: Electric Blue (#0036FF) primary, warm accents, depth-focused palette
+ * Visual style: Semi-transparent layered glass with blur, luminous edges, soft depth
  */
 
 export const colors = {
@@ -446,5 +448,239 @@ export const neomorphism = {
     primary: ['#0036FF', '#00A3FF'] as const,
     card: ['#1A1F3A', '#0F1729'] as const,
     fadeBottom: ['transparent', '#0A0E1A'] as const,
+  },
+};
+
+/**
+ * Glassmorphism Design System
+ * Frosted glass surfaces with blur, semi-transparent tints, and luminous borders.
+ * Built for dark backgrounds — glass panels float over the deep space palette.
+ *
+ * Implementation notes:
+ * - Use expo-blur (BlurView) with `intensity` for the frosted backdrop
+ * - Layer a semi-transparent View on top for the tinted surface
+ * - Add a 1px luminous border for the glass edge
+ * - Apply soft shadows behind (never on top of) the glass
+ *
+ * Usage pattern:
+ *   <BlurView intensity={glass.blur.medium} tint="dark">
+ *     <View style={{
+ *       backgroundColor: glass.surface.medium,
+ *       borderColor: glass.border.light,
+ *       borderWidth: glass.border.width.default,
+ *       borderRadius: borderRadius.xl,
+ *       ...glass.shadow.md,
+ *     }}>
+ *       {children}
+ *     </View>
+ *   </BlurView>
+ */
+export const glass = {
+  // ─── Surface tints ───────────────────────────────────────────────
+  // Semi-transparent fills layered over BlurView backdrops.
+  // Lighter values = more "see-through glass"; heavier = more frosted.
+  surface: {
+    thin: 'rgba(255, 255, 255, 0.03)',       // Background panels, full-screen overlays
+    light: 'rgba(255, 255, 255, 0.06)',       // Secondary cards, list items
+    medium: 'rgba(255, 255, 255, 0.10)',      // Primary cards, modals, sheets
+    heavy: 'rgba(255, 255, 255, 0.15)',       // Floating elements, popovers, tooltips
+    accent: 'rgba(0, 54, 255, 0.08)',         // Primary-tinted glass (feature cards)
+    accentMedium: 'rgba(0, 54, 255, 0.14)',   // Stronger primary tint (active states)
+    success: 'rgba(16, 185, 129, 0.08)',      // Success-tinted glass
+    error: 'rgba(239, 68, 68, 0.08)',         // Error-tinted glass
+    warning: 'rgba(245, 158, 11, 0.08)',      // Warning-tinted glass
+  },
+
+  // ─── Borders ─────────────────────────────────────────────────────
+  // Luminous edges that simulate light catching the glass rim.
+  border: {
+    subtle: 'rgba(255, 255, 255, 0.06)',      // Barely visible — nested glass
+    light: 'rgba(255, 255, 255, 0.10)',       // Default glass edge
+    medium: 'rgba(255, 255, 255, 0.16)',      // Prominent — elevated glass
+    bright: 'rgba(255, 255, 255, 0.22)',      // Strong — focus states, active panels
+    accent: 'rgba(0, 54, 255, 0.30)',         // Primary-colored edge
+    accentSubtle: 'rgba(0, 54, 255, 0.15)',   // Soft primary edge
+    width: {
+      thin: 0.5,
+      default: 1,
+      thick: 1.5,
+    },
+  },
+
+  // ─── Blur intensities ────────────────────────────────────────────
+  // Values for expo-blur BlurView `intensity` prop (0-100).
+  blur: {
+    subtle: 15,    // Hint of frost — background panels
+    light: 25,     // Light frosting — secondary elements
+    medium: 40,    // Standard glass — cards, sheets
+    heavy: 60,     // Dense frost — modals, overlays
+    extreme: 80,   // Maximum frost — full-screen overlays, onboarding
+  },
+
+  // ─── Preset card compositions ────────────────────────────────────
+  // Ready-to-spread style objects for common glass surfaces.
+  card: {
+    // Standard glass card — most common usage
+    default: {
+      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+      borderColor: 'rgba(255, 255, 255, 0.10)',
+      borderWidth: 1,
+      blur: 40,
+    },
+    // Elevated glass — modals, bottom sheets, popovers
+    elevated: {
+      backgroundColor: 'rgba(255, 255, 255, 0.10)',
+      borderColor: 'rgba(255, 255, 255, 0.16)',
+      borderWidth: 1,
+      blur: 60,
+    },
+    // Subtle glass — background panels, grouped sections
+    subtle: {
+      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+      borderColor: 'rgba(255, 255, 255, 0.06)',
+      borderWidth: 0.5,
+      blur: 25,
+    },
+    // Primary-tinted glass — feature cards, active selections
+    accent: {
+      backgroundColor: 'rgba(0, 54, 255, 0.08)',
+      borderColor: 'rgba(0, 54, 255, 0.30)',
+      borderWidth: 1,
+      blur: 40,
+    },
+    // Onboarding — extra prominent glass for first-time UX
+    onboarding: {
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+      borderColor: 'rgba(255, 255, 255, 0.14)',
+      borderWidth: 1,
+      blur: 50,
+    },
+  },
+
+  // ─── Shadows ─────────────────────────────────────────────────────
+  // Softer than solid neomorphic shadows — glass floats, doesn't stamp.
+  shadow: {
+    sm: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    md: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 16,
+      elevation: 5,
+    },
+    lg: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 24,
+      elevation: 8,
+    },
+    // Primary glow behind glass — for accent/feature elements
+    glow: {
+      shadowColor: 'rgba(0, 54, 255, 0.35)',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 20,
+      elevation: 6,
+    },
+    // Success glow variant
+    glowSuccess: {
+      shadowColor: 'rgba(16, 185, 129, 0.35)',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 20,
+      elevation: 6,
+    },
+  },
+
+  // ─── Inner highlight ─────────────────────────────────────────────
+  // Simulates light refraction on the top edge of a glass panel.
+  innerHighlight: {
+    top: {
+      borderTopColor: 'rgba(255, 255, 255, 0.12)',
+      borderTopWidth: 1,
+    },
+    left: {
+      borderLeftColor: 'rgba(255, 255, 255, 0.08)',
+      borderLeftWidth: 1,
+    },
+  },
+
+  // ─── Navigation glass ────────────────────────────────────────────
+  // Tab bars, headers, and nav surfaces.
+  navigation: {
+    backgroundColor: 'rgba(10, 14, 26, 0.75)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    blur: 60,
+  },
+
+  // ─── Input glass ─────────────────────────────────────────────────
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    focusBorderColor: 'rgba(0, 54, 255, 0.35)',
+    placeholderColor: 'rgba(255, 255, 255, 0.35)',
+    blur: 20,
+  },
+
+  // ─── Button glass variants ───────────────────────────────────────
+  button: {
+    // Primary action — blue-tinted glass
+    primary: {
+      backgroundColor: 'rgba(0, 54, 255, 0.20)',
+      borderColor: 'rgba(0, 54, 255, 0.40)',
+      pressedBackground: 'rgba(0, 54, 255, 0.30)',
+      blur: 30,
+    },
+    // Secondary action — neutral glass
+    secondary: {
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+      borderColor: 'rgba(255, 255, 255, 0.15)',
+      pressedBackground: 'rgba(255, 255, 255, 0.14)',
+      blur: 30,
+    },
+    // Ghost — minimal glass, for tertiary actions
+    ghost: {
+      backgroundColor: 'rgba(255, 255, 255, 0.04)',
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      pressedBackground: 'rgba(255, 255, 255, 0.10)',
+      blur: 20,
+    },
+    // Danger action — red-tinted glass
+    danger: {
+      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+      borderColor: 'rgba(239, 68, 68, 0.30)',
+      pressedBackground: 'rgba(239, 68, 68, 0.25)',
+      blur: 30,
+    },
+    // Success action — green-tinted glass
+    success: {
+      backgroundColor: 'rgba(16, 185, 129, 0.15)',
+      borderColor: 'rgba(16, 185, 129, 0.30)',
+      pressedBackground: 'rgba(16, 185, 129, 0.25)',
+      blur: 30,
+    },
+  },
+
+  // ─── Badge / chip glass ──────────────────────────────────────────
+  badge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    accentBackground: 'rgba(0, 54, 255, 0.12)',
+    accentBorder: 'rgba(0, 54, 255, 0.25)',
+  },
+
+  // ─── Overlay / scrim ─────────────────────────────────────────────
+  // Full-screen backdrops behind modals and sheets.
+  overlay: {
+    light: 'rgba(10, 14, 26, 0.50)',
+    medium: 'rgba(10, 14, 26, 0.70)',
+    heavy: 'rgba(10, 14, 26, 0.85)',
   },
 };

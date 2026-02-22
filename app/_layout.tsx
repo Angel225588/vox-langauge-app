@@ -133,7 +133,10 @@ export default function RootLayout() {
           <Stack.Screen name="teleprompter" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           <Stack.Screen name="recordings" options={{ headerShown: false }} />
           <Stack.Screen name="completion" options={{ headerShown: false }} />
+          <Stack.Screen name="lesson-complete" options={{ headerShown: false, animation: 'fade' }} />
+          <Stack.Screen name="lesson-session" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="test-elevenlabs" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="lesson-carousel" options={{ headerShown: false }} />
           </Stack>
         </TamaguiProvider>
       </ConditionalElevenLabsProvider>

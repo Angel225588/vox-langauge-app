@@ -1,9 +1,9 @@
 /**
  * Practice Tab — Practice Zone
  *
- * Premium dark dashboard: 3 KPI boxes, glassy daily sphere,
- * quick actions, voice conversation hero, 2×2 skill grid,
- * guided Flow card with shimmer.
+ * Premium dark dashboard: 3 KPI hero boxes, glassy daily sphere,
+ * quick actions, voice conversation hero, 2×3 skill grid
+ * (Vocabulary, Reading, Writing, Listening, Library, Flow).
  *
  * Sphere: glassy, smooth, peaceful — a safe space indicator.
  */
@@ -15,7 +15,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -33,10 +32,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { VoxIcon } from '@/components/ui/rewards';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
-import { getConversationStats } from '@/lib/db/conversations';
-import { getUserMemory } from '@/lib/ai/userMemory';
-import { getCompetencySnapshot } from '@/lib/metrics/competencyEngine';
-import type { ScoreTrend } from '@/lib/db/competencyMetrics';
+import { useUserMetrics } from '@/hooks/useUserMetrics';
 
 // ─── PRACTICE ZONE PALETTE ───
 const PZ = {
@@ -60,21 +56,13 @@ const PZ = {
 
 // ─── GRID (routes wired to AI-powered practice screens) ───
 const GRID_ITEMS = [
-  { title: 'Vocabulary', sub: 'Flashcard flow', icon: 'albums-outline' as const, color: PZ.green, route: '/flashcard/session' },
-  { title: 'Reading', sub: 'AI passage', icon: 'book-outline' as const, color: PZ.purple, route: '/practice-reading' },
-  { title: 'Writing', sub: 'AI prompt', icon: 'create-outline' as const, color: PZ.gold, route: '/practice-writing' },
-  { title: 'Listening', sub: 'Comprehension', icon: 'headset-outline' as const, color: PZ.rose, route: '/practice-listening' },
-  { title: 'Library', sub: 'Scenario decks', icon: 'library-outline' as const, color: PZ.cyan, route: '/vox-library' },
+  { title: 'Vocabulary', sub: 'Word bank & review', icon: 'albums-outline' as const, color: PZ.green, route: '/vocabulary-dashboard', badge: '' },
+  { title: 'Reading', sub: 'AI library', icon: 'book-outline' as const, color: PZ.purple, route: '/library', badge: '' },
+  { title: 'Writing', sub: 'AI prompt', icon: 'create-outline' as const, color: PZ.gold, route: '/practice-writing', badge: '' },
+  { title: 'Listening', sub: 'Comprehension', icon: 'headset-outline' as const, color: PZ.rose, route: '/practice-listening', badge: '' },
+  { title: 'Library', sub: 'Scenario decks', icon: 'library-outline' as const, color: PZ.cyan, route: '/vox-library', badge: '' },
+  { title: 'Flow', sub: 'Guided session', icon: 'water-outline' as const, color: PZ.cyan, route: '', badge: 'GUIDED' },
 ];
-
-const FLOW_STEPS = [
-  { icon: 'albums-outline' as const, label: 'Vocab', color: PZ.green },
-  { icon: 'book-outline' as const, label: 'Read', color: PZ.purple },
-  { icon: 'create-outline' as const, label: 'Write', color: PZ.gold },
-  { icon: 'call-outline' as const, label: 'AI Call', color: PZ.cyan },
-];
-
-const CONTENT_WIDTH = Dimensions.get('window').width - 32;
 
 // ═══════════════════════════════════════
 // ANIMATED NUMBER COUNTER
@@ -138,16 +126,16 @@ function AnimNum({
 function GlowSphere({ percent, size = 48 }: { percent: number; size?: number }) {
   let main = PZ.blue;
   let light = PZ.blueLight;
-  let glowRGBA = 'rgba(26,109,255,0.18)';
+  let glowRGBA = 'rgba(26,109,255,0.30)';
 
   if (percent >= 80) {
     main = PZ.gold;
     light = PZ.goldLight;
-    glowRGBA = 'rgba(245,158,11,0.22)';
+    glowRGBA = 'rgba(245,158,11,0.35)';
   } else if (percent >= 50) {
     main = PZ.green;
     light = PZ.greenLight;
-    glowRGBA = 'rgba(16,185,129,0.18)';
+    glowRGBA = 'rgba(16,185,129,0.30)';
   }
 
   const waterHeight = (percent / 100) * size;
@@ -163,8 +151,8 @@ function GlowSphere({ percent, size = 48 }: { percent: number; size?: number }) 
   }, []);
 
   const glowStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 1.06]) }],
-    opacity: interpolate(pulse.value, [0, 1], [0.35, 0.65]),
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 1.12]) }],
+    opacity: interpolate(pulse.value, [0, 1], [0.45, 0.80]),
   }));
 
   // Subtle wave motion (3.5s, serene)
@@ -190,9 +178,9 @@ function GlowSphere({ percent, size = 48 }: { percent: number; size?: number }) 
         style={[
           {
             position: 'absolute',
-            width: size + 18,
-            height: size + 18,
-            borderRadius: (size + 18) / 2,
+            width: size + 26,
+            height: size + 26,
+            borderRadius: (size + 26) / 2,
             backgroundColor: glowRGBA,
           },
           glowStyle,
@@ -278,10 +266,10 @@ function GlowSphere({ percent, size = 48 }: { percent: number; size?: number }) 
 
       {/* Center text */}
       <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
-        <AnimNum to={percent} suffix="%" size={13} color="#fff" delay={500} />
+        <AnimNum to={percent} suffix="%" size={17} color="#fff" delay={500} />
         <Text
           style={{
-            fontSize: 6.5,
+            fontSize: 8,
             fontWeight: '600',
             color: 'rgba(255,255,255,0.35)',
             textTransform: 'uppercase',
@@ -303,87 +291,30 @@ function GlowSphere({ percent, size = 48 }: { percent: number; size?: number }) 
 export default function PracticeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { metrics } = useUserMetrics();
   const [showDevTools, setShowDevTools] = useState(false);
 
-  // ─── Real KPI Data ───
-  const [kpiData, setKpiData] = useState({
-    articulation: 0,
-    fluency: 0,
-    communication: 0,
-    scenario: 0,
-    totalVocab: 0,
-    totalPoints: 0,
-    streak: 0,
-    dailyPercent: 0,
-  });
-  const [trends, setTrends] = useState<ScoreTrend[]>([]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      try {
-        const [snapshot, stats, memory] = await Promise.all([
-          getCompetencySnapshot(user.id),
-          getConversationStats(user.id),
-          getUserMemory(user.id),
-        ]);
-        setKpiData({
-          articulation: snapshot.averages.articulation || stats?.avgArticulation || 0,
-          fluency: snapshot.averages.fluency || stats?.avgFluency || 0,
-          communication: snapshot.averages.communication || stats?.avgCommunication || 0,
-          scenario: snapshot.averages.scenario || stats?.avgScenario || 0,
-          totalVocab: memory?.total_vocab_learned || 0,
-          totalPoints: (stats?.totalSessions || 0) * 50 + (memory?.total_lessons_completed || 0) * 25 + snapshot.totalSessions * 30,
-          streak: memory?.current_streak || 0,
-          dailyPercent: memory?.total_lessons_completed
-            ? Math.min(100, Math.round((memory.total_lessons_completed % 5) / 5 * 100))
-            : 0,
-        });
-        setTrends(snapshot.trends);
-      } catch (err) {
-        console.warn('[Practice] Failed to load KPI data:', err);
-      }
-    })();
-  }, [user?.id]);
-
   const getTrend = (kpi: string) => {
-    const t = trends.find(tr => tr.kpi === kpi);
+    const t = metrics.trends.find(tr => tr.kpi === kpi);
     if (!t || t.direction === 'stable') return '';
     return t.direction === 'improving' ? `+${t.delta}` : `${t.delta}`;
   };
 
   const KPI_ITEMS = [
-    { label: 'Articulation', value: kpiData.articulation, suffix: '/100', color: PZ.cyan, trend: getTrend('articulation') },
-    { label: 'Fluency', value: kpiData.fluency, suffix: '/100', color: PZ.blueLight, trend: getTrend('fluency') },
-    { label: 'Communication', value: kpiData.communication, suffix: '/100', color: PZ.green, trend: getTrend('communication') },
+    { label: 'Articulation', value: metrics.articulation, suffix: '/100', color: PZ.cyan, trend: getTrend('articulation') },
+    { label: 'Fluency', value: metrics.fluency, suffix: '/100', color: PZ.blueLight, trend: getTrend('fluency') },
+    { label: 'Communication', value: metrics.communication, suffix: '/100', color: PZ.green, trend: getTrend('communication') },
   ];
-
-  // Shimmer animation for Flow card
-  const shimmer = useSharedValue(0);
-  useEffect(() => {
-    shimmer.value = withRepeat(
-      withTiming(1, { duration: 3000, easing: Easing.linear }),
-      -1,
-      false,
-    );
-  }, []);
-
-  const shimmerStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: interpolate(shimmer.value, [0, 1], [-CONTENT_WIDTH, CONTENT_WIDTH]) },
-    ],
-  }));
 
   const handleVoiceConversation = useCallback(() => {
     router.push('/voice-conversation');
   }, [router]);
 
-  const handleQuickAction = useCallback(
-    (_label: string) => {
-      router.push('/vocab-practice/vocab-1');
-    },
-    [router],
-  );
+  const QUICK_ACTIONS = [
+    { icon: 'flash' as const, label: 'Sprint', color: PZ.gold, route: '/flashcard/session' },
+    { icon: 'shuffle-outline' as const, label: 'Random', color: PZ.purple, route: '/vocabulary-dashboard' },
+    { icon: 'fitness' as const, label: 'Weak', color: PZ.rose, route: '/vocabulary-dashboard' },
+  ];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: PZ.bg }} edges={['top']}>
@@ -394,12 +325,12 @@ export default function PracticeScreen() {
           <TouchableOpacity style={s.statPill} activeOpacity={0.7}>
             <VoxIcon size="sm" />
             <Text style={[s.statValue, { color: PZ.blue }]}>
-              {kpiData.totalPoints.toLocaleString()}
+              {metrics.totalPoints.toLocaleString()}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.statPill} activeOpacity={0.7}>
             <Icon name="flame" size={18} color="warning" />
-            <Text style={[s.statValue, { color: PZ.gold }]}>{kpiData.streak}</Text>
+            <Text style={[s.statValue, { color: PZ.gold }]}>{metrics.streak}</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -414,18 +345,20 @@ export default function PracticeScreen() {
           {KPI_ITEMS.map((kpi, i) => (
             <TouchableOpacity
               key={kpi.label}
-              style={s.kpiBox}
+              style={[s.kpiBox, { borderTopColor: kpi.color + '60', borderTopWidth: 3 }]}
               activeOpacity={0.7}
               onPress={() => router.push('/competency-dashboard' as any)}
             >
               <Text style={s.kpiLabel}>{kpi.label}</Text>
-              <AnimNum
-                to={kpi.value}
-                suffix={kpi.suffix}
-                size={22}
-                color={kpi.color}
-                delay={300 + i * 100}
-              />
+              <View style={s.kpiValueRow}>
+                <AnimNum
+                  to={kpi.value}
+                  size={28}
+                  color={kpi.color}
+                  delay={300 + i * 100}
+                />
+                <Text style={s.kpiSuffix}>{kpi.suffix}</Text>
+              </View>
               <View style={s.trendRow}>
                 {kpi.trend ? (
                   <Text style={[s.trendText, { color: kpi.trend.startsWith('+') ? PZ.green : PZ.rose }]}>
@@ -441,16 +374,19 @@ export default function PracticeScreen() {
 
         {/* ═══ SPHERE + QUICK ACTIONS ═══ */}
         <Animated.View entering={FadeInDown.duration(350).delay(80)} style={s.sphereRow}>
-          <GlowSphere percent={kpiData.dailyPercent} size={48} />
+          <GlowSphere percent={metrics.dailyPercent} size={68} />
           <View style={s.quickActions}>
-            {['\u26A1 Sprint', '\u{1F3B2} Random', '\u25CE Weak'].map((label) => (
+            {QUICK_ACTIONS.map((action) => (
               <TouchableOpacity
-                key={label}
-                style={s.quickBtn}
+                key={action.label}
+                style={[s.quickBtn, { borderColor: action.color + '20' }]}
                 activeOpacity={0.7}
-                onPress={() => handleQuickAction(label)}
+                onPress={() => router.push(action.route as any)}
               >
-                <Text style={s.quickBtnText}>{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name={action.icon} size={13} color={action.color} />
+                  <Text style={[s.quickBtnText, { color: action.color }]}>{action.label}</Text>
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -479,7 +415,7 @@ export default function PracticeScreen() {
 
               <View style={s.voiceInner}>
                 <View style={s.voiceMicBox}>
-                  <Text style={{ fontSize: 22 }}>{'\u{1F399}\uFE0F'}</Text>
+                  <Ionicons name="mic" size={22} color="#fff" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.voiceTitle}>Voice Conversation</Text>
@@ -493,7 +429,7 @@ export default function PracticeScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* ═══ 2x2 PRACTICE GRID ═══ */}
+        {/* ═══ 2x3 PRACTICE GRID ═══ */}
         <Animated.View entering={FadeInDown.duration(400).delay(180)} style={s.gridContainer}>
           {[0, 2, 4].map((startIdx) => {
             const row = GRID_ITEMS.slice(startIdx, startIdx + 2);
@@ -505,18 +441,25 @@ export default function PracticeScreen() {
                   key={card.title}
                   style={[s.gridCard, { backgroundColor: card.color + '08' }]}
                   activeOpacity={0.7}
-                  onPress={() => router.push(card.route as any)}
+                  onPress={() => { if (card.route) router.push(card.route as any); }}
                 >
                   <View
                     style={[
                       s.gridIconBox,
-                      { backgroundColor: card.color + '14', borderColor: card.color + '20' },
+                      { backgroundColor: card.color + '18', borderColor: card.color + '25' },
                     ]}
                   >
-                    <Ionicons name={card.icon} size={19} color={card.color} />
+                    <Ionicons name={card.icon} size={22} color={card.color} />
                   </View>
                   <View>
-                    <Text style={s.gridTitle}>{card.title}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={s.gridTitle}>{card.title}</Text>
+                      {card.badge ? (
+                        <View style={s.gridBadge}>
+                          <Text style={s.gridBadgeText}>{card.badge}</Text>
+                        </View>
+                      ) : null}
+                    </View>
                     <Text style={s.gridSub}>{card.sub}</Text>
                   </View>
                 </TouchableOpacity>
@@ -524,84 +467,6 @@ export default function PracticeScreen() {
             </View>
           );
           })}
-        </Animated.View>
-
-        {/* ═══ FLOW CARD ═══ */}
-        <Animated.View entering={FadeInDown.duration(400).delay(240)}>
-          <TouchableOpacity style={s.flowCard} activeOpacity={0.8}>
-            {/* Shimmer accent bar */}
-            <View style={s.shimmerTrack}>
-              <Animated.View style={[s.shimmerBar, shimmerStyle]}>
-                <LinearGradient
-                  colors={[
-                    'transparent',
-                    PZ.cyan + '40',
-                    PZ.blueLight + '60',
-                    PZ.green + '40',
-                    'transparent',
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ flex: 1 }}
-                />
-              </Animated.View>
-            </View>
-
-            <View style={s.flowInner}>
-              {/* Top row */}
-              <View style={s.flowTopRow}>
-                <LinearGradient
-                  colors={['rgba(0,210,255,0.12)', 'rgba(26,109,255,0.12)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={s.flowIconBox}
-                >
-                  <Text style={{ fontSize: 18 }}>{'\u{1F30A}'}</Text>
-                </LinearGradient>
-
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={s.flowTitle}>Flow</Text>
-                    <View style={s.guidedBadge}>
-                      <Text style={s.guidedText}>GUIDED</Text>
-                    </View>
-                  </View>
-                  <Text style={s.flowSub}>
-                    Vocab {'\u2192'} reading {'\u2192'} writing {'\u2192'} AI call
-                  </Text>
-                </View>
-
-                <LinearGradient
-                  colors={['#0066FF', '#004ACC']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={s.flowPlayBtn}
-                >
-                  <Text style={{ fontSize: 11, color: '#fff' }}>{'\u25B6'}</Text>
-                </LinearGradient>
-              </View>
-
-              {/* Steps preview */}
-              <View style={s.stepsContainer}>
-                {FLOW_STEPS.map((step, i) => (
-                  <View key={step.label} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <View style={{ alignItems: 'center', gap: 2, flex: 1 }}>
-                      <View
-                        style={[
-                          s.stepIcon,
-                          { backgroundColor: step.color + '14', borderColor: step.color + '20' },
-                        ]}
-                      >
-                        <Ionicons name={step.icon} size={12} color={step.color} />
-                      </View>
-                      <Text style={s.stepLabel}>{step.label}</Text>
-                    </View>
-                    {i < FLOW_STEPS.length - 1 && <View style={s.stepLine} />}
-                  </View>
-                ))}
-              </View>
-            </View>
-          </TouchableOpacity>
         </Animated.View>
 
         {/* ═══ DEV TOOLS (collapsible) ═══ */}
@@ -622,6 +487,10 @@ export default function PracticeScreen() {
           {showDevTools && (
             <View style={{ marginTop: 8, gap: 8 }}>
               {[
+                { label: 'Onboarding V3', route: '/(auth)/onboarding-v3' },
+                { label: 'Lesson Screen', route: '/lesson/dev-test' },
+                { label: 'Lesson (Mock Preview)', route: '/lesson-carousel' },
+                { label: 'Lesson Complete', route: '/lesson-complete?scores=%7B%22articulation%22%3A78%2C%22fluency%22%3A65%2C%22communication%22%3A72%2C%22scenario%22%3A81%2C%22wordsLearned%22%3A12%2C%22pointsEarned%22%3A85%2C%22timeSpent%22%3A360%2C%22cefrLevel%22%3A%22B1%22%7D&stairTitle=Client%20meetings%3A%20Core%20Skills&stairId=dev-test&isDiscovery=true' },
                 { label: 'Test All Cards', route: '/test-cards' },
                 { label: 'Voice System Test', route: '/test-voice-system' },
                 { label: 'ElevenLabs Voice Test', route: '/test-elevenlabs' },
@@ -689,19 +558,30 @@ const s = StyleSheet.create({
   },
   kpiBox: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    padding: 12,
+    borderColor: 'rgba(255,255,255,0.10)',
+    padding: 16,
     gap: 4,
   },
   kpiLabel: {
-    fontSize: 8.5,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#3E4862',
+    color: '#7E8BA4',
     textTransform: 'uppercase',
     letterSpacing: 0.7,
+  },
+  kpiValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 2,
+  },
+  kpiSuffix: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3E4862',
+    marginBottom: 1,
   },
   trendRow: {
     flexDirection: 'row',
@@ -709,7 +589,7 @@ const s = StyleSheet.create({
     gap: 2,
   },
   trendText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
     color: '#10B981',
   },
@@ -814,7 +694,7 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
 
-  // ─── 2x2 Grid ───
+  // ─── 2x3 Grid ───
   gridContainer: {
     gap: 8,
     marginBottom: 10,
@@ -825,135 +705,44 @@ const s = StyleSheet.create({
   },
   gridCard: {
     flex: 1,
-    padding: 14,
-    paddingHorizontal: 12,
-    borderRadius: 14,
+    padding: 18,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    gap: 8,
+    borderColor: 'rgba(255,255,255,0.10)',
+    gap: 10,
+    minHeight: 110,
   },
   gridIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   gridTitle: {
-    fontSize: 13.5,
+    fontSize: 15,
     fontWeight: '700',
     color: '#EEF0F6',
     letterSpacing: -0.2,
   },
   gridSub: {
-    fontSize: 10.5,
+    fontSize: 12,
     fontWeight: '500',
     color: '#7E8BA4',
     marginTop: 1,
   },
-
-  // ─── Flow Card ───
-  flowCard: {
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    overflow: 'hidden',
-    marginBottom: 10,
-  },
-  shimmerTrack: {
-    height: 2,
-    overflow: 'hidden',
-  },
-  shimmerBar: {
-    width: '100%',
-    height: 2,
-  },
-  flowInner: {
-    padding: 14,
-    paddingTop: 12,
-  },
-  flowTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  flowIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(77,148,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  flowTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#EEF0F6',
-    letterSpacing: -0.2,
-  },
-  guidedBadge: {
-    backgroundColor: 'rgba(0,210,255,0.1)',
+  gridBadge: {
+    backgroundColor: 'rgba(0,210,255,0.10)',
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
-  guidedText: {
-    fontSize: 7.5,
+  gridBadgeText: {
+    fontSize: 8,
     fontWeight: '700',
     color: '#00D2FF',
     letterSpacing: 0.5,
-  },
-  flowSub: {
-    fontSize: 10.5,
-    fontWeight: '500',
-    color: '#7E8BA4',
-    marginTop: 1,
-  },
-  flowPlayBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    shadowColor: '#0047DB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  stepsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    padding: 6,
-    paddingHorizontal: 8,
-    borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  stepIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepLabel: {
-    fontSize: 7.5,
-    fontWeight: '600',
-    color: '#3E4862',
-  },
-  stepLine: {
-    width: 14,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    flexShrink: 0,
-    marginBottom: 10,
   },
 
   // ─── Dev Tools ───

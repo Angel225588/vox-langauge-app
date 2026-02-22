@@ -11,11 +11,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { colors } from '@/constants/designSystem';
+import { colors, typography, spacing } from '@/constants/designSystem';
 import { TeleprompterCard, TeleprompterResults } from '@/components/cards/TeleprompterCard';
 import { ReadingResultsCard } from '@/components/cards/ReadingResultsCard';
 import { AnalyzingScreen } from '@/components/reading/AnalyzingScreen';
@@ -26,6 +28,8 @@ import {
   type Passage,
   type AnalysisResult,
 } from '@/lib/reading';
+import { useAuth } from '@/hooks/useAuth';
+import { generateLecturePassage } from '@/lib/ai/libraryGenerator';
 
 type ScreenState = 'teleprompter' | 'analyzing' | 'results';
 
@@ -127,9 +131,13 @@ Remember, everyone starts somewhere. Be patient with yourself and celebrate smal
 
 export default function TeleprompterScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const params = useLocalSearchParams<{
     storyId?: string;
     title?: string;
+    category?: string;
+    difficulty?: string;
+    wordCount?: string;
   }>();
 
   const [screenState, setScreenState] = useState<ScreenState>('teleprompter');
@@ -138,10 +146,58 @@ export default function TeleprompterScreen() {
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-  // Get passage based on storyId from params, or use default
-  const passage = params.storyId
-    ? SAMPLE_PASSAGES[params.storyId] || SAMPLE_PASSAGES['default']
-    : SAMPLE_PASSAGES['default'];
+  // For AI-generated lectures, passage is loaded async
+  const [passage, setPassage] = useState<Passage | null>(null);
+  const [passageLoading, setPassageLoading] = useState(true);
+
+  // Load passage — either from SAMPLE_PASSAGES or generate via AI
+  useEffect(() => {
+    const loadPassage = async () => {
+      // Try hardcoded passages first
+      if (params.storyId && SAMPLE_PASSAGES[params.storyId]) {
+        setPassage(SAMPLE_PASSAGES[params.storyId]);
+        setPassageLoading(false);
+        return;
+      }
+
+      // AI-generated lecture — generate passage on the fly
+      if (params.storyId && user?.id) {
+        try {
+          const text = await generateLecturePassage(user.id, params.storyId, {
+            title: params.title || 'Reading Practice',
+            category: params.category || 'General',
+            difficulty: params.difficulty || 'intermediate',
+            wordCount: parseInt(params.wordCount || '180', 10),
+          });
+
+          if (text) {
+            setPassage({
+              id: params.storyId,
+              title: params.title || 'Reading Practice',
+              text,
+              difficulty: params.difficulty || 'intermediate',
+              category: params.category || 'General',
+              language: 'target', // Will be resolved by the AI
+              wordCount: text.split(/\s+/).length,
+              estimatedDuration: Math.round(text.split(/\s+/).length / 2.5) * 1000,
+              sourceType: 'ai-generated',
+              createdAt: new Date().toISOString(),
+            });
+          } else {
+            // Fallback to default
+            setPassage(SAMPLE_PASSAGES['default']);
+          }
+        } catch {
+          setPassage(SAMPLE_PASSAGES['default']);
+        }
+      } else {
+        setPassage(SAMPLE_PASSAGES['default']);
+      }
+      setPassageLoading(false);
+    };
+
+    loadPassage();
+  }, [params.storyId, user?.id]);
 
   // Integration hooks
   const { activeSession, startSession, updateSession } = useActiveSession();
@@ -161,11 +217,12 @@ export default function TeleprompterScreen() {
     ? 'analyzing'
     : 'uploading';
 
-  // Start session when component mounts
+  // Start session when passage is ready
   useEffect(() => {
+    if (!passage) return;
     const initSession = async () => {
       await startSession({
-        userId: 'user_123', // TODO: Get from auth context
+        userId: user?.id || 'user_123',
         sourceType: passage.sourceType as any,
         text: passage.text,
         title: passage.title,
@@ -173,7 +230,7 @@ export default function TeleprompterScreen() {
       });
     };
     initSession();
-  }, []);
+  }, [passage]);
 
   const handleTeleprompterFinish = async (teleprompterResults: TeleprompterResults) => {
     setResults(teleprompterResults);
@@ -250,6 +307,19 @@ export default function TeleprompterScreen() {
     router.back();
   };
 
+  // Loading state while AI generates the passage
+  if (passageLoading || !passage) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+          <Text style={styles.loadingText}>Preparing your reading...</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -287,5 +357,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  loadingText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.secondary,
   },
 });

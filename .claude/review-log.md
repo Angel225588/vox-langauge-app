@@ -326,3 +326,17 @@ This file tracks all automated code reviews triggered by commits.
 - **Time**: 2026-02-11 18:39:41
 - **Status**: Pending review via /master-review
 
+
+## Commit Review Triggered
+- **Commit**: 90f89ff
+- **Message**: feat(staircase): skeleton expansion, gradient cards, typing reveal, V3 routing
+- **Time**: 2026-02-21 20:45:59
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 770843d
+- **Message**: feat(staircase): wider cards, verified icons, polished layout
+- **Time**: 2026-02-21 20:49:02
+- **Status**: Pending review via /master-review
+

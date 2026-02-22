@@ -176,7 +176,7 @@ export default function PracticeReadingScreen() {
         <View style={s.bottomBar}>
           <TouchableOpacity onPress={handleStartQuestions} activeOpacity={0.8}>
             <LinearGradient
-              colors={[C.purple, '#6366F1']}
+              colors={[C.purple, '#0036FF']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={s.ctaBtn}
@@ -271,7 +271,7 @@ export default function PracticeReadingScreen() {
 
           <View style={{ gap: 12, marginTop: 32, width: '100%', paddingHorizontal: 24 }}>
             <TouchableOpacity onPress={loadContent} activeOpacity={0.8}>
-              <LinearGradient colors={[C.purple, '#6366F1']} style={s.ctaBtn}>
+              <LinearGradient colors={[C.purple, '#0036FF']} style={s.ctaBtn}>
                 <Ionicons name="refresh" size={18} color="#fff" />
                 <Text style={s.ctaText}>New Passage</Text>
               </LinearGradient>

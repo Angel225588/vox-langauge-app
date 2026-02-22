@@ -25,11 +25,13 @@ import { LANGUAGES_WITH_TRANSLATIONS, type SupportedLanguageCode } from '@/i18n/
 import { IdentityCard } from '@/components/profile/IdentityCard';
 import { CompetencyDashboard } from '@/components/profile/CompetencyDashboard';
 import { SettingRow } from '@/components/profile/SettingRow';
+import { useUserMetrics } from '@/hooks/useUserMetrics';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { data, updateData, reset: resetOnboarding } = useOnboardingV2();
   const { signOut, user } = useAuth();
+  const { metrics } = useUserMetrics();
   const { t } = useTranslation('settings');
   const { currentLanguage, supportedLanguages, changeLanguage } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
@@ -200,12 +202,12 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.levelStats}>
               <View style={styles.levelStat}>
-                <Text style={styles.levelStatValue}>0</Text>
+                <Text style={styles.levelStatValue}>{metrics.totalPoints.toLocaleString()}</Text>
                 <Text style={styles.levelStatLabel}>XP</Text>
               </View>
               <View style={[styles.levelStatDivider]} />
               <View style={styles.levelStat}>
-                <Text style={styles.levelStatValue}>0</Text>
+                <Text style={styles.levelStatValue}>{metrics.streak}</Text>
                 <Text style={styles.levelStatLabel}>Streak</Text>
               </View>
             </View>
@@ -214,7 +216,15 @@ export default function ProfileScreen() {
           {/* 3. Competency Dashboard */}
           <Animated.View entering={FadeInDown.duration(400).delay(100)} style={styles.section}>
             <Text style={styles.sectionTitle}>Performance</Text>
-            <CompetencyDashboard />
+            <CompetencyDashboard
+              data={{
+                articulation: metrics.articulation,
+                fluency: metrics.fluency,
+                ideaCommunication: metrics.communication,
+                scenariosCompleted: metrics.snapshot.byType.conversation.count,
+              }}
+              trends={metrics.trends}
+            />
 
             {/* Scenarios Mastered */}
             <View style={{ marginTop: spacing.md }}>

@@ -11,7 +11,7 @@
  * - Full transcript saving
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -47,9 +47,12 @@ import {
 import {
   getScenariosForUser,
   getEnhancedScenariosForUser,
+  getScenariosForStair,
+  getStairVoiceScenarios,
   createUserProfile,
   createEnhancedUserProfile,
   MatchedScenario,
+  StairContext,
 } from '@/lib/voice/scenarioMatcher';
 import type { ElevenLabsMessage } from '@/lib/voice/elevenLabsTypes';
 import {
@@ -57,6 +60,16 @@ import {
   getVoiceById,
 } from '@/lib/voice/elevenLabsConfig';
 import { useOnboardingV2 } from '@/hooks/useOnboardingV2';
+import { useAuth } from '@/hooks/useAuth';
+import { processPostCallVocab } from '@/lib/voice/vocabLoop';
+import {
+  saveConversationSession,
+  updateSessionFeedback,
+  updateSessionVocabResults,
+  type ConversationFeedback,
+} from '@/lib/db/conversations';
+import { getCurrentStairStepId } from '@/lib/ai/practiceGenerator';
+import { getStairSkeleton } from '@/lib/db/learningPaths';
 
 type DifficultyFilter = 'all' | 'beginner' | 'intermediate' | 'advanced';
 
@@ -106,6 +119,7 @@ interface SavedTranscript {
 
 export default function VoiceConversationScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { data: onboardingData } = useOnboardingV2();
   const [selectedScenario, setSelectedScenario] = useState<VoiceScenario | null>(null);
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>('all');
@@ -115,6 +129,16 @@ export default function VoiceConversationScreen() {
   const targetLanguage = (onboardingData.target_language as SupportedLanguage) || 'es';
   const [selectedAccent, setSelectedAccent] = useState<AccentType>(getDefaultAccent(targetLanguage));
   const [showAccentSelector, setShowAccentSelector] = useState(false);
+
+  // Track the Supabase session ID for feedback persistence (Fix 4)
+  const [supabaseSessionId, setSupabaseSessionId] = useState<string | null>(null);
+
+  // Track current stair context for scenario matching (Fix 3)
+  const [stairContext, setStairContext] = useState<StairContext | null>(null);
+  const [currentStairStepId, setCurrentStairStepId] = useState<string | null>(null);
+
+  // Stair DB scenarios (personalized to user's current learning path)
+  const [stairScenarios, setStairScenarios] = useState<MatchedScenario[]>([]);
 
   // Extended to include full transcript for saving
   const [lastConversation, setLastConversation] = useState<{
@@ -137,8 +161,47 @@ export default function VoiceConversationScreen() {
   // Create enhanced user profile from full onboarding data for personalized scenarios
   const enhancedProfile = createEnhancedUserProfile(onboardingData);
 
-  // Get personalized scenarios using enhanced profile (uses profession, scenarios, motivations)
-  const personalizedScenarios = getEnhancedScenariosForUser(enhancedProfile);
+  // Fix 3: Load stair context + stair DB scenarios for scenario matching
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      try {
+        const stepId = await getCurrentStairStepId(user.id);
+        if (stepId) {
+          setCurrentStairStepId(stepId);
+          const skeleton = await getStairSkeleton(stepId);
+          if (skeleton) {
+            setStairContext({
+              skillsFocus: skeleton.skills_unlocked || [],
+              scenarioTags: skeleton.skills_required || [],
+              difficulty: onboardingData.proficiency_level || 'beginner',
+            });
+          }
+
+          // Fetch stair-generated scenarios from DB
+          const dbScenarios = await getStairVoiceScenarios(stepId, user.id, enhancedProfile);
+          if (dbScenarios.length > 0) {
+            setStairScenarios(dbScenarios);
+            console.log('[VoiceConversation] Loaded stair DB scenarios:', dbScenarios.length);
+          }
+        }
+      } catch (err) {
+        console.warn('[VoiceConversation] Failed to load stair context:', err);
+      }
+    })();
+  }, [user?.id]);
+
+  // Fix 3: Stair DB scenarios first, then hardcoded (stair-matched or enhanced)
+  const personalizedScenarios = useMemo(() => {
+    const hardcoded = stairContext
+      ? getScenariosForStair(stairContext, enhancedProfile)
+      : getEnhancedScenariosForUser(enhancedProfile);
+
+    // Stair DB scenarios at the top, hardcoded below (deduplicated by id)
+    const stairIds = new Set(stairScenarios.map(s => s.id));
+    const fallbacks = hardcoded.filter(s => !stairIds.has(s.id));
+    return [...stairScenarios, ...fallbacks];
+  }, [stairScenarios, stairContext, enhancedProfile.targetLanguage, enhancedProfile.motivation, enhancedProfile.proficiencyLevel, enhancedProfile.profession]);
 
   // Debug logging for onboarding data
   console.log('[VoiceConversation] Enhanced user profile from onboarding:', {
@@ -150,6 +213,7 @@ export default function VoiceConversationScreen() {
     selectedScenarios: onboardingData.scenarios,
     scenarioCount: personalizedScenarios.length,
     topScenario: personalizedScenarios[0]?.title,
+    hasStairContext: !!stairContext,
   });
 
   // Filter by difficulty if selected
@@ -219,7 +283,7 @@ export default function VoiceConversationScreen() {
     setSelectedScenario(null);
   };
 
-  // Handle conversation completion - save transcript and show feedback
+  // Handle conversation completion - save to Supabase + vocab loop + show feedback
   const handleConversationComplete = async (result: VoiceCallCompletionResult) => {
     const { success, messages, endReason, duration, transcript } = result;
 
@@ -241,7 +305,7 @@ export default function VoiceConversationScreen() {
         ? getCharacter(selectedScenario.characterId)
         : null;
 
-      // Save transcript to storage
+      // Save transcript to AsyncStorage (existing behavior)
       if (transcript && transcript.length > 0) {
         const savedTranscript: SavedTranscript = {
           id: `transcript_${Date.now()}`,
@@ -253,6 +317,67 @@ export default function VoiceConversationScreen() {
           timestamp: Date.now(),
         };
         await saveTranscript(savedTranscript);
+      }
+
+      // Fix 2: Save session to Supabase + close vocab loop
+      if (user?.id) {
+        const userMessages = messages.filter(m => m.role === 'user');
+        const userWordCount = userMessages.reduce(
+          (sum, m) => sum + m.content.split(/\s+/).filter(w => w.length > 0).length,
+          0
+        );
+        const turnCount = Math.min(
+          messages.filter(m => m.role === 'user').length,
+          messages.filter(m => m.role === 'assistant').length
+        );
+
+        // Save to Supabase
+        try {
+          const sessionId = await saveConversationSession({
+            userId: user.id,
+            scenario: selectedScenario.id,
+            scenarioDescription: selectedScenario.description,
+            proficiency: onboardingData.proficiency_level || 'intermediate',
+            targetLanguage,
+            startedAt: Date.now() - (duration * 1000),
+            endedAt: Date.now(),
+            durationSeconds: duration,
+            turnCount,
+            userWordCount,
+            avgWordsPerTurn: turnCount > 0 ? Math.round(userWordCount / turnCount) : 0,
+            pointsEarned: 0,
+            messages: transcript || [],
+            stairStepId: currentStairStepId || undefined,
+          });
+
+          if (sessionId) {
+            setSupabaseSessionId(sessionId);
+            console.log('[VoiceConversation] Session saved to Supabase:', sessionId);
+          }
+        } catch (err) {
+          console.warn('[VoiceConversation] Failed to save session to Supabase:', err);
+        }
+
+        // Fix 2: Close the vocab loop — extract words and feed back to FSRS
+        try {
+          const allUserText = userMessages.map(m => m.content).join(' ');
+          const userWords = allUserText
+            .toLowerCase()
+            .replace(/[^\w\sáéíóúñüàèìòùâêîôûäëïöüçß]/g, '')
+            .split(/\s+/)
+            .filter(w => w.length > 2);
+          const uniqueUserWords = [...new Set(userWords)];
+
+          await processPostCallVocab({
+            vocabUsed: uniqueUserWords.slice(0, 30),
+            vocabMissed: [], // Would require AI analysis of expected vs actual usage
+            newVocabulary: [], // New words will be identified by AI feedback
+            targetLanguage,
+            scenario: selectedScenario.id,
+          });
+        } catch (err) {
+          console.warn('[VoiceConversation] Vocab loop failed (non-fatal):', err);
+        }
       }
 
       setLastConversation({
@@ -282,11 +407,50 @@ export default function VoiceConversationScreen() {
     }
   };
 
-  const handleFeedbackDone = () => {
+  // Fix 4: Persist feedback to Supabase before leaving
+  const handleFeedbackDone = useCallback(async () => {
+    // Persist feedback if we have a Supabase session ID and conversation data
+    if (supabaseSessionId && lastConversation) {
+      try {
+        const userMessages = lastConversation.messages.filter(m => m.role === 'user');
+        const totalWords = userMessages.reduce(
+          (sum, m) => sum + m.content.split(/\s+/).filter(w => w.length > 0).length,
+          0
+        );
+        const avgWordsPerTurn = userMessages.length > 0 ? totalWords / userMessages.length : 0;
+
+        // Compute feedback scores (same logic as PostCallFeedbackScreen's analyzeConversation)
+        const exchanges = Math.min(
+          lastConversation.messages.filter(m => m.role === 'user').length,
+          lastConversation.messages.filter(m => m.role === 'assistant').length,
+        );
+        const lengthScore = Math.min(avgWordsPerTurn / 15, 1) * 100;
+        const engagementScore = Math.min(exchanges / 8, 1) * 100;
+        const overallScore = Math.round(lengthScore * 0.4 + engagementScore * 0.6);
+
+        const feedback: ConversationFeedback = {
+          articulation: Math.round(overallScore * 0.9),
+          fluency: Math.round(lengthScore),
+          communication: Math.round(engagementScore),
+          scenario: Math.round(overallScore),
+          summary: `${exchanges} exchanges, ${totalWords} words spoken`,
+          strengths: [],
+          improvements: [],
+          newVocabulary: [],
+        };
+
+        await updateSessionFeedback(supabaseSessionId, feedback);
+        console.log('[VoiceConversation] Feedback persisted to Supabase');
+      } catch (err) {
+        console.warn('[VoiceConversation] Failed to persist feedback:', err);
+      }
+    }
+
     setFlowState('selection');
     setLastConversation(null);
     setSelectedScenario(null);
-  };
+    setSupabaseSessionId(null);
+  }, [supabaseSessionId, lastConversation]);
 
   const handlePracticeAgain = () => {
     // Keep selectedScenario to restart with same scenario
@@ -343,7 +507,16 @@ export default function VoiceConversationScreen() {
       : null;
 
     // Generate role descriptions based on scenario
+    // Prefer scenario-provided roles (from stair DB scenarios) over hardcoded heuristics
     const getRoles = () => {
+      if (selectedScenario.userRole && selectedScenario.aiRole) {
+        return {
+          yourRole: selectedScenario.userRole,
+          theirRole: selectedScenario.aiRole,
+          characterIcon: getScenarioIcon(selectedScenario) as string,
+        };
+      }
+
       const scenarioId = selectedScenario.id.toLowerCase();
 
       if (scenarioId.includes('cafe') || scenarioId.includes('coffee')) {
@@ -392,7 +565,12 @@ export default function VoiceConversationScreen() {
     };
 
     // Generate mission objectives based on scenario
+    // Prefer scenario-provided objectives (from stair DB scenarios) over hardcoded heuristics
     const getObjectives = () => {
+      if (selectedScenario.objectives && selectedScenario.objectives.length > 0) {
+        return selectedScenario.objectives;
+      }
+
       const scenarioId = selectedScenario.id.toLowerCase();
 
       if (scenarioId.includes('cafe') || scenarioId.includes('coffee')) {

@@ -101,6 +101,9 @@ export default function AboutLectureScreen() {
       params: {
         storyId: params.id,
         title: params.title,
+        category: params.category,
+        difficulty: params.difficulty,
+        wordCount: params.wordCount,
       },
     });
   };

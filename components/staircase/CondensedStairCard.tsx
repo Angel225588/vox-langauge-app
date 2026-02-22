@@ -28,6 +28,8 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
+  withRepeat,
+  withSequence,
   interpolate,
   useSharedValue,
 } from 'react-native-reanimated';
@@ -61,6 +63,27 @@ export function CondensedStairCard({
   const revealProgress = useSharedValue(isRevealed ? 1 : 0);
   const iconScale = useSharedValue(isRevealed ? 1 : 0);
   const descriptionOpacity = useSharedValue(isRevealed ? 1 : 0);
+
+  // Glow pulse animation for current stair
+  const glowOpacity = useSharedValue(0.3);
+
+  useEffect(() => {
+    if (stair.status === 'current') {
+      glowOpacity.value = withRepeat(
+        withSequence(
+          withTiming(0.7, { duration: 1500 }),
+          withTiming(0.3, { duration: 1500 })
+        ),
+        -1, // infinite repeat
+        true // reverse
+      );
+    }
+  }, [stair.status]);
+
+  // Animated style for glow overlay
+  const glowAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+  }));
 
   // Typing animation state (JS-driven for text slicing)
   const fullTitle = `${stair.order}. ${stair.title}`;
@@ -196,6 +219,10 @@ export function CondensedStairCard({
 
   return (
     <Animated.View style={[styles.container, cardAnimatedStyle]}>
+      {/* Animated glow effect for current stair — rendered behind the card */}
+      {isCurrent && (
+        <Animated.View style={[styles.glowOverlay, glowAnimatedStyle]} pointerEvents="none" />
+      )}
       <AnimatedTouchableOpacity
         onPress={onPress}
         disabled={isLocked}
@@ -264,11 +291,6 @@ export function CondensedStairCard({
             </View>
           </View>
         </LinearGradient>
-
-        {/* Glow effect for current stair */}
-        {isCurrent && (
-          <View style={styles.glowOverlay} pointerEvents="none" />
-        )}
       </AnimatedTouchableOpacity>
     </Animated.View>
   );
@@ -289,16 +311,18 @@ const styles = StyleSheet.create({
   },
   glowOverlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: borderRadius.lg,
-    shadowColor: colors.primary.DEFAULT,
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    borderRadius: borderRadius.lg + 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0, 54, 255, 0.6)',
+    shadowColor: '#0036FF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 12,
   },
 
   // Line 1

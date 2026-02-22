@@ -3,15 +3,15 @@
  * Matches the prototype's CompCard pattern: icon + label header,
  * big value, and change indicator with trend arrow.
  *
- * Uses mock data for now — will connect to real metrics in Phase 2.
+ * Connected to real metrics via useUserMetrics hook.
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 import { rewardCurrencies } from '@/constants/designSystem';
+import type { ScoreTrend } from '@/lib/db/competencyMetrics';
 
-// TODO: Replace with real competency data from Phase 2
 export interface CompetencyData {
   articulation: number;
   fluency: number;
@@ -20,10 +20,17 @@ export interface CompetencyData {
 }
 
 const DEFAULT_COMPETENCY: CompetencyData = {
-  articulation: 74,
-  fluency: 72,
-  ideaCommunication: 81,
-  scenariosCompleted: 8,
+  articulation: 0,
+  fluency: 0,
+  ideaCommunication: 0,
+  scenariosCompleted: 0,
+};
+
+const KPI_TREND_KEYS: Record<string, string> = {
+  'Articulation': 'articulation',
+  'Fluency': 'fluency',
+  'Idea Comm.': 'communication',
+  'Scenarios': 'scenario',
 };
 
 interface MetricConfig {
@@ -31,75 +38,93 @@ interface MetricConfig {
   label: string;
   value: number;
   suffix: string;
-  change: string;
   color: string;
 }
 
 interface CompetencyDashboardProps {
   data?: CompetencyData;
+  trends?: ScoreTrend[];
 }
 
-export function CompetencyDashboard({ data = DEFAULT_COMPETENCY }: CompetencyDashboardProps) {
+export function CompetencyDashboard({ data = DEFAULT_COMPETENCY, trends = [] }: CompetencyDashboardProps) {
   const metrics: MetricConfig[] = [
     {
       icon: 'mic-outline',
       label: 'Articulation',
       value: data.articulation,
       suffix: '/100',
-      change: '+5',
       color: colors.accent.cyan,
     },
     {
       icon: 'bar-chart-outline',
       label: 'Fluency',
       value: data.fluency,
-      suffix: '%',
-      change: '+8%',
+      suffix: '/100',
       color: colors.primary.light,
     },
     {
       icon: 'bulb-outline',
       label: 'Idea Comm.',
       value: data.ideaCommunication,
-      suffix: '%',
-      change: '+3%',
+      suffix: '/100',
       color: colors.success.DEFAULT,
     },
     {
       icon: 'chatbubbles-outline',
       label: 'Scenarios',
       value: data.scenariosCompleted,
-      suffix: '/15',
-      change: '+2',
+      suffix: '',
       color: rewardCurrencies.vox.tiers.gold.primary,
     },
   ];
 
+  const getTrend = (label: string) => {
+    const key = KPI_TREND_KEYS[label];
+    if (!key) return null;
+    return trends.find(t => t.kpi === key) || null;
+  };
+
   return (
     <View style={styles.grid}>
-      {metrics.map((m) => (
-        <View key={m.label} style={styles.card}>
-          {/* Header: Icon + Label */}
-          <View style={styles.cardHeader}>
-            <View style={[styles.iconBox, { backgroundColor: m.color + '15' }]}>
-              <Ionicons name={m.icon} size={14} color={m.color} />
+      {metrics.map((m) => {
+        const trend = getTrend(m.label);
+        const isImproving = trend?.direction === 'improving';
+        const isDeclining = trend?.direction === 'declining';
+        const trendColor = isImproving ? colors.success.DEFAULT
+          : isDeclining ? colors.error.DEFAULT
+          : colors.text.disabled;
+        const trendIcon = isDeclining ? 'arrow-down' : 'arrow-up';
+        const trendText = trend && trend.delta !== 0
+          ? `${trend.delta > 0 ? '+' : ''}${trend.delta}`
+          : '';
+
+        return (
+          <View key={m.label} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.iconBox, { backgroundColor: m.color + '15' }]}>
+                <Ionicons name={m.icon} size={14} color={m.color} />
+              </View>
+              <Text style={styles.cardLabel}>{m.label.toUpperCase()}</Text>
             </View>
-            <Text style={styles.cardLabel}>{m.label.toUpperCase()}</Text>
-          </View>
 
-          {/* Value + Change */}
-          <View style={styles.valueRow}>
-            <Text style={styles.valueText}>{m.value}</Text>
-            <Text style={styles.suffixText}>{m.suffix}</Text>
-          </View>
+            <View style={styles.valueRow}>
+              <Text style={styles.valueText}>{m.value}</Text>
+              <Text style={styles.suffixText}>{m.suffix}</Text>
+            </View>
 
-          {/* Trend */}
-          <View style={styles.trendRow}>
-            <Ionicons name="arrow-up" size={10} color={colors.success.DEFAULT} />
-            <Text style={styles.trendText}>{m.change}</Text>
+            <View style={styles.trendRow}>
+              {trendText ? (
+                <>
+                  <Ionicons name={trendIcon as any} size={10} color={trendColor} />
+                  <Text style={[styles.trendText, { color: trendColor }]}>{trendText}</Text>
+                </>
+              ) : (
+                <Text style={[styles.trendText, { color: colors.text.disabled }]}>—</Text>
+              )}
+            </View>
           </View>
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }

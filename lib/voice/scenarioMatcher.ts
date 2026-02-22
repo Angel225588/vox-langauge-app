@@ -8,6 +8,7 @@
 
 import { VoiceScenario, SupportedLanguage } from './types';
 import { getScenariosForLanguage, getScenariosByDifficulty } from './scenarios';
+import { getStairContent, getStaircaseParams } from '@/lib/db/learningPaths';
 
 // =============================================================================
 // Types
@@ -512,4 +513,183 @@ export function getTopScenariosForStair(
   count: number = 3
 ): MatchedScenario[] {
   return getScenariosForStair(stairContext, profile).slice(0, count);
+}
+
+// =============================================================================
+// Stair DB Scenario Bridge
+// =============================================================================
+
+/**
+ * Maps motivation string to VoiceScenario category.
+ */
+const MOTIVATION_TO_CATEGORY: Record<string, VoiceScenario['category']> = {
+  career: 'professional',
+  travel: 'travel',
+  education: 'professional',
+  love: 'social',
+  relocation: 'social',
+  challenge: 'social',
+  general: 'social',
+};
+
+/**
+ * Maps proficiency string to VoiceScenario difficulty.
+ */
+const PROFICIENCY_TO_SCENARIO_DIFFICULTY: Record<string, VoiceScenario['difficulty']> = {
+  beginner: 'beginner',
+  elementary: 'beginner',
+  intermediate: 'intermediate',
+  upper_intermediate: 'advanced',
+  advanced: 'advanced',
+};
+
+/**
+ * Derive an appropriate AI role from the scenario title and motivation.
+ * Uses keyword matching — no AI calls.
+ */
+function getVoicePersonaRole(title: string, motivation: string): string {
+  const t = title.toLowerCase();
+
+  if (t.includes('cafe') || t.includes('coffee') || t.includes('café'))
+    return 'A friendly barista at a local café';
+  if (t.includes('restaurant') || t.includes('dining') || t.includes('food'))
+    return 'A restaurant waiter taking your order';
+  if (t.includes('hotel') || t.includes('check-in') || t.includes('reception'))
+    return 'A hotel receptionist helping you check in';
+  if (t.includes('airport') || t.includes('flight') || t.includes('travel'))
+    return 'An airline staff member at the airport';
+  if (t.includes('shop') || t.includes('market') || t.includes('store') || t.includes('buy'))
+    return 'A store clerk helping you find what you need';
+  if (t.includes('doctor') || t.includes('medical') || t.includes('health') || t.includes('pharmacy'))
+    return 'A healthcare professional assisting you';
+  if (t.includes('interview') || t.includes('job') || t.includes('hire'))
+    return 'A hiring manager conducting an interview';
+  if (t.includes('meeting') || t.includes('presentation') || t.includes('business'))
+    return 'A colleague in a business meeting';
+  if (t.includes('phone') || t.includes('call'))
+    return 'A person on the other end of a phone call';
+  if (t.includes('emergency') || t.includes('help') || t.includes('police'))
+    return 'An emergency responder helping you';
+  if (t.includes('direction') || t.includes('navigate') || t.includes('lost'))
+    return 'A helpful local giving you directions';
+  if (t.includes('date') || t.includes('social') || t.includes('party'))
+    return 'A friendly person at a social gathering';
+  if (t.includes('bank') || t.includes('finance') || t.includes('money'))
+    return 'A bank teller assisting you';
+  if (t.includes('school') || t.includes('class') || t.includes('university'))
+    return 'A teacher or classmate at school';
+
+  // Motivation-based fallback
+  if (motivation === 'career') return 'A professional colleague';
+  if (motivation === 'travel') return 'A helpful local you met while traveling';
+  if (motivation === 'love') return 'Someone you are getting to know socially';
+
+  return 'A native speaker having a conversation with you';
+}
+
+/**
+ * Derive a user role from the scenario context or title.
+ */
+function getUserRole(title: string, context: string): string {
+  const combined = `${title} ${context}`.toLowerCase();
+
+  if (combined.includes('cafe') || combined.includes('coffee'))
+    return 'A customer ordering coffee';
+  if (combined.includes('restaurant') || combined.includes('dining'))
+    return 'A customer ordering food';
+  if (combined.includes('hotel') || combined.includes('check-in'))
+    return 'A guest checking into a hotel';
+  if (combined.includes('airport') || combined.includes('flight'))
+    return 'A traveler at the airport';
+  if (combined.includes('shop') || combined.includes('market') || combined.includes('store'))
+    return 'A customer shopping';
+  if (combined.includes('doctor') || combined.includes('medical') || combined.includes('pharmacy'))
+    return 'A patient seeking medical help';
+  if (combined.includes('interview') || combined.includes('job'))
+    return 'A candidate in a job interview';
+  if (combined.includes('meeting') || combined.includes('business'))
+    return 'A professional in a business meeting';
+  if (combined.includes('direction') || combined.includes('lost'))
+    return 'A visitor asking for directions';
+
+  return 'Yourself, practicing conversation';
+}
+
+/**
+ * Generate objectives from the scenario title and key phrases.
+ */
+function generateVoiceObjectives(title: string, keyPhrases: string[]): string[] {
+  const objectives: string[] = [`Practice ${title} vocabulary`];
+
+  if (keyPhrases.length > 0) {
+    objectives.push('Use key phrases in context');
+  }
+
+  objectives.push('Build confidence in real-time conversation');
+
+  return objectives;
+}
+
+/**
+ * Bridge function: Fetch stair-generated scenarios from the DB and
+ * transform them into MatchedScenario[] ready for the voice screen.
+ *
+ * Returns [] on any error or when no stair scenarios exist,
+ * so the caller can fall back to hardcoded scenarios.
+ */
+export async function getStairVoiceScenarios(
+  stepId: string,
+  userId: string,
+  profile: EnhancedUserProfile
+): Promise<MatchedScenario[]> {
+  try {
+    const [stairContent, staircaseParams] = await Promise.all([
+      getStairContent(stepId),
+      getStaircaseParams(userId),
+    ]);
+
+    if (!stairContent || !stairContent.scenarios || stairContent.scenarios.length === 0) {
+      return [];
+    }
+
+    const motivation = staircaseParams?.motivation || profile.motivation || 'general';
+    const proficiency = staircaseParams?.proficiency_level || profile.proficiencyLevel || 'beginner';
+    const language = (staircaseParams?.target_language as SupportedLanguage) || profile.targetLanguage;
+    const vocabWords = (stairContent.vocabulary || [])
+      .slice(0, 10)
+      .map((v: any) => (typeof v === 'string' ? v : v.word || v.term || ''))
+      .filter(Boolean);
+
+    const scenarios: MatchedScenario[] = stairContent.scenarios.map(
+      (raw: any, index: number) => {
+        const title = raw.title || `Scenario ${index + 1}`;
+        const description = raw.description || '';
+        const context = raw.context || description;
+        const keyPhrases: string[] = raw.key_phrases || [];
+
+        return {
+          id: `stair-${stepId}-${index}`,
+          title,
+          description,
+          context,
+          aiRole: getVoicePersonaRole(title, motivation),
+          objectives: generateVoiceObjectives(title, keyPhrases),
+          language,
+          difficulty: PROFICIENCY_TO_SCENARIO_DIFFICULTY[proficiency] || 'beginner',
+          category: MOTIVATION_TO_CATEGORY[motivation] || 'social',
+          userRole: getUserRole(title, context),
+          suggestedPhrases: keyPhrases,
+          keyVocabulary: vocabWords,
+          stairStepId: stepId,
+          relevanceScore: Math.max(50, 95 - index * 2),
+          matchReason: 'From your current learning path',
+        };
+      }
+    );
+
+    return scenarios;
+  } catch (err) {
+    console.warn('[getStairVoiceScenarios] Failed to load stair scenarios:', err);
+    return [];
+  }
 }

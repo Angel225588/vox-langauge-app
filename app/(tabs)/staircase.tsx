@@ -23,6 +23,7 @@ import { useState, useRef, useCallback } from 'react';
 import { StairForDisplay } from '@/hooks/useLearningPath';
 import { useAnimatedStaircaseReveal, checkHasSeenStaircaseReveal, clearStaircaseRevealFlag } from '@/hooks/useAnimatedStaircaseReveal';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserMetrics } from '@/hooks/useUserMetrics';
 import { SkeletonStairCard, CondensedStairCard } from '@/components/staircase';
 import LottieView from 'lottie-react-native';
 import * as Haptics from 'expo-haptics';
@@ -63,6 +64,7 @@ const SKELETON_COUNT = 6;
 export default function StaircaseScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { metrics } = useUserMetrics();
 
   // Confetti animation ref
   const confettiRef = useRef<LottieView>(null);
@@ -116,8 +118,7 @@ export default function StaircaseScreen() {
     console.log('[DEV] Staircase reveal animation reset for user:', user?.id);
   }, [user?.id, resetReveal]);
 
-  const [weeklyPoints, setWeeklyPoints] = useState(1000);
-  const [streak, setStreak] = useState(8);
+  // Points and streak now come from useUserMetrics hook
 
   // Determine if we have a path (stairs exist or are being revealed)
   const hasPath = stairs.length > 0 || phase === 'generating' || phase === 'revealing';
@@ -201,7 +202,7 @@ export default function StaircaseScreen() {
                 borderColor: colors.gradients.primary[0],
               }}
             >
-              <Text style={{ fontSize: typography.fontSize.xl, marginRight: spacing.xs }}>⚡</Text>
+              <Ionicons name="flash" size={20} color={colors.text.primary} style={{ marginRight: spacing.xs }} />
               <Text
                 style={{
                   fontSize: typography.fontSize.base,
@@ -209,7 +210,7 @@ export default function StaircaseScreen() {
                   color: colors.text.primary,
                 }}
               >
-                {weeklyPoints}
+                {metrics.totalPoints.toLocaleString()}
               </Text>
             </View>
           </View>
@@ -231,7 +232,7 @@ export default function StaircaseScreen() {
                 color: colors.text.primary,
               }}
             >
-              {streak} Day Streak
+              {metrics.streak} Day Streak
             </Text>
 
             {/* DEV: Reset Animation Button */}
@@ -292,15 +293,18 @@ export default function StaircaseScreen() {
               marginBottom: spacing.md,
             }}
           >
-            <Text
-              style={{
-                fontSize: typography.fontSize.lg,
-                fontWeight: typography.fontWeight.bold,
-                color: colors.text.primary,
-              }}
-            >
-              🏅 Latest Achievement
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="trophy" size={20} color={colors.warning.DEFAULT} style={{ marginRight: spacing.xs }} />
+              <Text
+                style={{
+                  fontSize: typography.fontSize.lg,
+                  fontWeight: typography.fontWeight.bold,
+                  color: colors.text.primary,
+                }}
+              >
+                Latest Achievement
+              </Text>
+            </View>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => {
@@ -527,7 +531,7 @@ export default function StaircaseScreen() {
                 paddingVertical: spacing.xl,
               }}
             >
-              <Text style={{ fontSize: typography.fontSize['5xl'], marginBottom: spacing.md }}>⚠️</Text>
+              <Ionicons name="warning" size={48} color={colors.error.DEFAULT} style={{ marginBottom: spacing.md }} />
               <Text
                 style={{
                   fontSize: typography.fontSize.base,

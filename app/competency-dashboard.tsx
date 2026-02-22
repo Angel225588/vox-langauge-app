@@ -5,7 +5,7 @@
  * Shows CEFR level, trends, per-skill breakdown, session history.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -20,11 +20,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
-import {
-  getCompetencySnapshot,
-  mapScoreToCEFR,
-  getNextCEFR,
-} from '@/lib/metrics/competencyEngine';
+import { useUserMetrics } from '@/hooks/useUserMetrics';
+import { getNextCEFR } from '@/lib/metrics/competencyEngine';
 import type { CompetencySnapshot } from '@/lib/db/competencyMetrics';
 
 // ─── Palette ───
@@ -62,25 +59,8 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
 export default function CompetencyDashboard() {
   const router = useRouter();
   const { user } = useAuth();
-  const [snapshot, setSnapshot] = useState<CompetencySnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const loadData = useCallback(async () => {
-    if (!user?.id) return;
-    setLoading(true);
-    try {
-      const data = await getCompetencySnapshot(user.id);
-      setSnapshot(data);
-    } catch (err) {
-      console.warn('[CompetencyDashboard] Failed to load:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const { metrics, loading } = useUserMetrics();
+  const snapshot = metrics.snapshot;
 
   if (loading) {
     return (
@@ -94,20 +74,7 @@ export default function CompetencyDashboard() {
     );
   }
 
-  const data = snapshot || {
-    averages: { articulation: 0, fluency: 0, communication: 0, scenario: 0, overall: 0 },
-    trends: [],
-    cefrLevel: 'A1',
-    cefrProgress: 0,
-    totalSessions: 0,
-    recentScores: [],
-    byType: {
-      conversation: { avg: 0, count: 0 },
-      reading: { avg: 0, count: 0 },
-      writing: { avg: 0, count: 0 },
-      listening: { avg: 0, count: 0 },
-    },
-  };
+  const data = snapshot;
 
   const nextCEFR = getNextCEFR(data.cefrLevel);
 

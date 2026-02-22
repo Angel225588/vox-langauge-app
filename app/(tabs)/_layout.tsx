@@ -1,11 +1,12 @@
 /**
- * Tab Layout - 5-Tab Structure
+ * Tab Layout - 3-Tab Structure
  *
  * Tab 1: Home - Duolingo-style learning path with staircase
- * Tab 2: Vocabulary - Word Bank with all learned words
- * Tab 3: Practice - Independent tools, games, and exercises
- * Tab 4: Community - Social features and practice with others
- * Tab 5: Profile - User settings, stats, and achievements
+ * Tab 2: Practice - Independent tools, games, and exercises (includes vocabulary access)
+ * Tab 3: Profile - User settings, stats, and achievements
+ *
+ * Hidden tabs: vocabulary (accessible via Practice grid), community (Phase 7),
+ * staircase, categories, icon-demo
  */
 
 import { Tabs } from 'expo-router';
@@ -35,8 +36,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="vocabulary"
         options={{
-          title: 'Words',
-          tabBarIcon: ({ color, size }) => <Ionicons name="book-outline" size={size} color={color} />,
+          href: null, // Hidden — accessible via Practice grid → /vocabulary-dashboard
         }}
       />
       <Tabs.Screen
@@ -49,8 +49,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: 'Community',
-          tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" size={size} color={color} />,
+          href: null, // Hidden — Phase 7 placeholder
         }}
       />
       <Tabs.Screen

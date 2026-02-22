@@ -1,15 +1,31 @@
 /**
- * Lesson Screen — Two-Zone Carousel Layout
+ * Lesson Carousel Screen — Two-Zone Layout
  *
- * Premium dark glassmorphic lesson screen with:
- * - TOP ZONE: Session Info Hero Card (~30% screen) with badges, meta, quote
- * - Natural flex space
- * - BOTTOM ZONE: 3D activity carousel + page dots + START button
- *
- * Flow: stair ID from route → load stair data → generateLessonPlan → display
+ * ┌─────────────────────────────────┐
+ * │ ← Back                         │
+ * │                                 │
+ * │ ┌─ Session Info Card ─────────┐ │
+ * │ │  SESSION       DISCOVERY    │ │  ← TOP ZONE
+ * │ │  Client Meetings: Core...   │ │     ~30-35% of screen
+ * │ │  ⏱ 6 min · 📚 3 · 🎓 Beg  │ │
+ * │ │  "The limits of my..."      │ │
+ * │ └────────────────────────────-┘ │
+ * │                                 │
+ * │       (natural flex space)      │
+ * │                                 │
+ * │ Your Activities                 │
+ * │ ┌──────┐ ┌──────┐ ┌──────     │  ← BOTTOM ZONE
+ * │ │ 📖   │ │ 🎧   │ │ 🎤       │     Carousel + dots + START
+ * │ │ Vocab│ │Listen │ │ Speak    │     grouped together
+ * │ └──────┘ └──────┘ └──────     │
+ * │         ● ── ○ ── ○           │
+ * │  ┌──────────────────────────┐  │
+ * │  │         START →          │  │
+ * │  └──────────────────────────┘  │
+ * └─────────────────────────────────┘
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,11 +33,10 @@ import {
   TouchableOpacity,
   Dimensions,
   StyleSheet,
-  ActivityIndicator,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn, FadeInUp } from 'react-native-reanimated';
@@ -33,25 +48,14 @@ import {
   spacing,
   borderRadius,
 } from '@/constants/designSystem';
-import {
-  generateLessonPlan,
-  getLessonQuote,
-  getLevelGroup,
-  type LessonPlan,
-  type LessonActivity,
-} from '@/lib/lesson';
-import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
-import { useAuth } from '@/hooks/useAuth';
-import { useLearningPath, type StairForDisplay } from '@/hooks/useLearningPath';
-import { loadPreviewStairs } from '@/lib/services/previewStairs';
-import { storeActiveLessonPlan } from '@/app/lesson-session';
+import { type LessonActivity, type LevelGroup } from '@/lib/lesson';
 
 // ─── Responsive Dimensions ─────────────────────────
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SIDE_PADDING = spacing.lg; // 24pt
 
-// Card sizing: ~2 cards visible, slightly larger
+// Card sizing: ~2 cards visible, slightly larger than before
 const CARD_GAP = spacing.md; // 16pt
 const CARD_WIDTH = Math.round((SCREEN_WIDTH - SIDE_PADDING * 2 - CARD_GAP) / 1.85);
 const CARD_HEIGHT = Math.round(CARD_WIDTH * 1.25); // tall portrait cards
@@ -121,67 +125,46 @@ function getTheme(type: string, isLocked: boolean): ActivityTheme {
   return ACTIVITY_THEMES[type] || LOCKED_THEME;
 }
 
+// ─── Mock Data ──────────────────────────────────────
+
+const MOCK_ACTIVITIES: LessonActivity[] = [
+  {
+    id: 'act-1', type: 'vocabulary', label: 'Vocabulary',
+    title: 'Core Vocabulary', description: 'Learn essential words',
+    icon: 'book-outline', order: 1, status: 'current',
+    estimated_seconds: 180, color: '#3D6BFF',
+    config: { type: 'vocabulary', word_count: 5, show_translations: true },
+  },
+  {
+    id: 'act-2', type: 'listening', label: 'Listening',
+    title: 'Hear It', description: 'Listen to a dialogue',
+    icon: 'headset-outline', order: 2, status: 'locked',
+    estimated_seconds: 120, color: '#06D6A0',
+    config: { type: 'listening', sentence_count: 5, speed: 'slow' as const },
+  },
+  {
+    id: 'act-3', type: 'voice_call', label: 'Speak',
+    title: 'Quick Conversation', description: 'A short call',
+    icon: 'mic-outline', order: 3, status: 'locked',
+    estimated_seconds: 30, color: '#8B5CF6',
+    config: { type: 'voice_call', duration_seconds: 30, is_discovery: true },
+  },
+];
+
+const MOCK_TITLE = 'Client Meetings: Core Skills';
+const MOCK_ESTIMATED_MIN = Math.ceil(
+  MOCK_ACTIVITIES.reduce((sum, a) => sum + a.estimated_seconds, 0) / 60,
+);
+
 // ─── Main Screen ────────────────────────────────────
 
-export default function LessonScreen() {
+export default function LessonCarouselScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { proficiency_level } = useOnboardingV3();
-  const { user } = useAuth();
-  const { stairs: pathStairs } = useLearningPath(user?.id ?? null);
   const insets = useSafeAreaInsets();
-
-  const [stair, setStair] = useState<StairForDisplay | null>(null);
-  const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
-  // Load stair data and generate lesson plan
-  useEffect(() => {
-    async function load() {
-      setIsLoading(true);
-
-      // Try to find the stair from the learning path first
-      let foundStair = pathStairs.find((s) => s.id === id) || null;
-
-      // If not found in path, try preview stairs
-      if (!foundStair) {
-        const previewStairs = await loadPreviewStairs();
-        if (previewStairs) {
-          foundStair = previewStairs.find((s) => s.id === id) || null;
-        }
-      }
-
-      // Fallback: construct a minimal stair from the ID
-      if (!foundStair) {
-        foundStair = {
-          id: id || 'unknown',
-          order: 1,
-          title: 'Lesson',
-          emoji: 'chatbubble-outline',
-          description: 'Practice and improve your skills',
-          status: 'current',
-          vocabulary_count: 5,
-          estimated_days: 1,
-        };
-      }
-
-      setStair(foundStair);
-
-      // Generate lesson plan
-      const isFirstLesson = foundStair.order === 1;
-      const plan = generateLessonPlan(foundStair, proficiency_level, isFirstLesson);
-      setLessonPlan(plan);
-      setIsLoading(false);
-    }
-
-    load();
-  }, [id, pathStairs, proficiency_level]);
-
-  const levelGroup = getLevelGroup(proficiency_level);
-  const isDiscovery = stair?.order === 1;
-  const quote = getLessonQuote(levelGroup, isDiscovery || false);
+  const activities = MOCK_ACTIVITIES;
 
   const handleBack = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -189,20 +172,16 @@ export default function LessonScreen() {
   }, [router]);
 
   const handleStart = useCallback(async () => {
-    if (!lessonPlan) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await storeActiveLessonPlan(lessonPlan);
-    router.push('/lesson-session');
-  }, [lessonPlan, router]);
+  }, []);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const offsetX = event.nativeEvent.contentOffset.x;
       const index = Math.round(offsetX / SNAP_INTERVAL);
-      const activities = lessonPlan?.activities || [];
       setActiveCardIndex(Math.max(0, Math.min(index, activities.length - 1)));
     },
-    [lessonPlan],
+    [activities.length],
   );
 
   const handleDotPress = useCallback((index: number) => {
@@ -210,20 +189,6 @@ export default function LessonScreen() {
     setActiveCardIndex(index);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
-
-  // ─── Loading State ──────────────────────────────────
-
-  if (isLoading || !stair || !lessonPlan) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary.light} />
-        <Text style={styles.loadingText}>Preparing your lesson...</Text>
-      </View>
-    );
-  }
-
-  const activities = lessonPlan.activities;
-  const levelLabel = levelGroup.charAt(0).toUpperCase() + levelGroup.slice(1);
 
   return (
     <View style={styles.root}>
@@ -264,31 +229,29 @@ export default function LessonScreen() {
             <View style={styles.badge}>
               <Text style={styles.badgeText}>SESSION</Text>
             </View>
-            {isDiscovery && (
-              <View style={[styles.badge, styles.discoveryBadge]}>
-                <Ionicons name="compass-outline" size={10} color={colors.primary.light} />
-                <Text style={[styles.badgeText, { color: colors.primary.light }]}>
-                  DISCOVERY
-                </Text>
-              </View>
-            )}
+            <View style={[styles.badge, styles.discoveryBadge]}>
+              <Ionicons name="compass-outline" size={10} color={colors.primary.light} />
+              <Text style={[styles.badgeText, { color: colors.primary.light }]}>
+                DISCOVERY
+              </Text>
+            </View>
           </Animated.View>
 
           {/* Title */}
           <Animated.View entering={FadeInDown.duration(500).delay(250)}>
             <Text style={styles.sessionTitle} numberOfLines={2}>
-              {stair.title}
+              {MOCK_TITLE}
             </Text>
           </Animated.View>
 
-          {/* Meta row: time + activity count + level */}
+          {/* Meta row: time + activity count */}
           <Animated.View
             entering={FadeInDown.duration(400).delay(350)}
             style={styles.metaRow}
           >
             <View style={styles.metaPill}>
               <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.5)" />
-              <Text style={styles.metaText}>{lessonPlan.estimated_minutes} min</Text>
+              <Text style={styles.metaText}>{MOCK_ESTIMATED_MIN} min</Text>
             </View>
             <View style={styles.metaDot} />
             <View style={styles.metaPill}>
@@ -298,14 +261,14 @@ export default function LessonScreen() {
             <View style={styles.metaDot} />
             <View style={styles.metaPill}>
               <Ionicons name="school-outline" size={13} color="rgba(255,255,255,0.5)" />
-              <Text style={styles.metaText}>{levelLabel}</Text>
+              <Text style={styles.metaText}>Beginner</Text>
             </View>
           </Animated.View>
 
-          {/* Quote footer */}
+          {/* Quote footer — subdued single line */}
           <Animated.View entering={FadeInDown.duration(400).delay(450)}>
-            <Text style={styles.quoteFooter} numberOfLines={2}>
-              {quote}
+            <Text style={styles.quoteFooter} numberOfLines={1}>
+              "The limits of my language mean the limits of my world." — Wittgenstein
             </Text>
           </Animated.View>
         </LinearGradient>
@@ -381,28 +344,28 @@ export default function LessonScreen() {
           entering={FadeInUp.duration(500).delay(700)}
           style={[styles.startContainer, { paddingBottom: Math.max(insets.bottom + spacing.sm, spacing.lg) }]}
         >
-          <TouchableOpacity
-            onPress={handleStart}
-            activeOpacity={0.85}
-            style={styles.startTouchable}
+        <TouchableOpacity
+          onPress={handleStart}
+          activeOpacity={0.85}
+          style={styles.startTouchable}
+        >
+          <LinearGradient
+            colors={colors.gradients.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.startGradient}
           >
-            <LinearGradient
-              colors={colors.gradients.primary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.startGradient}
-            >
-              <Text style={styles.startText}>START</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-            </LinearGradient>
-          </TouchableOpacity>
+            <Text style={styles.startText}>START</Text>
+            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+          </LinearGradient>
+        </TouchableOpacity>
         </Animated.View>
       </View>
     </View>
   );
 }
 
-// ─── 3D Activity Card ─────────────────────────────────
+// ─── 3D Activity Card (Horizontal Layout) ───────────
 
 function ActivityCard({
   activity,
@@ -555,19 +518,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background.primary,
-  },
-
-  // Loading
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-  },
-  loadingText: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
   },
 
   // ─── Back Button ──────────────────────────────

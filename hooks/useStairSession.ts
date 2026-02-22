@@ -17,6 +17,8 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { loadSessionContent } from '@/lib/services/stairSession';
 import { calculateSessionSummary } from '@/lib/services/stairSession';
+import { findWordByText, addOrReinforceWord, recordReview } from '@/lib/word-bank/storage';
+import { savePracticeScore } from '@/lib/db/competencyMetrics';
 import type {
   SessionStep,
   SESSION_STEP_ORDER,
@@ -223,23 +225,47 @@ export function useStairSession(
    * Complete the session — apply FSRS updates and mark stair progress.
    */
   const completeSession = useCallback(async () => {
-    if (!stepId || !userId) return;
+    if (!stepId || !userId || !summaryRef.current) return;
+
+    const summary = summaryRef.current;
 
     try {
-      // FSRS updates would be applied here
-      // For now, log the summary
-      if (summaryRef.current) {
-        console.log('[useStairSession] Session complete:', {
-          overall: summaryRef.current.overall_score,
-          totalTime: summaryRef.current.total_time_seconds,
-          vocabAdded: summaryRef.current.vocab_added,
-          fsrsUpdates: summaryRef.current.fsrs_updates.length,
-        });
+      // 1. Apply FSRS updates — reinforce/weaken vocabulary in word bank
+      const qualityMap: Record<string, number> = { again: 1, hard: 2, good: 3, easy: 5 };
+
+      for (const update of summary.fsrs_updates) {
+        const quality = qualityMap[update.quality] ?? 3;
+        try {
+          const existingWord = await findWordByText(update.word);
+          if (existingWord) {
+            await recordReview(existingWord.id, quality, update.source);
+          } else {
+            await addOrReinforceWord({
+              word: update.word,
+              translation: '',
+              source: `stair-${stepId}`,
+              category: 'stair-session',
+            });
+          }
+        } catch (wordErr) {
+          console.warn(`[useStairSession] FSRS update failed for "${update.word}":`, wordErr);
+        }
       }
 
-      // TODO: Apply FSRS updates via lib/spaced-repetition/fsrs.ts
-      // TODO: Update user_stair_progress via completeStair hook
-      // TODO: Record scenario completion via recordScenarioCompletion
+      // 2. Save practice scores to competency metrics
+      await savePracticeScore(userId, 'stair_session', {
+        communication: summary.conversation_score || 0,
+        scenario: summary.overall_score || 0,
+        fluency: summary.reading_score || 0,
+        articulation: summary.writing_score || 0,
+      });
+
+      console.log('[useStairSession] Session complete:', {
+        overall: summary.overall_score,
+        totalTime: summary.total_time_seconds,
+        vocabAdded: summary.vocab_added,
+        fsrsApplied: summary.fsrs_updates.length,
+      });
     } catch (err) {
       console.error('[useStairSession] Error completing session:', err);
     }
