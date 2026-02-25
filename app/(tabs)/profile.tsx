@@ -226,6 +226,20 @@ export default function ProfileScreen() {
               trends={metrics.trends}
             />
 
+            {/* Activity Dashboard */}
+            <View style={{ marginTop: spacing.md }}>
+              <View style={styles.card}>
+                <SettingRow
+                  iconName="stats-chart-outline"
+                  label="Activity"
+                  value="View history"
+                  onPress={() => router.push('/activity-dashboard' as any)}
+                  color={colors.secondary.DEFAULT}
+                  isLast
+                />
+              </View>
+            </View>
+
             {/* Scenarios Mastered */}
             <View style={{ marginTop: spacing.md }}>
               <Text style={styles.scenariosLabel}>SCENARIOS MASTERED</Text>

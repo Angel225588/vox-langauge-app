@@ -454,3 +454,43 @@ export async function recordFlashcardReview(
     [id, sessionId, flashcardId, userId, quality, timeSpentSeconds, cardType, now]
   );
 }
+
+/**
+ * Get count of flashcards currently due for review.
+ * Cards with next_review <= now are due.
+ */
+export async function getDueFlashcardCount(userId: string): Promise<number> {
+  try {
+    const db = await dbManager.getDatabase();
+    const now = new Date().toISOString();
+    const result = await db.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM user_flashcard_progress
+       WHERE user_id = ? AND next_review <= ?`,
+      [userId, now]
+    );
+    return result?.count || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Get flashcard reviews within a date range.
+ * Used by the Activity Tracker to aggregate flashcard activity.
+ */
+export async function getFlashcardReviewsInRange(
+  userId: string,
+  sinceISO: string,
+): Promise<{ reviewed_at: string; time_spent_seconds: number }[]> {
+  try {
+    const db = await dbManager.getDatabase();
+    return await db.getAllAsync<{ reviewed_at: string; time_spent_seconds: number }>(
+      `SELECT reviewed_at, time_spent_seconds FROM flashcard_reviews
+       WHERE user_id = ? AND reviewed_at >= ?
+       ORDER BY reviewed_at ASC`,
+      [userId, sinceISO]
+    );
+  } catch {
+    return [];
+  }
+}

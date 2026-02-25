@@ -320,7 +320,13 @@ export default function PracticeScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: PZ.bg }} edges={['top']}>
       {/* ═══ HEADER ═══ */}
       <Animated.View entering={FadeInDown.duration(300)} style={s.header}>
-        <View />
+        <TouchableOpacity
+          style={s.activityBtn}
+          activeOpacity={0.7}
+          onPress={() => router.push('/activity-dashboard' as any)}
+        >
+          <Ionicons name="stats-chart" size={18} color={PZ.blueLight} />
+        </TouchableOpacity>
         <View style={s.headerStats}>
           <TouchableOpacity style={s.statPill} activeOpacity={0.7}>
             <VoxIcon size="sm" />
@@ -533,6 +539,16 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  activityBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statPill: {
     flexDirection: 'row',
