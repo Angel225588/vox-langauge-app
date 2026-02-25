@@ -683,4 +683,103 @@ export const glass = {
     medium: 'rgba(10, 14, 26, 0.70)',
     heavy: 'rgba(10, 14, 26, 0.85)',
   },
+
+  // ─── Colored Glass Containers ──────────────────────────────────
+  // Frosted glass parent cards with color-coded gradients.
+  // Each "world" has a container (big box) and chip (inner items).
+  // Solves the Revolut problem: dark-on-dark cards that blend into bg.
+  //
+  // Usage with LinearGradient:
+  //   <LinearGradient
+  //     colors={glass.container.green.gradient}
+  //     start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }}
+  //     style={{ borderRadius: 20, borderWidth: 1,
+  //              borderColor: glass.container.green.border, padding: 16 }}
+  //   >
+  //     <View style={{ backgroundColor: glass.container.green.chipBg,
+  //                     borderColor: glass.container.green.chipBorder,
+  //                     borderWidth: 1, borderRadius: 12, padding: 10 }}>
+  //       {/* chip content */}
+  //     </View>
+  //   </LinearGradient>
+  container: {
+    // Green world — positive feedback, strengths, success states
+    green: {
+      gradient: ['rgba(16, 185, 129, 0.10)', 'rgba(16, 185, 129, 0.03)'] as const,
+      border: 'rgba(16, 185, 129, 0.18)',
+      iconBg: 'rgba(16, 185, 129, 0.15)',
+      chipBg: 'rgba(16, 185, 129, 0.06)',
+      chipBorder: 'rgba(16, 185, 129, 0.10)',
+      accent: '#10B981',
+      accentLight: '#34D399',
+      countBg: 'rgba(16, 185, 129, 0.18)',
+      countColor: '#34D399',
+      glow: 'rgba(16, 185, 129, 0.06)',
+    },
+    // Amber world — attention needed, improvements, warnings
+    amber: {
+      gradient: ['rgba(245, 158, 11, 0.10)', 'rgba(245, 158, 11, 0.03)'] as const,
+      border: 'rgba(245, 158, 11, 0.18)',
+      iconBg: 'rgba(245, 158, 11, 0.15)',
+      chipBg: 'rgba(245, 158, 11, 0.05)',
+      chipBorder: 'rgba(245, 158, 11, 0.10)',
+      accent: '#F59E0B',
+      accentLight: '#FBBF24',
+      countBg: 'rgba(245, 158, 11, 0.18)',
+      countColor: '#FBBF24',
+      glow: 'rgba(245, 158, 11, 0.06)',
+    },
+    // Purple world — data, progress, metrics, analytics
+    purple: {
+      gradient: ['rgba(139, 92, 246, 0.10)', 'rgba(139, 92, 246, 0.03)'] as const,
+      border: 'rgba(139, 92, 246, 0.18)',
+      iconBg: 'rgba(139, 92, 246, 0.15)',
+      chipBg: 'rgba(139, 92, 246, 0.05)',
+      chipBorder: 'rgba(139, 92, 246, 0.10)',
+      accent: '#8B5CF6',
+      accentLight: '#A78BFA',
+      countBg: 'rgba(139, 92, 246, 0.18)',
+      countColor: '#A78BFA',
+      glow: 'rgba(139, 92, 246, 0.06)',
+    },
+    // Blue world — primary brand, features, navigation, info
+    blue: {
+      gradient: ['rgba(0, 54, 255, 0.10)', 'rgba(0, 54, 255, 0.03)'] as const,
+      border: 'rgba(0, 54, 255, 0.18)',
+      iconBg: 'rgba(0, 54, 255, 0.15)',
+      chipBg: 'rgba(0, 54, 255, 0.05)',
+      chipBorder: 'rgba(0, 54, 255, 0.10)',
+      accent: '#0036FF',
+      accentLight: '#3D6BFF',
+      countBg: 'rgba(0, 54, 255, 0.18)',
+      countColor: '#3D6BFF',
+      glow: 'rgba(0, 54, 255, 0.06)',
+    },
+    // Cyan world — voice, communication, speaking features
+    cyan: {
+      gradient: ['rgba(0, 210, 255, 0.10)', 'rgba(0, 210, 255, 0.03)'] as const,
+      border: 'rgba(0, 210, 255, 0.18)',
+      iconBg: 'rgba(0, 210, 255, 0.15)',
+      chipBg: 'rgba(0, 210, 255, 0.05)',
+      chipBorder: 'rgba(0, 210, 255, 0.10)',
+      accent: '#00D2FF',
+      accentLight: '#4DE1FF',
+      countBg: 'rgba(0, 210, 255, 0.18)',
+      countColor: '#4DE1FF',
+      glow: 'rgba(0, 210, 255, 0.06)',
+    },
+    // Rose world — weak areas, challenges, intensity
+    rose: {
+      gradient: ['rgba(244, 114, 182, 0.10)', 'rgba(244, 114, 182, 0.03)'] as const,
+      border: 'rgba(244, 114, 182, 0.18)',
+      iconBg: 'rgba(244, 114, 182, 0.15)',
+      chipBg: 'rgba(244, 114, 182, 0.05)',
+      chipBorder: 'rgba(244, 114, 182, 0.10)',
+      accent: '#F472B6',
+      accentLight: '#F9A8D4',
+      countBg: 'rgba(244, 114, 182, 0.18)',
+      countColor: '#F9A8D4',
+      glow: 'rgba(244, 114, 182, 0.06)',
+    },
+  },
 };

@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vox — Feedback Chips: Situation Analysis & Framework</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #06080F;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      color: #D1D5DB;
+      padding: 40px;
+      line-height: 1.6;
+    }
+
+    /* ═══ Layout ═══ */
+    .page { max-width: 1400px; margin: 0 auto; }
+    .page-title {
+      font-size: 28px; font-weight: 800; color: #F9FAFB;
+      margin-bottom: 4px;
+    }
+    .page-sub {
+      font-size: 14px; color: #6B7280; margin-bottom: 40px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 480px 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    /* ═══ Analysis Panel ═══ */
+    .analysis { position: sticky; top: 40px; }
+    .section-label {
+      font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 2px;
+      margin-bottom: 16px;
+    }
+    .section-label.red { color: #EF4444; }
+    .section-label.green { color: #10B981; }
+    .section-label.blue { color: #3D6BFF; }
+    .section-label.purple { color: #A78BFA; }
+
+    .analysis-card {
+      padding: 20px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+    }
+    .analysis-card h3 {
+      font-size: 16px; font-weight: 700; color: #F9FAFB;
+      margin-bottom: 12px;
+    }
+
+    /* Problem card */
+    .problem-card {
+      background: rgba(239,68,68,0.04);
+      border: 1px solid rgba(239,68,68,0.15);
+    }
+    .problem-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+    .problem-item:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .problem-num {
+      width: 22px; height: 22px; border-radius: 6px;
+      background: rgba(239,68,68,0.12); color: #EF4444;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; flex-shrink: 0;
+    }
+    .problem-text b { color: #F9FAFB; }
+
+    /* Solution card */
+    .solution-card {
+      background: rgba(16,185,129,0.04);
+      border: 1px solid rgba(16,185,129,0.15);
+    }
+    .principle {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0; font-size: 13px;
+    }
+    .principle:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .principle-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .principle b { color: #F9FAFB; }
+    .principle .tag {
+      display: inline-block; font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 2px 6px; border-radius: 4px;
+      margin-left: 4px; vertical-align: middle;
+    }
+
+    /* Contrast comparison */
+    .contrast-demo {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      margin-bottom: 20px;
+    }
+    .contrast-box {
+      padding: 16px; border-radius: 12px; text-align: center;
+    }
+    .contrast-box .label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .contrast-box .chip-demo {
+      padding: 10px; border-radius: 10px;
+      font-size: 12px; color: #D1D5DB;
+    }
+
+    /* Framework rules */
+    .rule-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+      margin-bottom: 20px;
+    }
+    .rule-box {
+      padding: 14px; border-radius: 12px; text-align: center;
+    }
+    .rule-box .emoji { font-size: 20px; margin-bottom: 6px; }
+    .rule-box .rule-title {
+      font-size: 12px; font-weight: 700; color: #F9FAFB;
+      margin-bottom: 4px;
+    }
+    .rule-box .rule-desc { font-size: 11px; color: #9CA3AF; line-height: 1.3; }
+
+    /* ═══ Phone Mockups ═══ */
+    .phones-area {
+      display: flex; flex-direction: column; gap: 40px;
+    }
+    .mockup-label {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: 10px;
+    }
+    .mockup-label.bad { color: #EF4444; }
+    .mockup-label.good { color: #10B981; }
+
+    .phones-row {
+      display: flex; gap: 24px; align-items: flex-start;
+    }
+    .phone-wrap { display: flex; flex-direction: column; }
+
+    /* Phone frame */
+    .phone {
+      width: 360px; background: #0A0E1A;
+      border-radius: 36px; border: 2px solid #1A1F3A;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    }
+    .notch {
+      width: 110px; height: 28px; background: #000;
+      border-radius: 0 0 16px 16px;
+      margin: 0 auto;
+    }
+    .status-bar {
+      display: flex; justify-content: space-between;
+      padding: 10px 22px 6px;
+      font-size: 12px; font-weight: 600; color: #F9FAFB;
+    }
+    .scr { padding: 0 16px 24px; }
+
+    /* Shared screen header */
+    .scr-header { text-align: center; padding: 2px 0 14px; }
+    .scr-header .tag {
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      color: #6B7280; margin-bottom: 4px;
+    }
+    .scr-header h2 { font-size: 20px; font-weight: 700; color: #F9FAFB; margin-bottom: 1px; }
+    .scr-header .ctx { font-size: 11px; color: #4B5563; }
+
+    /* Overall pill */
+    .ov {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 12px; margin-bottom: 12px;
+    }
+    .ov-circle { width: 38px; height: 38px; position: relative; flex-shrink: 0; }
+    .ov-circle svg { transform: rotate(-90deg); }
+    .ov-circle .num {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      font-size: 13px; font-weight: 800; color: #F9FAFB;
+    }
+    .ov-info .title { font-size: 12px; font-weight: 700; color: #F9FAFB; }
+    .ov-info .desc { font-size: 11px; color: #6B7280; }
+
+    /* ─── BAD VERSION (before) ─── */
+    .bad-section {
+      margin-bottom: 10px; border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 12px;
+    }
+    .bad-sec-head {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+    }
+    .bad-sec-icon {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: #9CA3AF;
+    }
+    .bad-sec-title { font-size: 12px; font-weight: 600; color: #D1D5DB; }
+    .bad-chip {
+      padding: 8px; border-radius: 8px; margin-bottom: 4px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      font-size: 11px; color: #9CA3AF;
+    }
+
+    /* ─── GOOD VERSION (after) — the new framework ─── */
+
+    /* Section container */
+    .fx-section {
+      margin-bottom: 14px;
+    }
+    .fx-sec-header {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px;
+    }
+    .fx-sec-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .fx-sec-title { font-size: 13px; font-weight: 700; color: #F9FAFB; }
+    .fx-sec-count {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 7px; border-radius: 99px;
+    }
+
+    /* ── Strength chips ── */
+    .str-chip {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin-bottom: 6px;
+      /* The key differentiators: */
+      background: rgba(16,185,129,0.06);
+      border-left: 3px solid #10B981;
+      border-top: 1px solid rgba(16,185,129,0.10);
+      border-right: 1px solid rgba(16,185,129,0.06);
+      border-bottom: 1px solid rgba(16,185,129,0.06);
+      min-height: 52px;
+    }
+    .str-chip-check {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(16,185,129,0.15);
+      border: 1.5px solid rgba(16,185,129,0.30);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .str-chip-check svg { width: 10px; height: 10px; }
+    .str-chip-text {
+      font-size: 12.5px; color: #E5E7EB; line-height: 1.35;
+      font-weight: 500;
+    }
+    .str-chip-skill {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: #10B981;
+      background: rgba(16,185,129,0.10);
+      padding: 2px 6px; border-radius: 4px;
+      flex-shrink: 0; margin-left: auto;
+    }
+
+    /* ── Improvement chips ── */
+    .imp-chip {
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin-bottom: 6px;
+      background: rgba(0,54,255,0.05);
+      border-left: 3px solid #3D6BFF;
+      border-top: 1px solid rgba(0,54,255,0.10);
+      border-right: 1px solid rgba(0,54,255,0.06);
+      border-bottom: 1px solid rgba(0,54,255,0.06);
+      min-height: 52px;
+    }
+    .imp-chip-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .imp-chip-area {
+      font-size: 13px; font-weight: 700; color: #F9FAFB;
+    }
+    .imp-chip-pri {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.4px; padding: 2px 7px; border-radius: 5px;
+    }
+    .pri-focus { background: rgba(245,158,11,0.15); color: #F59E0B; }
+    .pri-practice { background: rgba(0,54,255,0.12); color: #3D6BFF; }
+    .imp-chip-sug {
+      font-size: 11.5px; color: #9CA3AF; line-height: 1.35;
+    }
+    .imp-chip-ex {
+      margin-top: 6px; padding: 8px 10px;
+      background: rgba(0,0,0,0.20);
+      border-radius: 8px;
+      font-size: 11px; line-height: 1.35;
+    }
+    .imp-chip-ex .wrong { color: #F87171; text-decoration: line-through; opacity: 0.7; }
+    .imp-chip-ex .right { color: #34D399; }
+
+    /* ── Progress chips ── */
+    .prog-chip {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      margin-bottom: 6px;
+      background: rgba(139,92,246,0.05);
+      border-left: 3px solid #8B5CF6;
+      border-top: 1px solid rgba(139,92,246,0.10);
+      border-right: 1px solid rgba(139,92,246,0.06);
+      border-bottom: 1px solid rgba(139,92,246,0.06);
+      min-height: 48px;
+    }
+    .prog-chip-info { flex: 1; }
+    .prog-chip-name {
+      font-size: 12px; font-weight: 600; color: #E5E7EB;
+    }
+    .prog-chip-bar {
+      width: 100%; height: 3px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px; margin-top: 5px;
+      overflow: hidden; position: relative;
+    }
+    .prog-chip-fill {
+      height: 100%; border-radius: 2px;
+      position: absolute; left: 0; top: 0;
+    }
+    .prog-chip-right {
+      display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    }
+    .prog-chip-vals {
+      font-size: 11px; color: #6B7280; font-weight: 500;
+      text-align: right;
+    }
+    .prog-chip-vals span { color: #F9FAFB; font-weight: 700; }
+    .prog-chip-trend {
+      width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+    }
+    .t-up { background: rgba(16,185,129,0.15); color: #10B981; }
+    .t-eq { background: rgba(245,158,11,0.12); color: #F59E0B; }
+
+    /* CTA */
+    .cta {
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 13px;
+      background: linear-gradient(135deg, #10B981, #34D399);
+      border-radius: 12px; font-size: 14px; font-weight: 700;
+      color: #F9FAFB; margin-top: 4px; border: none; width: 100%;
+    }
+
+    /* ═══ Arrows / annotations ═══ */
+    .vs-label {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      align-self: center; gap: 6px;
+    }
+    .vs-label .arrow { font-size: 24px; color: #3D6BFF; }
+    .vs-label .text {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: #4B5563;
+    }
+
+    /* ═══ Color spec strip ═══ */
+    .color-spec {
+      display: flex; gap: 12px; margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .color-swatch {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .swatch {
+      width: 16px; height: 16px; border-radius: 4px;
+    }
+    .color-swatch .name { font-size: 11px; font-weight: 600; color: #D1D5DB; }
+    .color-swatch .hex { font-size: 10px; color: #6B7280; font-family: monospace; }
+
+    /* ═══ Responsive ═══ */
+    @media (max-width: 1100px) {
+      .two-col { grid-template-columns: 1fr; }
+      .analysis { position: static; }
+      .phones-row { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <h1 class="page-title">Feedback Chips — Situation Analysis & Framework</h1>
+  <p class="page-sub">UI/UX audit of feedback card visual hierarchy on dark backgrounds. Vox Language App.</p>
+
+  <div class="two-col">
+
+    <!-- ═══════════════════════════════════════════════════
+         LEFT — ANALYSIS & FRAMEWORK
+         ═══════════════════════════════════════════════════ -->
+    <div class="analysis">
+
+      <!-- PROBLEM -->
+      <div class="section-label red">Situation Analysis — The Problem</div>
+      <div class="analysis-card problem-card">
+        <h3>Why the current chips don't work</h3>
+        <div class="problem-item">
+          <div class="problem-num">1</div>
+          <div><b>Zero visual distinction</b> — All 3 sections use the same rgba(255,255,255,0.03) background. Strengths look identical to Improvements. The user's brain has to read every title to know which section they're in.</div>
+        </div>
+        <div class="problem-item">
+          <div class="problem-num">2</div>
+          <div><b>Card background = Page background</b> — 3% white opacity on #0A0E1A is visually invisible. The "boxes" don't exist as separate objects. Same problem as the Revolut screenshot — everything blends into a dark wall.</div>
+        </div>
+        <div class="problem-item">
+          <div class="problem-num">3</div>
+          <div><b>Borders too subtle</b> — 1px at 6% opacity is perceived as "no border" on dark backgrounds. Cards have no edge, no boundary, no container feeling.</div>
+        </div>
+        <div class="problem-item">
+          <div class="problem-num">4</div>
+          <div><b>No semantic color coding</b> — Green = good, Blue = work on it, Purple = progress. The current design doesn't use color to convey meaning. Users must READ to understand — they can't SCAN.</div>
+        </div>
+        <div class="problem-item">
+          <div class="problem-num">5</div>
+          <div><b>No fixed rhythm</b> — Variable chip heights create uneven visual flow. The eye has no anchor points. Items feel like a continuous list, not distinct pieces of feedback.</div>
+        </div>
+      </div>
+
+      <!-- CONTRAST DEMO -->
+      <div class="contrast-demo">
+        <div class="contrast-box" style="background: #0A0E1A; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+          <div class="label" style="color: #EF4444;">Before — 3% white</div>
+          <div class="chip-demo" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px;">
+            Chip content here
+          </div>
+        </div>
+        <div class="contrast-box" style="background: #0A0E1A; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+          <div class="label" style="color: #10B981;">After — Colored 6%</div>
+          <div class="chip-demo" style="background: rgba(16,185,129,0.06); border-left: 3px solid #10B981; border-top: 1px solid rgba(16,185,129,0.10); border-right: 1px solid rgba(16,185,129,0.06); border-bottom: 1px solid rgba(16,185,129,0.06); border-radius: 8px;">
+            Chip content here
+          </div>
+        </div>
+      </div>
+
+      <!-- FRAMEWORK -->
+      <div class="section-label green">Framework — 5 Principles</div>
+      <div class="analysis-card solution-card">
+        <h3>How every chip must be built</h3>
+
+        <div class="principle">
+          <div class="principle-icon" style="background: rgba(16,185,129,0.12); color: #10B981;">1</div>
+          <div><b>Left accent bar (3px)</b> — The fastest visual cue. Color-coded per section: green (strength), blue (improvement), purple (progress). Visible from peripheral vision. <span class="tag" style="background: rgba(16,185,129,0.12); color: #10B981;">Identity</span></div>
+        </div>
+
+        <div class="principle">
+          <div class="principle-icon" style="background: rgba(0,54,255,0.12); color: #3D6BFF;">2</div>
+          <div><b>Tinted background (6% of section color)</b> — Not white glass, but COLORED glass. Green tint for strengths, blue tint for improvements. Creates a visible surface that separates from the page. <span class="tag" style="background: rgba(0,54,255,0.12); color: #3D6BFF;">Surface</span></div>
+        </div>
+
+        <div class="principle">
+          <div class="principle-icon" style="background: rgba(139,92,246,0.12); color: #A78BFA;">3</div>
+          <div><b>Fixed minimum height (48-52px)</b> — Every chip has a consistent minimum. Creates visual rhythm. The eye knows exactly where each feedback item starts and ends. <span class="tag" style="background: rgba(139,92,246,0.12); color: #A78BFA;">Rhythm</span></div>
+        </div>
+
+        <div class="principle">
+          <div class="principle-icon" style="background: rgba(245,158,11,0.12); color: #F59E0B;">4</div>
+          <div><b>Asymmetric borders (top 10%, sides 6%)</b> — Top border slightly brighter than sides creates a subtle "shelf" effect. The chip feels like a real object sitting on the page, not a drawn rectangle. <span class="tag" style="background: rgba(245,158,11,0.12); color: #F59E0B;">Depth</span></div>
+        </div>
+
+        <div class="principle">
+          <div class="principle-icon" style="background: rgba(0,163,255,0.12); color: #00A3FF;">5</div>
+          <div><b>One clear purpose per chip</b> — Each chip answers exactly one question. Strength chip = "What specific skill was good?" Improvement chip = "What area + what to do about it?" Progress chip = "Am I getting better?" <span class="tag" style="background: rgba(0,163,255,0.12); color: #00A3FF;">Clarity</span></div>
+        </div>
+      </div>
+
+      <!-- CHIP ANATOMY -->
+      <div class="section-label blue">Chip Anatomy — Fixed Structure</div>
+      <div class="rule-grid">
+        <div class="rule-box" style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.12); border-radius: 12px;">
+          <div class="emoji">&#10003;</div>
+          <div class="rule-title" style="color: #10B981;">Strength Chip</div>
+          <div class="rule-desc">Check icon + skill text + skill tag. Fixed 52px min-height. Green world.</div>
+        </div>
+        <div class="rule-box" style="background: rgba(0,54,255,0.06); border: 1px solid rgba(0,54,255,0.12); border-radius: 12px;">
+          <div class="emoji">&#9432;</div>
+          <div class="rule-title" style="color: #3D6BFF;">Improvement Chip</div>
+          <div class="rule-desc">Area title + priority tag + suggestion + optional example. Blue world.</div>
+        </div>
+        <div class="rule-box" style="background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.12); border-radius: 12px;">
+          <div class="emoji">&#8599;</div>
+          <div class="rule-title" style="color: #A78BFA;">Progress Chip</div>
+          <div class="rule-desc">Metric + mini bar + values + trend arrow. Fixed 48px. Purple world.</div>
+        </div>
+      </div>
+
+      <!-- COLOR SPEC -->
+      <div class="section-label purple">Color Spec — Per Section</div>
+      <div class="color-spec">
+        <div class="color-swatch">
+          <div class="swatch" style="background: #10B981;"></div>
+          <div>
+            <div class="name">Strengths</div>
+            <div class="hex">bg: rgba(16,185,129,0.06) | bar: #10B981</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="swatch" style="background: #3D6BFF;"></div>
+          <div>
+            <div class="name">Improvements</div>
+            <div class="hex">bg: rgba(0,54,255,0.05) | bar: #3D6BFF</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="swatch" style="background: #8B5CF6;"></div>
+          <div>
+            <div class="name">Progress</div>
+            <div class="hex">bg: rgba(139,92,246,0.05) | bar: #8B5CF6</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════
+         RIGHT — BEFORE / AFTER MOCKUPS
+         ═══════════════════════════════════════════════════ -->
+    <div class="phones-area">
+
+      <div class="phones-row">
+
+        <!-- BEFORE -->
+        <div class="phone-wrap">
+          <div class="mockup-label bad">Before — The Revolut Problem</div>
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="status-bar"><span>9:41</span><span style="font-size:10px;color:#6B7280;">100%</span></div>
+            <div class="scr">
+              <div class="scr-header">
+                <div class="tag">Session Review</div>
+                <h2>Your Feedback</h2>
+                <div class="ctx">Business Meeting</div>
+              </div>
+
+              <div class="ov" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+                <div class="ov-circle">
+                  <svg width="38" height="38" viewBox="0 0 38 38">
+                    <circle cx="19" cy="19" r="15" stroke="rgba(255,255,255,0.06)" stroke-width="3" fill="none"/>
+                    <circle cx="19" cy="19" r="15" stroke="#6B7280" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="14" transform="rotate(-90 19 19)"/>
+                  </svg>
+                  <div class="num" style="font-size:12px;">85</div>
+                </div>
+                <div class="ov-info">
+                  <div class="title">Solid performance</div>
+                  <div class="desc">A few areas to refine.</div>
+                </div>
+              </div>
+
+              <!-- Bad: All sections look the same -->
+              <div class="bad-section">
+                <div class="bad-sec-head">
+                  <div class="bad-sec-icon">&#10003;</div>
+                  <div class="bad-sec-title">What You Did Well</div>
+                </div>
+                <div class="bad-chip">Accurate use of conditional tense in negotiation phrases.</div>
+                <div class="bad-chip">Natural intonation on questions.</div>
+                <div class="bad-chip">Good vocabulary range for agreement.</div>
+                <div class="bad-chip">Smooth transitions between points.</div>
+              </div>
+
+              <div class="bad-section">
+                <div class="bad-sec-head">
+                  <div class="bad-sec-icon">&#9432;</div>
+                  <div class="bad-sec-title">What to Work On</div>
+                </div>
+                <div class="bad-chip">Subjunctive mood — Practice forming subjunctive clauses.</div>
+                <div class="bad-chip">Filler words — You used "este" 6 times.</div>
+              </div>
+
+              <div class="bad-section">
+                <div class="bad-sec-head">
+                  <div class="bad-sec-icon">&#8599;</div>
+                  <div class="bad-sec-title">Your Progress</div>
+                </div>
+                <div class="bad-chip">Articulation: 62 → 71</div>
+                <div class="bad-chip">Fluency: 78 → 78</div>
+                <div class="bad-chip">Communication: 80 → 85</div>
+              </div>
+
+              <button class="cta" style="background: rgba(255,255,255,0.06); color: #9CA3AF; margin-top: 8px;">Continue</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VS -->
+        <div class="vs-label">
+          <div class="text">vs</div>
+          <div class="arrow">&rarr;</div>
+        </div>
+
+        <!-- AFTER -->
+        <div class="phone-wrap">
+          <div class="mockup-label good">After — Framework Applied</div>
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="status-bar"><span>9:41</span><span style="font-size:10px;color:#6B7280;">100%</span></div>
+            <div class="scr">
+              <div class="scr-header">
+                <div class="tag">Session Review</div>
+                <h2>Your Feedback</h2>
+                <div class="ctx">Business Meeting</div>
+              </div>
+
+              <!-- Overall with color -->
+              <div class="ov" style="background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.12);">
+                <div class="ov-circle">
+                  <svg width="38" height="38" viewBox="0 0 38 38">
+                    <circle cx="19" cy="19" r="15" stroke="rgba(16,185,129,0.12)" stroke-width="3" fill="none"/>
+                    <circle cx="19" cy="19" r="15" stroke="#10B981" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="14" transform="rotate(-90 19 19)"/>
+                  </svg>
+                  <div class="num" style="font-size:12px;">85</div>
+                </div>
+                <div class="ov-info">
+                  <div class="title">Solid performance</div>
+                  <div class="desc">A few areas to refine.</div>
+                </div>
+              </div>
+
+              <!-- SECTION 1: Strengths — GREEN WORLD -->
+              <div class="fx-section">
+                <div class="fx-sec-header">
+                  <div class="fx-sec-icon" style="background: rgba(16,185,129,0.12);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </div>
+                  <span class="fx-sec-title">What You Did Well</span>
+                  <span class="fx-sec-count" style="background: rgba(16,185,129,0.15); color: #10B981;">4</span>
+                </div>
+
+                <div class="str-chip">
+                  <div class="str-chip-check">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </div>
+                  <div class="str-chip-text">Accurate conditional tense in negotiation phrases.</div>
+                  <div class="str-chip-skill">Grammar</div>
+                </div>
+
+                <div class="str-chip">
+                  <div class="str-chip-check">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </div>
+                  <div class="str-chip-text">Natural intonation on questions — sounded confident.</div>
+                  <div class="str-chip-skill">Pronunc.</div>
+                </div>
+
+                <div class="str-chip">
+                  <div class="str-chip-check">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </div>
+                  <div class="str-chip-text">Good vocabulary range for agreement and concessions.</div>
+                  <div class="str-chip-skill">Vocab</div>
+                </div>
+
+                <div class="str-chip">
+                  <div class="str-chip-check">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </div>
+                  <div class="str-chip-text">Smooth transitions between points without pauses.</div>
+                  <div class="str-chip-skill">Fluency</div>
+                </div>
+              </div>
+
+              <!-- SECTION 2: Improvements — BLUE WORLD -->
+              <div class="fx-section">
+                <div class="fx-sec-header">
+                  <div class="fx-sec-icon" style="background: rgba(0,54,255,0.12);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3D6BFF" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                  </div>
+                  <span class="fx-sec-title">What to Work On</span>
+                  <span class="fx-sec-count" style="background: rgba(0,54,255,0.15); color: #3D6BFF;">2</span>
+                </div>
+
+                <div class="imp-chip">
+                  <div class="imp-chip-top">
+                    <span class="imp-chip-area">Subjunctive mood</span>
+                    <span class="imp-chip-pri pri-focus">Focus</span>
+                  </div>
+                  <div class="imp-chip-sug">Practice subjunctive clauses in hypothetical formal settings.</div>
+                  <div class="imp-chip-ex">
+                    <span class="wrong">"Si tendria mas tiempo..."</span><br>
+                    <span class="right">"Si tuviera mas tiempo..."</span>
+                  </div>
+                </div>
+
+                <div class="imp-chip">
+                  <div class="imp-chip-top">
+                    <span class="imp-chip-area">Filler words</span>
+                    <span class="imp-chip-pri pri-practice">Practice</span>
+                  </div>
+                  <div class="imp-chip-sug">Used "este" 6 times. Try pausing silently instead.</div>
+                </div>
+              </div>
+
+              <!-- SECTION 3: Progress — PURPLE WORLD -->
+              <div class="fx-section">
+                <div class="fx-sec-header">
+                  <div class="fx-sec-icon" style="background: rgba(139,92,246,0.12);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  </div>
+                  <span class="fx-sec-title">Your Progress</span>
+                </div>
+
+                <div class="prog-chip">
+                  <div class="prog-chip-info">
+                    <div class="prog-chip-name">Articulation</div>
+                    <div class="prog-chip-bar">
+                      <div class="prog-chip-fill" style="width:71%; background: #00A3FF;"></div>
+                    </div>
+                  </div>
+                  <div class="prog-chip-right">
+                    <div class="prog-chip-vals"><span>62</span> &rarr; <span>71</span></div>
+                    <div class="prog-chip-trend t-up">&uarr;</div>
+                  </div>
+                </div>
+
+                <div class="prog-chip">
+                  <div class="prog-chip-info">
+                    <div class="prog-chip-name">Fluency</div>
+                    <div class="prog-chip-bar">
+                      <div class="prog-chip-fill" style="width:78%; background: #06D6A0;"></div>
+                    </div>
+                  </div>
+                  <div class="prog-chip-right">
+                    <div class="prog-chip-vals"><span>78</span> &rarr; <span>78</span></div>
+                    <div class="prog-chip-trend t-eq">&ndash;</div>
+                  </div>
+                </div>
+
+                <div class="prog-chip">
+                  <div class="prog-chip-info">
+                    <div class="prog-chip-name">Communication</div>
+                    <div class="prog-chip-bar">
+                      <div class="prog-chip-fill" style="width:85%; background: #8B5CF6;"></div>
+                    </div>
+                  </div>
+                  <div class="prog-chip-right">
+                    <div class="prog-chip-vals"><span>80</span> &rarr; <span>85</span></div>
+                    <div class="prog-chip-trend t-up">&uarr;</div>
+                  </div>
+                </div>
+              </div>
+
+              <button class="cta">Continue</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /phones-row -->
+    </div><!-- /phones-area -->
+
+  </div><!-- /two-col -->
+
+</div><!-- /page -->
+</body>
+</html>

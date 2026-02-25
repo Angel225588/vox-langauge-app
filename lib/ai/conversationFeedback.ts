@@ -13,7 +13,7 @@
 
 import { generateJSON } from './claudeClient';
 import { sanitizePromptInput } from './sanitize';
-import type { ConversationFeedback } from '@/lib/db/conversations';
+import type { ConversationFeedback, DetailedStrength, DetailedImprovement } from '@/lib/db/conversations';
 import type { ElevenLabsMessage } from '@/lib/voice/elevenLabsTypes';
 
 // =============================================================================
@@ -41,8 +41,11 @@ interface RawFeedbackResponse {
   communication: number;
   scenario: number;
   summary: string;
+  overallMessage: string;
   strengths: string[];
   improvements: string[];
+  detailedStrengths: DetailedStrength[];
+  detailedImprovements: DetailedImprovement[];
   newVocabulary: string[];
   vocabUsed: string[];
   vocabMissed: string[];
@@ -54,7 +57,9 @@ interface RawFeedbackResponse {
 
 const FEEDBACK_SYSTEM_PROMPT = `You are an expert language proficiency evaluator for the Vox language learning app. You analyze voice conversation transcripts between a language learner and an AI tutor.
 
-Your evaluation must be professional, encouraging, and actionable. Score accurately — don't inflate scores to be nice, but recognize genuine effort and progress.
+Your tone is professional and direct — like a respected coach, not a cheerleader. Be specific about what they did well and what to work on. Never use generic praise ("Great job!"), hype language ("AMAZING!"), or condescending encouragement ("Don't worry!"). Every strength must reference a specific skill. Every improvement must include an actionable suggestion.
+
+Score accurately — don't inflate scores to be nice, but recognize genuine effort and progress.
 
 IMPORTANT: Respond ONLY with valid JSON. No markdown, no explanation outside the JSON.`;
 
@@ -113,12 +118,37 @@ Return this exact JSON structure:
   "communication": <number 0-100>,
   "scenario": <number 0-100>,
   "summary": "<1-2 sentence overall assessment>",
-  "strengths": ["<strength 1>", "<strength 2>"],
-  "improvements": ["<specific actionable improvement 1>", "<specific actionable improvement 2>"],
+  "overallMessage": "<1 sentence professional assessment, e.g. 'Solid performance. A few areas to refine.' — direct, no hype>",
+  "strengths": ["<strength 1 as simple string>", "<strength 2>"],
+  "improvements": ["<improvement 1 as simple string>", "<improvement 2>"],
+  "detailedStrengths": [
+    {
+      "text": "<specific skill-referenced strength, 8-15 words, e.g. 'Accurate use of conditional tense in negotiation phrases.'>",
+      "skill": "<one of: grammar, pronunciation, vocabulary, fluency, register, comprehension>"
+    }
+  ],
+  "detailedImprovements": [
+    {
+      "area": "<short label, 2-4 words, e.g. 'Subjunctive mood'>",
+      "suggestion": "<actionable suggestion, 10-20 words, e.g. 'Practice forming subjunctive clauses when expressing hypotheticals in formal settings.'>",
+      "priority": "<one of: focus (high impact, address first), practice (moderate, improve over time), polish (minor refinement)>",
+      "example": {
+        "incorrect": "<optional: what the learner said wrong>",
+        "correct": "<optional: the correct form>",
+        "tip": "<optional: a practical tip if no before/after applies>"
+      }
+    }
+  ],
   "newVocabulary": ["<new word learner used correctly for the first time>"],
   "vocabUsed": ["<words from pre-call vocab that learner actually used>"],
   "vocabMissed": ["<words from pre-call vocab that learner did NOT use or struggled with>"]
-}`;
+}
+
+## Tone Rules for Feedback Text
+- detailedStrengths: Each must reference a SPECIFIC skill (grammar pattern, pronunciation, vocabulary choice, register). Never generic ("Good job overall").
+- detailedImprovements: 1-3 items max. Include "focus" priority only for high-impact issues. Include example.incorrect/correct when applicable.
+- overallMessage: 1 sentence, professional, factual. Examples: "You handled this scenario well. A few areas to refine." / "Strong vocabulary range. Work on verb conjugation consistency."
+- 2-4 detailedStrengths, 1-3 detailedImprovements.`;
 
   try {
     const result = await generateJSON<RawFeedbackResponse>(prompt, FEEDBACK_SYSTEM_PROMPT);
@@ -139,6 +169,9 @@ Return this exact JSON structure:
       strengths: result.strengths || [],
       improvements: result.improvements || [],
       newVocabulary: result.newVocabulary || [],
+      overallMessage: result.overallMessage || result.summary || 'Conversation analyzed.',
+      detailedStrengths: result.detailedStrengths || [],
+      detailedImprovements: result.detailedImprovements || [],
     };
 
     return {

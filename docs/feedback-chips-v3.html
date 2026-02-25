@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vox — Feedback Screen V3 (Glass Containers + Mini-Chips)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #050810;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      display: flex;
+      gap: 40px;
+      padding: 32px;
+      min-height: 100vh;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ═══ Spec panel ═══ */
+    .spec {
+      width: 380px;
+      color: #D1D5DB;
+      font-size: 13px;
+      line-height: 1.55;
+      position: sticky;
+      top: 32px;
+    }
+    .spec h1 {
+      font-size: 22px; font-weight: 800; color: #F9FAFB;
+      margin-bottom: 4px;
+    }
+    .spec .sub { font-size: 12px; color: #6B7280; margin-bottom: 28px; }
+
+    .spec-card {
+      padding: 18px; border-radius: 14px;
+      margin-bottom: 16px;
+    }
+    .spec-card h3 {
+      font-size: 14px; font-weight: 700; color: #F9FAFB;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .spec-card h3 .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    .anatomy-row {
+      display: flex; gap: 8px; margin-bottom: 12px;
+    }
+    .anatomy-box {
+      flex: 1; padding: 12px; border-radius: 10px; text-align: center;
+    }
+    .anatomy-box .label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+    .anatomy-box .value { font-size: 11px; color: #9CA3AF; }
+
+    .color-row {
+      display: flex; gap: 8px; margin-bottom: 12px;
+    }
+    .color-chip {
+      flex: 1; padding: 10px; border-radius: 10px; text-align: center;
+      font-size: 11px; font-weight: 600;
+    }
+    .color-chip .hex { font-size: 10px; font-family: monospace; opacity: 0.7; margin-top: 2px; }
+
+    .reason {
+      padding: 10px 12px; border-radius: 10px; font-size: 12px;
+      margin-bottom: 8px; line-height: 1.4;
+    }
+    .reason b { color: #F9FAFB; }
+
+    /* ═══ Phone ═══ */
+    .phone-wrap { display: flex; flex-direction: column; }
+    .phone-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.5px;
+      color: #10B981; margin-bottom: 8px; text-align: center;
+    }
+    .phone {
+      width: 390px; height: 844px;
+      background: #0A0E1A;
+      border-radius: 42px;
+      border: 2.5px solid #1A1F3A;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.03),
+        0 20px 60px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+    }
+    .notch {
+      width: 120px; height: 30px; background: #000;
+      border-radius: 0 0 18px 18px;
+      margin: 0 auto; flex-shrink: 0;
+    }
+    .sbar {
+      display: flex; justify-content: space-between;
+      padding: 10px 24px 6px;
+      font-size: 13px; font-weight: 600; color: #F9FAFB;
+      flex-shrink: 0;
+    }
+    .scr {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 18px 28px;
+    }
+    .scr::-webkit-scrollbar { display: none; }
+
+    /* Header */
+    .hdr { text-align: center; padding: 2px 0 16px; }
+    .hdr .tag {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      color: #6B7280; margin-bottom: 5px;
+    }
+    .hdr h2 { font-size: 22px; font-weight: 700; color: #F9FAFB; margin-bottom: 2px; }
+    .hdr .ctx { font-size: 12px; color: #4B5563; }
+
+    /* Overall score pill */
+    .overall {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
+      border: 1px solid rgba(16,185,129,0.15);
+      border-radius: 16px;
+      margin-bottom: 16px;
+    }
+    .ov-ring { width: 44px; height: 44px; position: relative; flex-shrink: 0; }
+    .ov-ring svg { transform: rotate(-90deg); }
+    .ov-ring .num {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      font-size: 15px; font-weight: 800; color: #F9FAFB;
+    }
+    .ov-text .title { font-size: 14px; font-weight: 700; color: #F9FAFB; }
+    .ov-text .desc { font-size: 12px; color: #9CA3AF; margin-top: 1px; }
+
+    /* ════════════════════════════════════════════
+       BIG GLASS CONTAINERS
+       The frosted glass parent cards.
+       Each section lives inside one of these.
+       ════════════════════════════════════════════ */
+
+    .glass-box {
+      position: relative;
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 14px;
+      /* Frosted glass base */
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      overflow: hidden;
+    }
+    /* Inner highlight — simulates light refraction on top edge of glass */
+    .glass-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      border-radius: 20px 20px 0 0;
+    }
+
+    /* ── Green Glass: Strengths ── */
+    .glass-green {
+      background: linear-gradient(
+        160deg,
+        rgba(16, 185, 129, 0.10) 0%,
+        rgba(16, 185, 129, 0.04) 40%,
+        rgba(10, 14, 26, 0.60) 100%
+      );
+      border: 1px solid rgba(16, 185, 129, 0.18);
+      box-shadow:
+        0 4px 24px rgba(16, 185, 129, 0.06),
+        inset 0 1px 0 rgba(16, 185, 129, 0.15);
+    }
+
+    /* ── Amber Glass: Improvements ── */
+    .glass-amber {
+      background: linear-gradient(
+        160deg,
+        rgba(245, 158, 11, 0.10) 0%,
+        rgba(245, 158, 11, 0.04) 40%,
+        rgba(10, 14, 26, 0.60) 100%
+      );
+      border: 1px solid rgba(245, 158, 11, 0.18);
+      box-shadow:
+        0 4px 24px rgba(245, 158, 11, 0.06),
+        inset 0 1px 0 rgba(245, 158, 11, 0.15);
+    }
+
+    /* ── Purple Glass: Progress ── */
+    .glass-purple {
+      background: linear-gradient(
+        160deg,
+        rgba(139, 92, 246, 0.10) 0%,
+        rgba(139, 92, 246, 0.04) 40%,
+        rgba(10, 14, 26, 0.60) 100%
+      );
+      border: 1px solid rgba(139, 92, 246, 0.18);
+      box-shadow:
+        0 4px 24px rgba(139, 92, 246, 0.06),
+        inset 0 1px 0 rgba(139, 92, 246, 0.15);
+    }
+
+    /* ── Section header inside glass ── */
+    .gx-head {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 12px;
+    }
+    .gx-icon {
+      width: 32px; height: 32px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .gx-title { font-size: 14px; font-weight: 700; color: #F9FAFB; }
+    .gx-count {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 99px;
+      margin-left: auto;
+    }
+
+    /* ════════════════════════════════════════════
+       MINI-CHIPS (inside glass containers)
+       Compact, fixed height, clear purpose.
+       ════════════════════════════════════════════ */
+
+    /* ── Strength mini-chip ── */
+    .mc-str {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      background: rgba(16, 185, 129, 0.06);
+      border: 1px solid rgba(16, 185, 129, 0.10);
+      border-radius: 12px;
+      margin-bottom: 6px;
+      min-height: 46px;
+    }
+    .mc-str-dot {
+      width: 22px; height: 22px; border-radius: 7px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .mc-str-dot svg { width: 12px; height: 12px; }
+    .mc-str-text {
+      flex: 1;
+      font-size: 12.5px; color: #E5E7EB;
+      line-height: 1.35; font-weight: 500;
+    }
+    .mc-str-tag {
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      color: #10B981; opacity: 0.8;
+      background: rgba(16, 185, 129, 0.10);
+      padding: 2px 6px; border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    /* ── Improvement mini-chip ── */
+    .mc-imp {
+      padding: 10px 12px;
+      background: rgba(245, 158, 11, 0.05);
+      border: 1px solid rgba(245, 158, 11, 0.10);
+      border-radius: 12px;
+      margin-bottom: 6px;
+    }
+    .mc-imp-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 3px;
+    }
+    .mc-imp-area {
+      font-size: 13px; font-weight: 700; color: #F9FAFB;
+    }
+    .mc-imp-pri {
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      padding: 2px 7px; border-radius: 5px;
+    }
+    .pri-focus { background: rgba(245,158,11,0.18); color: #FBBF24; }
+    .pri-practice { background: rgba(245,158,11,0.10); color: rgba(245,158,11,0.7); }
+    .mc-imp-sug {
+      font-size: 12px; color: #9CA3AF; line-height: 1.35;
+    }
+    .mc-imp-ex {
+      margin-top: 6px; padding: 8px 10px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 8px;
+      font-size: 11px; line-height: 1.4;
+    }
+    .mc-imp-ex .wrong { color: #FCA5A5; text-decoration: line-through; opacity: 0.7; }
+    .mc-imp-ex .right { color: #34D399; }
+
+    /* ── Progress mini-chip ── */
+    .mc-prog {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      background: rgba(139, 92, 246, 0.05);
+      border: 1px solid rgba(139, 92, 246, 0.10);
+      border-radius: 12px;
+      margin-bottom: 6px;
+      min-height: 44px;
+    }
+    .mc-prog-info { flex: 1; }
+    .mc-prog-name { font-size: 12px; font-weight: 600; color: #E5E7EB; }
+    .mc-prog-bar {
+      width: 100%; height: 3px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 2px; margin-top: 5px;
+      overflow: hidden;
+    }
+    .mc-prog-fill {
+      height: 100%; border-radius: 2px;
+    }
+    .mc-prog-right {
+      display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    }
+    .mc-prog-vals {
+      font-size: 11px; color: #6B7280; font-weight: 500;
+    }
+    .mc-prog-vals span { color: #F9FAFB; font-weight: 700; }
+    .mc-prog-trend {
+      width: 24px; height: 24px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+    }
+    .t-up { background: rgba(16,185,129,0.15); color: #10B981; }
+    .t-eq { background: rgba(245,158,11,0.12); color: #F59E0B; }
+
+    /* CTA */
+    .cta-btn {
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 14px;
+      background: linear-gradient(135deg, #10B981, #34D399);
+      border-radius: 14px;
+      font-size: 15px; font-weight: 700; color: #F9FAFB;
+      margin-top: 6px; border: none; width: 100%;
+      box-shadow: 0 4px 16px rgba(16,185,129,0.25);
+    }
+
+    /* ═══ Responsive ═══ */
+    @media (max-width: 860px) {
+      body { flex-direction: column; align-items: center; padding: 16px; }
+      .spec { position: static; width: 100%; max-width: 390px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══ SPEC PANEL ═══ -->
+  <div class="spec">
+    <h1>V3 — Glass Containers</h1>
+    <p class="sub">Big frosted glass boxes with mini-chips inside. Color rethink for improvements.</p>
+
+    <!-- Structure -->
+    <div class="spec-card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+      <h3>Container Architecture</h3>
+      <div style="font-size: 12px; color: #9CA3AF; line-height: 1.5; margin-bottom: 12px;">
+        Like Revolut's "Compte de courtage" card — a big parent glass box that contains child items inside. Each section is a <b style="color:#F9FAFB;">distinct frosted glass world</b> with its own color gradient, housing mini-chips as individual feedback points.
+      </div>
+      <div style="font-size: 12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; font-family: monospace; color: #9CA3AF; line-height: 1.6;">
+        Glass Container (gradient + blur + glow)<br>
+        &nbsp;&nbsp;|- Section Header (icon + title + count)<br>
+        &nbsp;&nbsp;|- Mini-Chip 1 (tinted inner card)<br>
+        &nbsp;&nbsp;|- Mini-Chip 2<br>
+        &nbsp;&nbsp;'- Mini-Chip 3
+      </div>
+    </div>
+
+    <!-- Color decision -->
+    <div class="spec-card" style="background: rgba(245,158,11,0.04); border: 1px solid rgba(245,158,11,0.12);">
+      <h3><span class="dot" style="background: #F59E0B;"></span> Why Amber for "Work On"</h3>
+
+      <div class="reason" style="background: rgba(0,54,255,0.06); border: 1px solid rgba(0,54,255,0.12);">
+        <b style="color:#EF4444;">Blue was wrong</b> — Blue is Vox's brand color (#0036FF). Using it for "things to improve" sends mixed signals. The brand color should represent the product, not problems.
+      </div>
+
+      <div class="reason" style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.12);">
+        <b style="color:#FBBF24;">Amber is right</b> — Universal "pay attention" signal. Warm, eye-catching on dark backgrounds. Not alarming (like red) but demands focus. Already in the Vox design system as <code style="font-size:11px; color:#F59E0B;">colors.warning.DEFAULT</code>.
+      </div>
+
+      <div class="color-row">
+        <div class="color-chip" style="background: rgba(16,185,129,0.12); color: #10B981; border: 1px solid rgba(16,185,129,0.2);">
+          Strengths<br><span class="hex">#10B981</span>
+        </div>
+        <div class="color-chip" style="background: rgba(245,158,11,0.12); color: #FBBF24; border: 1px solid rgba(245,158,11,0.2);">
+          Work On<br><span class="hex">#F59E0B</span>
+        </div>
+        <div class="color-chip" style="background: rgba(139,92,246,0.12); color: #A78BFA; border: 1px solid rgba(139,92,246,0.2);">
+          Progress<br><span class="hex">#8B5CF6</span>
+        </div>
+      </div>
+      <div style="font-size: 11px; color: #6B7280; text-align: center;">
+        Green = positive &nbsp;|&nbsp; Amber = attention &nbsp;|&nbsp; Purple = data
+      </div>
+    </div>
+
+    <!-- Glass technique -->
+    <div class="spec-card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+      <h3>Glass Effect — How</h3>
+      <div class="anatomy-row">
+        <div class="anatomy-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);">
+          <div class="label" style="color: #10B981;">Gradient</div>
+          <div class="value">160deg diagonal. Bright corner (10% color) fading to dark (4%).</div>
+        </div>
+        <div class="anatomy-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);">
+          <div class="label" style="color: #F59E0B;">Edge Light</div>
+          <div class="value">inset box-shadow at top (15% color). Simulates glass refraction.</div>
+        </div>
+      </div>
+      <div class="anatomy-row">
+        <div class="anatomy-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);">
+          <div class="label" style="color: #A78BFA;">Border</div>
+          <div class="value">1px at 18% opacity. Visible enough to define the container edge.</div>
+        </div>
+        <div class="anatomy-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);">
+          <div class="label" style="color: #00A3FF;">Glow</div>
+          <div class="value">Outer shadow at 6% opacity. Subtle "floating" feel. Not harsh.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini-chip rules -->
+    <div class="spec-card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+      <h3>Mini-Chip Rules</h3>
+      <div style="font-size: 12px; color: #9CA3AF; line-height: 1.5;">
+        <div style="margin-bottom: 6px;"><b style="color:#F9FAFB;">Background:</b> 5-6% of section color (darker than container)</div>
+        <div style="margin-bottom: 6px;"><b style="color:#F9FAFB;">Border:</b> 1px at 10% of section color</div>
+        <div style="margin-bottom: 6px;"><b style="color:#F9FAFB;">Radius:</b> 12px (smaller than container's 20px)</div>
+        <div style="margin-bottom: 6px;"><b style="color:#F9FAFB;">Min-height:</b> 44-46px (fixed rhythm)</div>
+        <div><b style="color:#F9FAFB;">Gap:</b> 6px between chips</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ PHONE MOCKUP ═══ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Final Version — Glass Containers + Mini-Chips</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="sbar"><span>9:41</span><span style="font-size:10px;color:#6B7280;">100%</span></div>
+      <div class="scr">
+
+        <!-- Header -->
+        <div class="hdr">
+          <div class="tag">Session Review</div>
+          <h2>Your Feedback</h2>
+          <div class="ctx">Business Meeting — Negotiation</div>
+        </div>
+
+        <!-- Overall -->
+        <div class="overall">
+          <div class="ov-ring">
+            <svg width="44" height="44" viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" stroke="rgba(16,185,129,0.12)" stroke-width="3.5" fill="none"/>
+              <circle cx="22" cy="22" r="18" stroke="#10B981" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="17" transform="rotate(-90 22 22)"/>
+            </svg>
+            <div class="num">85</div>
+          </div>
+          <div class="ov-text">
+            <div class="title">Solid performance</div>
+            <div class="desc">You handled this scenario well. A few areas to refine.</div>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════
+             GLASS BOX 1: WHAT YOU DID WELL
+             Green world
+             ════════════════════════════════════ -->
+        <div class="glass-box glass-green">
+          <div class="gx-head">
+            <div class="gx-icon" style="background: rgba(16,185,129,0.15);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <span class="gx-title">What You Did Well</span>
+            <span class="gx-count" style="background: rgba(16,185,129,0.18); color: #34D399;">4</span>
+          </div>
+
+          <div class="mc-str">
+            <div class="mc-str-dot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="mc-str-text">Accurate conditional tense in negotiation phrases.</div>
+            <div class="mc-str-tag">Grammar</div>
+          </div>
+
+          <div class="mc-str">
+            <div class="mc-str-dot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="mc-str-text">Natural intonation on questions — confident tone.</div>
+            <div class="mc-str-tag">Pronunc.</div>
+          </div>
+
+          <div class="mc-str">
+            <div class="mc-str-dot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="mc-str-text">Good vocabulary for agreement and concessions.</div>
+            <div class="mc-str-tag">Vocab</div>
+          </div>
+
+          <div class="mc-str" style="margin-bottom: 0;">
+            <div class="mc-str-dot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="mc-str-text">Smooth transitions between points without pauses.</div>
+            <div class="mc-str-tag">Fluency</div>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════
+             GLASS BOX 2: WHAT TO WORK ON
+             Amber world (not blue!)
+             ════════════════════════════════════ -->
+        <div class="glass-box glass-amber">
+          <div class="gx-head">
+            <div class="gx-icon" style="background: rgba(245,158,11,0.15);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            </div>
+            <span class="gx-title">What to Work On</span>
+            <span class="gx-count" style="background: rgba(245,158,11,0.18); color: #FBBF24;">2</span>
+          </div>
+
+          <div class="mc-imp">
+            <div class="mc-imp-top">
+              <span class="mc-imp-area">Subjunctive mood</span>
+              <span class="mc-imp-pri pri-focus">Focus</span>
+            </div>
+            <div class="mc-imp-sug">Practice subjunctive clauses in hypothetical formal settings.</div>
+            <div class="mc-imp-ex">
+              <span class="wrong">"Si tendria mas tiempo..."</span><br>
+              <span class="right">"Si tuviera mas tiempo..."</span>
+            </div>
+          </div>
+
+          <div class="mc-imp" style="margin-bottom: 0;">
+            <div class="mc-imp-top">
+              <span class="mc-imp-area">Filler words</span>
+              <span class="mc-imp-pri pri-practice">Practice</span>
+            </div>
+            <div class="mc-imp-sug">Used "este" 6 times. Try pausing silently instead.</div>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════
+             GLASS BOX 3: YOUR PROGRESS
+             Purple world
+             ════════════════════════════════════ -->
+        <div class="glass-box glass-purple">
+          <div class="gx-head">
+            <div class="gx-icon" style="background: rgba(139,92,246,0.15);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <span class="gx-title">Your Progress</span>
+          </div>
+
+          <div class="mc-prog">
+            <div class="mc-prog-info">
+              <div class="mc-prog-name">Articulation</div>
+              <div class="mc-prog-bar">
+                <div class="mc-prog-fill" style="width:71%; background: linear-gradient(90deg, #00A3FF, #3DB8FF);"></div>
+              </div>
+            </div>
+            <div class="mc-prog-right">
+              <div class="mc-prog-vals"><span>62</span> &rarr; <span>71</span></div>
+              <div class="mc-prog-trend t-up">&uarr;</div>
+            </div>
+          </div>
+
+          <div class="mc-prog">
+            <div class="mc-prog-info">
+              <div class="mc-prog-name">Fluency</div>
+              <div class="mc-prog-bar">
+                <div class="mc-prog-fill" style="width:78%; background: linear-gradient(90deg, #06D6A0, #4ECDC4);"></div>
+              </div>
+            </div>
+            <div class="mc-prog-right">
+              <div class="mc-prog-vals"><span>78</span> &rarr; <span>78</span></div>
+              <div class="mc-prog-trend t-eq">&ndash;</div>
+            </div>
+          </div>
+
+          <div class="mc-prog" style="margin-bottom: 0;">
+            <div class="mc-prog-info">
+              <div class="mc-prog-name">Communication</div>
+              <div class="mc-prog-bar">
+                <div class="mc-prog-fill" style="width:85%; background: linear-gradient(90deg, #8B5CF6, #A78BFA);"></div>
+              </div>
+            </div>
+            <div class="mc-prog-right">
+              <div class="mc-prog-vals"><span>80</span> &rarr; <span>85</span></div>
+              <div class="mc-prog-trend t-up">&uarr;</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <button class="cta-btn">Continue</button>
+
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

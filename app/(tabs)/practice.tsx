@@ -33,6 +33,7 @@ import { VoxIcon } from '@/components/ui/rewards';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserMetrics } from '@/hooks/useUserMetrics';
+import { glass } from '@/constants/designSystem';
 
 // ─── PRACTICE ZONE PALETTE ───
 const PZ = {
@@ -63,6 +64,17 @@ const GRID_ITEMS = [
   { title: 'Library', sub: 'Scenario decks', icon: 'library-outline' as const, color: PZ.cyan, route: '/vox-library', badge: '' },
   { title: 'Flow', sub: 'Guided session', icon: 'water-outline' as const, color: PZ.cyan, route: '', badge: 'GUIDED' },
 ];
+
+// ─── MAP PZ COLORS → GLASS CONTAINER WORLDS ───
+const getWorld = (color: string) => {
+  if (color === PZ.cyan) return glass.container.cyan;
+  if (color === PZ.blueLight || color === PZ.blue) return glass.container.blue;
+  if (color === PZ.green || color === PZ.greenLight) return glass.container.green;
+  if (color === PZ.gold || color === PZ.goldLight) return glass.container.amber;
+  if (color === PZ.purple) return glass.container.purple;
+  if (color === PZ.rose) return glass.container.rose;
+  return glass.container.blue;
+};
 
 // ═══════════════════════════════════════
 // ANIMATED NUMBER COUNTER
@@ -348,53 +360,73 @@ export default function PracticeScreen() {
       >
         {/* ═══ KPI BOXES (tap to open dashboard) ═══ */}
         <Animated.View entering={FadeInDown.duration(350).delay(40)} style={s.kpiRow}>
-          {KPI_ITEMS.map((kpi, i) => (
-            <TouchableOpacity
-              key={kpi.label}
-              style={[s.kpiBox, { borderTopColor: kpi.color + '60', borderTopWidth: 3 }]}
-              activeOpacity={0.7}
-              onPress={() => router.push('/competency-dashboard' as any)}
-            >
-              <Text style={s.kpiLabel}>{kpi.label}</Text>
-              <View style={s.kpiValueRow}>
-                <AnimNum
-                  to={kpi.value}
-                  size={28}
-                  color={kpi.color}
-                  delay={300 + i * 100}
-                />
-                <Text style={s.kpiSuffix}>{kpi.suffix}</Text>
-              </View>
-              <View style={s.trendRow}>
-                {kpi.trend ? (
-                  <Text style={[s.trendText, { color: kpi.trend.startsWith('+') ? PZ.green : PZ.rose }]}>
-                    {kpi.trend.startsWith('+') ? '\u2191' : '\u2193'} {kpi.trend}
-                  </Text>
-                ) : (
-                  <Text style={[s.trendText, { color: PZ.dim }]}>{'\u2500'}</Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))}
+          {KPI_ITEMS.map((kpi, i) => {
+            const world = getWorld(kpi.color);
+            return (
+              <TouchableOpacity
+                key={kpi.label}
+                style={{ flex: 1 }}
+                activeOpacity={0.7}
+                onPress={() => router.push('/competency-dashboard' as any)}
+              >
+                <LinearGradient
+                  colors={world.gradient}
+                  start={{ x: 0.1, y: 0 }}
+                  end={{ x: 0.9, y: 1 }}
+                  style={[s.kpiBox, {
+                    borderColor: world.border,
+                    borderTopColor: kpi.color + '80',
+                    borderTopWidth: 3,
+                  }]}
+                >
+                  <Text style={s.kpiLabel}>{kpi.label}</Text>
+                  <View style={s.kpiValueRow}>
+                    <AnimNum
+                      to={kpi.value}
+                      size={28}
+                      color={kpi.color}
+                      delay={300 + i * 100}
+                    />
+                    <Text style={s.kpiSuffix}>{kpi.suffix}</Text>
+                  </View>
+                  <View style={s.trendRow}>
+                    {kpi.trend ? (
+                      <Text style={[s.trendText, { color: kpi.trend.startsWith('+') ? PZ.green : PZ.rose }]}>
+                        {kpi.trend.startsWith('+') ? '\u2191' : '\u2193'} {kpi.trend}
+                      </Text>
+                    ) : (
+                      <Text style={[s.trendText, { color: PZ.dim }]}>{'\u2500'}</Text>
+                    )}
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            );
+          })}
         </Animated.View>
 
         {/* ═══ SPHERE + QUICK ACTIONS ═══ */}
         <Animated.View entering={FadeInDown.duration(350).delay(80)} style={s.sphereRow}>
           <GlowSphere percent={metrics.dailyPercent} size={68} />
           <View style={s.quickActions}>
-            {QUICK_ACTIONS.map((action) => (
-              <TouchableOpacity
-                key={action.label}
-                style={[s.quickBtn, { borderColor: action.color + '20' }]}
-                activeOpacity={0.7}
-                onPress={() => router.push(action.route as any)}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Ionicons name={action.icon} size={13} color={action.color} />
-                  <Text style={[s.quickBtnText, { color: action.color }]}>{action.label}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+            {QUICK_ACTIONS.map((action) => {
+              const world = getWorld(action.color);
+              return (
+                <TouchableOpacity
+                  key={action.label}
+                  style={[s.quickBtn, {
+                    backgroundColor: world.chipBg,
+                    borderColor: world.chipBorder,
+                  }]}
+                  activeOpacity={0.7}
+                  onPress={() => router.push(action.route as any)}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Ionicons name={action.icon} size={13} color={action.color} />
+                    <Text style={[s.quickBtnText, { color: action.color }]}>{action.label}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </Animated.View>
 
@@ -441,37 +473,47 @@ export default function PracticeScreen() {
             const row = GRID_ITEMS.slice(startIdx, startIdx + 2);
             if (row.length === 0) return null;
             return (
-            <View key={startIdx} style={s.gridRow}>
-              {row.map((card) => (
-                <TouchableOpacity
-                  key={card.title}
-                  style={[s.gridCard, { backgroundColor: card.color + '08' }]}
-                  activeOpacity={0.7}
-                  onPress={() => { if (card.route) router.push(card.route as any); }}
-                >
-                  <View
-                    style={[
-                      s.gridIconBox,
-                      { backgroundColor: card.color + '18', borderColor: card.color + '25' },
-                    ]}
-                  >
-                    <Ionicons name={card.icon} size={22} color={card.color} />
-                  </View>
-                  <View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={s.gridTitle}>{card.title}</Text>
-                      {card.badge ? (
-                        <View style={s.gridBadge}>
-                          <Text style={s.gridBadgeText}>{card.badge}</Text>
+              <View key={startIdx} style={s.gridRow}>
+                {row.map((card) => {
+                  const world = getWorld(card.color);
+                  return (
+                    <TouchableOpacity
+                      key={card.title}
+                      style={{ flex: 1 }}
+                      activeOpacity={0.7}
+                      onPress={() => { if (card.route) router.push(card.route as any); }}
+                    >
+                      <LinearGradient
+                        colors={world.gradient}
+                        start={{ x: 0.1, y: 0 }}
+                        end={{ x: 0.9, y: 1 }}
+                        style={[s.gridCard, { borderColor: world.border }]}
+                      >
+                        <View
+                          style={[
+                            s.gridIconBox,
+                            { backgroundColor: world.iconBg, borderColor: world.border },
+                          ]}
+                        >
+                          <Ionicons name={card.icon} size={22} color={card.color} />
                         </View>
-                      ) : null}
-                    </View>
-                    <Text style={s.gridSub}>{card.sub}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          );
+                        <View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={s.gridTitle}>{card.title}</Text>
+                            {card.badge ? (
+                              <View style={[s.gridBadge, { backgroundColor: world.countBg }]}>
+                                <Text style={[s.gridBadgeText, { color: world.countColor }]}>{card.badge}</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                          <Text style={s.gridSub}>{card.sub}</Text>
+                        </View>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            );
           })}
         </Animated.View>
 
@@ -496,7 +538,7 @@ export default function PracticeScreen() {
                 { label: 'Onboarding V3', route: '/(auth)/onboarding-v3' },
                 { label: 'Lesson Screen', route: '/lesson/dev-test' },
                 { label: 'Lesson (Mock Preview)', route: '/lesson-carousel' },
-                { label: 'Lesson Complete', route: '/lesson-complete?scores=%7B%22articulation%22%3A78%2C%22fluency%22%3A65%2C%22communication%22%3A72%2C%22scenario%22%3A81%2C%22wordsLearned%22%3A12%2C%22pointsEarned%22%3A85%2C%22timeSpent%22%3A360%2C%22cefrLevel%22%3A%22B1%22%7D&stairTitle=Client%20meetings%3A%20Core%20Skills&stairId=dev-test&isDiscovery=true' },
+                { label: 'Feedback \u2192 Lesson Complete', route: '/feedback-detail' },
                 { label: 'Test All Cards', route: '/test-cards' },
                 { label: 'Voice System Test', route: '/test-voice-system' },
                 { label: 'ElevenLabs Voice Test', route: '/test-elevenlabs' },
@@ -544,9 +586,9 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: glass.container.blue.chipBg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: glass.container.blue.chipBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -574,12 +616,11 @@ const s = StyleSheet.create({
   },
   kpiBox: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
     padding: 16,
     gap: 4,
+    overflow: 'hidden' as const,
   },
   kpiLabel: {
     fontSize: 11,
@@ -627,9 +668,7 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 4,
     borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -724,9 +763,9 @@ const s = StyleSheet.create({
     padding: 18,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
     gap: 10,
     minHeight: 110,
+    overflow: 'hidden' as const,
   },
   gridIconBox: {
     width: 48,

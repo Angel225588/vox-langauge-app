@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vox — Practice Tab Contrast Fix (Before / After)</title>
+  <style>
+    /* ════════════════════════════════════════════
+       Reset & Base
+       ════════════════════════════════════════════ */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0A0E1A;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      color: #D1D5DB;
+      min-height: 100vh;
+      padding: 40px 24px 80px;
+    }
+
+    /* ════════════════════════════════════════════
+       Header Section
+       ════════════════════════════════════════════ */
+    .page-header {
+      max-width: 960px;
+      margin: 0 auto 48px;
+      text-align: center;
+    }
+    .page-header .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      background: rgba(99, 102, 241, 0.15);
+      color: #818CF8;
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      margin-bottom: 16px;
+    }
+    .page-header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #F9FAFB;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    .page-header p {
+      font-size: 15px;
+      color: #9CA3AF;
+      line-height: 1.6;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* ════════════════════════════════════════════
+       Phone Comparison Layout
+       ════════════════════════════════════════════ */
+    .comparison {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+      margin-bottom: 64px;
+    }
+    .phone-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .column-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .column-label.before { color: #EF4444; }
+    .column-label.after  { color: #10B981; }
+
+    .column-sublabel {
+      font-size: 12px;
+      color: #6B7280;
+      margin-top: -10px;
+    }
+
+    /* ════════════════════════════════════════════
+       iPhone 14 Pro Mockup Shell
+       ════════════════════════════════════════════ */
+    .phone {
+      width: 375px;
+      height: 812px;
+      border-radius: 44px;
+      border: 3px solid rgba(255, 255, 255, 0.08);
+      background: #080B14;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 25px 60px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Dynamic Island */
+    .phone::before {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 126px;
+      height: 34px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 100;
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      padding: 58px 16px 16px;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .phone-screen::-webkit-scrollbar { display: none; }
+
+    /* ════════════════════════════════════════════
+       Header Bar (inside phone)
+       ════════════════════════════════════════════ */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 0 2px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-left .activity-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .vox-points {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #F59E0B;
+    }
+    .streak-flame {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #EF4444;
+    }
+
+    /* ════════════════════════════════════════════
+       KPI Boxes
+       ════════════════════════════════════════════ */
+    .kpi-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .kpi-box {
+      flex: 1;
+      padding: 10px 8px 8px;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-box .accent-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+    .kpi-label {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      opacity: 0.7;
+    }
+    .kpi-score {
+      font-size: 18px;
+      font-weight: 800;
+      color: #F9FAFB;
+      line-height: 1;
+    }
+    .kpi-score span {
+      font-size: 11px;
+      font-weight: 500;
+      opacity: 0.5;
+    }
+    .kpi-trend {
+      font-size: 10px;
+      margin-top: 3px;
+      opacity: 0.6;
+    }
+
+    /* ── BEFORE KPI ── */
+    .before .kpi-box {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .before .kpi-box.cyan  .accent-bar { background: rgba(0, 210, 255, 0.60); }
+    .before .kpi-box.blue  .accent-bar { background: rgba(0, 54, 255, 0.60); }
+    .before .kpi-box.green .accent-bar { background: rgba(16, 185, 129, 0.60); }
+    .before .kpi-box .kpi-label { color: #9CA3AF; }
+    .before .kpi-box .kpi-trend { color: #9CA3AF; }
+
+    /* ── AFTER KPI ── */
+    .after .kpi-box.cyan {
+      background: linear-gradient(180deg, rgba(0, 210, 255, 0.10) 0%, rgba(0, 210, 255, 0.03) 100%);
+      border: 1px solid rgba(0, 210, 255, 0.18);
+    }
+    .after .kpi-box.cyan .accent-bar { background: rgba(0, 210, 255, 0.80); }
+    .after .kpi-box.cyan .kpi-label { color: #00D2FF; }
+    .after .kpi-box.cyan .kpi-trend { color: #00D2FF; }
+
+    .after .kpi-box.blue {
+      background: linear-gradient(180deg, rgba(0, 54, 255, 0.10) 0%, rgba(0, 54, 255, 0.03) 100%);
+      border: 1px solid rgba(0, 54, 255, 0.18);
+    }
+    .after .kpi-box.blue .accent-bar { background: rgba(0, 54, 255, 0.80); }
+    .after .kpi-box.blue .kpi-label { color: #5B7AFF; }
+    .after .kpi-box.blue .kpi-trend { color: #5B7AFF; }
+
+    .after .kpi-box.green {
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.10) 0%, rgba(16, 185, 129, 0.03) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.18);
+    }
+    .after .kpi-box.green .accent-bar { background: rgba(16, 185, 129, 0.80); }
+    .after .kpi-box.green .kpi-label { color: #10B981; }
+    .after .kpi-box.green .kpi-trend { color: #10B981; }
+
+    /* ════════════════════════════════════════════
+       Sphere + Quick Actions
+       ════════════════════════════════════════════ */
+    .sphere-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .sphere {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .sphere::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      background: conic-gradient(
+        from 0deg,
+        #6366F1 0deg,
+        #8B5CF6 120deg,
+        rgba(99, 102, 241, 0.1) 120deg,
+        rgba(99, 102, 241, 0.1) 360deg
+      );
+      z-index: 0;
+    }
+    .sphere::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border-radius: 50%;
+      background: #0F1220;
+      z-index: 1;
+    }
+    .sphere-inner {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+    .sphere-pct {
+      font-size: 16px;
+      font-weight: 800;
+      color: #F9FAFB;
+      line-height: 1;
+    }
+    .sphere-label {
+      font-size: 7px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #9CA3AF;
+      margin-top: 2px;
+    }
+
+    .quick-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+    .quick-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #F9FAFB;
+    }
+    .quick-btn .q-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    /* ── BEFORE Quick Actions ── */
+    .before .quick-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .before .quick-btn .q-icon {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* ── AFTER Quick Actions ── */
+    .after .quick-btn.sprint {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.15);
+    }
+    .after .quick-btn.sprint .q-icon {
+      background: rgba(245, 158, 11, 0.18);
+    }
+    .after .quick-btn.random {
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+    }
+    .after .quick-btn.random .q-icon {
+      background: rgba(139, 92, 246, 0.18);
+    }
+    .after .quick-btn.weak {
+      background: rgba(244, 114, 182, 0.08);
+      border: 1px solid rgba(244, 114, 182, 0.15);
+    }
+    .after .quick-btn.weak .q-icon {
+      background: rgba(244, 114, 182, 0.18);
+    }
+
+    /* ════════════════════════════════════════════
+       Voice Conversation Hero
+       ════════════════════════════════════════════ */
+    .voice-hero {
+      width: 100%;
+      padding: 20px 16px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 50%, #6366F1 100%);
+      border: 1px solid rgba(99, 102, 241, 0.30);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .voice-hero::after {
+      content: '';
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .mic-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .voice-text h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #F9FAFB;
+      margin-bottom: 2px;
+    }
+    .voice-text p {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    /* ════════════════════════════════════════════
+       Practice Grid (2x3)
+       ════════════════════════════════════════════ */
+    .practice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .grid-card {
+      padding: 14px 12px;
+      border-radius: 14px;
+      position: relative;
+      min-height: 90px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .grid-card .card-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .grid-card .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #F9FAFB;
+      margin-bottom: 2px;
+    }
+    .grid-card .card-sub {
+      font-size: 10px;
+      color: #9CA3AF;
+    }
+    .grid-card .card-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(0, 210, 255, 0.20);
+      color: #00D2FF;
+    }
+
+    /* ── BEFORE Grid Cards ── ghost cards */
+    .before .grid-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .before .grid-card .card-icon {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* ── AFTER Grid Cards ── full glass containers */
+    .after .grid-card.vocab {
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.10) 0%, rgba(16, 185, 129, 0.03) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.18);
+    }
+    .after .grid-card.vocab .card-icon {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .after .grid-card.reading {
+      background: linear-gradient(180deg, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 100%);
+      border: 1px solid rgba(139, 92, 246, 0.18);
+    }
+    .after .grid-card.reading .card-icon {
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+
+    .after .grid-card.writing {
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.10) 0%, rgba(245, 158, 11, 0.03) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.18);
+    }
+    .after .grid-card.writing .card-icon {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .after .grid-card.listening {
+      background: linear-gradient(180deg, rgba(244, 114, 182, 0.10) 0%, rgba(244, 114, 182, 0.03) 100%);
+      border: 1px solid rgba(244, 114, 182, 0.18);
+    }
+    .after .grid-card.listening .card-icon {
+      background: rgba(244, 114, 182, 0.15);
+      border: 1px solid rgba(244, 114, 182, 0.25);
+    }
+
+    .after .grid-card.library {
+      background: linear-gradient(180deg, rgba(0, 210, 255, 0.10) 0%, rgba(0, 210, 255, 0.03) 100%);
+      border: 1px solid rgba(0, 210, 255, 0.18);
+    }
+    .after .grid-card.library .card-icon {
+      background: rgba(0, 210, 255, 0.15);
+      border: 1px solid rgba(0, 210, 255, 0.25);
+    }
+
+    .after .grid-card.flow {
+      background: linear-gradient(180deg, rgba(0, 210, 255, 0.10) 0%, rgba(0, 210, 255, 0.03) 100%);
+      border: 1px solid rgba(0, 210, 255, 0.18);
+    }
+    .after .grid-card.flow .card-icon {
+      background: rgba(0, 210, 255, 0.15);
+      border: 1px solid rgba(0, 210, 255, 0.25);
+    }
+
+    /* ════════════════════════════════════════════
+       Changes Panel
+       ════════════════════════════════════════════ */
+    .changes-panel {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 32px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .changes-panel h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #F9FAFB;
+      margin-bottom: 6px;
+    }
+    .changes-panel .changes-subtitle {
+      font-size: 13px;
+      color: #6B7280;
+      margin-bottom: 28px;
+    }
+    .change-item {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 22px;
+      align-items: flex-start;
+    }
+    .change-item:last-child { margin-bottom: 0; }
+    .change-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: #818CF8;
+      flex-shrink: 0;
+    }
+    .change-content h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #F9FAFB;
+      margin-bottom: 4px;
+    }
+    .change-content p {
+      font-size: 13px;
+      color: #9CA3AF;
+      line-height: 1.5;
+    }
+    .change-content code {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #D1D5DB;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    /* ════════════════════════════════════════════
+       Token Table
+       ════════════════════════════════════════════ */
+    .token-table {
+      max-width: 800px;
+      margin: 32px auto 0;
+      padding: 28px 32px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .token-table h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #F9FAFB;
+      margin-bottom: 20px;
+    }
+    .token-row {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      gap: 12px;
+    }
+    .token-row:last-child { border-bottom: none; }
+    .token-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .token-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #F9FAFB;
+      min-width: 120px;
+    }
+    .token-before, .token-after {
+      font-size: 11px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      padding: 3px 8px;
+      border-radius: 4px;
+      flex: 1;
+    }
+    .token-before {
+      color: #EF4444;
+      background: rgba(239, 68, 68, 0.08);
+    }
+    .token-after {
+      color: #10B981;
+      background: rgba(16, 185, 129, 0.08);
+    }
+    .token-arrow {
+      color: #4B5563;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    /* ════════════════════════════════════════════
+       Pointer annotations
+       ════════════════════════════════════════════ */
+    .annotation {
+      position: absolute;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 3px 7px;
+      border-radius: 4px;
+      z-index: 10;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .after .annotation {
+      background: rgba(16, 185, 129, 0.20);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.30);
+    }
+
+    /* ════════════════════════════════════════════
+       Responsive
+       ════════════════════════════════════════════ */
+    @media (max-width: 860px) {
+      .comparison { gap: 32px; }
+      .phone {
+        width: 340px;
+        height: 736px;
+      }
+    }
+    @media (max-width: 740px) {
+      .comparison {
+        flex-direction: column;
+        align-items: center;
+      }
+      body { padding: 24px 12px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════════════════════ PAGE HEADER ════════════════════ -->
+  <div class="page-header">
+    <div class="badge">Design Spec &mdash; Visual Contrast</div>
+    <h1>Practice Tab &mdash; Contrast Fix</h1>
+    <p>
+      Applying the <strong>Glass Container Pattern</strong> to every interactive element on the Practice tab.
+      Each component receives a color-world tinted gradient background and visible border,
+      replacing the near-invisible white-opacity ghost cards.
+    </p>
+  </div>
+
+  <!-- ════════════════════ PHONE MOCKUPS ════════════════════ -->
+  <div class="comparison">
+
+    <!-- ─────────── BEFORE ─────────── -->
+    <div class="phone-column">
+      <span class="column-label before">BEFORE</span>
+      <span class="column-sublabel">Ghost cards &mdash; elements invisible against background</span>
+      <div class="phone">
+        <div class="phone-screen before">
+
+          <!-- Header -->
+          <div class="app-header">
+            <div class="header-left">
+              <div class="activity-btn">&#9776;</div>
+            </div>
+            <div class="header-right">
+              <div class="vox-points">&#9733; 1,240</div>
+              <div class="streak-flame">&#128293; 7</div>
+            </div>
+          </div>
+
+          <!-- KPI Row -->
+          <div class="kpi-row">
+            <div class="kpi-box cyan">
+              <div class="accent-bar"></div>
+              <div class="kpi-label">Articulation</div>
+              <div class="kpi-score">72<span>/100</span></div>
+              <div class="kpi-trend">&#8593; +3</div>
+            </div>
+            <div class="kpi-box blue">
+              <div class="accent-bar"></div>
+              <div class="kpi-label">Fluency</div>
+              <div class="kpi-score">65<span>/100</span></div>
+              <div class="kpi-trend">&#8593; +1</div>
+            </div>
+            <div class="kpi-box green">
+              <div class="accent-bar"></div>
+              <div class="kpi-label">Communication</div>
+              <div class="kpi-score">78<span>/100</span></div>
+              <div class="kpi-trend">&#8593; +5</div>
+            </div>
+          </div>
+
+          <!-- Sphere + Quick Actions -->
+          <div class="sphere-row">
+            <div class="sphere">
+              <div class="sphere-inner">
+                <div class="sphere-pct">45%</div>
+                <div class="sphere-label">Daily</div>
+              </div>
+            </div>
+            <div class="quick-actions">
+              <div class="quick-btn sprint">
+                <div class="q-icon">&#9889;</div>
+                Sprint
+              </div>
+              <div class="quick-btn random">
+                <div class="q-icon">&#127922;</div>
+                Random
+              </div>
+              <div class="quick-btn weak">
+                <div class="q-icon">&#9888;</div>
+                Weak Areas
+              </div>
+            </div>
+          </div>
+
+          <!-- Voice Hero -->
+          <div class="voice-hero">
+            <div class="mic-circle">&#127908;</div>
+            <div class="voice-text">
+              <h3>Voice Conversation</h3>
+              <p>Practice speaking with AI tutor</p>
+            </div>
+          </div>
+
+          <!-- Practice Grid -->
+          <div class="practice-grid">
+            <div class="grid-card vocab">
+              <div class="card-icon">&#128218;</div>
+              <div class="card-title">Vocabulary</div>
+              <div class="card-sub">42 words due</div>
+            </div>
+            <div class="grid-card reading">
+              <div class="card-icon">&#128196;</div>
+              <div class="card-title">Reading</div>
+              <div class="card-sub">3 stories</div>
+            </div>
+            <div class="grid-card writing">
+              <div class="card-icon">&#9998;</div>
+              <div class="card-title">Writing</div>
+              <div class="card-sub">Practice essays</div>
+            </div>
+            <div class="grid-card listening">
+              <div class="card-icon">&#127911;</div>
+              <div class="card-title">Listening</div>
+              <div class="card-sub">5 exercises</div>
+            </div>
+            <div class="grid-card library">
+              <div class="card-icon">&#128214;</div>
+              <div class="card-title">Library</div>
+              <div class="card-sub">Browse content</div>
+            </div>
+            <div class="grid-card flow">
+              <div class="card-icon">&#127756;</div>
+              <div class="card-title">Flow</div>
+              <div class="card-sub">Guided session</div>
+              <div class="card-badge">Guided</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── AFTER ─────────── -->
+    <div class="phone-column">
+      <span class="column-label after">AFTER</span>
+      <span class="column-sublabel">Glass containers &mdash; color-world tinted backgrounds</span>
+      <div class="phone">
+        <div class="phone-screen after">
+
+          <!-- Header -->
+          <div class="app-header">
+            <div class="header-left">
+              <div class="activity-btn">&#9776;</div>
+            </div>
+            <div class="header-right">
+              <div class="vox-points">&#9733; 1,240</div>
+              <div class="streak-flame">&#128293; 7</div>
+            </div>
+          </div>
+
+          <!-- KPI Row -->
+          <div class="kpi-row" style="position: relative;">
+            <div class="kpi-box cyan">
+              <div class="accent-bar"></div>
+              <div class="kpi-label">Articulation</div>
+              <div class="kpi-score">72<span>/100</span></div>
+              <div class="kpi-trend">&#8593; +3</div>
+            </div>
+            <div class="kpi-box blue">
+              <div class="accent-bar"></div>
+              <div class="kpi-label">Fluency</div>
+              <div class="kpi-score">65<span>/100</span></div>
+              <div class="kpi-trend">&#8593; +1</div>
+            </div>
+            <div class="kpi-box green">
+              <div class="accent-bar"></div>
+              <div class="kpi-label">Communication</div>
+              <div class="kpi-score">78<span>/100</span></div>
+              <div class="kpi-trend">&#8593; +5</div>
+            </div>
+          </div>
+
+          <!-- Sphere + Quick Actions -->
+          <div class="sphere-row">
+            <div class="sphere">
+              <div class="sphere-inner">
+                <div class="sphere-pct">45%</div>
+                <div class="sphere-label">Daily</div>
+              </div>
+            </div>
+            <div class="quick-actions">
+              <div class="quick-btn sprint">
+                <div class="q-icon">&#9889;</div>
+                Sprint
+              </div>
+              <div class="quick-btn random">
+                <div class="q-icon">&#127922;</div>
+                Random
+              </div>
+              <div class="quick-btn weak">
+                <div class="q-icon">&#9888;</div>
+                Weak Areas
+              </div>
+            </div>
+          </div>
+
+          <!-- Voice Hero (same in both) -->
+          <div class="voice-hero">
+            <div class="mic-circle">&#127908;</div>
+            <div class="voice-text">
+              <h3>Voice Conversation</h3>
+              <p>Practice speaking with AI tutor</p>
+            </div>
+          </div>
+
+          <!-- Practice Grid -->
+          <div class="practice-grid">
+            <div class="grid-card vocab">
+              <div class="card-icon">&#128218;</div>
+              <div class="card-title">Vocabulary</div>
+              <div class="card-sub">42 words due</div>
+            </div>
+            <div class="grid-card reading">
+              <div class="card-icon">&#128196;</div>
+              <div class="card-title">Reading</div>
+              <div class="card-sub">3 stories</div>
+            </div>
+            <div class="grid-card writing">
+              <div class="card-icon">&#9998;</div>
+              <div class="card-title">Writing</div>
+              <div class="card-sub">Practice essays</div>
+            </div>
+            <div class="grid-card listening">
+              <div class="card-icon">&#127911;</div>
+              <div class="card-title">Listening</div>
+              <div class="card-sub">5 exercises</div>
+            </div>
+            <div class="grid-card library">
+              <div class="card-icon">&#128214;</div>
+              <div class="card-title">Library</div>
+              <div class="card-sub">Browse content</div>
+            </div>
+            <div class="grid-card flow">
+              <div class="card-icon">&#127756;</div>
+              <div class="card-title">Flow</div>
+              <div class="card-sub">Guided session</div>
+              <div class="card-badge">Guided</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════ CHANGES PANEL ════════════════════ -->
+  <div class="changes-panel">
+    <h2>Changes Applied</h2>
+    <div class="changes-subtitle">Glass Container Pattern &mdash; 5 targeted fixes</div>
+
+    <div class="change-item">
+      <div class="change-num">1</div>
+      <div class="change-content">
+        <h3>KPI Boxes &mdash; Color-World Gradient Fill</h3>
+        <p>
+          Each KPI box receives a vertical gradient from its color at 10% opacity to 3% opacity,
+          plus a border at 18% opacity. The existing 3px top accent bar is retained and
+          bumped from 60% to 80% opacity. Label and trend text now inherit the card's color
+          instead of neutral gray.
+        </p>
+        <p style="margin-top: 6px;">
+          <code>background: rgba(255,255,255,0.05)</code> &rarr;
+          <code>linear-gradient(color 10% &rarr; color 3%)</code><br>
+          <code>border: rgba(255,255,255,0.06)</code> &rarr;
+          <code>border: rgba(color, 0.18)</code>
+        </p>
+      </div>
+    </div>
+
+    <div class="change-item">
+      <div class="change-num">2</div>
+      <div class="change-content">
+        <h3>Quick Action Buttons &mdash; Tinted Chip Style</h3>
+        <p>
+          Sprint, Random, and Weak Areas buttons switch from white-opacity ghost chips
+          to tinted glass chips matching their color world (amber, purple, rose).
+          Background at 8% opacity, border at 15% opacity. Icon container bumped to 18%.
+        </p>
+        <p style="margin-top: 6px;">
+          <code>bg: rgba(255,255,255,0.05)</code> &rarr;
+          <code>bg: rgba(color, 0.08)</code><br>
+          <code>border: rgba(255,255,255,0.06)</code> &rarr;
+          <code>border: rgba(color, 0.15)</code>
+        </p>
+      </div>
+    </div>
+
+    <div class="change-item">
+      <div class="change-num">3</div>
+      <div class="change-content">
+        <h3>Practice Grid Cards &mdash; Full Glass Containers</h3>
+        <p>
+          All 6 grid cards (Vocabulary, Reading, Writing, Listening, Library, Flow) switch from
+          <code>card.color + '08'</code> (3% opacity ghost) to the full glass container pattern:
+          vertical gradient from color at 10% to 3%, border at 18% opacity.
+          Each card is now instantly distinguishable by its color tint.
+        </p>
+      </div>
+    </div>
+
+    <div class="change-item">
+      <div class="change-num">4</div>
+      <div class="change-content">
+        <h3>Grid Icon Boxes &mdash; Increased Visibility</h3>
+        <p>
+          Icon container backgrounds inside grid cards are bumped from
+          <code>card.color + '18'</code> (~9%) to 15% background with a 25% border.
+          This makes the icon area pop as a distinct element within the card.
+        </p>
+        <p style="margin-top: 6px;">
+          <code>bg: rgba(color, 0.09)</code> &rarr;
+          <code>bg: rgba(color, 0.15) + border rgba(color, 0.25)</code>
+        </p>
+      </div>
+    </div>
+
+    <div class="change-item">
+      <div class="change-num">5</div>
+      <div class="change-content">
+        <h3>Voice Conversation Hero &mdash; No Change</h3>
+        <p>
+          The blue gradient hero card already uses a proper multi-stop gradient
+          (<code>#1E3A8A &rarr; #3B82F6 &rarr; #6366F1</code>) with a visible border.
+          It serves as the design reference that the other elements are now matching in approach.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════ TOKEN TABLE ════════════════════ -->
+  <div class="token-table">
+    <h2>Token Reference &mdash; Before vs After</h2>
+
+    <div class="token-row">
+      <div class="token-swatch" style="background: #00D2FF;"></div>
+      <div class="token-name">Cyan (KPI)</div>
+      <div class="token-before">bg: rgba(255,255,255, 0.05)</div>
+      <div class="token-arrow">&rarr;</div>
+      <div class="token-after">bg: gradient rgba(0,210,255, 0.10&rarr;0.03)</div>
+    </div>
+
+    <div class="token-row">
+      <div class="token-swatch" style="background: #3B82F6;"></div>
+      <div class="token-name">Blue (KPI)</div>
+      <div class="token-before">border: rgba(255,255,255, 0.06)</div>
+      <div class="token-arrow">&rarr;</div>
+      <div class="token-after">border: rgba(0,54,255, 0.18)</div>
+    </div>
+
+    <div class="token-row">
+      <div class="token-swatch" style="background: #10B981;"></div>
+      <div class="token-name">Green (KPI)</div>
+      <div class="token-before">accent bar: 60% opacity</div>
+      <div class="token-arrow">&rarr;</div>
+      <div class="token-after">accent bar: 80% opacity + gradient fill</div>
+    </div>
+
+    <div class="token-row">
+      <div class="token-swatch" style="background: #F59E0B;"></div>
+      <div class="token-name">Amber (Sprint)</div>
+      <div class="token-before">bg: rgba(255,255,255, 0.05)</div>
+      <div class="token-arrow">&rarr;</div>
+      <div class="token-after">bg: rgba(245,158,11, 0.08)</div>
+    </div>
+
+    <div class="token-row">
+      <div class="token-swatch" style="background: #8B5CF6;"></div>
+      <div class="token-name">Purple (Random)</div>
+      <div class="token-before">bg: rgba(255,255,255, 0.05)</div>
+      <div class="token-arrow">&rarr;</div>
+      <div class="token-after">bg: rgba(139,92,246, 0.08)</div>
+    </div>
+
+    <div class="token-row">
+      <div class="token-swatch" style="background: #F472B6;"></div>
+      <div class="token-name">Rose (Weak)</div>
+      <div class="token-before">bg: rgba(255,255,255, 0.05)</div>
+      <div class="token-arrow">&rarr;</div>
+      <div class="token-after">bg: rgba(244,114,182, 0.08)</div>
+    </div>
+
+    <div class="token-row">
+      <div class="token-swatch" style="background: #10B981;"></div>
+      <div class="token-name">Green (Vocab)</div>
+      <div class="token-before">bg: card.color + '08' (3%)</div>
+      <div class="token-arrow">&rarr;</div>
+      <div class="token-after">gradient rgba(16,185,129, 0.10&rarr;0.03)</div>
+    </div>
+
+    <div class="token-row">
+      <div class="token-swatch" style="background: #ccc; border: 1px solid #555;"></div>
+      <div class="token-name">Icon box (all)</div>
+      <div class="token-before">bg: card.color + '18' (~9%)</div>
+      <div class="token-arrow">&rarr;</div>
+      <div class="token-after">bg: 15% + border 25%</div>
+    </div>
+  </div>
+
+</body>
+</html>

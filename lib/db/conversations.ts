@@ -23,12 +23,44 @@ export interface ConversationFeedback {
   scenario: number;
   /** Overall summary text */
   summary: string;
-  /** Specific strengths observed */
+  /** Specific strengths observed (simple strings for backward compat) */
   strengths: string[];
-  /** Areas for improvement */
+  /** Areas for improvement (simple strings for backward compat) */
   improvements: string[];
   /** New vocabulary learned during conversation */
   newVocabulary: string[];
+
+  // ─── Detailed Feedback (3-section screen) ─────────────────
+  /** 1-2 sentence professional assessment for the feedback header */
+  overallMessage?: string;
+  /** Strengths with specific skill references */
+  detailedStrengths?: DetailedStrength[];
+  /** Improvements with area, suggestion, priority, and optional example */
+  detailedImprovements?: DetailedImprovement[];
+}
+
+// ─── Detailed Feedback Types ──────────────────────────────────
+
+export interface DetailedStrength {
+  /** Specific skill-referenced strength (8-15 words) */
+  text: string;
+  /** The skill category this strength relates to */
+  skill: 'grammar' | 'pronunciation' | 'vocabulary' | 'fluency' | 'register' | 'comprehension';
+}
+
+export interface DetailedImprovement {
+  /** Short area label (2-4 words) */
+  area: string;
+  /** Actionable suggestion (10-20 words) */
+  suggestion: string;
+  /** Impact priority */
+  priority: 'focus' | 'practice' | 'polish';
+  /** Optional before/after or tip example */
+  example?: {
+    incorrect?: string;
+    correct?: string;
+    tip?: string;
+  };
 }
 
 export interface SaveSessionInput {
