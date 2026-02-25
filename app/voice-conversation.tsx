@@ -60,6 +60,7 @@ import {
   getVoiceById,
 } from '@/lib/voice/elevenLabsConfig';
 import { useOnboardingV2 } from '@/hooks/useOnboardingV2';
+import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { useAuth } from '@/hooks/useAuth';
 import { processPostCallVocab } from '@/lib/voice/vocabLoop';
 import {
@@ -70,6 +71,10 @@ import {
 } from '@/lib/db/conversations';
 import { getCurrentStairStepId } from '@/lib/ai/practiceGenerator';
 import { getStairSkeleton } from '@/lib/db/learningPaths';
+import {
+  generateScenariosFromOnboarding,
+  enrichStairScenarios,
+} from '@/lib/voice/scenarioGenerator';
 
 type DifficultyFilter = 'all' | 'beginner' | 'intermediate' | 'advanced';
 
@@ -117,16 +122,41 @@ interface SavedTranscript {
   timestamp: number;
 }
 
+// Map V3 full language names to SupportedLanguage codes
+const LANG_NAME_TO_CODE: Record<string, SupportedLanguage> = {
+  english: 'en',
+  french: 'fr',
+  spanish: 'es',
+};
+
 export default function VoiceConversationScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { data: onboardingData } = useOnboardingV2();
+  const { data: v2Data } = useOnboardingV2();
+  const v3Store = useOnboardingV3();
   const [selectedScenario, setSelectedScenario] = useState<VoiceScenario | null>(null);
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>('all');
   const [flowState, setFlowState] = useState<FlowState>('selection');
 
-  // Get user's target language from onboarding (default to Spanish)
-  const targetLanguage = (onboardingData.target_language as SupportedLanguage) || 'es';
+  // Merge V3 + V2 onboarding data (prefer V3 when available)
+  const hasV3Data = !!v3Store.target_language;
+  const targetLanguage: SupportedLanguage = (
+    hasV3Data
+      ? LANG_NAME_TO_CODE[v3Store.target_language || '']
+      : (v2Data.target_language as SupportedLanguage)
+  ) || 'es';
+
+  // Unified onboarding data for existing code (backward-compatible shape)
+  const onboardingData = {
+    target_language: targetLanguage,
+    motivation: v3Store.goal || v2Data.motivation || null,
+    motivations: v2Data.motivations || null,
+    proficiency_level: v3Store.proficiency_level || v2Data.proficiency_level || null,
+    profession: v3Store.profession || v2Data.profession || null,
+    scenarios: v3Store.scenarios?.length ? v3Store.scenarios : (v2Data.scenarios || null),
+    min_practice_time: v3Store.schedule_time || v2Data.min_practice_time || null,
+    max_practice_time: v2Data.max_practice_time || null,
+  };
   const [selectedAccent, setSelectedAccent] = useState<AccentType>(getDefaultAccent(targetLanguage));
   const [showAccentSelector, setShowAccentSelector] = useState(false);
 
@@ -139,6 +169,9 @@ export default function VoiceConversationScreen() {
 
   // Stair DB scenarios (personalized to user's current learning path)
   const [stairScenarios, setStairScenarios] = useState<MatchedScenario[]>([]);
+
+  // AI-generated scenarios from onboarding data (Tier 3)
+  const [generatedScenarios, setGeneratedScenarios] = useState<VoiceScenario[]>([]);
 
   // Extended to include full transcript for saving
   const [lastConversation, setLastConversation] = useState<{
@@ -161,47 +194,118 @@ export default function VoiceConversationScreen() {
   // Create enhanced user profile from full onboarding data for personalized scenarios
   const enhancedProfile = createEnhancedUserProfile(onboardingData);
 
-  // Fix 3: Load stair context + stair DB scenarios for scenario matching
+  // Three-tier waterfall: stair rich → stair enrich → onboarding generate → hardcoded
   useEffect(() => {
-    if (!user?.id) return;
+    let cancelled = false;
+
     (async () => {
       try {
-        const stepId = await getCurrentStairStepId(user.id);
-        if (stepId) {
-          setCurrentStairStepId(stepId);
-          const skeleton = await getStairSkeleton(stepId);
-          if (skeleton) {
-            setStairContext({
-              skillsFocus: skeleton.skills_unlocked || [],
-              scenarioTags: skeleton.skills_required || [],
-              difficulty: onboardingData.proficiency_level || 'beginner',
-            });
-          }
+        // Tier 1+2: Try stair scenarios (authenticated users with learning path)
+        if (user?.id) {
+          const stepId = await getCurrentStairStepId(user.id);
+          if (stepId) {
+            if (!cancelled) setCurrentStairStepId(stepId);
+            const skeleton = await getStairSkeleton(stepId);
+            if (skeleton && !cancelled) {
+              setStairContext({
+                skillsFocus: skeleton.skills_unlocked || [],
+                scenarioTags: skeleton.skills_required || [],
+                difficulty: onboardingData.proficiency_level || 'beginner',
+              });
+            }
 
-          // Fetch stair-generated scenarios from DB
-          const dbScenarios = await getStairVoiceScenarios(stepId, user.id, enhancedProfile);
-          if (dbScenarios.length > 0) {
-            setStairScenarios(dbScenarios);
-            console.log('[VoiceConversation] Loaded stair DB scenarios:', dbScenarios.length);
+            // Fetch stair-generated scenarios from DB
+            const dbScenarios = await getStairVoiceScenarios(stepId, user.id, enhancedProfile);
+            if (dbScenarios.length > 0) {
+              // Show immediately (thin or rich)
+              if (!cancelled) setStairScenarios(dbScenarios);
+              console.log('[VoiceConversation] Loaded stair DB scenarios:', dbScenarios.length);
+
+              // Tier 1: If scenarios already have systemPromptTemplate, we're done
+              const hasRichData = dbScenarios.some(s => s.systemPromptTemplate);
+              if (!hasRichData) {
+                // Tier 2: Enrich thin scenarios with Gemini in background
+                try {
+                  const enriched = await enrichStairScenarios(
+                    dbScenarios,
+                    targetLanguage,
+                    onboardingData.proficiency_level || 'beginner'
+                  );
+                  if (!cancelled && enriched.length > 0) {
+                    // Re-attach match metadata from originals
+                    const enrichedMatched: MatchedScenario[] = enriched.map((s, i) => ({
+                      ...s,
+                      relevanceScore: dbScenarios[i]?.relevanceScore ?? 90,
+                      matchReason: 'Personalized for your learning path',
+                    }));
+                    setStairScenarios(enrichedMatched);
+                    console.log('[VoiceConversation] Enriched stair scenarios:', enrichedMatched.length);
+                  }
+                } catch (err) {
+                  console.warn('[VoiceConversation] Enrichment failed (non-fatal):', err);
+                }
+              }
+              return; // Stair scenarios found, no need for Tier 3
+            }
           }
         }
+
+        // Tier 3: No stair scenarios — generate from onboarding data
+        if (hasV3Data && v3Store.profession) {
+          try {
+            const generated = await generateScenariosFromOnboarding({
+              first_name: v3Store.first_name || '',
+              target_language: v3Store.target_language || 'spanish',
+              native_language: v3Store.native_language || 'english',
+              proficiency_level: v3Store.proficiency_level || 'conversational',
+              goal: v3Store.goal || '',
+              profession: v3Store.profession || '',
+              scenarios: v3Store.scenarios || [],
+            });
+
+            if (!cancelled && generated.length > 0) {
+              setGeneratedScenarios(generated);
+              console.log('[VoiceConversation] Generated onboarding scenarios:', generated.length);
+            }
+          } catch (err) {
+            console.warn('[VoiceConversation] Onboarding generation failed (non-fatal):', err);
+          }
+        }
+        // Tier 4: Hardcoded library is always the base (handled by personalizedScenarios memo)
       } catch (err) {
-        console.warn('[VoiceConversation] Failed to load stair context:', err);
+        console.warn('[VoiceConversation] Scenario waterfall failed:', err);
       }
     })();
+
+    return () => { cancelled = true; };
   }, [user?.id]);
 
-  // Fix 3: Stair DB scenarios first, then hardcoded (stair-matched or enhanced)
+  // Priority: AI-generated (Tier 3) > Stair DB (Tier 1/2) > Hardcoded (Tier 4)
   const personalizedScenarios = useMemo(() => {
     const hardcoded = stairContext
       ? getScenariosForStair(stairContext, enhancedProfile)
       : getEnhancedScenariosForUser(enhancedProfile);
 
-    // Stair DB scenarios at the top, hardcoded below (deduplicated by id)
-    const stairIds = new Set(stairScenarios.map(s => s.id));
-    const fallbacks = hardcoded.filter(s => !stairIds.has(s.id));
-    return [...stairScenarios, ...fallbacks];
-  }, [stairScenarios, stairContext, enhancedProfile.targetLanguage, enhancedProfile.motivation, enhancedProfile.proficiencyLevel, enhancedProfile.profession]);
+    // Convert AI-generated scenarios to MatchedScenario format
+    const generatedMatched: MatchedScenario[] = generatedScenarios.map((s, i) => ({
+      ...s,
+      relevanceScore: 95 - i,
+      matchReason: 'Personalized for you',
+    }));
+
+    // Deduplicate by id: generated > stair > hardcoded
+    const seenIds = new Set<string>();
+    const result: MatchedScenario[] = [];
+
+    for (const s of [...generatedMatched, ...stairScenarios, ...hardcoded]) {
+      if (!seenIds.has(s.id)) {
+        seenIds.add(s.id);
+        result.push(s);
+      }
+    }
+
+    return result;
+  }, [generatedScenarios, stairScenarios, stairContext, enhancedProfile.targetLanguage, enhancedProfile.motivation, enhancedProfile.proficiencyLevel, enhancedProfile.profession]);
 
   // Debug logging for onboarding data
   console.log('[VoiceConversation] Enhanced user profile from onboarding:', {

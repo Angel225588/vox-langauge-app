@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
@@ -19,6 +20,8 @@ import { adaptV3ToOnboardingData, validateV3Data } from '@/lib/services/v3DataAd
 import { storeUserLevel } from '@/lib/utils/levelGating';
 import { generatePreviewStairs, storePreviewStairs, clearPreviewStairs } from '@/lib/services/previewStairs';
 import { colors, spacing, typography } from '@/constants/designSystem';
+
+const ONBOARDING_COMPLETED_KEY = 'vox-onboarding-completed';
 
 // ─── Inspirational phrases ──────────────────────────
 
@@ -83,6 +86,9 @@ export default function CreatingPathRoute() {
         await storeUserLevel(v3Data.proficiency_level);
       }
 
+      // Persist onboarding data so index.tsx can retry if path generation fails
+      await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, JSON.stringify(v3Data));
+
       // Try to get authenticated user for full path generation
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -97,8 +103,12 @@ export default function CreatingPathRoute() {
         const adaptedData = adaptV3ToOnboardingData(v3Data);
         const result = await createPersonalizedPath(user.id, adaptedData);
 
-        if (!result.success) {
+        if (result.success) {
+          // Path created — clear the retry flag
+          await AsyncStorage.removeItem(ONBOARDING_COMPLETED_KEY);
+        } else {
           console.warn('[CreatingPath] Path generation failed:', result.error);
+          // Keep the flag so index.tsx can retry on next launch
         }
       } else {
         // No auth — generate preview stairs from their scenarios

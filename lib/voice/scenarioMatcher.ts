@@ -667,22 +667,26 @@ export async function getStairVoiceScenarios(
         const context = raw.context || description;
         const keyPhrases: string[] = raw.key_phrases || [];
 
+        // Tier 1: If raw DB scenario already has rich data, pass through directly
+        const hasRichData = !!raw.systemPromptTemplate;
+
         return {
           id: `stair-${stepId}-${index}`,
           title,
           description,
           context,
-          aiRole: getVoicePersonaRole(title, motivation),
-          objectives: generateVoiceObjectives(title, keyPhrases),
+          aiRole: raw.aiRole || getVoicePersonaRole(title, motivation),
+          objectives: raw.objectives?.length ? raw.objectives : generateVoiceObjectives(title, keyPhrases),
           language,
           difficulty: PROFICIENCY_TO_SCENARIO_DIFFICULTY[proficiency] || 'beginner',
           category: MOTIVATION_TO_CATEGORY[motivation] || 'social',
-          userRole: getUserRole(title, context),
-          suggestedPhrases: keyPhrases,
+          userRole: raw.userRole || getUserRole(title, context),
+          systemPromptTemplate: raw.systemPromptTemplate || undefined,
+          suggestedPhrases: raw.suggestedPhrases?.length ? raw.suggestedPhrases : keyPhrases,
           keyVocabulary: vocabWords,
           stairStepId: stepId,
           relevanceScore: Math.max(50, 95 - index * 2),
-          matchReason: 'From your current learning path',
+          matchReason: hasRichData ? 'Personalized for your learning path' : 'From your current learning path',
         };
       }
     );
