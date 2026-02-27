@@ -88,7 +88,7 @@ export function CompactStairCard({
     if (stair.status === 'current') {
       return colors.gradients.primary;
     }
-    return ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)'] as const;
+    return ['#2A2F45', '#343A52'] as const;
   };
 
   const isLocked = stair.status === 'locked';

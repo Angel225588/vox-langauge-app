@@ -142,14 +142,18 @@ function getClient(): GoogleGenerativeAI {
  * Includes retry logic with exponential backoff for transient failures.
  *
  * @param prompt - The prompt to send to the AI
+ * @param configOverrides - Optional overrides for generation config (e.g. maxOutputTokens)
  * @returns The raw text response from Gemini
  * @throws {GeminiError} If all retry attempts fail or a non-retryable error occurs
  */
-export async function generateWithGemini(prompt: string): Promise<string> {
+export async function generateWithGemini(
+  prompt: string,
+  configOverrides?: Partial<typeof GEMINI_CONFIG>
+): Promise<string> {
   const client = getClient();
   const model = client.getGenerativeModel({
     model: MODEL_NAME,
-    generationConfig: GEMINI_CONFIG,
+    generationConfig: { ...GEMINI_CONFIG, ...configOverrides },
   });
 
   let lastError: any;
@@ -208,16 +212,20 @@ export async function generateWithGemini(prompt: string): Promise<string> {
  * Automatically extracts JSON from markdown code blocks if present.
  *
  * @param prompt - The prompt to send to the AI
+ * @param configOverrides - Optional overrides for generation config (e.g. maxOutputTokens)
  * @returns Parsed JSON object of type T
  * @throws {GeminiError} If generation fails or JSON parsing fails
  */
-export async function generateJSON<T>(prompt: string): Promise<T> {
+export async function generateJSON<T>(
+  prompt: string,
+  configOverrides?: Partial<typeof GEMINI_CONFIG>
+): Promise<T> {
   let lastError: any;
 
   // Allow one retry for invalid JSON responses
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const rawResponse = await generateWithGemini(prompt);
+      const rawResponse = await generateWithGemini(prompt, configOverrides);
       const parsed = extractJSON<T>(rawResponse);
       return parsed;
     } catch (error: any) {

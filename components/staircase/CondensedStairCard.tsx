@@ -35,6 +35,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { colors, typography, spacing, borderRadius, animation } from '@/constants/designSystem';
 import { StairForDisplay } from '@/hooks/useLearningPath';
+import { useEraseRewrite, useDescriptionCrossfade } from '@/hooks/useEraseRewrite';
 
 const TYPING_SPEED_MS = 30; // ms per character
 const DESCRIPTION_FADE_MS = 200;
@@ -49,6 +50,10 @@ interface CondensedStairCardProps {
   index: number;
   isRevealed?: boolean;
   onPress: () => void;
+  /** When set, triggers erase→rewrite animation on the title */
+  refinedTitle?: string;
+  /** When set, triggers crossfade on the description */
+  refinedDescription?: string;
 }
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -58,6 +63,8 @@ export function CondensedStairCard({
   index,
   isRevealed = true,
   onPress,
+  refinedTitle,
+  refinedDescription,
 }: CondensedStairCardProps) {
   // Animation values
   const revealProgress = useSharedValue(isRevealed ? 1 : 0);
@@ -196,7 +203,7 @@ export function CondensedStairCard({
 
   // Description color
   const getDescriptionColor = () => {
-    if (isLocked) return 'rgba(255, 255, 255, 0.45)';
+    if (isLocked) return 'rgba(255, 255, 255, 0.55)';
     return 'rgba(255, 255, 255, 0.7)';
   };
 
@@ -204,18 +211,27 @@ export function CondensedStairCard({
   const getStatusIcon = (): { name: keyof typeof Ionicons.glyphMap; color: string } => {
     if (isCompleted) return { name: 'checkmark', color: '#FFFFFF' };
     if (isCurrent) return { name: 'star', color: '#FFFFFF' };
-    return { name: 'lock-closed', color: 'rgba(255, 255, 255, 0.5)' };
+    return { name: 'lock-closed', color: 'rgba(255, 255, 255, 0.65)' };
   };
 
   // Status icon background color
   const getStatusIconBg = () => {
     if (isCompleted) return 'rgba(255, 255, 255, 0.2)';
     if (isCurrent) return 'rgba(255, 255, 255, 0.2)';
-    return 'rgba(255, 255, 255, 0.1)';
+    return 'rgba(255, 255, 255, 0.15)';
   };
 
-  // Displayed title text (sliced for typing effect)
-  const displayedTitle = fullTitle.slice(0, displayedChars);
+  // Erase→rewrite animation for refined titles
+  const refinedFullTitle = refinedTitle ? `${stair.order}. ${refinedTitle}` : undefined;
+  const { displayText: eraseRewriteTitle } = useEraseRewrite(fullTitle, refinedFullTitle);
+  const { displayText: crossfadeDesc } = useDescriptionCrossfade(
+    stair.description || '',
+    refinedDescription
+  );
+
+  // Displayed title text — use erase/rewrite result if animating, otherwise typing effect
+  const typedTitle = fullTitle.slice(0, displayedChars);
+  const displayedTitle = refinedFullTitle ? eraseRewriteTitle : typedTitle;
 
   return (
     <Animated.View style={[styles.container, cardAnimatedStyle]}>
@@ -263,15 +279,15 @@ export function CondensedStairCard({
             </View>
           </View>
 
-          {/* Line 2: Description — fades in after title completes */}
-          {stair.description ? (
+          {/* Line 2: Description — fades in after title completes, crossfades on refinement */}
+          {(stair.description || crossfadeDesc) ? (
             <Animated.View style={[styles.descriptionContainer, descriptionAnimatedStyle]}>
               <Text
                 style={[styles.description, { color: getDescriptionColor() }]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {stair.description}
+                {crossfadeDesc || stair.description}
               </Text>
             </Animated.View>
           ) : null}
@@ -374,7 +390,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: borderRadius.full,
     overflow: 'hidden',
   },

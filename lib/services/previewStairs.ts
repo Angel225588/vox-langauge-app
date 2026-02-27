@@ -154,6 +154,49 @@ const RECALIBRATION_STAIR: Omit<StairForDisplay, 'id' | 'order'> = {
 const BEGINNER_LEVELS = new Set(['starting_fresh', 'basics']);
 const MAX_STAIRS = 12;
 
+// Filler words to drop when shortening scenario titles
+const FILLER_WORDS = new Set([
+  'and', '&', 'the', 'a', 'an', 'of', 'for', 'to', 'in', 'on', 'with',
+]);
+
+/**
+ * Generate a short, readable title from a scenario + suffix.
+ * Caps at ~25 characters total so it fits on stair cards.
+ *
+ * Examples:
+ * - "Patient consultations" → "Patient Consults: Essentials"
+ * - "Explaining procedures & diagnosis" → "Procedures: Practice"
+ * - "Stand-ups & sprint planning" → "Sprint Planning: Core"
+ * - "My custom very long scenario name" → "Custom Scenario: Essentials"
+ */
+function generateShortTitle(scenario: string, suffix: string): string {
+  // Drop filler words, keep meaningful words
+  const words = scenario
+    .split(/[\s,]+/)
+    .filter(w => !FILLER_WORDS.has(w.toLowerCase()));
+
+  // Take first 2-3 meaningful words, join them
+  const maxWords = words.length <= 3 ? words.length : 2;
+  let shortScenario = words.slice(0, maxWords).join(' ');
+
+  // Capitalize first letter of each word
+  shortScenario = shortScenario
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
+  // Build full title
+  const fullTitle = `${shortScenario}: ${suffix}`;
+
+  // If still too long (>30 chars), truncate the scenario part
+  if (fullTitle.length > 30) {
+    const truncated = shortScenario.substring(0, 30 - suffix.length - 2);
+    return `${truncated.trim()}: ${suffix}`;
+  }
+
+  return fullTitle;
+}
+
 function getLessonTemplates(proficiencyLevel?: string): LessonTemplate[] {
   if (!proficiencyLevel || BEGINNER_LEVELS.has(proficiencyLevel)) {
     return BEGINNER_LESSONS;
@@ -220,7 +263,7 @@ export function generatePreviewStairs(input: PreviewStairsInput): StairForDispla
       stairs.push({
         id: `preview-${order}`,
         order,
-        title: `${scenario}: ${lesson.suffix}`,
+        title: generateShortTitle(scenario, lesson.suffix),
         emoji: icon,
         description: formatDescription(lesson.descTemplate, scenario, lang),
         status: order === 1 ? 'current' as const : 'locked' as const,
