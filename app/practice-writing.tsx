@@ -17,7 +17,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
@@ -27,6 +27,7 @@ import { generateWritingContent, type WritingPrompt } from '@/lib/ai/practiceGen
 import { generateWithGemini } from '@/lib/ai/gemini';
 import { sanitizePromptInput } from '@/lib/ai/sanitize';
 import { savePracticeScore } from '@/lib/db/competencyMetrics';
+import { storeActivityCompletion } from '@/app/lesson-session';
 
 // ─── Palette ───
 const C = {
@@ -54,6 +55,11 @@ interface WritingFeedback {
 export default function PracticeWritingScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const params = useLocalSearchParams<{
+    returnToSession?: string;
+    activityId?: string;
+  }>();
+  const isSessionActivity = params.returnToSession === 'true';
 
   const [phase, setPhase] = useState<Phase>('loading');
   const [prompt, setPrompt] = useState<WritingPrompt | null>(null);
@@ -144,6 +150,10 @@ Respond in JSON:
           scenario: Math.round(resultScore * 0.8),
         }).catch(() => {});
       }
+      // Signal lesson-session if we're inside a lesson
+      if (isSessionActivity && params.activityId) {
+        storeActivityCompletion(params.activityId, resultScore).catch(() => {});
+      }
     } catch (err) {
       console.error('[Writing] Feedback generation failed:', err);
       setFeedback({
@@ -158,10 +168,22 @@ Respond in JSON:
           articulation: 65, communication: 65, fluency: 55, scenario: 52,
         }).catch(() => {});
       }
+      if (isSessionActivity && params.activityId) {
+        storeActivityCompletion(params.activityId, 65).catch(() => {});
+      }
     } finally {
       setSubmitting(false);
     }
   }, [prompt, userText, submitting]);
+
+  // Return to lesson session or practice tab
+  const handleDone = useCallback(() => {
+    if (isSessionActivity) {
+      router.replace('/lesson-session');
+    } else {
+      router.back();
+    }
+  }, [isSessionActivity, router]);
 
   const wordCount = userText.trim().split(/\s+/).filter(Boolean).length;
 
@@ -376,10 +398,12 @@ Respond in JSON:
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={handleDone}
               style={[s.ctaBtn, { backgroundColor: C.card }]}
             >
-              <Text style={[s.ctaText, { color: C.sub }]}>Back to Practice</Text>
+              <Text style={[s.ctaText, { color: C.sub }]}>
+                {isSessionActivity ? 'Continue Lesson' : 'Back to Practice'}
+              </Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

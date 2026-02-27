@@ -39,6 +39,7 @@ import { useWordPriority } from '@/lib/word-bank';
 import { bankWordToVocabularyItem } from '@/lib/word-bank/adapter';
 
 const LESSON_PLAN_KEY = 'vox-active-lesson-plan';
+const ACTIVITY_COMPLETE_KEY = 'vox-activity-completion';
 
 // ─── Storage Helpers ───────────────────────────────
 
@@ -56,6 +57,35 @@ export async function clearActiveLessonPlan(): Promise<void> {
   await AsyncStorage.removeItem(LESSON_PLAN_KEY);
 }
 
+// ─── Activity Completion Signal ───────────────────
+// Practice screens write this before navigating back to lesson-session.
+// Lesson-session reads + clears it on mount to advance the plan.
+
+interface ActivityCompletion {
+  activityId: string;
+  score: number;
+}
+
+export async function storeActivityCompletion(
+  activityId: string,
+  score: number,
+): Promise<void> {
+  await AsyncStorage.setItem(
+    ACTIVITY_COMPLETE_KEY,
+    JSON.stringify({ activityId, score }),
+  );
+}
+
+async function loadActivityCompletion(): Promise<ActivityCompletion | null> {
+  const json = await AsyncStorage.getItem(ACTIVITY_COMPLETE_KEY);
+  if (!json) return null;
+  return JSON.parse(json);
+}
+
+async function clearActivityCompletion(): Promise<void> {
+  await AsyncStorage.removeItem(ACTIVITY_COMPLETE_KEY);
+}
+
 // ─── Session Screen ────────────────────────────────
 
 export default function LessonSessionScreen() {
@@ -66,40 +96,79 @@ export default function LessonSessionScreen() {
   const [discoveryContent, setDiscoveryContent] = useState<DiscoveryLessonContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load the active lesson plan and discovery content from storage
+  // Load the active lesson plan, check for pending activity completion, load discovery content
   useEffect(() => {
     const userId = user?.id || 'anonymous';
 
     loadActiveLessonPlan().then(async (loaded) => {
-      if (loaded) {
-        setPlan(loaded);
-
-        if (loaded.is_discovery) {
-          try {
-            // Load cached content (may only have first activity from waterfall)
-            const cachedContent = await generateDiscoveryLessonContent(
-              loaded,
-              userId,
-            );
-            setDiscoveryContent(cachedContent);
-
-            // Generate remaining activities in background while user does activity 1
-            generateRemainingActivities(loaded, userId)
-              .then(fullContent => {
-                console.log('[LessonSession] Background content generation complete');
-                setDiscoveryContent(fullContent);
-              })
-              .catch(err =>
-                console.warn('[LessonSession] Background gen error:', err),
-              );
-          } catch (err) {
-            console.warn('[LessonSession] Discovery content load failed:', err);
-          }
-        }
-      } else {
-        // No plan found — go to home (not back, to avoid destroyed onboarding stack)
+      if (!loaded) {
         router.replace('/(tabs)/home');
+        setIsLoading(false);
+        return;
       }
+
+      // Check if a practice screen signaled completion before navigating here
+      let activePlan = loaded;
+      const completion = await loadActivityCompletion();
+      if (completion) {
+        await clearActivityCompletion();
+        console.log(`[LessonSession] Processing completion: ${completion.activityId} score=${completion.score}`);
+        activePlan = advanceActivity(activePlan, completion.score);
+        await storeActiveLessonPlan(activePlan);
+      }
+
+      setPlan(activePlan);
+
+      // If all activities done after processing completion, go to feedback
+      if (activePlan.completed) {
+        const scores = calculateLessonScores(activePlan);
+        await clearActiveLessonPlan();
+        router.replace({
+          pathname: '/feedback-detail',
+          params: {
+            scores: JSON.stringify({
+              articulation: scores.articulation,
+              fluency: scores.fluency,
+              communication: scores.communication,
+              scenario: scores.scenario,
+              wordsLearned: scores.words_learned,
+              pointsEarned: scores.points_earned,
+              timeSpent: scores.practice_minutes * 60,
+              cefrLevel: scores.cefr_level,
+            }),
+            stairTitle: activePlan.stair_title,
+            stairId: activePlan.stair_id,
+            isDiscovery: activePlan.is_discovery ? 'true' : 'false',
+            scenario: activePlan.stair_title,
+          },
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Load discovery content for discovery lessons
+      if (activePlan.is_discovery) {
+        try {
+          const cachedContent = await generateDiscoveryLessonContent(
+            activePlan,
+            userId,
+          );
+          setDiscoveryContent(cachedContent);
+
+          // Generate remaining activities in background while user does current activity
+          generateRemainingActivities(activePlan, userId)
+            .then(fullContent => {
+              console.log('[LessonSession] Background content generation complete');
+              setDiscoveryContent(fullContent);
+            })
+            .catch(err =>
+              console.warn('[LessonSession] Background gen error:', err),
+            );
+        } catch (err) {
+          console.warn('[LessonSession] Discovery content load failed:', err);
+        }
+      }
+
       setIsLoading(false);
     });
   }, []);

@@ -21,7 +21,7 @@ import {
   Alert,
   Pressable,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -70,6 +70,7 @@ import {
   type ConversationFeedback,
 } from '@/lib/db/conversations';
 import { getCurrentStairStepId } from '@/lib/ai/practiceGenerator';
+import { storeActivityCompletion } from '@/app/lesson-session';
 import { getStairSkeleton } from '@/lib/db/learningPaths';
 import {
   generateScenariosFromOnboarding,
@@ -132,6 +133,11 @@ const LANG_NAME_TO_CODE: Record<string, SupportedLanguage> = {
 export default function VoiceConversationScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const sessionParams = useLocalSearchParams<{
+    returnToSession?: string;
+    activityId?: string;
+  }>();
+  const isSessionActivity = sessionParams.returnToSession === 'true';
   const { data: v2Data } = useOnboardingV2();
   const v3Store = useOnboardingV3();
   const [selectedScenario, setSelectedScenario] = useState<VoiceScenario | null>(null);
@@ -545,16 +551,29 @@ export default function VoiceConversationScreen() {
 
         await updateSessionFeedback(supabaseSessionId, feedback);
         console.log('[VoiceConversation] Feedback persisted to Supabase');
+
+        // Signal lesson-session if we're inside a lesson
+        if (isSessionActivity && sessionParams.activityId) {
+          await storeActivityCompletion(sessionParams.activityId, overallScore);
+        }
       } catch (err) {
         console.warn('[VoiceConversation] Failed to persist feedback:', err);
       }
+    } else if (isSessionActivity && sessionParams.activityId) {
+      // No Supabase session but still in lesson — signal completion with default score
+      await storeActivityCompletion(sessionParams.activityId, 70);
+    }
+
+    if (isSessionActivity) {
+      router.replace('/lesson-session');
+      return;
     }
 
     setFlowState('selection');
     setLastConversation(null);
     setSelectedScenario(null);
     setSupabaseSessionId(null);
-  }, [supabaseSessionId, lastConversation]);
+  }, [supabaseSessionId, lastConversation, isSessionActivity, sessionParams.activityId, router]);
 
   const handlePracticeAgain = () => {
     // Keep selectedScenario to restart with same scenario
@@ -583,6 +602,12 @@ export default function VoiceConversationScreen() {
       handleGoalBack();
     } else if (flowState === 'feedback') {
       handleFeedbackDone();
+    } else if (isSessionActivity) {
+      // In a lesson session — skip the activity with default score
+      if (sessionParams.activityId) {
+        storeActivityCompletion(sessionParams.activityId, 50).catch(() => {});
+      }
+      router.replace('/lesson-session');
     } else {
       router.back();
     }

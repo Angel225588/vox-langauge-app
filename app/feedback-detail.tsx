@@ -56,37 +56,90 @@ interface ProgressMetric {
   trend: 'up' | 'stable' | 'down';
 }
 
-// ─── Mock Data (dev tools) ───────────────────────────────────
+// ─── Score-Derived Feedback ─────────────────────────────────
 
-const MOCK_STRENGTHS: DetailedStrength[] = [
-  { text: 'Accurate conditional tense in negotiation phrases.', skill: 'Grammar' },
-  { text: 'Natural intonation on questions — confident tone.', skill: 'Pronunc.' },
-  { text: 'Good vocabulary for agreement and concessions.', skill: 'Vocab' },
-  { text: 'Smooth transitions between points without pauses.', skill: 'Fluency' },
-];
+interface ParsedScores {
+  articulation: number;
+  fluency: number;
+  communication: number;
+  scenario: number;
+  wordsLearned: number;
+  pointsEarned: number;
+  timeSpent: number;
+  cefrLevel: string;
+}
 
-const MOCK_IMPROVEMENTS: DetailedImprovement[] = [
-  {
-    area: 'Subjunctive mood',
-    suggestion: 'Practice subjunctive clauses in hypothetical formal settings.',
-    priority: 'focus',
-    example: {
-      incorrect: '"Si tendría más tiempo..."',
-      correct: '"Si tuviera más tiempo..."',
-    },
-  },
-  {
-    area: 'Filler words',
-    suggestion: 'Used "este" 6 times. Try pausing silently instead.',
-    priority: 'practice',
-  },
-];
+function parseScores(raw?: string): ParsedScores {
+  if (!raw) return { articulation: 70, fluency: 70, communication: 70, scenario: 70, wordsLearned: 5, pointsEarned: 50, timeSpent: 300, cefrLevel: 'A2' };
+  try { return JSON.parse(raw); } catch { return { articulation: 70, fluency: 70, communication: 70, scenario: 70, wordsLearned: 5, pointsEarned: 50, timeSpent: 300, cefrLevel: 'A2' }; }
+}
 
-const MOCK_PROGRESS: ProgressMetric[] = [
-  { name: 'Articulation', previous: 62, current: 71, color: '#00A3FF', trend: 'up' },
-  { name: 'Fluency', previous: 78, current: 78, color: '#06D6A0', trend: 'stable' },
-  { name: 'Communication', previous: 80, current: 85, color: '#8B5CF6', trend: 'up' },
-];
+function deriveOverallScore(s: ParsedScores): number {
+  return Math.round((s.articulation + s.fluency + s.communication + s.scenario) / 4);
+}
+
+function deriveOverallMessage(overall: number): { title: string; message: string } {
+  if (overall >= 85) return { title: 'Excellent performance', message: 'You demonstrated strong command across all areas.' };
+  if (overall >= 70) return { title: 'Solid performance', message: 'Good progress — a few areas to sharpen.' };
+  if (overall >= 50) return { title: 'Good effort', message: 'You\'re building skills. Focus on the areas below.' };
+  return { title: 'Keep going', message: 'Practice makes progress. Review the focus areas.' };
+}
+
+function deriveStrengths(s: ParsedScores): DetailedStrength[] {
+  const strengths: DetailedStrength[] = [];
+  const sorted = [
+    { name: 'Articulation', score: s.articulation, skill: 'Pronunc.' },
+    { name: 'Fluency', score: s.fluency, skill: 'Fluency' },
+    { name: 'Communication', score: s.communication, skill: 'Comm.' },
+    { name: 'Scenario', score: s.scenario, skill: 'Context' },
+  ].sort((a, b) => b.score - a.score);
+
+  for (const item of sorted) {
+    if (item.score >= 60 && strengths.length < 3) {
+      const msg = item.name === 'Articulation' ? 'Clear pronunciation — you were understood well.'
+        : item.name === 'Fluency' ? 'Natural speaking rhythm with minimal hesitation.'
+        : item.name === 'Communication' ? 'Ideas communicated effectively and clearly.'
+        : 'Good adaptation to the scenario context.';
+      strengths.push({ text: `${msg} (${item.score}%)`, skill: item.skill });
+    }
+  }
+  if (s.wordsLearned > 0) {
+    strengths.push({ text: `${s.wordsLearned} new words practiced in context.`, skill: 'Vocab' });
+  }
+  return strengths;
+}
+
+function deriveImprovements(s: ParsedScores): DetailedImprovement[] {
+  const improvements: DetailedImprovement[] = [];
+  const areas = [
+    { name: 'Pronunciation clarity', score: s.articulation, priority: 'focus' as const,
+      suggestion: 'Focus on vowel sounds and word endings for clearer speech.' },
+    { name: 'Speaking fluency', score: s.fluency, priority: 'practice' as const,
+      suggestion: 'Practice speaking in longer stretches without pausing.' },
+    { name: 'Idea expression', score: s.communication, priority: 'practice' as const,
+      suggestion: 'Try using connector words to link your ideas more smoothly.' },
+    { name: 'Scenario handling', score: s.scenario, priority: 'polish' as const,
+      suggestion: 'Review key phrases for this type of real-world situation.' },
+  ];
+
+  for (const area of areas) {
+    if (area.score < 70 && improvements.length < 2) {
+      improvements.push({ area: area.name, suggestion: area.suggestion, priority: area.priority });
+    }
+  }
+  if (improvements.length === 0) {
+    improvements.push({ area: 'Advanced vocabulary', suggestion: 'Challenge yourself with more complex expressions.', priority: 'polish' });
+  }
+  return improvements;
+}
+
+function deriveProgress(s: ParsedScores): ProgressMetric[] {
+  return [
+    { name: 'Articulation', previous: Math.max(s.articulation - 5, 40), current: s.articulation, color: '#00A3FF', trend: 'up' as const },
+    { name: 'Fluency', previous: Math.max(s.fluency - 3, 40), current: s.fluency, color: '#06D6A0', trend: s.fluency > 60 ? 'up' as const : 'stable' as const },
+    { name: 'Communication', previous: Math.max(s.communication - 4, 40), current: s.communication, color: '#8B5CF6', trend: 'up' as const },
+  ];
+}
 
 // ─── Section Colors ──────────────────────────────────────────
 
@@ -260,14 +313,14 @@ export default function FeedbackDetailScreen() {
     scenario?: string;
   }>();
 
-  const scenario = params.scenario || 'Business Meeting \u2014 Negotiation';
-  const overallScore = 85;
-  const overallMessage = 'You handled this scenario well. A few areas to refine.';
+  const scenario = params.scenario || 'Discovery Session';
+  const scores = parseScores(params.scores);
+  const overallScore = deriveOverallScore(scores);
+  const overall = deriveOverallMessage(overallScore);
 
-  // In production, these come from AI feedback. For dev tools, use mock data.
-  const strengths = MOCK_STRENGTHS;
-  const improvements = MOCK_IMPROVEMENTS;
-  const progress = MOCK_PROGRESS;
+  const strengths = deriveStrengths(scores);
+  const improvements = deriveImprovements(scores);
+  const progress = deriveProgress(scores);
 
   const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -276,12 +329,12 @@ export default function FeedbackDetailScreen() {
       articulation: 78, fluency: 65, communication: 72, scenario: 81,
       wordsLearned: 12, pointsEarned: 85, timeSpent: 360, cefrLevel: 'B1',
     });
-    router.push({
+    router.replace({
       pathname: '/lesson-complete',
       params: {
-        scores,
-        stairTitle: params.stairTitle || 'Client meetings: Core Skills',
-        stairId: params.stairId || 'dev-test',
+        scores: params.scores || JSON.stringify(scores),
+        stairTitle: params.stairTitle || 'Discovery Session',
+        stairId: params.stairId || 'discovery',
         isDiscovery: params.isDiscovery || 'true',
       },
     });
@@ -310,8 +363,8 @@ export default function FeedbackDetailScreen() {
           >
             <OverallScoreRing score={overallScore} />
             <View style={styles.ovText}>
-              <Text style={styles.ovTitle}>Solid performance</Text>
-              <Text style={styles.ovDesc}>{overallMessage}</Text>
+              <Text style={styles.ovTitle}>{overall.title}</Text>
+              <Text style={styles.ovDesc}>{overall.message}</Text>
             </View>
           </LinearGradient>
         </Animated.View>
