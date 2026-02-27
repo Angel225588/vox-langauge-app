@@ -298,6 +298,160 @@ function GlowSphere({ percent, size = 48 }: { percent: number; size?: number }) 
 }
 
 // ═══════════════════════════════════════
+// PRACTICE GATE — Shown to unauthenticated users
+// ═══════════════════════════════════════
+
+const GATE_FEATURES = [
+  { icon: 'mic-outline' as const, title: 'Voice Conversations', desc: 'AI-powered fluency practice' },
+  { icon: 'book-outline' as const, title: 'Reading & Writing', desc: 'AI-generated content' },
+  { icon: 'headset-outline' as const, title: 'Listening & Vocabulary', desc: 'Scaffolded exercises' },
+];
+
+function PracticeGate({ onSignUp, onSignIn }: { onSignUp: () => void; onSignIn: () => void }) {
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: PZ.bg }} edges={['top']}>
+      <View style={gate.container}>
+        {/* Shield icon */}
+        <View style={gate.iconBox}>
+          <Ionicons name="shield-checkmark-outline" size={48} color={PZ.blue} />
+        </View>
+
+        <Text style={gate.title}>Practice Zone</Text>
+        <Text style={gate.subtitle}>
+          Create a free account to unlock all practice modes
+        </Text>
+
+        {/* Feature previews */}
+        <View style={gate.features}>
+          {GATE_FEATURES.map((f) => (
+            <View key={f.title} style={gate.featureRow}>
+              <View style={gate.featureIcon}>
+                <Ionicons name={f.icon} size={20} color={PZ.blueLight} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={gate.featureTitle}>{f.title}</Text>
+                <Text style={gate.featureDesc}>{f.desc}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* CTA */}
+        <TouchableOpacity onPress={onSignUp} activeOpacity={0.85} style={{ width: '100%' }}>
+          <LinearGradient
+            colors={['#0077FF', '#0050CC']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={gate.cta}
+          >
+            <Text style={gate.ctaText}>Create Free Account</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Sign in link */}
+        <TouchableOpacity onPress={onSignIn} activeOpacity={0.7} style={gate.signInBtn}>
+          <Text style={gate.signInText}>
+            Already have an account? <Text style={gate.signInLink}>Sign in</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const gate = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  iconBox: {
+    width: 88,
+    height: 88,
+    borderRadius: 24,
+    backgroundColor: PZ.glass,
+    borderWidth: 1,
+    borderColor: PZ.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: PZ.text,
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: PZ.sub,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 32,
+  },
+  features: {
+    width: '100%',
+    gap: 16,
+    marginBottom: 40,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  featureIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: PZ.glass2,
+    borderWidth: 1,
+    borderColor: PZ.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featureTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: PZ.text,
+    letterSpacing: -0.2,
+  },
+  featureDesc: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: PZ.sub,
+    marginTop: 1,
+  },
+  cta: {
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  ctaText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: -0.2,
+  },
+  signInBtn: {
+    marginTop: 16,
+    paddingVertical: 8,
+  },
+  signInText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: PZ.sub,
+  },
+  signInLink: {
+    color: PZ.blueLight,
+    fontWeight: '600',
+  },
+});
+
+// ═══════════════════════════════════════
 // PRACTICE SCREEN
 // ═══════════════════════════════════════
 
@@ -306,6 +460,24 @@ export default function PracticeScreen() {
   const { user } = useAuth();
   const { metrics } = useUserMetrics();
   const [showDevTools, setShowDevTools] = useState(false);
+
+  const handleVoiceConversation = useCallback(() => {
+    if (!user) {
+      router.push('/(auth)/onboarding-v3' as any);
+      return;
+    }
+    router.push('/voice-conversation');
+  }, [router, user]);
+
+  // ─── Gate: unauthenticated users see sign-up screen ───
+  if (!user) {
+    return (
+      <PracticeGate
+        onSignUp={() => router.push('/(auth)/onboarding-v3' as any)}
+        onSignIn={() => router.push('/(auth)/onboarding-v3/login' as any)}
+      />
+    );
+  }
 
   const getTrend = (kpi: string) => {
     const t = metrics.trends.find(tr => tr.kpi === kpi);
@@ -318,14 +490,6 @@ export default function PracticeScreen() {
     { label: 'Fluency', value: metrics.fluency, suffix: '/100', color: PZ.blueLight, trend: getTrend('fluency') },
     { label: 'Communication', value: metrics.communication, suffix: '/100', color: PZ.green, trend: getTrend('communication') },
   ];
-
-  const handleVoiceConversation = useCallback(() => {
-    if (!user) {
-      router.push('/(auth)/onboarding-v3' as any);
-      return;
-    }
-    router.push('/voice-conversation');
-  }, [router, user]);
 
   const QUICK_ACTIONS = [
     { icon: 'flash' as const, label: 'Sprint', color: PZ.gold, route: '/flashcard/session' },

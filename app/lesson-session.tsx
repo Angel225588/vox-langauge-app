@@ -37,6 +37,7 @@ import { useStairContent } from '@/hooks/useStairContent';
 import { useAuth } from '@/hooks/useAuth';
 import { useWordPriority } from '@/lib/word-bank';
 import { bankWordToVocabularyItem } from '@/lib/word-bank/adapter';
+import { updateStreakData } from '@/lib/db/sqlite';
 
 const LESSON_PLAN_KEY = 'vox-active-lesson-plan';
 const ACTIVITY_COMPLETE_KEY = 'vox-activity-completion';
@@ -238,6 +239,72 @@ export default function LessonSessionScreen() {
     }
   }, [plan, router]);
 
+  // ─── Navigate to external practice screens via useEffect (not during render) ───
+  useEffect(() => {
+    if (isLoading || !plan || !currentActivity) return;
+
+    const type = currentActivity.type;
+    if (type === 'vocabulary') return; // rendered inline, no navigation needed
+
+    if (type === 'listening') {
+      const listeningContent = discoveryContent?.activities[currentActivity.id] as ListeningContent | undefined;
+      router.replace({
+        pathname: '/practice-listening',
+        params: {
+          stairStepId: plan.stair_id,
+          returnToSession: 'true',
+          planId: plan.id,
+          activityId: currentActivity.id,
+          ...(listeningContent ? { discoveryContent: JSON.stringify(listeningContent) } : {}),
+        },
+      });
+    } else if (type === 'reading') {
+      const readingContent = discoveryContent?.activities[currentActivity.id] as ReadingContent | undefined;
+      router.replace({
+        pathname: '/practice-reading',
+        params: {
+          stairStepId: plan.stair_id,
+          returnToSession: 'true',
+          planId: plan.id,
+          activityId: currentActivity.id,
+          ...(readingContent ? { discoveryContent: JSON.stringify(readingContent) } : {}),
+        },
+      });
+    } else if (type === 'voice_call') {
+      const voiceContent = discoveryContent?.activities[currentActivity.id] as VoiceCallContent | undefined;
+      router.replace({
+        pathname: '/voice-conversation',
+        params: {
+          stairStepId: plan.stair_id,
+          returnToSession: 'true',
+          planId: plan.id,
+          activityId: currentActivity.id,
+          maxDuration: String(
+            currentActivity.config.type === 'voice_call'
+              ? currentActivity.config.duration_seconds
+              : 60
+          ),
+          ...(voiceContent ? {
+            scenarioTitle: voiceContent.scenarioTitle,
+            scenarioDescription: voiceContent.scenarioDescription,
+          } : {}),
+        },
+      });
+    } else if (type === 'writing') {
+      const writingContent = discoveryContent?.activities[currentActivity.id] as WritingContent | undefined;
+      router.replace({
+        pathname: '/practice-writing',
+        params: {
+          stairStepId: plan.stair_id,
+          returnToSession: 'true',
+          planId: plan.id,
+          activityId: currentActivity.id,
+          ...(writingContent ? { discoveryContent: JSON.stringify(writingContent) } : {}),
+        },
+      });
+    }
+  }, [currentActivity?.id, currentActivity?.type, isLoading, plan, discoveryContent, router]);
+
   // Handle early exit
   const handleExit = useCallback(async () => {
     await clearActiveLessonPlan();
@@ -250,10 +317,13 @@ export default function LessonSessionScreen() {
     await handleActivityComplete(75);
   }, [handleActivityComplete]);
 
-  // Handle points earned (from vocabulary practice)
+  // Handle points earned (from vocabulary practice) — persist to SQLite
   const handlePointsEarned = useCallback((points: number) => {
-    // Points tracked in the plan's score calculation
-  }, []);
+    const userId = user?.id;
+    if (userId && points > 0) {
+      updateStreakData(userId, points).catch(() => {});
+    }
+  }, [user?.id]);
 
   // ─── Loading ─────────────────────────────────────
 
@@ -346,84 +416,11 @@ export default function LessonSessionScreen() {
       );
     }
 
-    case 'listening': {
-      // Pass discovery content if available (pre-generated dialogue + questions)
-      const listeningContent = discoveryContent?.activities[currentActivity.id] as ListeningContent | undefined;
-      router.replace({
-        pathname: '/practice-listening',
-        params: {
-          stairStepId: plan.stair_id,
-          returnToSession: 'true',
-          planId: plan.id,
-          activityId: currentActivity.id,
-          ...(listeningContent ? { discoveryContent: JSON.stringify(listeningContent) } : {}),
-        },
-      });
-      return (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
-        </View>
-      );
-    }
-
-    case 'reading': {
-      const readingContent = discoveryContent?.activities[currentActivity.id] as ReadingContent | undefined;
-      router.replace({
-        pathname: '/practice-reading',
-        params: {
-          stairStepId: plan.stair_id,
-          returnToSession: 'true',
-          planId: plan.id,
-          activityId: currentActivity.id,
-          ...(readingContent ? { discoveryContent: JSON.stringify(readingContent) } : {}),
-        },
-      });
-      return (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
-        </View>
-      );
-    }
-
-    case 'voice_call': {
-      const voiceContent = discoveryContent?.activities[currentActivity.id] as VoiceCallContent | undefined;
-      router.replace({
-        pathname: '/voice-conversation',
-        params: {
-          stairStepId: plan.stair_id,
-          returnToSession: 'true',
-          planId: plan.id,
-          activityId: currentActivity.id,
-          maxDuration: String(
-            currentActivity.config.type === 'voice_call'
-              ? currentActivity.config.duration_seconds
-              : 60
-          ),
-          ...(voiceContent ? {
-            scenarioTitle: voiceContent.scenarioTitle,
-            scenarioDescription: voiceContent.scenarioDescription,
-          } : {}),
-        },
-      });
-      return (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
-        </View>
-      );
-    }
-
+    case 'listening':
+    case 'reading':
+    case 'voice_call':
     case 'writing': {
-      const writingContent = discoveryContent?.activities[currentActivity.id] as WritingContent | undefined;
-      router.replace({
-        pathname: '/practice-writing',
-        params: {
-          stairStepId: plan.stair_id,
-          returnToSession: 'true',
-          planId: plan.id,
-          activityId: currentActivity.id,
-          ...(writingContent ? { discoveryContent: JSON.stringify(writingContent) } : {}),
-        },
-      });
+      // Navigation handled by useEffect above — just show loading spinner
       return (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary.DEFAULT} />

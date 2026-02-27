@@ -14,6 +14,7 @@ import { useFlashcardSession } from '@/hooks/useFlashcard';
 import { useAuth } from '@/hooks/useAuth';
 import { SimpleQuality } from '@/types/flashcard';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
+import { updateStreakData } from '@/lib/db/sqlite';
 
 // Import card components
 import LearningCard from '@/components/flashcards/LearningCard';
@@ -49,13 +50,18 @@ export default function FlashcardSessionScreen() {
     }
   }, [user?.id, startSession]);
 
-  // Navigate to summary when session ends
+  // Persist points + show summary when session ends
   useEffect(() => {
     if (sessionSummary) {
-      // TODO: Navigate to summary screen
       console.log('Session ended, showing summary:', sessionSummary);
+
+      // Persist points to SQLite (single source of truth)
+      if (user?.id && sessionSummary.points_earned > 0) {
+        updateStreakData(user.id, sessionSummary.points_earned).catch(() => {});
+      }
+
       Alert.alert(
-        'Session Complete! 🎉',
+        'Session Complete!',
         `You reviewed ${sessionSummary.flashcards_reviewed} flashcards and earned ${sessionSummary.points_earned} points!\n\nAccuracy: ${sessionSummary.accuracy}%`,
         [
           {
@@ -65,7 +71,7 @@ export default function FlashcardSessionScreen() {
         ]
       );
     }
-  }, [sessionSummary, router]);
+  }, [sessionSummary, router, user?.id]);
 
   /**
    * Handle quality rating

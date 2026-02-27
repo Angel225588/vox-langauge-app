@@ -3,6 +3,10 @@
  *
  * AI-generated reading passage based on user's current stair vocabulary/grammar.
  * Shows passage in target language → comprehension questions → score.
+ *
+ * Supports two entry modes:
+ * - Lesson session: discoveryContent passed via route params
+ * - Practice tab: AI-generated via practiceGenerator
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -21,6 +25,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { generateReadingContent, type ReadingPassage } from '@/lib/ai/practiceGenerator';
+import type { ReadingContent } from '@/lib/lesson/discoveryGenerator';
 import { savePracticeScore } from '@/lib/db/competencyMetrics';
 import { storeActivityCompletion } from '@/app/lesson-session';
 import { updateStreakData } from '@/lib/db/sqlite';
@@ -47,6 +52,9 @@ export default function PracticeReadingScreen() {
   const params = useLocalSearchParams<{
     returnToSession?: string;
     activityId?: string;
+    discoveryContent?: string;
+    planId?: string;
+    stairStepId?: string;
   }>();
   const isSessionActivity = params.returnToSession === 'true';
 
@@ -56,16 +64,38 @@ export default function PracticeReadingScreen() {
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    loadContent();
-  }, [user?.id]);
-
   const loadContent = useCallback(async () => {
-    if (!user?.id) return;
     setPhase('loading');
     setError(null);
+    setCurrentQ(0);
+
     try {
+      // Try discovery content from route params first (lesson session mode)
+      if (params.discoveryContent) {
+        const parsed: ReadingContent = JSON.parse(params.discoveryContent);
+        // Normalize discovery ReadingContent → ReadingPassage shape
+        const normalized: ReadingPassage = {
+          title: parsed.title,
+          passage: parsed.passage,
+          wordCount: parsed.wordCount || parsed.passage.split(' ').length,
+          difficulty: 'READING',
+          targetVocabulary: parsed.targetVocabulary || [],
+          comprehensionQuestions: parsed.comprehensionQuestions || [],
+        };
+        if (normalized.passage && normalized.comprehensionQuestions.length > 0) {
+          setPassage(normalized);
+          setAnswers(new Array(normalized.comprehensionQuestions.length).fill(null));
+          setPhase('reading');
+          return;
+        }
+      }
+
+      // Fall back to AI generation (practice tab mode)
+      if (!user?.id) {
+        setError('Sign in to generate reading exercises.');
+        return;
+      }
+
       const content = await generateReadingContent(user.id);
       if (!content) {
         setError('Could not generate reading content. Check your learning path.');
@@ -77,7 +107,12 @@ export default function PracticeReadingScreen() {
     } catch (err: any) {
       setError(err.message || 'Generation failed');
     }
-  }, [user?.id]);
+  }, [params.discoveryContent, user?.id]);
+
+  // Initial load
+  useEffect(() => {
+    loadContent();
+  }, []);
 
   const handleStartQuestions = () => {
     setPhase('questions');

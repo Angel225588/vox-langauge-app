@@ -21,6 +21,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import { getElevenLabsApiKey, ELEVENLABS_VOICES, getVoiceById } from '@/lib/voice/elevenLabsConfig';
 
 // =============================================================================
@@ -193,26 +194,23 @@ export function useElevenLabsTTS(): UseElevenLabsTTSReturn {
         throw new Error(`ElevenLabs TTS error: ${response.status} - ${errorText}`);
       }
 
-      // Get audio data
-      const audioBlob = await response.blob();
-      const audioUri = URL.createObjectURL(audioBlob);
+      // Get audio data as arraybuffer and write to temp file
+      const arrayBuffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64Audio = btoa(binary);
 
-      // For React Native, we need to use a different approach
-      // Convert blob to base64 and use data URI
-      const reader = new FileReader();
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => {
-          const base64 = reader.result as string;
-          resolve(base64);
-        };
-        reader.onerror = reject;
+      const tempFile = `${FileSystem.cacheDirectory}elevenlabs_tts_${Date.now()}.mp3`;
+      await FileSystem.writeAsStringAsync(tempFile, base64Audio, {
+        encoding: FileSystem.EncodingType.Base64,
       });
-      reader.readAsDataURL(audioBlob);
-      const base64Data = await base64Promise;
 
-      // Create and play sound
+      // Create and play sound from temp file
       const { sound } = await Audio.Sound.createAsync(
-        { uri: base64Data },
+        { uri: tempFile },
         { shouldPlay: true, rate },
         (status) => {
           if (status.isLoaded && status.didJustFinish) {
@@ -223,6 +221,8 @@ export function useElevenLabsTTS(): UseElevenLabsTTSReturn {
             // Cleanup
             sound.unloadAsync();
             soundRef.current = null;
+            // Remove temp file
+            FileSystem.deleteAsync(tempFile, { idempotent: true }).catch(() => {});
           }
         }
       );

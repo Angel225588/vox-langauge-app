@@ -9,6 +9,7 @@ import { initializeFlashcardDB, insertSampleFlashcards } from '@/lib/db/flashcar
 import { initializeWordBankDatabase } from '@/lib/word-bank';
 import { initializeReadingSessionsTable } from '@/lib/reading';
 import { dbManager } from '@/lib/db/database';
+import { initializeDatabase } from '@/lib/db/sqlite';
 import { initializeI18n } from '@/i18n';
 import tamaguiConfig from '../tamagui.config';
 import '../global.css';
@@ -56,6 +57,9 @@ export default function RootLayout() {
         // Initialize flashcard database
         console.log('📦 Initializing database...');
         await initializeFlashcardDB();
+
+        // Initialize core SQLite tables (streak_data, user_progress, etc.)
+        await initializeDatabase();
 
         // Initialize Word Bank database
         console.log('📚 Initializing Word Bank...');

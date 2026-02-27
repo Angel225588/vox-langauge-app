@@ -18,6 +18,7 @@ import { VocabularyPracticeScreen } from '@/components/cards/vocabulary/Vocabula
 import { colors, spacing, typography } from '@/constants/designSystem';
 import { supabase } from '@/lib/db/supabase';
 import { SAMPLE_VOCABULARY } from '@/lib/data/sampleVocabulary';
+import { updateStreakData } from '@/lib/db/sqlite';
 import type { VocabularyItem, VocabCardVariant } from '@/types/vocabulary';
 
 export default function VocabPracticeRoute() {
@@ -97,12 +98,12 @@ export default function VocabPracticeRoute() {
     }
   }, [router]);
 
-  // Handle points earned (sync to global state)
+  // Handle points earned — persist to SQLite (single source of truth)
   const handlePointsEarned = useCallback((points: number) => {
-    console.log(`🎉 Points earned: ${points}`);
-    // TODO: Sync to global points state
-    // This would update the user's total points in the app
-  }, []);
+    if (userId && userId !== 'anonymous' && points > 0) {
+      updateStreakData(userId, points).catch(() => {});
+    }
+  }, [userId]);
 
   // Parse custom sequence if provided
   const customSequence = sequence
