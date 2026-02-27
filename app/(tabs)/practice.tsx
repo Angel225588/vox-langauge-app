@@ -56,13 +56,14 @@ const PZ = {
 };
 
 // ─── GRID (routes wired to AI-powered practice screens) ───
+// Waterfall: Vocabulary → Reading → Listening — each feeds from onboarding + previous stage
 const GRID_ITEMS = [
-  { title: 'Vocabulary', sub: 'Word bank & review', icon: 'albums-outline' as const, color: PZ.green, route: '/vocabulary-dashboard', badge: '' },
-  { title: 'Reading', sub: 'AI library', icon: 'book-outline' as const, color: PZ.purple, route: '/library', badge: '' },
-  { title: 'Writing', sub: 'AI prompt', icon: 'create-outline' as const, color: PZ.gold, route: '/practice-writing', badge: '' },
-  { title: 'Listening', sub: 'Comprehension', icon: 'headset-outline' as const, color: PZ.rose, route: '/practice-listening', badge: '' },
-  { title: 'Library', sub: 'Scenario decks', icon: 'library-outline' as const, color: PZ.cyan, route: '/vox-library', badge: '' },
-  { title: 'Flow', sub: 'Guided session', icon: 'water-outline' as const, color: PZ.cyan, route: '', badge: 'GUIDED' },
+  { title: 'Vocabulary', sub: 'Word bank & review', icon: 'albums-outline' as const, color: PZ.green, route: '/vocabulary-dashboard', badge: '', requiresAuth: false },
+  { title: 'Reading', sub: 'AI passages', icon: 'book-outline' as const, color: PZ.purple, route: '/practice-reading', badge: '', requiresAuth: true },
+  { title: 'Writing', sub: 'AI prompt', icon: 'create-outline' as const, color: PZ.gold, route: '/practice-writing', badge: '', requiresAuth: true },
+  { title: 'Listening', sub: '4-stage scaffolding', icon: 'headset-outline' as const, color: PZ.rose, route: '/practice-listening', badge: '', requiresAuth: true },
+  { title: 'Library', sub: 'Scenario decks', icon: 'library-outline' as const, color: PZ.cyan, route: '/vox-library', badge: '', requiresAuth: true },
+  { title: 'Flow', sub: 'Guided session', icon: 'water-outline' as const, color: PZ.cyan, route: '', badge: 'GUIDED', requiresAuth: true },
 ];
 
 // ─── MAP PZ COLORS → GLASS CONTAINER WORLDS ───
@@ -319,8 +320,12 @@ export default function PracticeScreen() {
   ];
 
   const handleVoiceConversation = useCallback(() => {
+    if (!user) {
+      router.push('/(auth)/onboarding-v3' as any);
+      return;
+    }
     router.push('/voice-conversation');
-  }, [router]);
+  }, [router, user]);
 
   const QUICK_ACTIONS = [
     { icon: 'flash' as const, label: 'Sprint', color: PZ.gold, route: '/flashcard/session' },
@@ -476,12 +481,19 @@ export default function PracticeScreen() {
               <View key={startIdx} style={s.gridRow}>
                 {row.map((card) => {
                   const world = getWorld(card.color);
+                  const isLocked = card.requiresAuth && !user;
                   return (
                     <TouchableOpacity
                       key={card.title}
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, opacity: isLocked ? 0.5 : 1 }}
                       activeOpacity={0.7}
-                      onPress={() => { if (card.route) router.push(card.route as any); }}
+                      onPress={() => {
+                        if (isLocked) {
+                          router.push('/(auth)/onboarding-v3' as any);
+                          return;
+                        }
+                        if (card.route) router.push(card.route as any);
+                      }}
                     >
                       <LinearGradient
                         colors={world.gradient}
@@ -495,18 +507,26 @@ export default function PracticeScreen() {
                             { backgroundColor: world.iconBg, borderColor: world.border },
                           ]}
                         >
-                          <Ionicons name={card.icon} size={22} color={card.color} />
+                          {isLocked ? (
+                            <Ionicons name="lock-closed" size={20} color={PZ.dim} />
+                          ) : (
+                            <Ionicons name={card.icon} size={22} color={card.color} />
+                          )}
                         </View>
                         <View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Text style={s.gridTitle}>{card.title}</Text>
-                            {card.badge ? (
+                            {isLocked ? (
+                              <View style={[s.gridBadge, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                                <Text style={[s.gridBadgeText, { color: PZ.dim }]}>SIGN UP</Text>
+                              </View>
+                            ) : card.badge ? (
                               <View style={[s.gridBadge, { backgroundColor: world.countBg }]}>
                                 <Text style={[s.gridBadgeText, { color: world.countColor }]}>{card.badge}</Text>
                               </View>
                             ) : null}
                           </View>
-                          <Text style={s.gridSub}>{card.sub}</Text>
+                          <Text style={s.gridSub}>{isLocked ? 'Sign up to unlock' : card.sub}</Text>
                         </View>
                       </LinearGradient>
                     </TouchableOpacity>
@@ -544,6 +564,7 @@ export default function PracticeScreen() {
                 { label: 'ElevenLabs Voice Test', route: '/test-elevenlabs' },
                 { label: 'Gemini Live API Test', route: '/test-gemini-live' },
                 { label: 'Interactive Scenarios', route: '/test-interactive-scenario' },
+                { label: 'Feedback History', route: '/feedback-history' },
               ].map((tool) => (
                 <TouchableOpacity
                   key={tool.label}
