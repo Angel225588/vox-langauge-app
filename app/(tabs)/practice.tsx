@@ -537,7 +537,8 @@ export default function PracticeScreen() {
           })}
         </Animated.View>
 
-        {/* ═══ DEV TOOLS (collapsible) ═══ */}
+        {/* ═══ DEV TOOLS (only in development) ═══ */}
+        {__DEV__ && (
         <Animated.View entering={FadeInDown.duration(400).delay(300)} style={{ marginTop: 24 }}>
           <TouchableOpacity
             onPress={() => setShowDevTools(!showDevTools)}
@@ -579,6 +580,7 @@ export default function PracticeScreen() {
             </View>
           )}
         </Animated.View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

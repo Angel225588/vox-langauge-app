@@ -48,9 +48,15 @@ export async function storeActiveLessonPlan(plan: LessonPlan): Promise<void> {
 }
 
 export async function loadActiveLessonPlan(): Promise<LessonPlan | null> {
-  const json = await AsyncStorage.getItem(LESSON_PLAN_KEY);
-  if (!json) return null;
-  return JSON.parse(json);
+  try {
+    const json = await AsyncStorage.getItem(LESSON_PLAN_KEY);
+    if (!json) return null;
+    return JSON.parse(json);
+  } catch {
+    // Corrupt data — clear and return null
+    await AsyncStorage.removeItem(LESSON_PLAN_KEY).catch(() => {});
+    return null;
+  }
 }
 
 export async function clearActiveLessonPlan(): Promise<void> {

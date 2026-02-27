@@ -547,8 +547,8 @@ export default function ProfileScreen() {
             </View>
           </Animated.View>
 
-          {/* 7. Developer Tools (collapsed) */}
-          <Animated.View entering={FadeInDown.duration(400).delay(500)} style={styles.section}>
+          {/* 7. Developer Tools (only in development) */}
+          {__DEV__ && <Animated.View entering={FadeInDown.duration(400).delay(500)} style={styles.section}>
             <TouchableOpacity
               style={styles.sectionHeader}
               onPress={() => setShowDevTools(!showDevTools)}
@@ -584,7 +584,7 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </View>
             )}
-          </Animated.View>
+          </Animated.View>}
         </ScrollView>
       </SafeAreaView>
     </View>

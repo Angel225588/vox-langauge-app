@@ -124,23 +124,52 @@ export default function RootLayout() {
             animation: 'slide_from_right',
           }}
         >
+          {/* ─── Core ─── */}
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="test-cards" options={{ headerShown: false, presentation: 'modal' }} />
+
+          {/* ─── Practice screens ─── */}
+          <Stack.Screen name="practice-reading" options={{ headerShown: false }} />
+          <Stack.Screen name="practice-writing" options={{ headerShown: false }} />
+          <Stack.Screen name="practice-listening" options={{ headerShown: false }} />
+          <Stack.Screen name="voice-conversation" options={{ headerShown: false }} />
+
+          {/* ─── Dashboards ─── */}
+          <Stack.Screen name="vocabulary-dashboard" options={{ headerShown: false }} />
+          <Stack.Screen name="competency-dashboard" options={{ headerShown: false }} />
+          <Stack.Screen name="activity-dashboard" options={{ headerShown: false }} />
+          <Stack.Screen name="privacy-dashboard" options={{ headerShown: false }} />
+
+          {/* ─── Lesson flow ─── */}
+          <Stack.Screen name="lesson-session" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="lesson-complete" options={{ headerShown: false, animation: 'fade' }} />
+          <Stack.Screen name="lesson-carousel" options={{ headerShown: false }} />
+          <Stack.Screen name="feedback-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="feedback-history" options={{ headerShown: false }} />
+
+          {/* ─── Content ─── */}
           <Stack.Screen name="library" options={{ headerShown: false }} />
+          <Stack.Screen name="vox-library" options={{ headerShown: false }} />
           <Stack.Screen name="about-lecture" options={{ headerShown: false }} />
           <Stack.Screen name="teleprompter" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           <Stack.Screen name="recordings" options={{ headerShown: false }} />
+          <Stack.Screen name="recordings-library" options={{ headerShown: false }} />
+          <Stack.Screen name="notes-library" options={{ headerShown: false }} />
           <Stack.Screen name="completion" options={{ headerShown: false }} />
-          <Stack.Screen name="feedback-detail" options={{ headerShown: false }} />
-          <Stack.Screen name="lesson-complete" options={{ headerShown: false, animation: 'fade' }} />
-          <Stack.Screen name="lesson-session" options={{ headerShown: false, gestureEnabled: false }} />
-          <Stack.Screen name="test-elevenlabs" options={{ headerShown: false, presentation: 'modal' }} />
-          <Stack.Screen name="lesson-carousel" options={{ headerShown: false }} />
-          <Stack.Screen name="activity-dashboard" options={{ headerShown: false }} />
-          <Stack.Screen name="feedback-history" options={{ headerShown: false }} />
+          <Stack.Screen name="conversation-history" options={{ headerShown: false }} />
+          <Stack.Screen name="design-showcase" options={{ headerShown: false }} />
+
+          {/* ─── Profile ─── */}
           <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+
+          {/* ─── Dev/test (only accessible via Developer Tools) ─── */}
+          <Stack.Screen name="test-cards" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="test-elevenlabs" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="test-voice-system" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="test-gemini-live" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="test-interactive-scenario" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="test-writing-task" options={{ headerShown: false, presentation: 'modal' }} />
           </Stack>
         </TamaguiProvider>
       </ConditionalElevenLabsProvider>
