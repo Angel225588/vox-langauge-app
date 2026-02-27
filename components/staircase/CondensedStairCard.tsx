@@ -181,11 +181,10 @@ export function CondensedStairCard({
     return 'rgba(255, 255, 255, 0.15)';
   };
 
-  // Get progress bar fill percentage
+  // Get progress bar fill percentage — driven by real data
   const getProgressPercent = () => {
     if (isCompleted) return 100;
-    if (isCurrent) return 35;
-    return 0;
+    return stair.progress ?? 0;
   };
 
   // Get progress bar gradient

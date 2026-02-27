@@ -27,6 +27,8 @@ export interface StairForDisplay {
   status: 'locked' | 'current' | 'completed';
   vocabulary_count: number;
   estimated_days: number;
+  /** Lesson progress 0-100, derived from completed activities */
+  progress?: number;
 }
 
 /**
