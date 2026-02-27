@@ -113,6 +113,12 @@ export {
   useReviewSession,
 } from './hooks';
 
+// Adapter (BankWord → VocabularyItem for card system)
+export {
+  bankWordToVocabularyItem,
+  bankWordsToVocabularyItems,
+} from './adapter';
+
 // Hook types
 export type {
   UseWordBankOptions,

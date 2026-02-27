@@ -26,6 +26,8 @@ import {
 import { VocabularyPracticeScreen } from '@/components/cards/vocabulary/VocabularyPracticeScreen';
 import { useStairContent } from '@/hooks/useStairContent';
 import { useAuth } from '@/hooks/useAuth';
+import { useWordPriority } from '@/lib/word-bank';
+import { bankWordToVocabularyItem } from '@/lib/word-bank/adapter';
 
 const LESSON_PLAN_KEY = 'vox-active-lesson-plan';
 
@@ -67,11 +69,18 @@ export default function LessonSessionScreen() {
     });
   }, []);
 
-  // Load stair content for vocabulary activities
+  // Load stair content for vocabulary activities (Tier 1: Supabase stairs)
   const {
     data: stairContent,
     isLoading: contentLoading,
   } = useStairContent(plan?.stair_id || '', user?.id);
+
+  // Tier 2 fallback: Word bank vocabulary (populated by initialVocabGenerator)
+  const vocabWordCount = plan?.activities.find(a => a.type === 'vocabulary' && a.config.type === 'vocabulary')
+    ?.config.word_count || 5;
+  const { priorityWords: wordBankWords, loading: wordBankLoading } = useWordPriority({
+    limit: vocabWordCount,
+  });
 
   // Get current activity
   const currentActivity = plan?.activities.find(a => a.status === 'current');
@@ -155,14 +164,23 @@ export default function LessonSessionScreen() {
 
   switch (currentActivity.type) {
     case 'vocabulary': {
-      // Get vocabulary from stair content
-      const vocabulary = stairContent?.vocabulary || [];
+      // Waterfall: Tier 1 (stair content) → Tier 2 (word bank)
+      const stairVocab = stairContent?.vocabulary || [];
       const WORDS_PER_LESSON = currentActivity.config.type === 'vocabulary'
         ? currentActivity.config.word_count
         : 5;
-      const lessonVocab = vocabulary.slice(0, WORDS_PER_LESSON);
 
-      if (contentLoading || lessonVocab.length === 0) {
+      // Use stair content if available, otherwise fall back to word bank
+      let lessonVocab = stairVocab.slice(0, WORDS_PER_LESSON);
+
+      if (lessonVocab.length === 0 && wordBankWords.length > 0) {
+        // Tier 2: Convert BankWords from word bank to VocabularyItems
+        lessonVocab = wordBankWords.slice(0, WORDS_PER_LESSON).map(bankWordToVocabularyItem);
+      }
+
+      const isVocabLoading = contentLoading || (lessonVocab.length === 0 && wordBankLoading);
+
+      if (isVocabLoading || lessonVocab.length === 0) {
         return (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.primary.DEFAULT} />

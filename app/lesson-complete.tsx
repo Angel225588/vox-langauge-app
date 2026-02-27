@@ -35,6 +35,7 @@ import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, glass } from '@/constants/designSystem';
+import { advanceStairProgression } from '@/lib/services/previewStairs';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -299,8 +300,14 @@ export default function LessonCompleteScreen() {
     return `${minutes}m ${secs}s`;
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Advance stair progression: completed stair → next stair unlocked
+    if (params.stairId) {
+      await advanceStairProgression(params.stairId);
+    }
+
     router.replace('/(tabs)/home');
   };
 

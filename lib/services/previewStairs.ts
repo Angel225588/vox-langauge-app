@@ -317,3 +317,37 @@ export async function clearPreviewStairs(): Promise<void> {
     console.warn('[PreviewStairs] Failed to clear:', err);
   }
 }
+
+/**
+ * Advance stair progression after a lesson is completed.
+ * Marks the completed stair as 'completed' and unlocks the next one.
+ *
+ * Works for both preview stairs (AsyncStorage) and will be extended
+ * for Supabase stairs when authenticated.
+ *
+ * @param completedStairId - The ID of the stair that was just completed
+ * @returns true if progression was successful
+ */
+export async function advanceStairProgression(completedStairId: string): Promise<boolean> {
+  try {
+    const stairs = await loadPreviewStairs();
+    if (!stairs || stairs.length === 0) return false;
+
+    const completedIndex = stairs.findIndex(s => s.id === completedStairId);
+    if (completedIndex === -1) return false;
+
+    // Mark completed stair
+    stairs[completedIndex] = { ...stairs[completedIndex], status: 'completed' };
+
+    // Unlock next stair (if exists and is locked)
+    if (completedIndex + 1 < stairs.length && stairs[completedIndex + 1].status === 'locked') {
+      stairs[completedIndex + 1] = { ...stairs[completedIndex + 1], status: 'current' };
+    }
+
+    await storePreviewStairs(stairs);
+    return true;
+  } catch (err) {
+    console.warn('[PreviewStairs] Failed to advance progression:', err);
+    return false;
+  }
+}
