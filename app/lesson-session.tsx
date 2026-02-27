@@ -18,8 +18,16 @@ import { colors, spacing, typography } from '@/constants/designSystem';
 import {
   advanceActivity,
   calculateLessonScores,
+  generateDiscoveryLessonContent,
+  generateSingleActivityContent,
   type LessonPlan,
   type LessonActivity,
+  type DiscoveryLessonContent,
+  type VocabularyContent,
+  type ListeningContent,
+  type ReadingContent,
+  type WritingContent,
+  type VoiceCallContent,
 } from '@/lib/lesson';
 
 // Lazy imports for practice screens
@@ -54,13 +62,27 @@ export default function LessonSessionScreen() {
   const { user } = useAuth();
 
   const [plan, setPlan] = useState<LessonPlan | null>(null);
+  const [discoveryContent, setDiscoveryContent] = useState<DiscoveryLessonContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load the active lesson plan from storage
+  // Load the active lesson plan and discovery content from storage
   useEffect(() => {
-    loadActiveLessonPlan().then((loaded) => {
+    loadActiveLessonPlan().then(async (loaded) => {
       if (loaded) {
         setPlan(loaded);
+
+        // Load or generate discovery content for discovery lessons
+        if (loaded.is_discovery) {
+          try {
+            const content = await generateDiscoveryLessonContent(
+              loaded,
+              user?.id || 'anonymous',
+            );
+            setDiscoveryContent(content);
+          } catch (err) {
+            console.warn('[LessonSession] Discovery content load failed:', err);
+          }
+        }
       } else {
         // No plan found — go back
         router.back();
@@ -76,8 +98,10 @@ export default function LessonSessionScreen() {
   } = useStairContent(plan?.stair_id || '', user?.id);
 
   // Tier 2 fallback: Word bank vocabulary (populated by initialVocabGenerator)
-  const vocabWordCount = plan?.activities.find(a => a.type === 'vocabulary' && a.config.type === 'vocabulary')
-    ?.config.word_count || 5;
+  const vocabActivity = plan?.activities.find(a => a.type === 'vocabulary');
+  const vocabWordCount = vocabActivity?.config.type === 'vocabulary'
+    ? vocabActivity.config.word_count
+    : 5;
   const { priorityWords: wordBankWords, loading: wordBankLoading } = useWordPriority({
     limit: vocabWordCount,
   });
@@ -164,17 +188,47 @@ export default function LessonSessionScreen() {
 
   switch (currentActivity.type) {
     case 'vocabulary': {
-      // Waterfall: Tier 1 (stair content) → Tier 2 (word bank)
-      const stairVocab = stairContent?.vocabulary || [];
+      // 3-tier waterfall: Discovery content → Stair content → Word bank
       const WORDS_PER_LESSON = currentActivity.config.type === 'vocabulary'
         ? currentActivity.config.word_count
         : 5;
 
-      // Use stair content if available, otherwise fall back to word bank
-      let lessonVocab = stairVocab.slice(0, WORDS_PER_LESSON);
+      // Tier 0: Discovery content (pre-generated, already has word bank words)
+      const discoveryVocab = discoveryContent?.activities[currentActivity.id] as VocabularyContent | undefined;
+      let lessonVocab: any[] = [];
 
+      if (discoveryVocab?.words?.length) {
+        // Convert discovery VocabWords to VocabularyItem-compatible shape
+        lessonVocab = discoveryVocab.words.slice(0, WORDS_PER_LESSON).map((w) => ({
+          id: w.id,
+          word: w.word,
+          translation: w.translation,
+          phonetic: w.phonetic,
+          partOfSpeech: w.partOfSpeech,
+          category: w.category,
+          exampleSentences: w.exampleSentence ? [w.exampleSentence] : [],
+          examples: w.exampleSentence
+            ? [{ text: w.exampleSentence, translation: '', highlightWord: true }]
+            : [],
+          cefrLevel: 'A1',
+          masteryScore: 0,
+          priority: 1,
+          easeFactor: 2.5,
+          interval: 0,
+          repetitions: 0,
+          cardVariantsCompleted: { introduction: false, listening: false, typing: false, speaking: false, audioQuiz: false },
+          lastVariantShown: null,
+        }));
+      }
+
+      // Tier 1: Stair content (Supabase)
+      if (lessonVocab.length === 0) {
+        const stairVocab = stairContent?.vocabulary || [];
+        lessonVocab = stairVocab.slice(0, WORDS_PER_LESSON);
+      }
+
+      // Tier 2: Word bank (SQLite, populated by initialVocabGenerator)
       if (lessonVocab.length === 0 && wordBankWords.length > 0) {
-        // Tier 2: Convert BankWords from word bank to VocabularyItems
         lessonVocab = wordBankWords.slice(0, WORDS_PER_LESSON).map(bankWordToVocabularyItem);
       }
 
@@ -202,12 +256,16 @@ export default function LessonSessionScreen() {
     }
 
     case 'listening': {
-      // Navigate to existing listening practice with stair context
+      // Pass discovery content if available (pre-generated dialogue + questions)
+      const listeningContent = discoveryContent?.activities[currentActivity.id] as ListeningContent | undefined;
       router.replace({
         pathname: '/practice-listening',
         params: {
           stairStepId: plan.stair_id,
           returnToSession: 'true',
+          planId: plan.id,
+          activityId: currentActivity.id,
+          ...(listeningContent ? { discoveryContent: JSON.stringify(listeningContent) } : {}),
         },
       });
       return (
@@ -218,11 +276,15 @@ export default function LessonSessionScreen() {
     }
 
     case 'reading': {
+      const readingContent = discoveryContent?.activities[currentActivity.id] as ReadingContent | undefined;
       router.replace({
         pathname: '/practice-reading',
         params: {
           stairStepId: plan.stair_id,
           returnToSession: 'true',
+          planId: plan.id,
+          activityId: currentActivity.id,
+          ...(readingContent ? { discoveryContent: JSON.stringify(readingContent) } : {}),
         },
       });
       return (
@@ -233,16 +295,23 @@ export default function LessonSessionScreen() {
     }
 
     case 'voice_call': {
+      const voiceContent = discoveryContent?.activities[currentActivity.id] as VoiceCallContent | undefined;
       router.replace({
         pathname: '/voice-conversation',
         params: {
           stairStepId: plan.stair_id,
           returnToSession: 'true',
+          planId: plan.id,
+          activityId: currentActivity.id,
           maxDuration: String(
             currentActivity.config.type === 'voice_call'
               ? currentActivity.config.duration_seconds
               : 60
           ),
+          ...(voiceContent ? {
+            scenarioTitle: voiceContent.scenarioTitle,
+            scenarioDescription: voiceContent.scenarioDescription,
+          } : {}),
         },
       });
       return (
@@ -253,11 +322,15 @@ export default function LessonSessionScreen() {
     }
 
     case 'writing': {
+      const writingContent = discoveryContent?.activities[currentActivity.id] as WritingContent | undefined;
       router.replace({
         pathname: '/practice-writing',
         params: {
           stairStepId: plan.stair_id,
           returnToSession: 'true',
+          planId: plan.id,
+          activityId: currentActivity.id,
+          ...(writingContent ? { discoveryContent: JSON.stringify(writingContent) } : {}),
         },
       });
       return (

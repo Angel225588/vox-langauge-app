@@ -34,8 +34,9 @@ import { supabase } from '@/lib/db/supabase';
 import { createPersonalizedPath } from '@/lib/services/pathGeneration';
 import { adaptV3ToOnboardingData, validateV3Data } from '@/lib/services/v3DataAdapter';
 import { storeUserLevel } from '@/lib/utils/levelGating';
-import { generatePreviewStairs, storePreviewStairs, clearPreviewStairs } from '@/lib/services/previewStairs';
+import { generatePreviewStairs, storePreviewStairs, clearPreviewStairs, loadPreviewStairs } from '@/lib/services/previewStairs';
 import { generateInitialVocabulary } from '@/lib/word-bank/initialVocabGenerator';
+import { generateLessonPlan, generateDiscoveryLessonContent } from '@/lib/lesson';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
 
 const ONBOARDING_COMPLETED_KEY = 'vox-onboarding-completed';
@@ -301,10 +302,27 @@ export default function CreatingPathRoute() {
         return;
       }
 
-      // ── Step 3: Library (placeholder — instant) ──────
+      // ── Step 3: Discovery Lesson (pre-generate content) ──
       updateStep(2, 'in_progress');
-      await new Promise(r => setTimeout(r, 600));
-      updateStep(2, 'done');
+      try {
+        // Load the first stair (discovery lesson) and generate its content
+        const stairs = await loadPreviewStairs();
+        const firstStair = stairs?.find(s => s.order === 1);
+        if (firstStair) {
+          const plan = generateLessonPlan(
+            firstStair,
+            v3Data.proficiency_level || 'starting_fresh',
+            true, // isFirstLesson
+          );
+          // Pre-generate content (vocab from word bank, listening/reading from Gemini)
+          // This caches in AsyncStorage so lesson-session picks it up instantly
+          await generateDiscoveryLessonContent(plan, 'anonymous');
+        }
+        updateStep(2, 'done');
+      } catch (err) {
+        console.warn('[CreatingPath] Discovery lesson error (non-blocking):', err);
+        updateStep(2, 'error');
+      }
 
       // ── Step 4: Personalize Path ─────────────────────
       updateStep(3, 'in_progress');
@@ -344,7 +362,21 @@ export default function CreatingPathRoute() {
    */
   const finishRemainingInBackground = async (v3Data: any) => {
     try {
-      // Step 3: Library (no-op)
+      // Step 3: Discovery lesson (background)
+      try {
+        const stairs = await loadPreviewStairs();
+        const firstStair = stairs?.find(s => s.order === 1);
+        if (firstStair) {
+          const plan = generateLessonPlan(
+            firstStair,
+            v3Data.proficiency_level || 'starting_fresh',
+            true,
+          );
+          await generateDiscoveryLessonContent(plan, 'anonymous');
+        }
+      } catch {
+        // Non-blocking
+      }
       updateStep(2, 'done');
 
       // Step 4: Personalize path

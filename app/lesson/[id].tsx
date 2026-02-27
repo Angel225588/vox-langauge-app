@@ -37,6 +37,7 @@ import {
   generateLessonPlan,
   getLessonQuote,
   getLevelGroup,
+  generateDiscoveryLessonContent,
   type LessonPlan,
   type LessonActivity,
 } from '@/lib/lesson';
@@ -192,8 +193,17 @@ export default function LessonScreen() {
     if (!lessonPlan) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await storeActiveLessonPlan(lessonPlan);
+
+    // Pre-generate discovery content in background (fire-and-forget)
+    // This warms the AsyncStorage cache so lesson-session picks it up instantly
+    if (lessonPlan.is_discovery) {
+      generateDiscoveryLessonContent(lessonPlan, user?.id || 'anonymous').catch((err) =>
+        console.warn('[LessonScreen] Discovery content pre-gen failed:', err)
+      );
+    }
+
     router.push('/lesson-session');
-  }, [lessonPlan, router]);
+  }, [lessonPlan, user, router]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {

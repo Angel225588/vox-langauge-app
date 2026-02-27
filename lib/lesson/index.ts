@@ -34,3 +34,17 @@ export {
   type LessonActivity,
   type LessonScores,
 } from './lessonEngine';
+
+export {
+  // Discovery Content Generator
+  generateDiscoveryLessonContent,
+  generateSingleActivityContent,
+  clearDiscoveryCache,
+  type DiscoveryLessonContent,
+  type ActivityContent,
+  type VocabularyContent,
+  type ListeningContent,
+  type ReadingContent,
+  type WritingContent,
+  type VoiceCallContent,
+} from './discoveryGenerator';
