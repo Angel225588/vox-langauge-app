@@ -252,7 +252,7 @@ export class HybridVoiceConversation {
         throw new Error('No speech detected in audio');
       }
 
-      console.log('[HybridConversation] User said:', userText);
+      // User speech content not logged for privacy (GDPR)
       this.onUserTranscript?.(userText);
 
       // Add to history

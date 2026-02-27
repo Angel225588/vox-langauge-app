@@ -330,7 +330,7 @@ export class GeminiLiveClient {
 
         // Input transcript (user's speech transcribed)
         if (content.inputTranscript) {
-          console.log('[GeminiLive] Input transcript (user):', content.inputTranscript);
+          // User speech content not logged for privacy (GDPR)
           this.onTranscriptCallback?.(content.inputTranscript, 'user');
         }
 
