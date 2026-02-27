@@ -345,16 +345,16 @@ export default function PracticeScreen() {
           <Ionicons name="stats-chart" size={18} color={PZ.blueLight} />
         </TouchableOpacity>
         <View style={s.headerStats}>
-          <TouchableOpacity style={s.statPill} activeOpacity={0.7}>
+          <View style={s.statPill}>
             <VoxIcon size="sm" />
             <Text style={[s.statValue, { color: PZ.blue }]}>
               {metrics.totalPoints.toLocaleString()}
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={s.statPill} activeOpacity={0.7}>
+          </View>
+          <View style={s.statPill}>
             <Icon name="flame" size={18} color="warning" />
             <Text style={[s.statValue, { color: PZ.gold }]}>{metrics.streak}</Text>
-          </TouchableOpacity>
+          </View>
         </View>
       </Animated.View>
 

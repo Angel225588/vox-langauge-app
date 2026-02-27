@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { useWordBank, useWordBankStats, BankWord } from '@/lib/word-bank';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
 import { Icon } from '@/components/ui/Icon';
@@ -75,14 +76,14 @@ export function VocabularyDashboard() {
     setShowSearch(true);
   }, []);
 
-  // Navigate to practice
+  // Navigate to practice (flashcard review session)
   const handlePracticePress = useCallback(() => {
-    router.push('/vocab-practice/review' as any);
+    router.push('/flashcard/session' as any);
   }, [router]);
 
-  // Navigate to focus words practice
+  // Navigate to focus words practice (same review session)
   const handleFocusWordsPractice = useCallback(() => {
-    router.push('/vocab-practice/focus' as any);
+    router.push('/flashcard/session' as any);
   }, [router]);
 
   // See all weak words
@@ -210,6 +211,15 @@ export function VocabularyDashboard() {
     <View style={styles.container}>
       {/* Header */}
       <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.text.primary} />
+        </TouchableOpacity>
+
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>My Words</Text>
           <Text style={styles.headerSubtitle}>
@@ -306,11 +316,21 @@ const styles = StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
   headerLeft: {
     flex: 1,
