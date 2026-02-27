@@ -8,7 +8,17 @@
 import { View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+  interpolate,
+  interpolateColor,
+} from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
@@ -21,39 +31,20 @@ import { useLearningPath, StairForDisplay } from '@/hooks/useLearningPath';
 import { CondensedStairCard } from '@/components/staircase';
 import { supabase } from '@/lib/db/supabase';
 import { useUserMetrics } from '@/hooks/useUserMetrics';
-import { getStoredLevel, getFeatureAccess, getVoiceUnlockMessage } from '@/lib/utils/levelGating';
+import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
+import { adaptV3ToOnboardingData } from '@/lib/services/v3DataAdapter';
+import { getFeatureAccess, getVoiceUnlockMessage, type ProficiencyLevel } from '@/lib/utils/levelGating';
 import { loadPreviewStairs } from '@/lib/services/previewStairs';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width, height } = Dimensions.get('window');
+// Flag emoji for each target language
+const LANG_FLAGS: Record<string, string> = {
+  english: '\u{1F1EC}\u{1F1E7}',
+  french: '\u{1F1EB}\u{1F1F7}',
+  spanish: '\u{1F1EA}\u{1F1F8}',
+};
 
-// Mock medals data (achievements)
-const MOCK_MEDALS = [
-  {
-    id: 'medal_1',
-    icon: 'trophy' as const,
-    title: 'First Stair Completed',
-    description: 'Completed your first learning stair',
-    tier: 'gold',
-    unlockedAt: new Date().toISOString(),
-  },
-  {
-    id: 'medal_2',
-    icon: 'flame' as const,
-    title: '7 Day Streak',
-    description: 'Maintained a 7-day learning streak',
-    tier: 'gold',
-    unlockedAt: new Date().toISOString(),
-  },
-  {
-    id: 'medal_3',
-    icon: 'library' as const,
-    title: 'Vocabulary Master',
-    description: 'Learned 100 new words',
-    tier: 'silver',
-    unlockedAt: null, // Locked
-  },
-];
+const { width, height } = Dimensions.get('window');
 
 // Mock staircase data (will be replaced with real data from database)
 const MOCK_STAIRS = [
@@ -109,23 +100,167 @@ const MOCK_STAIRS = [
   },
 ];
 
+// ─── Voice CTA with flowing gradient animation ──────
+// Aurora-like color shift + pulsing mic icon to suggest "speaking"
+
+function VoiceCTA({ cefrLevel, onPress }: { cefrLevel: string; onPress: () => void }) {
+  const flow = useSharedValue(0);
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    // Slow aurora flow — 4s cycle
+    flow.value = withRepeat(
+      withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+    // Mic pulse — gentle scale 1→1.12→1
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1.12, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+  }, []);
+
+  // Flowing overlay — sweeps left to right
+  const overlayStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: interpolate(flow.value, [0, 1], [-width * 0.6, width * 0.6]) }],
+    opacity: interpolate(flow.value, [0, 0.5, 1], [0.3, 0.6, 0.3]),
+  }));
+
+  // Mic icon pulse
+  const micStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+  }));
+
+  // Glow ring synced to pulse
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulse.value, [1, 1.12], [0.15, 0.45]),
+    transform: [{ scale: interpolate(pulse.value, [1, 1.12], [1, 1.25]) }],
+  }));
+
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+      <LinearGradient
+        colors={['#0029CC', '#0036FF', '#3D6BFF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          borderRadius: borderRadius.lg,
+          padding: spacing.md,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: 'rgba(61, 107, 255, 0.4)',
+        }}
+      >
+        {/* Flowing light overlay */}
+        <Animated.View
+          style={[
+            {
+              position: 'absolute',
+              top: -20,
+              bottom: -20,
+              width: width * 0.7,
+              borderRadius: width * 0.35,
+            },
+            overlayStyle,
+          ]}
+        >
+          <LinearGradient
+            colors={['transparent', 'rgba(255,255,255,0.12)', 'rgba(100,180,255,0.18)', 'rgba(255,255,255,0.12)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ flex: 1, borderRadius: width * 0.35 }}
+          />
+        </Animated.View>
+
+        {/* Content row */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', zIndex: 1 }}>
+          {/* Mic icon with pulse + glow ring */}
+          <View style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md }}>
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(255,255,255,0.35)',
+                },
+                glowStyle,
+              ]}
+            />
+            <Animated.View
+              style={[
+                {
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+                micStyle,
+              ]}
+            >
+              <Ionicons name="mic" size={22} color="#fff" />
+            </Animated.View>
+          </View>
+
+          {/* Text */}
+          <View style={{ flex: 1 }}>
+            <Text style={{
+              fontSize: typography.fontSize.base,
+              fontWeight: typography.fontWeight.semibold,
+              color: '#FFFFFF',
+              letterSpacing: -0.3,
+            }}>
+              Practice Speaking
+            </Text>
+            <Text style={{
+              fontSize: typography.fontSize.xs,
+              color: 'rgba(255, 255, 255, 0.65)',
+              marginTop: 2,
+            }}>
+              AI conversation  ·  {cefrLevel}
+            </Text>
+          </View>
+
+          {/* Arrow — design system icon */}
+          <View style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: 'rgba(255, 255, 255, 0.12)',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.8)" />
+          </View>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Home Screen ────────────────────────────────────
+
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation('home');
   const { metrics } = useUserMetrics();
   const [userId, setUserId] = useState<string | null>(null);
-  const [userLevel, setUserLevel] = useState<string | null>(null);
 
-  // Get user's proficiency level for feature gating
-  useEffect(() => {
-    const loadUserLevel = async () => {
-      const level = await getStoredLevel();
-      setUserLevel(level);
-    };
-    loadUserLevel();
-  }, []);
-
+  // Derive level + flag from V3 store (always fresh, including after edit-profile)
+  const v3 = useOnboardingV3().getOnboardingData();
+  const adapted = adaptV3ToOnboardingData(v3);
+  const userLevel = adapted.proficiency_level as ProficiencyLevel | null;
   const featureAccess = getFeatureAccess(userLevel);
+  const flagEmoji = LANG_FLAGS[v3.target_language || ''] || '\u{1F30D}';
 
   // Get current user
   useEffect(() => {
@@ -244,18 +379,13 @@ export default function HomeScreen() {
               marginBottom: spacing.md,
             }}
           >
-            {/* Language Flag (left) - Clean, no bubble */}
-            <TouchableOpacity activeOpacity={0.7}>
-              <Text style={{ fontSize: 32 }}>🇬🇧</Text>
-            </TouchableOpacity>
+            {/* Language Flag (left) — reflects V3 target language */}
+            <Text style={{ fontSize: 32 }}>{flagEmoji}</Text>
 
-            {/* Points and Streak (right side) - Clean, with proper icons */}
+            {/* Points and Streak (right side) */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
-              {/* Vox Points - Using VoxIcon */}
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center' }}
-                activeOpacity={0.7}
-              >
+              {/* Vox Points */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <VoxIcon size="sm" />
                 <Text
                   style={{
@@ -267,13 +397,10 @@ export default function HomeScreen() {
                 >
                   {metrics.totalPoints.toLocaleString()}
                 </Text>
-              </TouchableOpacity>
+              </View>
 
-              {/* Streak - Using Icon component */}
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center' }}
-                activeOpacity={0.7}
-              >
+              {/* Streak */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Icon name="flame" size="lg" color="warning" />
                 <Text
                   style={{
@@ -285,7 +412,7 @@ export default function HomeScreen() {
                 >
                   {metrics.streak}
                 </Text>
-              </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -305,67 +432,16 @@ export default function HomeScreen() {
 
         <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
 
-          {/* Level-Gated Voice CTA */}
+          {/* Level-Gated Voice CTA — aligned with staircase cards */}
           {featureAccess.showVoiceCTA && (
             <Animated.View
               entering={FadeInDown.duration(600).delay(100)}
-              style={{ paddingHorizontal: spacing.xl, marginBottom: spacing.lg }}
+              style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}
             >
-              <TouchableOpacity
+              <VoiceCTA
+                cefrLevel={featureAccess.cefr}
                 onPress={() => router.push('/voice-conversation')}
-                activeOpacity={0.9}
-              >
-                <LinearGradient
-                  colors={colors.gradients.primary}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    borderRadius: borderRadius.xl,
-                    padding: spacing.lg,
-                    ...shadows.glow.primary,
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: borderRadius.full,
-                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: spacing.md,
-                    }}>
-                      <Ionicons name="mic" size={28} color="#fff" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{
-                        fontSize: typography.fontSize.lg,
-                        fontWeight: typography.fontWeight.bold,
-                        color: colors.text.primary,
-                        marginBottom: spacing.xs,
-                      }}>
-                        Practice Speaking
-                      </Text>
-                      <Text style={{
-                        fontSize: typography.fontSize.sm,
-                        color: 'rgba(255, 255, 255, 0.8)',
-                      }}>
-                        Have a real conversation with AI • {featureAccess.cefr} Level
-                      </Text>
-                    </View>
-                    <View style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: borderRadius.full,
-                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Text style={{ fontSize: 20 }}>→</Text>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
+              />
             </Animated.View>
           )}
 
@@ -373,7 +449,7 @@ export default function HomeScreen() {
           {featureAccess.showVoiceTeaser && (
             <Animated.View
               entering={FadeInDown.duration(600).delay(100)}
-              style={{ paddingHorizontal: spacing.xl, marginBottom: spacing.lg }}
+              style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}
             >
               <View
                 style={{
