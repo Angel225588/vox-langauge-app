@@ -139,6 +139,7 @@ export default function RootLayout() {
           <Stack.Screen name="test-elevenlabs" options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen name="lesson-carousel" options={{ headerShown: false }} />
           <Stack.Screen name="activity-dashboard" options={{ headerShown: false }} />
+          <Stack.Screen name="feedback-history" options={{ headerShown: false }} />
           </Stack>
         </TamaguiProvider>
       </ConditionalElevenLabsProvider>

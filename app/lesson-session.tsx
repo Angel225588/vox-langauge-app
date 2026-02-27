@@ -20,6 +20,7 @@ import {
   calculateLessonScores,
   generateDiscoveryLessonContent,
   generateSingleActivityContent,
+  generateRemainingActivities,
   type LessonPlan,
   type LessonActivity,
   type DiscoveryLessonContent,
@@ -67,25 +68,37 @@ export default function LessonSessionScreen() {
 
   // Load the active lesson plan and discovery content from storage
   useEffect(() => {
+    const userId = user?.id || 'anonymous';
+
     loadActiveLessonPlan().then(async (loaded) => {
       if (loaded) {
         setPlan(loaded);
 
-        // Load or generate discovery content for discovery lessons
         if (loaded.is_discovery) {
           try {
-            const content = await generateDiscoveryLessonContent(
+            // Load cached content (may only have first activity from waterfall)
+            const cachedContent = await generateDiscoveryLessonContent(
               loaded,
-              user?.id || 'anonymous',
+              userId,
             );
-            setDiscoveryContent(content);
+            setDiscoveryContent(cachedContent);
+
+            // Generate remaining activities in background while user does activity 1
+            generateRemainingActivities(loaded, userId)
+              .then(fullContent => {
+                console.log('[LessonSession] Background content generation complete');
+                setDiscoveryContent(fullContent);
+              })
+              .catch(err =>
+                console.warn('[LessonSession] Background gen error:', err),
+              );
           } catch (err) {
             console.warn('[LessonSession] Discovery content load failed:', err);
           }
         }
       } else {
-        // No plan found — go back
-        router.back();
+        // No plan found — go to home (not back, to avoid destroyed onboarding stack)
+        router.replace('/(tabs)/home');
       }
       setIsLoading(false);
     });
@@ -121,27 +134,30 @@ export default function LessonSessionScreen() {
     // Persist updated plan
     await storeActiveLessonPlan(updatedPlan);
 
-    // If lesson is complete, navigate to success screen
+    // If lesson is complete, navigate to feedback → then lesson-complete
     if (updatedPlan.completed) {
       const scores = calculateLessonScores(updatedPlan);
       await clearActiveLessonPlan();
 
+      const scoreParams = JSON.stringify({
+        articulation: scores.articulation,
+        fluency: scores.fluency,
+        communication: scores.communication,
+        scenario: scores.scenario,
+        wordsLearned: scores.words_learned,
+        pointsEarned: scores.points_earned,
+        timeSpent: scores.practice_minutes * 60,
+        cefrLevel: scores.cefr_level,
+      });
+
       router.replace({
-        pathname: '/lesson-complete',
+        pathname: '/feedback-detail',
         params: {
-          scores: JSON.stringify({
-            articulation: scores.articulation,
-            fluency: scores.fluency,
-            communication: scores.communication,
-            scenario: scores.scenario,
-            wordsLearned: scores.words_learned,
-            pointsEarned: scores.points_earned,
-            timeSpent: scores.practice_minutes * 60,
-            cefrLevel: scores.cefr_level,
-          }),
+          scores: scoreParams,
           stairTitle: updatedPlan.stair_title,
           stairId: updatedPlan.stair_id,
           isDiscovery: updatedPlan.is_discovery ? 'true' : 'false',
+          scenario: updatedPlan.stair_title,
         },
       });
     }

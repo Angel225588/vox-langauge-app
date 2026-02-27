@@ -1,7 +1,7 @@
 /**
- * Screen 7: First Lesson (Magic Moment) — Placeholder
- * Shows a summary of collected data and previews what the lesson will be.
- * TODO: Replace with full AI-generated lesson.
+ * Screen 7: First Lesson (Magic Moment) — Discovery Lesson Preview
+ * Shows a dynamic activity overview based on the user's proficiency level.
+ * The activity list mirrors what the lesson engine will generate.
  */
 
 import React from 'react';
@@ -15,7 +15,8 @@ import { GlassCard } from '@/components/ui/glass/GlassCard';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { GlassBadge } from '@/components/ui/glass/GlassBadge';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
-import { colors, spacing, typography, glass } from '@/constants/designSystem';
+import { getLevelGroup, getLessonTemplate, getActivityColor } from '@/lib/lesson';
+import { colors, spacing, typography, glass, borderRadius } from '@/constants/designSystem';
 
 const LANG_DISPLAY: Record<string, string> = {
   english: 'English',
@@ -28,6 +29,10 @@ export default function FirstLessonScreen() {
   const data = useOnboardingV3();
 
   const langDisplay = LANG_DISPLAY[data.target_language || 'english'] || 'English';
+
+  // Get the lesson template matching the user's proficiency
+  const levelGroup = getLevelGroup(data.proficiency_level || null);
+  const template = getLessonTemplate(levelGroup, true);
 
   return (
     <GlassBackground intensity="medium">
@@ -72,17 +77,54 @@ export default function FirstLessonScreen() {
                   </View>
                 </View>
 
-                {/* Placeholder lesson content */}
                 <View style={styles.divider} />
 
-                <Text style={styles.comingSoon}>
-                  AI-generated lesson coming soon
-                </Text>
-                <Text style={styles.comingSoonSub}>
-                  This screen will generate a personalized mini-lesson with vocabulary, dialogue, and a speaking exercise based on your profile.
-                </Text>
+                {/* Discovery session header with duration */}
+                <View style={styles.discoveryHeader}>
+                  <Text style={styles.discoveryTitle}>Your discovery session</Text>
+                  <View style={styles.durationBadge}>
+                    <Ionicons name="time-outline" size={12} color={colors.text.primary} />
+                    <Text style={styles.durationText}>~{template.estimated_minutes} min</Text>
+                  </View>
+                </View>
 
-                {/* Preview of what they selected */}
+                {/* Activity timeline */}
+                <View style={styles.timeline}>
+                  {template.activities.map((activity, index) => {
+                    const activityColor = getActivityColor(activity.type);
+                    const isLast = index === template.activities.length - 1;
+                    const minutes = Math.ceil(activity.estimated_seconds / 60);
+
+                    return (
+                      <View key={activity.type + index} style={styles.timelineStep}>
+                        {/* Connector line (not on last item) */}
+                        {!isLast && (
+                          <View style={styles.connectorLine} />
+                        )}
+
+                        {/* Icon circle */}
+                        <View style={[styles.activityIcon, { backgroundColor: activityColor }]}>
+                          <Ionicons
+                            name={activity.icon as any}
+                            size={18}
+                            color="#FFFFFF"
+                          />
+                        </View>
+
+                        {/* Text content */}
+                        <View style={styles.activityTextContainer}>
+                          <View style={styles.activityTitleRow}>
+                            <Text style={styles.activityTitle}>{activity.title}</Text>
+                            <Text style={styles.activityDuration}>{minutes} min</Text>
+                          </View>
+                          <Text style={styles.activityDescription}>{activity.description}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {/* Scenario chips */}
                 {data.scenarios.length > 0 && (
                   <View style={styles.scenariosPreview}>
                     <Text style={styles.previewLabel}>Your scenarios:</Text>
@@ -186,19 +228,84 @@ const styles = StyleSheet.create({
     marginVertical: spacing.lg,
   },
 
-  comingSoon: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.tertiary,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  comingSoonSub: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.disabled,
-    textAlign: 'center',
-    lineHeight: typography.fontSize.sm * 1.5,
+  // Discovery session header
+  discoveryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.lg,
+  },
+  discoveryTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  durationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.full,
+  },
+  durationText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.secondary,
+  },
+
+  // Activity timeline
+  timeline: {
+    gap: 0,
+    marginBottom: spacing.lg,
+  },
+  timelineStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    paddingBottom: spacing.lg,
+    position: 'relative' as const,
+  },
+  connectorLine: {
+    position: 'absolute' as const,
+    left: 18,
+    top: 36,
+    bottom: 0,
+    width: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  activityIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  activityTextContainer: {
+    flex: 1,
+    paddingTop: 2,
+  },
+  activityTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  activityTitle: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  activityDuration: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.tertiary,
+  },
+  activityDescription: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    lineHeight: typography.fontSize.xs * 1.4,
   },
 
   scenariosPreview: {

@@ -39,6 +39,8 @@ export {
   // Discovery Content Generator
   generateDiscoveryLessonContent,
   generateSingleActivityContent,
+  generateFirstActivityContent,
+  generateRemainingActivities,
   clearDiscoveryCache,
   type DiscoveryLessonContent,
   type ActivityContent,

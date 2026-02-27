@@ -36,15 +36,19 @@ import { adaptV3ToOnboardingData, validateV3Data } from '@/lib/services/v3DataAd
 import { storeUserLevel } from '@/lib/utils/levelGating';
 import { generatePreviewStairs, storePreviewStairs, clearPreviewStairs, loadPreviewStairs } from '@/lib/services/previewStairs';
 import { generateInitialVocabulary } from '@/lib/word-bank/initialVocabGenerator';
-import { generateLessonPlan, generateDiscoveryLessonContent } from '@/lib/lesson';
+import { generateLessonPlan, generateFirstActivityContent } from '@/lib/lesson';
+import { storeActiveLessonPlan } from '@/app/lesson-session';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
 
 const ONBOARDING_COMPLETED_KEY = 'vox-onboarding-completed';
 
-// Safety cap — navigate regardless after 15 seconds
-const SAFETY_CAP_MS = 15_000;
-// Early exit — if vocab + stairs done and >5s elapsed, navigate
-const EARLY_EXIT_MS = 5_000;
+// Safety cap — navigate regardless after 20 seconds
+const SAFETY_CAP_MS = 20_000;
+
+// Minimum time each step stays visible (ensures animation is seen)
+const MIN_STEP_MS = 600;
+
+const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
 // ─── Step Types ──────────────────────────────────────
 
@@ -57,9 +61,8 @@ interface ProgressStep {
 
 const INITIAL_STEPS: ProgressStep[] = [
   { label: 'Loading your vocabulary', status: 'pending' },
-  { label: 'Preparing your scenarios', status: 'pending' },
-  { label: 'Creating your discovery lesson', status: 'pending' },
-  { label: 'Personalizing your path', status: 'pending' },
+  { label: 'Building your learning path', status: 'pending' },
+  { label: 'Preparing your first activity', status: 'pending' },
 ];
 
 // ─── Inspirational phrases ──────────────────────────
@@ -216,14 +219,13 @@ export default function CreatingPathRoute() {
   const hasStarted = useRef(false);
   const [phrase] = useState(() => getPhrase(v3Store.first_name));
   const hasNavigated = useRef(false);
-  const startTime = useRef(Date.now());
   const [steps, setSteps] = useState<ProgressStep[]>([...INITIAL_STEPS]);
 
   const navigateAndCleanup = useCallback(() => {
     if (hasNavigated.current) return;
     hasNavigated.current = true;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.replace('/(tabs)/home');
+    router.replace('/lesson-session');
     setTimeout(() => v3Store.reset(), 200);
   }, []);
 
@@ -250,6 +252,21 @@ export default function CreatingPathRoute() {
     return () => clearTimeout(safetyTimer);
   }, []);
 
+  /**
+   * Ensure a step is visible for at least MIN_STEP_MS.
+   * Also yields to the event loop so React renders each transition.
+   */
+  const ensureMinVisible = async (stepStart: number) => {
+    const elapsed = Date.now() - stepStart;
+    const remaining = MIN_STEP_MS - elapsed;
+    if (remaining > 0) {
+      await delay(remaining);
+    } else {
+      // Always yield at least once so React can paint
+      await delay(50);
+    }
+  };
+
   const runSteps = async () => {
     try {
       const v3Data = v3Store.getOnboardingData();
@@ -263,6 +280,7 @@ export default function CreatingPathRoute() {
       await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, JSON.stringify(v3Data));
 
       // ── Step 1: Vocabulary ──────────────────────────
+      const step1Start = Date.now();
       updateStep(0, 'in_progress');
       try {
         await generateInitialVocabulary({
@@ -276,8 +294,10 @@ export default function CreatingPathRoute() {
         console.warn('[CreatingPath] Vocab generation error (non-blocking):', err);
         updateStep(0, 'error');
       }
+      await ensureMinVisible(step1Start);
 
-      // ── Step 2: Speaking Scenarios (staircase skeleton) ──
+      // ── Step 2: Build Learning Path (staircase skeleton) ──
+      const step2Start = Date.now();
       updateStep(1, 'in_progress');
       try {
         const previewStairs = generatePreviewStairs({
@@ -292,20 +312,12 @@ export default function CreatingPathRoute() {
         console.warn('[CreatingPath] Stairs error (non-blocking):', err);
         updateStep(1, 'error');
       }
+      await ensureMinVisible(step2Start);
 
-      // Early exit check: if vocab + stairs done and >5s elapsed
-      const elapsed = Date.now() - startTime.current;
-      if (elapsed >= EARLY_EXIT_MS) {
-        // Steps 3 & 4 can finish in background — navigate now
-        finishRemainingInBackground(v3Data);
-        navigateAndCleanup();
-        return;
-      }
-
-      // ── Step 3: Discovery Lesson (pre-generate content) ──
+      // ── Step 3: Prepare First Activity (only 1st, not all) ──
+      const step3Start = Date.now();
       updateStep(2, 'in_progress');
       try {
-        // Load the first stair (discovery lesson) and generate its content
         const stairs = await loadPreviewStairs();
         const firstStair = stairs?.find(s => s.order === 1);
         if (firstStair) {
@@ -314,41 +326,23 @@ export default function CreatingPathRoute() {
             v3Data.proficiency_level || 'starting_fresh',
             true, // isFirstLesson
           );
-          // Pre-generate content (vocab from word bank, listening/reading from Gemini)
-          // This caches in AsyncStorage so lesson-session picks it up instantly
-          await generateDiscoveryLessonContent(plan, 'anonymous');
+          // Store the lesson plan (required for lesson-session)
+          await storeActiveLessonPlan(plan);
+          // Generate ONLY the first activity content (fast!)
+          // Remaining activities are generated in background by lesson-session
+          await generateFirstActivityContent(plan, 'anonymous');
         }
         updateStep(2, 'done');
       } catch (err) {
-        console.warn('[CreatingPath] Discovery lesson error (non-blocking):', err);
+        console.warn('[CreatingPath] First activity error (non-blocking):', err);
         updateStep(2, 'error');
       }
+      await ensureMinVisible(step3Start);
 
-      // ── Step 4: Personalize Path ─────────────────────
-      updateStep(3, 'in_progress');
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
+      // Fire-and-forget: personalize path for authenticated users
+      personalizePathInBackground(v3Data);
 
-        if (user) {
-          await clearPreviewStairs();
-          const validationError = validateV3Data(v3Data);
-          if (validationError) {
-            console.warn('[CreatingPath] Validation warning:', validationError);
-          }
-          const adaptedData = adaptV3ToOnboardingData(v3Data);
-          const result = await createPersonalizedPath(user.id, adaptedData);
-
-          if (result.success) {
-            await AsyncStorage.removeItem(ONBOARDING_COMPLETED_KEY);
-          }
-        }
-        updateStep(3, 'done');
-      } catch (err) {
-        console.warn('[CreatingPath] Path error (non-blocking):', err);
-        updateStep(3, 'error');
-      }
-
-      // All done — navigate
+      // Navigate to lesson — remaining content generates in background
       navigateAndCleanup();
     } catch (err) {
       console.warn('[CreatingPath] Top-level error:', err);
@@ -357,42 +351,26 @@ export default function CreatingPathRoute() {
   };
 
   /**
-   * If we're navigating early (after vocab + stairs), finish remaining steps
-   * in the background without blocking navigation.
+   * Personalize the learning path in Supabase (for authenticated users).
+   * Runs as fire-and-forget after navigation — no-op for anonymous users.
    */
-  const finishRemainingInBackground = async (v3Data: any) => {
+  const personalizePathInBackground = async (v3Data: any) => {
     try {
-      // Step 3: Discovery lesson (background)
-      try {
-        const stairs = await loadPreviewStairs();
-        const firstStair = stairs?.find(s => s.order === 1);
-        if (firstStair) {
-          const plan = generateLessonPlan(
-            firstStair,
-            v3Data.proficiency_level || 'starting_fresh',
-            true,
-          );
-          await generateDiscoveryLessonContent(plan, 'anonymous');
-        }
-      } catch {
-        // Non-blocking
-      }
-      updateStep(2, 'done');
-
-      // Step 4: Personalize path
-      updateStep(3, 'in_progress');
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await clearPreviewStairs();
+        const validationError = validateV3Data(v3Data);
+        if (validationError) {
+          console.warn('[CreatingPath] Validation warning:', validationError);
+        }
         const adaptedData = adaptV3ToOnboardingData(v3Data);
         const result = await createPersonalizedPath(user.id, adaptedData);
         if (result.success) {
           await AsyncStorage.removeItem(ONBOARDING_COMPLETED_KEY);
         }
       }
-      updateStep(3, 'done');
-    } catch {
-      // Non-blocking
+    } catch (err) {
+      console.warn('[CreatingPath] Background personalization error:', err);
     }
   };
 

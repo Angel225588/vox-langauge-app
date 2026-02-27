@@ -674,6 +674,97 @@ export async function generateSingleActivityContent(
 }
 
 /**
+ * Generate and cache content for ONLY the first activity of a discovery lesson.
+ * Used during onboarding to get the user into the lesson ASAP.
+ * Remaining activities are generated in background by lesson-session.
+ */
+export async function generateFirstActivityContent(
+  plan: LessonPlan,
+  userId: string,
+): Promise<DiscoveryLessonContent> {
+  // Check cache first — if any content exists, use it
+  const cached = await getCachedContent(plan.id);
+  if (cached && Object.keys(cached.activities).length > 0) {
+    console.log('[DiscoveryGenerator] First activity already cached for', plan.id);
+    return cached;
+  }
+
+  const profile = getUserProfile();
+  const bankWords = await getDiscoveryWords(25);
+
+  const firstActivity = plan.activities[0];
+  const activities: Record<string, ActivityContent> = {};
+
+  if (firstActivity) {
+    try {
+      const content = await generateActivityContent(firstActivity, profile, bankWords);
+      activities[firstActivity.id] = content;
+    } catch (error) {
+      console.warn('[DiscoveryGenerator] First activity generation failed:', error);
+    }
+  }
+
+  const result: DiscoveryLessonContent = {
+    activities,
+    generatedAt: new Date().toISOString(),
+    planId: plan.id,
+  };
+
+  await setCachedContent(plan.id, result);
+  console.log(`[DiscoveryGenerator] First activity (${firstActivity?.type}) cached`);
+  return result;
+}
+
+/**
+ * Generate remaining activity content (activities 2+) and merge into cache.
+ * Designed to run in background while the user does the first activity.
+ */
+export async function generateRemainingActivities(
+  plan: LessonPlan,
+  userId: string,
+): Promise<DiscoveryLessonContent> {
+  // Load existing cache (should have first activity from creating-path)
+  const existing = await getCachedContent(plan.id);
+  const activities: Record<string, ActivityContent> = { ...(existing?.activities || {}) };
+
+  // Check if all activities are already generated
+  const missing = plan.activities.filter(a => !activities[a.id]);
+  if (missing.length === 0) {
+    console.log('[DiscoveryGenerator] All activities already cached for', plan.id);
+    return existing!;
+  }
+
+  const profile = getUserProfile();
+  const bankWords = await getDiscoveryWords(25);
+
+  // Generate only missing activities
+  for (const activity of missing) {
+    try {
+      const content = await generateActivityContent(activity, profile, bankWords);
+      activities[activity.id] = content;
+      console.log(`[DiscoveryGenerator] Background: generated ${activity.type}`);
+    } catch (error) {
+      console.warn(
+        `[DiscoveryGenerator] Background gen failed for ${activity.type}:`,
+        error,
+      );
+    }
+  }
+
+  const result: DiscoveryLessonContent = {
+    activities,
+    generatedAt: new Date().toISOString(),
+    planId: plan.id,
+  };
+
+  await setCachedContent(plan.id, result);
+  console.log(
+    `[DiscoveryGenerator] Background complete: ${Object.keys(activities).length}/${plan.activities.length} activities`,
+  );
+  return result;
+}
+
+/**
  * Clear cached discovery content for a specific plan.
  */
 export async function clearDiscoveryCache(planId: string): Promise<void> {
