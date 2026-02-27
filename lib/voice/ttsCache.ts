@@ -268,7 +268,7 @@ class TTSCacheService {
       }
 
       // Increment usage count (fire and forget)
-      supabase.rpc('increment_tts_usage', { p_cache_key: cacheKey }).catch(() => {});
+      supabase.rpc('increment_tts_usage', { p_cache_key: cacheKey }).then(() => {}, () => {});
 
       // Get public URL
       const { data: urlData } = supabase.storage

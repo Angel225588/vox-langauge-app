@@ -101,9 +101,6 @@ const TTS_LANGUAGE_MAP: Record<SupportedLanguage, string> = {
   de: 'de-DE',
   it: 'it-IT',
   pt: 'pt-BR',
-  ja: 'ja-JP',
-  ko: 'ko-KR',
-  zh: 'zh-CN',
 };
 
 // =============================================================================
@@ -161,12 +158,6 @@ export class HybridVoiceConversation {
            Correggi gli errori gentilmente. Mantieni le risposte brevi (1-2 frasi).`,
       pt: `Você é um tutor amigável de português. Fale de forma clara e natural.
            Corrija erros gentilmente. Mantenha as respostas curtas (1-2 frases).`,
-      ja: `あなたは親切な日本語の先生です。明確で自然に話してください。
-           間違いは優しく訂正してください。回答は短く（1〜2文）。`,
-      ko: `당신은 친절한 한국어 선생님입니다. 명확하고 자연스럽게 말하세요.
-           실수는 부드럽게 고쳐주세요. 답변은 짧게 (1-2문장).`,
-      zh: `你是一位友好的中文老师。说话清晰自然。
-           温和地纠正错误。保持简短回答（1-2句话）。`,
     };
     return prompts[language] || prompts.en;
   }
@@ -445,9 +436,6 @@ Respond naturally in ${this.getLanguageName()}. Keep it conversational and brief
       de: ['Sehr gut! Weiter so.'],
       it: ['Molto bene! Continua così.'],
       pt: ['Muito bem! Continue assim.'],
-      ja: ['とても上手です！続けましょう。'],
-      ko: ['아주 잘하고 있어요! 계속해봐요.'],
-      zh: ['非常好！继续加油。'],
     };
 
     const langResponses = responses[this.config.language] || responses.en;
@@ -469,9 +457,6 @@ Respond naturally in ${this.getLanguageName()}. Keep it conversational and brief
       de: 'German',
       it: 'Italian',
       pt: 'Portuguese',
-      ja: 'Japanese',
-      ko: 'Korean',
-      zh: 'Chinese',
     };
     return names[this.config.language] || 'the target language';
   }

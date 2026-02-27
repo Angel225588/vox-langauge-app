@@ -153,9 +153,8 @@ export async function processPostCall(input: PostCallInput): Promise<PostCallRes
   // Step 4: Update user AI memory
   try {
     await updateMemoryAfterLesson(input.userId, {
-      lessonType: 'conversation',
-      duration: input.durationSeconds,
-      score: result.feedback
+      lesson_type: 'conversation',
+      cards_good: result.feedback
         ? Math.round(
             (result.feedback.articulation +
               result.feedback.fluency +
@@ -163,8 +162,11 @@ export async function processPostCall(input: PostCallInput): Promise<PostCallRes
               result.feedback.scenario) /
               4
           )
-        : undefined,
-      vocabLearned: result.vocabStats.wordsReinforced + result.vocabStats.wordsAdded,
+        : 0,
+      cards_total: 100,
+      vocab_learned: [],
+      time_spent: input.durationSeconds,
+      conversation_messages: input.messages.filter(m => m.role === 'user').length,
     });
 
     console.log('[PostCall] Step 4: User memory updated');

@@ -1,11 +1,20 @@
 /**
- * Listening Practice Screen
+ * Listening Practice Screen — 4-Stage Scaffolding Loop
  *
- * AI-generated listening exercise using user's stair vocabulary.
- * Sentences with TTS audio → comprehension questions → score.
+ * Progressive listening exercise that proves comprehension improvement:
+ *   Stage 1: Pure audio → quiz (before score)
+ *   Stage 2: Audio + target language subtitles
+ *   Stage 3: Audio + native translation subtitles
+ *   Stage 4: Pure audio → quiz (after score) → results comparison
+ *
+ * Supports two entry modes:
+ * - Lesson session: discoveryContent passed via route params
+ * - Practice tab: AI-generated via practiceGenerator
+ *
+ * Audio: ElevenLabs TTS with expo-speech fallback.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,29 +26,122 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import * as Speech from 'expo-speech';
 import { useAuth } from '@/hooks/useAuth';
 import { generateListeningContent, type ListeningExercise } from '@/lib/ai/practiceGenerator';
+import type { ListeningContent, DialogueLine } from '@/lib/lesson/discoveryGenerator';
 import { savePracticeScore } from '@/lib/db/competencyMetrics';
 import { storeActivityCompletion } from '@/app/lesson-session';
 import { updateStreakData } from '@/lib/db/sqlite';
-import * as Speech from 'expo-speech';
+import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS';
 
-// ─── Palette ───
-const C = {
-  bg: '#080B14',
-  card: 'rgba(255,255,255,0.06)',
-  border: 'rgba(255,255,255,0.08)',
-  text: '#EEF0F6',
-  sub: '#7E8BA4',
-  rose: '#F472B6',
-  green: '#10B981',
-  red: '#EF4444',
-  blue: '#1A6DFF',
-};
+import StageIndicator from '@/components/listening/StageIndicator';
+import SubtitleDisplay from '@/components/listening/SubtitleDisplay';
+import ComprehensionQuiz from '@/components/listening/ComprehensionQuiz';
+import ResultsComparison from '@/components/listening/ResultsComparison';
+import { LISTENING } from '@/components/listening/theme';
 
-type Phase = 'loading' | 'listen' | 'questions' | 'score';
+// ─── Types ───────────────────────────────────────────────
+
+type ListeningStage =
+  | 'loading'
+  | 'stage1_listen'
+  | 'stage1_quiz'
+  | 'stage2_subtitles'
+  | 'stage3_translation'
+  | 'stage4_listen'
+  | 'stage4_quiz'
+  | 'results';
+
+/** Normalized content shape used by all stages */
+interface NormalizedContent {
+  title: string;
+  dialogueLines: DialogueLine[];
+  vocabulary: { word: string; translation: string; phonetic?: string }[];
+  questions: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+  }[];
+}
+
+// ─── Helpers ─────────────────────────────────────────────
+
+/** Map a ListeningStage to the 1-4 stage number for the indicator */
+function stageToNumber(stage: ListeningStage): number {
+  switch (stage) {
+    case 'stage1_listen':
+    case 'stage1_quiz':
+      return 1;
+    case 'stage2_subtitles':
+      return 2;
+    case 'stage3_translation':
+      return 3;
+    case 'stage4_listen':
+    case 'stage4_quiz':
+      return 4;
+    default:
+      return 1;
+  }
+}
+
+/** Fisher-Yates shuffle that returns a new array */
+function shuffleArray<T>(arr: T[]): T[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+/** Shuffle options for each question while tracking the new correct index */
+function shuffleQuestionOptions(
+  questions: NormalizedContent['questions'],
+): NormalizedContent['questions'] {
+  return questions.map((q) => {
+    // Create index mapping
+    const indices = q.options.map((_, i) => i);
+    const shuffled = shuffleArray(indices);
+    const newOptions = shuffled.map((i) => q.options[i]);
+    const newCorrectIndex = shuffled.indexOf(q.correctIndex);
+    return { ...q, options: newOptions, correctIndex: newCorrectIndex };
+  });
+}
+
+/** Normalize discovery ListeningContent into our common shape */
+function normalizeDiscoveryContent(dc: ListeningContent): NormalizedContent {
+  return {
+    title: dc.title,
+    dialogueLines: dc.dialogue.map((d) => ({
+      speaker: d.speaker,
+      text: d.text,
+      translation: d.translation,
+    })),
+    vocabulary: dc.vocabulary,
+    questions: dc.comprehensionQuestions,
+  };
+}
+
+/** Normalize practice-tab ListeningExercise into our common shape */
+function normalizeExerciseContent(ex: ListeningExercise): NormalizedContent {
+  return {
+    title: ex.title,
+    dialogueLines: ex.sentences.map((s, i) => ({
+      speaker: `Speaker ${i % 2 === 0 ? 'A' : 'B'}`,
+      text: s.text,
+      translation: s.translation,
+    })),
+    vocabulary: ex.vocabulary,
+    questions: ex.comprehensionQuestions,
+  };
+}
+
+// ═════════════════════════════════════════════════════════
+// COMPONENT
+// ═════════════════════════════════════════════════════════
 
 export default function PracticeListeningScreen() {
   const router = useRouter();
@@ -47,339 +149,440 @@ export default function PracticeListeningScreen() {
   const params = useLocalSearchParams<{
     returnToSession?: string;
     activityId?: string;
+    discoveryContent?: string;
   }>();
   const isSessionActivity = params.returnToSession === 'true';
 
-  const [phase, setPhase] = useState<Phase>('loading');
-  const [exercise, setExercise] = useState<ListeningExercise | null>(null);
-  const [currentSentence, setCurrentSentence] = useState(0);
-  const [showTranslation, setShowTranslation] = useState(false);
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>([]);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  // ─── State ──────────────────────────────────────────
+  const [stage, setStage] = useState<ListeningStage>('loading');
+  const [content, setContent] = useState<NormalizedContent | null>(null);
+  const [shuffledQuestions, setShuffledQuestions] = useState<NormalizedContent['questions'] | null>(null);
+  const [beforeScore, setBeforeScore] = useState(0);
+  const [afterScore, setAfterScore] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    loadContent();
-    return () => { Speech.stop(); };
-  }, [user?.id]);
+  // ─── Audio ──────────────────────────────────────────
+  const tts = useElevenLabsTTS();
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const speechStopRef = useRef(false);
 
-  const loadContent = useCallback(async () => {
-    if (!user?.id) return;
-    setPhase('loading');
-    setError(null);
-    setCurrentSentence(0);
-    setCurrentQ(0);
-    setShowTranslation(false);
+  // Build the full dialogue text for TTS
+  const fullDialogueText = useMemo(() => {
+    if (!content) return '';
+    return content.dialogueLines.map((l) => l.text).join('. ');
+  }, [content]);
+
+  // ─── Speak function with ElevenLabs → expo-speech fallback ──
+  const speakDialogue = useCallback(
+    async (slow: boolean = false) => {
+      if (!content || isSpeaking) return;
+
+      setIsSpeaking(true);
+      speechStopRef.current = false;
+
+      try {
+        if (tts.isConfigured) {
+          // ElevenLabs: speak the full dialogue as a sequence
+          await tts.speakSequence(
+            content.dialogueLines.map((line) => ({
+              text: line.text,
+              delayBefore: 200,
+            })),
+          );
+        } else {
+          // Fallback: expo-speech
+          const text = fullDialogueText;
+          await new Promise<void>((resolve) => {
+            Speech.speak(text, {
+              rate: slow ? 0.6 : 0.85,
+              onDone: resolve,
+              onError: () => resolve(),
+            });
+          });
+        }
+      } catch {
+        // Audio failure is non-blocking
+      }
+
+      if (!speechStopRef.current) {
+        setIsSpeaking(false);
+      }
+    },
+    [content, isSpeaking, tts, fullDialogueText],
+  );
+
+  const speakSlow = useCallback(async () => {
+    if (!content || isSpeaking) return;
+
+    setIsSpeaking(true);
+    speechStopRef.current = false;
+
     try {
-      const content = await generateListeningContent(user.id);
-      if (!content) {
+      if (tts.isConfigured) {
+        // Slow mode — speak each line individually at a slower pace
+        for (const line of content.dialogueLines) {
+          if (speechStopRef.current) break;
+          await tts.speak(line.text, undefined, 0.75);
+          // Pause between lines
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } else {
+        const text = fullDialogueText;
+        await new Promise<void>((resolve) => {
+          Speech.speak(text, {
+            rate: 0.6,
+            onDone: resolve,
+            onError: () => resolve(),
+          });
+        });
+      }
+    } catch {
+      // Non-blocking
+    }
+
+    if (!speechStopRef.current) {
+      setIsSpeaking(false);
+    }
+  }, [content, isSpeaking, tts, fullDialogueText]);
+
+  const stopSpeaking = useCallback(async () => {
+    speechStopRef.current = true;
+    setIsSpeaking(false);
+    try {
+      await tts.stop();
+      Speech.stop();
+    } catch {
+      // Ignore
+    }
+  }, [tts]);
+
+  // ─── Content Loading ───────────────────────────────
+  const loadContent = useCallback(async () => {
+    setStage('loading');
+    setError(null);
+    setBeforeScore(0);
+    setAfterScore(0);
+    setShuffledQuestions(null);
+
+    try {
+      // Try discovery content from route params first
+      if (params.discoveryContent) {
+        const parsed: ListeningContent = JSON.parse(params.discoveryContent);
+        const normalized = normalizeDiscoveryContent(parsed);
+        if (normalized.dialogueLines.length > 0 && normalized.questions.length > 0) {
+          setContent(normalized);
+          setStage('stage1_listen');
+          return;
+        }
+      }
+
+      // Fall back to AI generation (practice tab mode)
+      if (!user?.id) {
+        setError('Sign in to generate listening exercises.');
+        return;
+      }
+
+      const exercise = await generateListeningContent(user.id);
+      if (!exercise) {
         setError('Could not generate listening exercise. Check your learning path.');
         return;
       }
-      setExercise(content);
-      setAnswers(new Array(content.comprehensionQuestions.length).fill(null));
-      setPhase('listen');
+      const normalized = normalizeExerciseContent(exercise);
+      setContent(normalized);
+      setStage('stage1_listen');
     } catch (err: any) {
       setError(err.message || 'Generation failed');
     }
-  }, [user?.id]);
+  }, [params.discoveryContent, user?.id]);
 
-  const speak = useCallback((text: string, slow: boolean = false) => {
-    Speech.stop();
-    setIsSpeaking(true);
-    Speech.speak(text, {
-      rate: slow ? 0.6 : 0.85,
-      onDone: () => setIsSpeaking(false),
-      onError: () => setIsSpeaking(false),
-    });
+  // Initial load
+  useEffect(() => {
+    loadContent();
+    return () => {
+      Speech.stop();
+    };
   }, []);
 
-  const handleNextSentence = () => {
-    if (!exercise) return;
-    setShowTranslation(false);
-    if (currentSentence < exercise.sentences.length - 1) {
-      setCurrentSentence(currentSentence + 1);
-    } else {
-      setPhase('questions');
-    }
-  };
+  // ─── Stage Transitions ─────────────────────────────
 
-  const handleAnswer = (optionIndex: number) => {
-    if (!exercise) return;
-    const newAnswers = [...answers];
-    newAnswers[currentQ] = optionIndex;
-    setAnswers(newAnswers);
-
-    setTimeout(() => {
-      if (currentQ < exercise.comprehensionQuestions.length - 1) {
-        setCurrentQ(currentQ + 1);
-      } else {
-        setPhase('score');
+  const handleStage1QuizComplete = useCallback(
+    (score: number) => {
+      setBeforeScore(score);
+      // Prepare shuffled questions for stage 4
+      if (content) {
+        setShuffledQuestions(shuffleQuestionOptions(content.questions));
       }
-    }, 600);
-  };
+      setStage('stage2_subtitles');
+    },
+    [content],
+  );
 
-  const score = exercise
-    ? answers.reduce<number>((acc, ans, i) => {
-        return acc + (ans === exercise.comprehensionQuestions[i]?.correctIndex ? 1 : 0);
-      }, 0)
-    : 0;
-  const totalQ = exercise?.comprehensionQuestions.length || 0;
+  const handleStage4QuizComplete = useCallback(
+    (score: number) => {
+      setAfterScore(score);
+      setStage('results');
+    },
+    [],
+  );
 
-  // Save score when entering score phase
+  // ─── Score Persistence ─────────────────────────────
+  const totalQuestions = content?.questions.length || 0;
+  const pointsRef = useRef(0);
+
   useEffect(() => {
-    if (phase !== 'score' || !user?.id || totalQ === 0) return;
-    const pct = Math.round((score / totalQ) * 100);
-    savePracticeScore(user.id, 'listening', {
-      fluency: pct,
-      communication: pct,
-      articulation: Math.round(pct * 0.8),
-      scenario: Math.round(pct * 0.7),
-    }).catch(() => {});
+    if (stage !== 'results' || totalQuestions === 0) return;
 
-    // Persist points: 10 base + score bonus
+    const pct = Math.round((afterScore / totalQuestions) * 100);
     const practicePoints = 10 + Math.round(pct / 10);
-    updateStreakData(user.id, practicePoints).catch(() => {});
+    pointsRef.current = practicePoints;
 
-    // Signal lesson-session if we're inside a lesson
-    if (isSessionActivity && params.activityId) {
-      storeActivityCompletion(params.activityId, pct).catch(() => {});
+    // Save competency score
+    const userId = user?.id;
+    if (userId) {
+      savePracticeScore(userId, 'listening', {
+        fluency: pct,
+        communication: pct,
+        articulation: Math.round(pct * 0.8),
+        scenario: Math.round(pct * 0.7),
+      }).catch(() => {});
+
+      // Persist points
+      updateStreakData(userId, practicePoints).catch(() => {});
+
+      // Signal lesson-session if inside a lesson
+      if (isSessionActivity && params.activityId) {
+        storeActivityCompletion(params.activityId, pct).catch(() => {});
+      }
     }
-  }, [phase]);
+  }, [stage, afterScore, totalQuestions, user?.id, isSessionActivity, params.activityId]);
 
-  // Return to lesson session or practice tab
+  // ─── Navigation ────────────────────────────────────
+
   const handleDone = useCallback(() => {
+    stopSpeaking();
     if (isSessionActivity) {
       router.replace('/lesson-session');
     } else {
       router.back();
     }
-  }, [isSessionActivity, router]);
+  }, [isSessionActivity, router, stopSpeaking]);
 
-  // ═══ LOADING ═══
-  if (phase === 'loading') {
+  const handleNewExercise = useCallback(() => {
+    stopSpeaking();
+    loadContent();
+  }, [stopSpeaking, loadContent]);
+
+  // ═══ RENDER ════════════════════════════════════════
+
+  // ─── LOADING ──────────────────────────────────────
+  if (stage === 'loading') {
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => router.back()} />
+        <Header onBack={() => { stopSpeaking(); router.back(); }} />
         <View style={s.center}>
-          <ActivityIndicator size="large" color={C.rose} />
+          <ActivityIndicator size="large" color={LISTENING.teal} />
           <Text style={s.loadingText}>Generating listening exercise...</Text>
-          {error && <Text style={[s.loadingText, { color: C.red, marginTop: 12 }]}>{error}</Text>}
           {error && (
-            <TouchableOpacity style={s.retryBtn} onPress={loadContent}>
-              <Text style={[s.retryText, { color: C.rose }]}>Try Again</Text>
-            </TouchableOpacity>
+            <>
+              <Text style={[s.loadingText, { color: LISTENING.red, marginTop: 12 }]}>
+                {error}
+              </Text>
+              <TouchableOpacity style={s.retryBtn} onPress={loadContent}>
+                <Text style={s.retryText}>Try Again</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       </SafeAreaView>
     );
   }
 
-  if (!exercise) return null;
+  if (!content) return null;
 
-  // ═══ LISTEN PHASE ═══
-  if (phase === 'listen') {
-    const sent = exercise.sentences[currentSentence];
+  // ─── QUIZ STAGES (Stage 1 and Stage 4) ─────────────
+  if (stage === 'stage1_quiz') {
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => router.back()} />
-
-        {/* Progress */}
-        <View style={s.progressRow}>
-          {exercise.sentences.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                s.progressDot,
-                i === currentSentence && s.progressDotActive,
-                i < currentSentence && { backgroundColor: C.green },
-              ]}
-            />
-          ))}
-        </View>
-
-        <View style={s.listenContent}>
-          <Animated.View entering={FadeIn.duration(300)} key={currentSentence} style={{ alignItems: 'center' }}>
-            <Text style={s.sentenceNum}>
-              Sentence {currentSentence + 1} of {exercise.sentences.length}
-            </Text>
-
-            {/* Audio controls */}
-            <View style={s.audioRow}>
-              <TouchableOpacity
-                style={[s.audioBtn, s.audioBtnMain]}
-                onPress={() => speak(sent.text)}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={isSpeaking ? 'volume-high' : 'play'}
-                  size={28}
-                  color="#fff"
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.audioBtn, s.audioBtnSlow]}
-                onPress={() => speak(sent.text, true)}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: 18 }}>🐢</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={s.listenHint}>Tap to play the sentence</Text>
-
-            {/* Sentence text (hidden until revealed) */}
-            <TouchableOpacity
-              style={s.sentenceCard}
-              onPress={() => setShowTranslation(!showTranslation)}
-              activeOpacity={0.8}
-            >
-              <Text style={s.sentenceText}>{sent.text}</Text>
-              {showTranslation ? (
-                <Text style={s.translationText}>{sent.translation}</Text>
-              ) : (
-                <Text style={s.tapReveal}>Tap to reveal translation</Text>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-
-        {/* Vocabulary sidebar */}
-        {exercise.vocabulary.length > 0 && (
-          <View style={s.vocabBar}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
-              {exercise.vocabulary.map((v, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={s.vocabChip}
-                  onPress={() => speak(v.word)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={s.vocabWord}>{v.word}</Text>
-                  {v.phonetic && <Text style={s.vocabPhonetic}>{v.phonetic}</Text>}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        <View style={s.bottomBar}>
-          <TouchableOpacity onPress={handleNextSentence} activeOpacity={0.8}>
-            <LinearGradient colors={[C.rose, '#DB2777']} style={s.ctaBtn}>
-              <Text style={s.ctaText}>
-                {currentSentence < exercise.sentences.length - 1 ? 'Next Sentence' : 'Start Questions'}
-              </Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+        <Header onBack={() => { stopSpeaking(); router.back(); }} />
+        <StageIndicator currentStage={1} />
+        <ComprehensionQuiz
+          questions={content.questions}
+          isRevealMode={false}
+          onComplete={handleStage1QuizComplete}
+        />
       </SafeAreaView>
     );
   }
 
-  // ═══ QUESTIONS PHASE ═══
-  if (phase === 'questions') {
-    const q = exercise.comprehensionQuestions[currentQ];
-    const selected = answers[currentQ];
-    const isAnswered = selected !== null;
-
+  if (stage === 'stage4_quiz') {
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => router.back()} />
-        <View style={s.progressRow}>
-          {exercise.comprehensionQuestions.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                s.progressDot,
-                i === currentQ && s.progressDotActive,
-                answers[i] !== null && {
-                  backgroundColor: answers[i] === exercise.comprehensionQuestions[i].correctIndex
-                    ? C.green : C.red,
-                },
-              ]}
-            />
-          ))}
-        </View>
-
-        <ScrollView contentContainerStyle={s.scroll}>
-          <Animated.View entering={FadeIn.duration(300)} key={currentQ}>
-            <Text style={s.sentenceNum}>Question {currentQ + 1} of {totalQ}</Text>
-            <Text style={s.qText}>{q.question}</Text>
-
-            <View style={{ gap: 10, marginTop: 20 }}>
-              {q.options.map((opt, i) => {
-                let optStyle = s.optDefault;
-                if (isAnswered && i === q.correctIndex) optStyle = s.optCorrect;
-                else if (isAnswered && i === selected) optStyle = s.optWrong;
-
-                return (
-                  <TouchableOpacity
-                    key={i}
-                    style={[s.option, optStyle]}
-                    onPress={() => !isAnswered && handleAnswer(i)}
-                    activeOpacity={isAnswered ? 1 : 0.7}
-                    disabled={isAnswered}
-                  >
-                    <Text style={s.optLetter}>{String.fromCharCode(65 + i)}</Text>
-                    <Text style={s.optText}>{opt}</Text>
-                    {isAnswered && i === q.correctIndex && (
-                      <Ionicons name="checkmark-circle" size={20} color={C.green} />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </Animated.View>
-        </ScrollView>
+        <Header onBack={() => { stopSpeaking(); router.back(); }} />
+        <StageIndicator currentStage={4} />
+        <ComprehensionQuiz
+          questions={shuffledQuestions || content.questions}
+          isRevealMode={true}
+          onComplete={handleStage4QuizComplete}
+        />
       </SafeAreaView>
     );
   }
 
-  // ═══ SCORE PHASE ═══
+  // ─── RESULTS ──────────────────────────────────────
+  if (stage === 'results') {
+    return (
+      <SafeAreaView style={s.container}>
+        <Header onBack={() => { stopSpeaking(); router.back(); }} />
+        <ResultsComparison
+          beforeScore={beforeScore}
+          afterScore={afterScore}
+          totalQuestions={totalQuestions}
+          points={pointsRef.current}
+          onNewExercise={handleNewExercise}
+          onContinue={handleDone}
+          continueLabel={isSessionActivity ? 'Continue Lesson' : 'Back to Practice'}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // ─── LISTEN / SUBTITLE STAGES ─────────────────────
+  const currentStageNum = stageToNumber(stage);
+  const subtitleMode: 'hidden' | 'target' | 'translation' =
+    stage === 'stage2_subtitles'
+      ? 'target'
+      : stage === 'stage3_translation'
+        ? 'translation'
+        : 'hidden';
+
+  const actionLabel =
+    stage === 'stage1_listen' || stage === 'stage4_listen'
+      ? 'Answer Questions'
+      : 'Next Stage';
+
+  const handleAction = () => {
+    stopSpeaking();
+    switch (stage) {
+      case 'stage1_listen':
+        setStage('stage1_quiz');
+        break;
+      case 'stage2_subtitles':
+        setStage('stage3_translation');
+        break;
+      case 'stage3_translation':
+        setStage('stage4_listen');
+        break;
+      case 'stage4_listen':
+        setStage('stage4_quiz');
+        break;
+    }
+  };
+
+  const showVocabSidebar =
+    (stage === 'stage1_listen' || stage === 'stage4_listen') &&
+    content.vocabulary.length > 0;
+
   return (
     <SafeAreaView style={s.container}>
-      <Header onBack={() => router.back()} />
-      <View style={s.center}>
-        <Animated.View entering={FadeInDown.duration(500)} style={{ alignItems: 'center' }}>
-          <View style={[s.scoreCircle, { borderColor: C.rose }]}>
-            <Text style={[s.scoreNum, { color: C.rose }]}>{score}/{totalQ}</Text>
-          </View>
-          <Text style={s.scoreLabel}>
-            {score === totalQ ? 'Perfect!' : score >= totalQ / 2 ? 'Good job!' : 'Keep listening!'}
-          </Text>
-          <Text style={s.scoreSub}>Listening Comprehension</Text>
+      <Header onBack={() => { stopSpeaking(); router.back(); }} />
 
-          <View style={{ gap: 12, marginTop: 32, width: '100%', paddingHorizontal: 24 }}>
-            <TouchableOpacity onPress={loadContent} activeOpacity={0.8}>
-              <LinearGradient colors={[C.rose, '#DB2777']} style={s.ctaBtn}>
-                <Ionicons name="refresh" size={18} color="#fff" />
-                <Text style={s.ctaText}>New Exercise</Text>
+      {/* Stage indicator */}
+      <StageIndicator currentStage={currentStageNum} />
+
+      {/* Audio controls */}
+      <View style={s.audioSection}>
+        <Animated.View entering={FadeIn.duration(300)} key={stage} style={s.audioContent}>
+          {/* Audio buttons */}
+          <View style={s.audioRow}>
+            <TouchableOpacity
+              onPress={isSpeaking ? stopSpeaking : () => speakDialogue(false)}
+              activeOpacity={0.7}
+            >
+              <LinearGradient
+                colors={LISTENING.tealGradient}
+                style={s.audioBtnMain}
+              >
+                <Ionicons
+                  name={isSpeaking ? 'stop' : 'play'}
+                  size={28}
+                  color="#FFFFFF"
+                />
               </LinearGradient>
             </TouchableOpacity>
+
             <TouchableOpacity
-              onPress={handleDone}
-              style={[s.ctaBtn, { backgroundColor: C.card }]}
+              style={s.audioBtnSlow}
+              onPress={isSpeaking ? stopSpeaking : speakSlow}
+              activeOpacity={0.7}
             >
-              <Text style={[s.ctaText, { color: C.sub }]}>
-                {isSessionActivity ? 'Continue Lesson' : 'Back to Practice'}
-              </Text>
+              <Text style={{ fontSize: 18 }}>🐢</Text>
             </TouchableOpacity>
           </View>
+
+          <Text style={s.audioHint}>
+            {isSpeaking ? 'Playing...' : 'Tap to play the dialogue'}
+          </Text>
         </Animated.View>
+      </View>
+
+      {/* Subtitle display area */}
+      <SubtitleDisplay
+        mode={subtitleMode}
+        dialogueLines={content.dialogueLines}
+      />
+
+      {/* Vocabulary sidebar */}
+      {showVocabSidebar && (
+        <View style={s.vocabBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}
+          >
+            {content.vocabulary.map((v, i) => (
+              <TouchableOpacity
+                key={i}
+                style={s.vocabChip}
+                onPress={() => {
+                  if (tts.isConfigured) {
+                    tts.speak(v.word).catch(() => {});
+                  } else {
+                    Speech.speak(v.word);
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={s.vocabWord}>{v.word}</Text>
+                {v.phonetic && <Text style={s.vocabPhonetic}>{v.phonetic}</Text>}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Action button */}
+      <View style={s.bottomBar}>
+        <TouchableOpacity onPress={handleAction} activeOpacity={0.8}>
+          <LinearGradient
+            colors={LISTENING.tealGradient}
+            style={s.ctaBtn}
+          >
+            <Text style={s.ctaText}>{actionLabel}</Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-// ─── HEADER ───
+// ─── HEADER ─────────────────────────────────────────────
+
 function Header({ onBack }: { onBack: () => void }) {
   return (
     <View style={s.header}>
       <TouchableOpacity onPress={onBack} hitSlop={12}>
-        <Ionicons name="arrow-back" size={22} color={C.text} />
+        <Ionicons name="arrow-back" size={22} color={LISTENING.textPrimary} />
       </TouchableOpacity>
       <Text style={s.headerTitle}>Listening Practice</Text>
       <View style={{ width: 22 }} />
@@ -387,79 +590,124 @@ function Header({ onBack }: { onBack: () => void }) {
   );
 }
 
-// ─── STYLES ───
+// ─── STYLES ─────────────────────────────────────────────
+
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  scroll: { padding: 20, paddingBottom: 100 },
+  container: {
+    flex: 1,
+    backgroundColor: LISTENING.bg,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
   },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: C.text },
-
-  loadingText: { color: C.sub, fontSize: 14, marginTop: 16 },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: LISTENING.textPrimary,
+  },
+  loadingText: {
+    color: LISTENING.textTertiary,
+    fontSize: 14,
+    marginTop: 16,
+  },
   retryBtn: {
-    marginTop: 16, paddingHorizontal: 24, paddingVertical: 10,
-    borderRadius: 10, backgroundColor: C.card,
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: LISTENING.glassBg,
   },
-  retryText: { fontWeight: '600', fontSize: 14 },
-
-  progressRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 12 },
-  progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.card },
-  progressDotActive: { backgroundColor: C.rose, width: 20 },
-
-  listenContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-
-  sentenceNum: { fontSize: 12, fontWeight: '600', color: C.sub, marginBottom: 16 },
-
-  audioRow: { flexDirection: 'row', gap: 16, marginBottom: 12 },
-  audioBtn: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  audioBtnMain: { backgroundColor: C.rose },
-  audioBtnSlow: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
-
-  listenHint: { fontSize: 12, color: C.sub, marginBottom: 24 },
-
-  sentenceCard: {
-    backgroundColor: C.card, borderRadius: 16, padding: 20,
-    borderWidth: 1, borderColor: C.border, width: '100%', alignItems: 'center',
+  retryText: {
+    fontWeight: '600',
+    fontSize: 14,
+    color: LISTENING.teal,
   },
-  sentenceText: { fontSize: 18, fontWeight: '700', color: C.text, textAlign: 'center', lineHeight: 26 },
-  translationText: { fontSize: 14, color: C.sub, marginTop: 10, textAlign: 'center' },
-  tapReveal: { fontSize: 12, color: C.sub + '80', marginTop: 10 },
 
-  vocabBar: { paddingVertical: 12 },
+  // Audio section
+  audioSection: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  audioContent: {
+    alignItems: 'center',
+  },
+  audioRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 8,
+  },
+  audioBtnMain: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  audioBtnSlow: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: LISTENING.glassBg,
+    borderWidth: 1,
+    borderColor: LISTENING.glassBorder,
+  },
+  audioHint: {
+    fontSize: 12,
+    color: LISTENING.textTertiary,
+  },
+
+  // Vocabulary sidebar
+  vocabBar: {
+    paddingVertical: 12,
+  },
   vocabChip: {
-    backgroundColor: C.card, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
-    borderWidth: 1, borderColor: C.border, alignItems: 'center',
+    backgroundColor: LISTENING.glassBg,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: LISTENING.glassBorder,
+    alignItems: 'center',
   },
-  vocabWord: { fontSize: 13, fontWeight: '700', color: C.text },
-  vocabPhonetic: { fontSize: 10, color: C.sub, marginTop: 2 },
+  vocabWord: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: LISTENING.textPrimary,
+  },
+  vocabPhonetic: {
+    fontSize: 10,
+    color: LISTENING.textTertiary,
+    marginTop: 2,
+  },
 
-  bottomBar: { padding: 20, paddingBottom: 10 },
+  // Bottom bar
+  bottomBar: {
+    padding: 20,
+    paddingBottom: 10,
+  },
   ctaBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, borderRadius: 14, paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 14,
+    paddingVertical: 16,
   },
-  ctaText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-
-  qText: { fontSize: 18, fontWeight: '700', color: C.text, lineHeight: 26 },
-  option: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 16, borderRadius: 14, borderWidth: 1,
+  ctaText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
-  optDefault: { backgroundColor: C.card, borderColor: C.border },
-  optCorrect: { backgroundColor: C.green + '15', borderColor: C.green + '40' },
-  optWrong: { backgroundColor: C.red + '15', borderColor: C.red + '40' },
-  optLetter: { fontSize: 14, fontWeight: '700', color: C.sub, width: 20 },
-  optText: { fontSize: 15, color: C.text, flex: 1 },
-
-  scoreCircle: {
-    width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'transparent', borderWidth: 3,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  scoreNum: { fontSize: 28, fontWeight: '900' },
-  scoreLabel: { fontSize: 22, fontWeight: '800', color: C.text, marginTop: 16 },
-  scoreSub: { fontSize: 14, color: C.sub, marginTop: 4 },
 });

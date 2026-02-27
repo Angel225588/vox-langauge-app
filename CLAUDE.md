@@ -362,6 +362,33 @@ Gamification exists to **support learning**, not replace it:
 
 4. **Professional Tone Alert**: If copy, UI text, or notifications use childish language, excessive enthusiasm, guilt-tripping, or emojis where icons should be — **STOP and flag it**. Say: "This doesn't match our professional tone. Our brand voice is confident, direct, and respectful. Here's the professional alternative: [suggest]."
 
+### Feature Spec Framework — RECOMMENDED Before Building
+
+For any feature that touches 3+ files or adds new UI/routes, define it before building it.
+
+**Process**: Use `/feature` or manually fill out the template.
+
+```
+Layer 1: Feature Brief (5 questions, 5 min)
+  1. What is it? (one sentence)
+  2. Who gets the gift? (specific user + moment)
+  3. What's the gift? (value, not feature)
+  4. Feature Gate check (which criteria?)
+  5. What if we don't build it?
+  → Verdict: PROCEED / KILL / NEEDS MORE THINKING
+
+Layer 2: Full Spec (7 sections, 15-30 min)
+  Identity → Purpose → User Experience → Design →
+  Technical → Risks → Definition of Done
+```
+
+- **Template**: `docs/features/TEMPLATE.md`
+- **Completed specs**: `docs/features/[feature-slug].md`
+- **Skill**: `/feature [idea]` — interactive wizard that walks through both layers
+- After completion, spec is added to NotebookLM as a source
+
+**Skip threshold**: Single-file fixes, color changes, typos, and bug fixes under 3 files don't need a spec.
+
 ## Change Impact Analysis — MANDATORY Before Editing
 
 Before modifying ANY screen, component, or route file, Claude MUST perform this analysis:
