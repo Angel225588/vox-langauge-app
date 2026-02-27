@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getCompetencySnapshot } from '@/lib/metrics/competencyEngine';
 import { getConversationStats } from '@/lib/db/conversations';
 import { getUserMemory } from '@/lib/ai/userMemory';
+import { getStreakData } from '@/lib/db/sqlite';
 import type { CompetencySnapshot, ScoreTrend } from '@/lib/db/competencyMetrics';
 
 // ─── Types ───
@@ -113,10 +114,11 @@ export function useUserMetrics() {
 
     setLoading(true);
     try {
-      const [snapshot, stats, memory] = await Promise.all([
+      const [snapshot, stats, memory, streakInfo] = await Promise.all([
         getCompetencySnapshot(user.id),
         getConversationStats(user.id),
         getUserMemory(user.id),
+        getStreakData(user.id),
       ]);
 
       // Calculate lessons completed today from memory's last_lesson_date
@@ -129,16 +131,16 @@ export function useUserMetrics() {
         ? ((memory as any)?.lessons_completed_today || 1)
         : 0;
 
+      // Use SQLite as single source of truth for points + streak
+      // Falls back to formula estimate if SQLite has no data yet
+      const sqlitePoints = streakInfo.total_points || 0;
       const conversationSessions = stats?.totalSessions || 0;
       const lessonsCompleted = memory?.total_lessons_completed || 0;
+      const formulaPoints = calculateTotalPoints(conversationSessions, lessonsCompleted, snapshot.totalSessions);
 
       setMetrics({
-        totalPoints: calculateTotalPoints(
-          conversationSessions,
-          lessonsCompleted,
-          snapshot.totalSessions,
-        ),
-        streak: memory?.current_streak || 0,
+        totalPoints: Math.max(sqlitePoints, formulaPoints),
+        streak: streakInfo.current_streak || memory?.current_streak || 0,
         articulation: snapshot.averages.articulation,
         fluency: snapshot.averages.fluency,
         communication: snapshot.averages.communication,

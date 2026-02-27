@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { generateReadingContent, type ReadingPassage } from '@/lib/ai/practiceGenerator';
 import { savePracticeScore } from '@/lib/db/competencyMetrics';
 import { storeActivityCompletion } from '@/app/lesson-session';
+import { updateStreakData } from '@/lib/db/sqlite';
 
 // ─── Palette (matches practice tab) ───
 const C = {
@@ -116,6 +117,10 @@ export default function PracticeReadingScreen() {
       fluency: Math.round(pct * 0.8),
       articulation: Math.round(pct * 0.7),
     }).catch(() => {});
+
+    // Persist points: 10 base + score bonus
+    const practicePoints = 10 + Math.round(pct / 10);
+    updateStreakData(user.id, practicePoints).catch(() => {});
 
     // Signal lesson-session if we're inside a lesson
     if (isSessionActivity && params.activityId) {

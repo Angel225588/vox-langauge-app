@@ -36,6 +36,8 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, glass } from '@/constants/designSystem';
 import { advanceStairProgression } from '@/lib/services/previewStairs';
+import { useAuth } from '@/hooks/useAuth';
+import { updateStreakData } from '@/lib/db/sqlite';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -251,6 +253,7 @@ function ScoreRing({
 // ─── Main Screen ────────────────────────────────────────────
 export default function LessonCompleteScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const params = useLocalSearchParams<{
     scores: string;
     stairTitle: string;
@@ -302,6 +305,12 @@ export default function LessonCompleteScreen() {
 
   const handleContinue = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Persist points + streak to SQLite
+    const userId = user?.id || 'anonymous';
+    if (pointsEarned > 0) {
+      await updateStreakData(userId, pointsEarned).catch(() => {});
+    }
 
     // Advance stair progression: completed stair → next stair unlocked
     if (params.stairId) {

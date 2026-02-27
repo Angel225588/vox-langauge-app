@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { generateListeningContent, type ListeningExercise } from '@/lib/ai/practiceGenerator';
 import { savePracticeScore } from '@/lib/db/competencyMetrics';
 import { storeActivityCompletion } from '@/app/lesson-session';
+import { updateStreakData } from '@/lib/db/sqlite';
 import * as Speech from 'expo-speech';
 
 // ─── Palette ───
@@ -137,6 +138,10 @@ export default function PracticeListeningScreen() {
       articulation: Math.round(pct * 0.8),
       scenario: Math.round(pct * 0.7),
     }).catch(() => {});
+
+    // Persist points: 10 base + score bonus
+    const practicePoints = 10 + Math.round(pct / 10);
+    updateStreakData(user.id, practicePoints).catch(() => {});
 
     // Signal lesson-session if we're inside a lesson
     if (isSessionActivity && params.activityId) {

@@ -28,6 +28,7 @@ import { generateWithGemini } from '@/lib/ai/gemini';
 import { sanitizePromptInput } from '@/lib/ai/sanitize';
 import { savePracticeScore } from '@/lib/db/competencyMetrics';
 import { storeActivityCompletion } from '@/app/lesson-session';
+import { updateStreakData } from '@/lib/db/sqlite';
 
 // ─── Palette ───
 const C = {
@@ -149,6 +150,11 @@ Respond in JSON:
           fluency: Math.round(resultScore * 0.85),
           scenario: Math.round(resultScore * 0.8),
         }).catch(() => {});
+      }
+      // Persist points: 15 base + score bonus (writing is harder)
+      if (user?.id) {
+        const writePoints = 15 + Math.round(resultScore / 10);
+        updateStreakData(user.id, writePoints).catch(() => {});
       }
       // Signal lesson-session if we're inside a lesson
       if (isSessionActivity && params.activityId) {

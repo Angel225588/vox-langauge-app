@@ -71,6 +71,7 @@ import {
 } from '@/lib/db/conversations';
 import { getCurrentStairStepId } from '@/lib/ai/practiceGenerator';
 import { storeActivityCompletion } from '@/app/lesson-session';
+import { updateStreakData } from '@/lib/db/sqlite';
 import { getStairSkeleton } from '@/lib/db/learningPaths';
 import {
   generateScenariosFromOnboarding,
@@ -441,6 +442,11 @@ export default function VoiceConversationScreen() {
           messages.filter(m => m.role === 'assistant').length
         );
 
+        // Calculate real points: base 20 + engagement bonus
+        const engagementBonus = Math.min(turnCount * 5, 30);
+        const durationBonus = Math.min(Math.floor(duration / 30) * 5, 20);
+        const voicePoints = 20 + engagementBonus + durationBonus;
+
         // Save to Supabase
         try {
           const sessionId = await saveConversationSession({
@@ -455,7 +461,7 @@ export default function VoiceConversationScreen() {
             turnCount,
             userWordCount,
             avgWordsPerTurn: turnCount > 0 ? Math.round(userWordCount / turnCount) : 0,
-            pointsEarned: 0,
+            pointsEarned: voicePoints,
             messages: transcript || [],
             stairStepId: currentStairStepId || undefined,
           });
@@ -464,6 +470,9 @@ export default function VoiceConversationScreen() {
             setSupabaseSessionId(sessionId);
             console.log('[VoiceConversation] Session saved to Supabase:', sessionId);
           }
+
+          // Persist points + streak to SQLite
+          await updateStreakData(user.id, voicePoints).catch(() => {});
         } catch (err) {
           console.warn('[VoiceConversation] Failed to save session to Supabase:', err);
         }
