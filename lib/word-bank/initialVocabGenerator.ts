@@ -207,13 +207,10 @@ ${getLevelInstructions(proficiency_level)}
 }
 
 /**
- * Generate initial vocabulary via Gemini and store in the word bank.
+ * Load bundled defaults + Gemini personalization (two-phase approach).
  *
- * - Checks cache to avoid re-generation on restart
- * - Checks if word bank already has words (skip if populated)
- * - Calls Gemini for 80-100 core vocabulary entries
- * - Stores each word via addOrReinforceWord() (handles duplicates)
- * - Sets cache flag on success
+ * Phase 1 (instant, $0): Load bundled default words for this language+level
+ * Phase 2 (background): Gemini personalizes + adds profession-specific words
  *
  * @returns Number of words added to the word bank
  */
@@ -245,48 +242,77 @@ export async function generateInitialVocabulary(
     // Continue — count check is non-critical
   }
 
-  // 3. Generate via Gemini (85 entries ≈ 25KB JSON, needs higher token limit)
-  console.log('[InitialVocab] Generating core vocabulary via Gemini...');
-  const prompt = buildPrompt(input);
-  const response = await generateJSON<GeminiVocabResponse>(prompt, {
-    maxOutputTokens: 16384,
-  });
+  let totalAdded = 0;
 
-  if (!response?.vocabulary || !Array.isArray(response.vocabulary)) {
-    throw new Error('Gemini returned invalid vocabulary structure');
-  }
+  // ── Phase 1: Load bundled defaults (instant, $0) ──────────
+  try {
+    const { getDefaultVocabulary } = await import('./defaults');
+    const defaults = getDefaultVocabulary(input.target_language, input.proficiency_level);
 
-  // 4. Store each word in the word bank
-  let added = 0;
-  const errors: string[] = [];
-
-  for (const entry of response.vocabulary) {
-    try {
-      if (!entry.word || !entry.translation) continue;
-
-      const wordInput: AddWordInput = {
-        word: entry.word.trim(),
-        translation: entry.translation.trim(),
-        phonetic: entry.phonetic?.trim() || undefined,
-        category: entry.category?.toLowerCase().trim() || 'general',
-        cefrLevel: normalizeCefr(entry.cefr_level),
-        partOfSpeech: normalizePartOfSpeech(entry.part_of_speech),
-        source: 'lesson', // 'lesson' source marks onboarding vocab
-        exampleSentences: entry.example_sentence
-          ? [entry.example_sentence.trim()]
-          : [],
-        milestoneTags: ['onboarding'],
-      };
-
-      await addOrReinforceWord(wordInput);
-      added++;
-    } catch (err) {
-      errors.push(`Failed to add "${entry.word}": ${err}`);
+    if (defaults.length > 0) {
+      console.log(`[InitialVocab] Loading ${defaults.length} bundled defaults...`);
+      for (const wordInput of defaults) {
+        try {
+          await addOrReinforceWord(wordInput);
+          totalAdded++;
+        } catch {
+          // Skip individual failures
+        }
+      }
+      console.log(`[InitialVocab] Phase 1: ${totalAdded} bundled words loaded`);
     }
+  } catch (err) {
+    console.warn('[InitialVocab] Bundled defaults not available, falling back to Gemini only:', err);
   }
 
-  // 5. Set cache flag
-  if (added > 0) {
+  // ── Phase 2: Gemini personalization (adds profession-specific words) ──
+  try {
+    console.log('[InitialVocab] Phase 2: Gemini personalization...');
+    const prompt = buildPrompt(input);
+    const response = await generateJSON<GeminiVocabResponse>(prompt, {
+      maxOutputTokens: 16384,
+    });
+
+    if (response?.vocabulary && Array.isArray(response.vocabulary)) {
+      let geminiAdded = 0;
+      const errors: string[] = [];
+
+      for (const entry of response.vocabulary) {
+        try {
+          if (!entry.word || !entry.translation) continue;
+
+          const wordInput: AddWordInput = {
+            word: entry.word.trim(),
+            translation: entry.translation.trim(),
+            phonetic: entry.phonetic?.trim() || undefined,
+            category: entry.category?.toLowerCase().trim() || 'general',
+            cefrLevel: normalizeCefr(entry.cefr_level),
+            partOfSpeech: normalizePartOfSpeech(entry.part_of_speech),
+            source: 'lesson',
+            exampleSentences: entry.example_sentence
+              ? [entry.example_sentence.trim()]
+              : [],
+            milestoneTags: ['onboarding'],
+          };
+
+          // addOrReinforceWord handles duplicates — bundled words get reinforced
+          const result = await addOrReinforceWord(wordInput);
+          if (result.isNew) geminiAdded++;
+        } catch (err) {
+          errors.push(`Failed to add "${entry.word}": ${err}`);
+        }
+      }
+
+      totalAdded += geminiAdded;
+      console.log(`[InitialVocab] Phase 2: ${geminiAdded} new words from Gemini (${errors.length} errors)`);
+    }
+  } catch (err) {
+    // Gemini failure is non-blocking — we already have bundled defaults
+    console.warn('[InitialVocab] Gemini personalization failed (non-blocking):', err);
+  }
+
+  // 3. Set cache flag if we added anything
+  if (totalAdded > 0) {
     try {
       await AsyncStorage.setItem(cacheKey, 'true');
     } catch {
@@ -294,12 +320,8 @@ export async function generateInitialVocabulary(
     }
   }
 
-  console.log(`[InitialVocab] Added ${added} words to bank (${errors.length} errors)`);
-  if (errors.length > 0) {
-    console.warn('[InitialVocab] Errors:', errors.slice(0, 5));
-  }
-
-  return added;
+  console.log(`[InitialVocab] Total: ${totalAdded} words in bank`);
+  return totalAdded;
 }
 
 /**

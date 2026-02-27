@@ -55,9 +55,9 @@ interface ProgressStep {
 }
 
 const INITIAL_STEPS: ProgressStep[] = [
-  { label: 'Creating your vocabulary', status: 'pending' },
-  { label: 'Preparing speaking scenarios', status: 'pending' },
-  { label: 'Setting up your library', status: 'pending' },
+  { label: 'Loading your vocabulary', status: 'pending' },
+  { label: 'Preparing your scenarios', status: 'pending' },
+  { label: 'Creating your discovery lesson', status: 'pending' },
   { label: 'Personalizing your path', status: 'pending' },
 ];
 
@@ -66,15 +66,15 @@ const INITIAL_STEPS: ProgressStep[] = [
 type Phrase = { main: string; sub: string };
 
 const PHRASES_WITH_NAME: ((name: string) => Phrase)[] = [
-  (name) => ({ main: `Building your path, ${name}`, sub: 'Tailored to your world' }),
-  (name) => ({ main: `Almost there, ${name}`, sub: 'Crafting your first steps' }),
-  (name) => ({ main: 'Your journey starts now', sub: 'Personalized for you' }),
+  (name) => ({ main: `We're ready, ${name}`, sub: 'Your first lesson is being prepared' }),
+  (name) => ({ main: `One moment, ${name}`, sub: 'Building something just for you' }),
+  (name) => ({ main: `Almost there, ${name}`, sub: 'Your path is taking shape' }),
 ];
 
 const PHRASES_WITHOUT_NAME: Phrase[] = [
-  { main: 'Your journey starts now', sub: 'Personalized for you' },
-  { main: 'Crafting your path', sub: 'Tailored to your world' },
-  { main: 'Almost there', sub: 'Preparing your first steps' },
+  { main: 'We\'re ready for you', sub: 'Your first lesson is being prepared' },
+  { main: 'One moment', sub: 'Building something just for you' },
+  { main: 'Almost there', sub: 'Your path is taking shape' },
 ];
 
 function getPhrase(firstName?: string): Phrase {
