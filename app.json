@@ -11,16 +11,15 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0A0E1A"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.voxlanguageapp",
+      "bundleIdentifier": "com.voxlanguage.app",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Vox needs microphone access for voice conversations with AI tutors.",
         "NSSpeechRecognitionUsageDescription": "Vox uses speech recognition for language practice.",
         "UIBackgroundModes": [
-          "audio",
           "audio"
         ],
         "ITSAppUsesNonExemptEncryption": false
@@ -29,11 +28,11 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0A0E1A"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.voxlanguageapp",
+      "package": "com.voxlanguage.app",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.INTERNET",
