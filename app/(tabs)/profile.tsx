@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,8 +14,10 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import { colors, spacing, borderRadius, typography, shadows } from '@/constants/designSystem';
-import { useOnboardingV2, TARGET_LANGUAGES, MOTIVATIONS, PROFICIENCY_LEVELS, TIMELINES } from '@/hooks/useOnboardingV2';
-import { getCEFRLevel, getFeatureAccess, ProficiencyLevel } from '@/lib/utils/levelGating';
+import { useOnboardingV2 } from '@/hooks/useOnboardingV2';
+import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
+import { adaptV3ToOnboardingData } from '@/lib/services/v3DataAdapter';
+import { getCEFRLevel, ProficiencyLevel } from '@/lib/utils/levelGating';
 import { useAuth } from '@/hooks/useAuth';
 import { dbManager } from '@/lib/db/database';
 import { useLanguage } from '@/i18n/hooks/useLanguage';
@@ -29,48 +31,40 @@ import { useUserMetrics } from '@/hooks/useUserMetrics';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { data, updateData, reset: resetOnboarding } = useOnboardingV2();
+  const { reset: resetOnboarding } = useOnboardingV2();
+  const v3Store = useOnboardingV3();
+  const v3 = v3Store.getOnboardingData();
   const { signOut, user } = useAuth();
   const { metrics } = useUserMetrics();
   const { t } = useTranslation('settings');
   const { currentLanguage, supportedLanguages, changeLanguage } = useLanguage();
-  const [isEditing, setIsEditing] = useState(false);
   const [showLanguageGrid, setShowLanguageGrid] = useState(false);
   const [showDevTools, setShowDevTools] = useState(false);
+  const [showMemory, setShowMemory] = useState(false);
 
-  // Local state for editing
-  const [editedMotivation, setEditedMotivation] = useState(data.motivation_custom || '');
-  const [editedStakes, setEditedStakes] = useState(data.commitment_stakes || '');
+  // Map V3 proficiency to V2 format for CEFR/feature gating
+  const adapted = adaptV3ToOnboardingData(v3);
+  const cefrLevel = getCEFRLevel(adapted.proficiency_level as ProficiencyLevel | null);
 
-  // Get display values from store data
-  const targetLang = TARGET_LANGUAGES.find(l => l.code === data.target_language);
-  const motivation = MOTIVATIONS.find(m => m.id === data.motivation);
-  const level = PROFICIENCY_LEVELS.find(l => l.id === data.proficiency_level);
-  const timeline = TIMELINES.find(t => t.id === data.timeline);
-  const cefrLevel = getCEFRLevel(data.proficiency_level as ProficiencyLevel | null);
-  const featureAccess = getFeatureAccess(data.proficiency_level);
-
-  // User display name
-  const displayName = user?.email?.split('@')[0] || 'Learner';
+  // Display values from V3 store
+  const displayName = v3.first_name || user?.email?.split('@')[0] || 'Learner';
+  const v3Lang = v3.target_language
+    ? v3.target_language.charAt(0).toUpperCase() + v3.target_language.slice(1)
+    : null;
+  const profileSubtitle = v3Lang ? `Learning ${v3Lang}` : 'Set up your profile';
+  const levelLabel = v3.proficiency_level
+    ? v3.proficiency_level.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    : 'Not set';
+  const goalLabel = v3.goal_custom || v3.goal?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Not set';
+  const professionLabel = v3.profession_custom
+    || v3.profession?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    || 'Not set';
+  const scenarioCount = v3.scenarios.length + v3.custom_scenarios.filter(s => !v3.scenarios.includes(s)).length;
 
   // Handle language change
   const handleLanguageChange = async (langCode: SupportedLanguageCode) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await changeLanguage(langCode);
-  };
-
-  const handleSavePreferences = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    updateData({
-      motivation_custom: editedMotivation || null,
-      commitment_stakes: editedStakes,
-    });
-    setIsEditing(false);
-    Alert.alert(
-      t('profile.preferences_saved_title'),
-      t('profile.preferences_saved_message'),
-      [{ text: 'OK' }]
-    );
   };
 
   const handleLogout = () => {
@@ -183,8 +177,8 @@ export default function ProfileScreen() {
           {/* 1. Identity Card */}
           <IdentityCard
             name={displayName}
-            subtitle={targetLang ? `Learning ${targetLang.label}` : 'Set up your profile'}
-            onEdit={() => router.push('/(auth)/onboarding-v2')}
+            subtitle={profileSubtitle}
+            onEdit={() => router.push('/edit-profile')}
           />
 
           {/* 2. Level Strip */}
@@ -196,7 +190,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.levelInfo}>
               <Text style={styles.levelName}>
-                {level?.label || 'Beginner'}
+                {levelLabel}
               </Text>
               <Text style={styles.levelSubtext}>CEFR Level</Text>
             </View>
@@ -226,7 +220,7 @@ export default function ProfileScreen() {
               trends={metrics.trends}
             />
 
-            {/* Activity Dashboard */}
+            {/* Activity, Feedback History */}
             <View style={{ marginTop: spacing.md }}>
               <View style={styles.card}>
                 <SettingRow
@@ -235,6 +229,13 @@ export default function ProfileScreen() {
                   value="View history"
                   onPress={() => router.push('/activity-dashboard' as any)}
                   color={colors.secondary.DEFAULT}
+                />
+                <SettingRow
+                  iconName="chatbubbles-outline"
+                  label="Feedback History"
+                  value="All sessions"
+                  onPress={() => router.push('/feedback-history' as any)}
+                  color={colors.primary.DEFAULT}
                   isLast
                 />
               </View>
@@ -266,101 +267,185 @@ export default function ProfileScreen() {
             </View>
           </Animated.View>
 
-          {/* 4. Learning Preferences */}
-          <Animated.View entering={FadeInDown.duration(400).delay(200)} style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Learning Preferences</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setIsEditing(!isEditing);
-                }}
-                style={styles.editToggle}
-              >
-                <Text style={styles.editToggleText}>
-                  {isEditing ? t('profile.cancel') : t('profile.edit')}
+          {/* 4. My Memory — What the AI knows about you */}
+          <Animated.View entering={FadeInDown.duration(400).delay(150)} style={styles.section}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowMemory(!showMemory);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.sectionTitle}>My Memory</Text>
+              <Text style={styles.collapseIcon}>{showMemory ? '\u2212' : '+'}</Text>
+            </TouchableOpacity>
+
+            {showMemory && (
+              <View style={styles.card}>
+                <Text style={styles.memoryNote}>
+                  Everything the AI uses to personalize your learning path.
                 </Text>
-              </TouchableOpacity>
-            </View>
+
+                {/* Name & Language */}
+                <View style={styles.memoryRow}>
+                  <View style={[styles.memoryIcon, { backgroundColor: 'rgba(0,54,255,0.12)' }]}>
+                    <Text style={{ fontSize: 14 }}>{'\u{1F464}'}</Text>
+                  </View>
+                  <View style={styles.memoryContent}>
+                    <Text style={styles.memoryLabel}>Name</Text>
+                    <Text style={styles.memoryValue}>{v3.first_name || displayName}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.memoryRow}>
+                  <View style={[styles.memoryIcon, { backgroundColor: 'rgba(0,163,255,0.12)' }]}>
+                    <Text style={{ fontSize: 14 }}>{'\u{1F30D}'}</Text>
+                  </View>
+                  <View style={styles.memoryContent}>
+                    <Text style={styles.memoryLabel}>Native Language</Text>
+                    <Text style={styles.memoryValue}>
+                      {v3.native_language
+                        ? v3.native_language.charAt(0).toUpperCase() + v3.native_language.slice(1)
+                        : 'Not detected'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.memoryRow}>
+                  <View style={[styles.memoryIcon, { backgroundColor: 'rgba(6,214,160,0.12)' }]}>
+                    <Text style={{ fontSize: 14 }}>{'\u{1F3AF}'}</Text>
+                  </View>
+                  <View style={styles.memoryContent}>
+                    <Text style={styles.memoryLabel}>Learning</Text>
+                    <Text style={styles.memoryValue}>{v3Lang || 'Not set'}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.memoryRow}>
+                  <View style={[styles.memoryIcon, { backgroundColor: 'rgba(139,92,246,0.12)' }]}>
+                    <Text style={{ fontSize: 14 }}>{'\u{1F4CA}'}</Text>
+                  </View>
+                  <View style={styles.memoryContent}>
+                    <Text style={styles.memoryLabel}>Level</Text>
+                    <Text style={styles.memoryValue}>
+                      {v3.proficiency_level
+                        ? v3.proficiency_level.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                        : 'Not set'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Goal */}
+                <View style={styles.memoryRow}>
+                  <View style={[styles.memoryIcon, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+                    <Text style={{ fontSize: 14 }}>{'\u{1F680}'}</Text>
+                  </View>
+                  <View style={styles.memoryContent}>
+                    <Text style={styles.memoryLabel}>Goal</Text>
+                    <Text style={styles.memoryValue}>
+                      {v3.goal_custom || v3.goal?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Not set'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Profession */}
+                <View style={styles.memoryRow}>
+                  <View style={[styles.memoryIcon, { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+                    <Text style={{ fontSize: 14 }}>{'\u{1F4BC}'}</Text>
+                  </View>
+                  <View style={styles.memoryContent}>
+                    <Text style={styles.memoryLabel}>Profession</Text>
+                    <Text style={styles.memoryValue}>
+                      {v3.profession_custom || v3.profession
+                        ? (v3.profession_custom || v3.profession).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                        : 'Not set'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Scenarios */}
+                {(v3.scenarios.length > 0 || v3.custom_scenarios.length > 0) && (
+                  <View style={styles.memoryRow}>
+                    <View style={[styles.memoryIcon, { backgroundColor: 'rgba(239,68,68,0.12)' }]}>
+                      <Text style={{ fontSize: 14 }}>{'\u{1F3AD}'}</Text>
+                    </View>
+                    <View style={[styles.memoryContent, { flex: 1 }]}>
+                      <Text style={styles.memoryLabel}>Scenarios</Text>
+                      <View style={styles.memoryChipRow}>
+                        {[...v3.scenarios, ...v3.custom_scenarios].map((s) => (
+                          <View key={s} style={styles.memoryChip}>
+                            <Text style={styles.memoryChipText}>
+                              {s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {/* Schedule */}
+                {(v3.schedule_time || v3.schedule_days) && (
+                  <View style={styles.memoryRow}>
+                    <View style={[styles.memoryIcon, { backgroundColor: 'rgba(0,54,255,0.12)' }]}>
+                      <Text style={{ fontSize: 14 }}>{'\u{23F0}'}</Text>
+                    </View>
+                    <View style={styles.memoryContent}>
+                      <Text style={styles.memoryLabel}>Schedule</Text>
+                      <Text style={styles.memoryValue}>
+                        {v3.schedule_time ? `${v3.schedule_time} min/session` : ''}
+                        {v3.schedule_time && v3.schedule_days ? ' \u00B7 ' : ''}
+                        {v3.schedule_days ? `${v3.schedule_days} days/week` : ''}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+              </View>
+            )}
+          </Animated.View>
+
+          {/* 5. Learning Preferences */}
+          <Animated.View entering={FadeInDown.duration(400).delay(200)} style={styles.section}>
+            <Text style={styles.sectionTitle}>Learning Preferences</Text>
             <View style={styles.card}>
               <SettingRow
                 iconName="language-outline"
                 label="Language"
-                value={targetLang ? `${targetLang.flag} ${targetLang.label}` : 'Not set'}
-                onPress={() => router.push('/(auth)/onboarding-v2/languages')}
+                value={v3Lang || 'Not set'}
+                onPress={() => router.push('/edit-profile')}
                 color={colors.accent.cyan}
               />
               <SettingRow
                 iconName="bar-chart-outline"
                 label="Level"
-                value={level?.label || 'Not set'}
-                onPress={() => router.push('/(auth)/onboarding-v2/your-level')}
+                value={levelLabel}
+                onPress={() => router.push('/edit-profile')}
                 color={colors.primary.DEFAULT}
               />
               <SettingRow
                 iconName="flag-outline"
                 label="Goal"
-                value={motivation?.label || data.motivation_custom || 'Not set'}
-                onPress={() => router.push('/(auth)/onboarding-v2/your-why')}
+                value={goalLabel}
+                onPress={() => router.push('/edit-profile')}
                 color={colors.success.DEFAULT}
               />
               <SettingRow
-                iconName="time-outline"
-                label="Timeline"
-                value={timeline?.label || 'Not set'}
-                onPress={() => router.push('/(auth)/onboarding-v2/your-commitment')}
+                iconName="briefcase-outline"
+                label="Profession"
+                value={professionLabel}
+                onPress={() => router.push('/edit-profile')}
                 color={colors.warning.DEFAULT}
               />
               <SettingRow
-                iconName="flash-outline"
-                label="Motivation"
-                value={data.commitment_stakes ? 'Set' : 'Not set'}
-                onPress={() => router.push('/(auth)/onboarding-v2/your-stakes')}
+                iconName="map-outline"
+                label="Scenarios"
+                value={scenarioCount > 0 ? `${scenarioCount} selected` : 'Not set'}
+                onPress={() => router.push('/edit-profile')}
                 color={colors.accent.purple}
                 isLast
               />
-
-              {/* Editable Fields */}
-              {isEditing && (
-                <View style={styles.editSection}>
-                  <Text style={styles.editLabel}>{t('profile.edit_section.motivation_label')}</Text>
-                  <TextInput
-                    style={styles.editInput}
-                    value={editedMotivation}
-                    onChangeText={setEditedMotivation}
-                    placeholder={t('profile.edit_section.motivation_placeholder')}
-                    placeholderTextColor={colors.text.tertiary}
-                    multiline
-                    numberOfLines={3}
-                  />
-
-                  <Text style={styles.editLabel}>{t('profile.edit_section.stakes_label')}</Text>
-                  <TextInput
-                    style={styles.editInput}
-                    value={editedStakes}
-                    onChangeText={setEditedStakes}
-                    placeholder={t('profile.edit_section.stakes_placeholder')}
-                    placeholderTextColor={colors.text.tertiary}
-                    multiline
-                    numberOfLines={3}
-                  />
-
-                  <TouchableOpacity
-                    onPress={handleSavePreferences}
-                    activeOpacity={0.8}
-                    style={{ marginTop: spacing.md }}
-                  >
-                    <LinearGradient
-                      colors={colors.gradients.success}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.saveButton}
-                    >
-                      <Text style={styles.saveButtonText}>{t('profile.edit_section.save_button')}</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
           </Animated.View>
 
@@ -484,7 +569,7 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
                 <TouchableOpacity
-                  onPress={() => router.push('/(auth)/onboarding-v2')}
+                  onPress={() => router.push('/(auth)/onboarding-v3' as any)}
                   activeOpacity={0.8}
                   style={{ marginTop: spacing.md }}
                 >
@@ -611,56 +696,6 @@ const styles = StyleSheet.create({
     borderColor: colors.overlay.light8,
   },
 
-  // Edit toggle
-  editToggle: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.elevated,
-  },
-  editToggleText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.primary.light,
-  },
-
-  // Edit section
-  editSection: {
-    marginTop: spacing.lg,
-    paddingTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  editLabel: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.secondary,
-    marginBottom: spacing.xs,
-    marginTop: spacing.md,
-  },
-  editInput: {
-    backgroundColor: colors.background.elevated,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: colors.text.primary,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  saveButton: {
-    height: 48,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButtonText: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.primary,
-  },
-
   // Action buttons
   actionButton: {
     height: 48,
@@ -719,6 +754,67 @@ const styles = StyleSheet.create({
   scenarioBadgeText: {
     fontSize: 10.5,
     fontWeight: typography.fontWeight.semibold,
+  },
+
+  // My Memory section
+  memoryNote: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    marginBottom: spacing.md,
+    fontStyle: 'italic',
+    lineHeight: 20,
+  },
+  memoryRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md - 4,
+    paddingVertical: spacing.md - 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.overlay.light5,
+  },
+  memoryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  memoryContent: {
+    flex: 1,
+  },
+  memoryLabel: {
+    fontSize: 11,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.tertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 2,
+  },
+  memoryValue: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+    lineHeight: 20,
+  },
+  memoryChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
+  memoryChip: {
+    backgroundColor: 'rgba(0,54,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,54,255,0.18)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  memoryChipText: {
+    fontSize: 11,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.primary.light,
   },
 
   // Language picker styles
