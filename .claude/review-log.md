@@ -515,3 +515,17 @@ This file tracks all automated code reviews triggered by commits.
 - **Time**: 2026-02-28 14:08:44
 - **Status**: Pending review via /master-review
 
+
+## Commit Review Triggered
+- **Commit**: f391aa3
+- **Message**: fix(quality): 8 medium-priority fixes — real trends, timeouts, confirm exit, writing history, cleanup, translations, FSRS migration, voice transcripts
+- **Time**: 2026-02-28 17:27:34
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 6929365
+- **Message**: feat(i18n): three-layer language resolution — device → AI immersion → user preference
+- **Time**: 2026-02-28 17:39:05
+- **Status**: Pending review via /master-review
+

@@ -847,3 +847,16 @@ export async function getWordCount(): Promise<number> {
   );
   return result?.count || 0;
 }
+
+/**
+ * Delete ALL words from the word bank.
+ * Used when user re-onboards with a different profile (language/level change).
+ * The word bank must be rebuilt from scratch to match the new selections.
+ */
+export async function clearAllWords(): Promise<number> {
+  const db = await dbManager.getDatabase();
+  const countBefore = await getWordCount();
+  await db.execAsync(`DELETE FROM ${WORD_BANK_TABLE}`);
+  console.log(`[WordBank] Cleared all ${countBefore} words`);
+  return countBefore;
+}

@@ -41,6 +41,7 @@ import { storeActiveLessonPlan } from '@/app/lesson-session';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
 import { buildLanguageRecommendation, saveAILanguageRecommendation } from '@/lib/storage/languageStorage';
 import { getDeviceLanguage } from '@/i18n/utils/languageDetector';
+import { invalidateIfProfileChanged } from '@/lib/utils/profileFingerprint';
 
 const ONBOARDING_COMPLETED_KEY = 'vox-onboarding-completed';
 
@@ -280,6 +281,22 @@ export default function CreatingPathRoute() {
 
       // Persist onboarding data for retry on failure
       await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, JSON.stringify(v3Data));
+
+      // ── Profile Fingerprint: invalidate stale caches if selections changed ──
+      try {
+        const wasInvalidated = await invalidateIfProfileChanged({
+          target_language: v3Data.target_language || 'english',
+          native_language: v3Data.native_language || 'english',
+          proficiency_level: v3Data.proficiency_level || 'starting_fresh',
+          scenarios: [...(v3Data.scenarios || []), ...(v3Data.custom_scenarios || [])],
+          profession: v3Data.profession || v3Data.profession_custom || undefined,
+        });
+        if (wasInvalidated) {
+          console.log('[CreatingPath] Stale caches cleared — fresh generation ahead');
+        }
+      } catch (err) {
+        console.warn('[CreatingPath] Fingerprint check failed (non-blocking):', err);
+      }
 
       // ── Step 1: Vocabulary ──────────────────────────
       const step1Start = Date.now();

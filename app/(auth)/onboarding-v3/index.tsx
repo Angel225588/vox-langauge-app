@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActionSheetIOS, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated, {
@@ -23,6 +23,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
+import { useLanguage } from '@/i18n/hooks/useLanguage';
+import { LANGUAGES_WITH_TRANSLATIONS, type SupportedLanguageCode, getLanguageInfo } from '@/i18n/types';
 import { colors, spacing, typography } from '@/constants/designSystem';
 
 // ─── Crystal Logo ───────────────────────────────────
@@ -82,6 +84,13 @@ const LANG_NAMES: Record<string, string> = {
   arabic: 'Arabic',
   hindi: 'Hindi',
   russian: 'Russian',
+  // i18n code → display name (for language picker)
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  pt: 'Portuguese',
+  ar: 'Arabic',
+  de: 'German',
 };
 
 // ─── Screen ─────────────────────────────────────────
@@ -89,8 +98,52 @@ const LANG_NAMES: Record<string, string> = {
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const { native_language, setField } = useOnboardingV3();
+  const { changeLanguage, currentLanguage } = useLanguage();
 
   const displayLang = LANG_NAMES[native_language] || native_language;
+
+  const handleChangeLanguage = () => {
+    const langOptions = LANGUAGES_WITH_TRANSLATIONS.map(code => {
+      const info = getLanguageInfo(code);
+      return info ? `${info.flag} ${info.nativeName}` : code;
+    });
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: [...langOptions, 'Cancel'],
+          cancelButtonIndex: langOptions.length,
+          title: 'App language',
+        },
+        (index) => {
+          if (index < LANGUAGES_WITH_TRANSLATIONS.length) {
+            const code = LANGUAGES_WITH_TRANSLATIONS[index];
+            changeLanguage(code);
+            // Also update native language in onboarding store
+            const fullName = LANG_NAMES[code] || code;
+            if (fullName) setField('native_language', fullName.toLowerCase());
+          }
+        },
+      );
+    } else {
+      // Android fallback — simple Alert with buttons
+      const buttons = LANGUAGES_WITH_TRANSLATIONS.slice(0, 3).map(code => {
+        const info = getLanguageInfo(code);
+        return {
+          text: info ? `${info.flag} ${info.nativeName}` : code,
+          onPress: () => {
+            changeLanguage(code);
+            const fullName = LANG_NAMES[code] || code;
+            if (fullName) setField('native_language', fullName.toLowerCase());
+          },
+        };
+      });
+      Alert.alert('App language', 'Choose your language', [
+        ...buttons,
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  };
 
   return (
     <GlassBackground intensity="medium">
@@ -132,7 +185,7 @@ export default function WelcomeScreen() {
           style={styles.langIndicator}
         >
           <Text style={styles.langText}>We'll speak to you in {displayLang}</Text>
-          <Pressable onPress={() => {/* TODO: language picker sheet */}}>
+          <Pressable onPress={handleChangeLanguage}>
             <Text style={styles.langChange}>Change</Text>
           </Pressable>
         </Animated.View>
