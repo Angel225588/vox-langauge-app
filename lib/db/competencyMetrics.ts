@@ -92,7 +92,10 @@ export async function savePracticeScore(
   const fluency = scores.fluency ?? 0;
   const communication = scores.communication ?? 0;
   const scenario = scores.scenario ?? 0;
-  const overallScore = Math.round((articulation + fluency + communication + scenario) / 4);
+
+  // Only average KPIs that were actually measured (non-zero)
+  const measured = [articulation, fluency, communication, scenario].filter(v => v > 0);
+  const overallScore = measured.length > 0 ? Math.round(measured.reduce((a, b) => a + b, 0) / measured.length) : 0;
 
   const score: PracticeScore = {
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -225,11 +228,15 @@ export async function getScoreTrends(
   const kpis = ['articulation', 'fluency', 'communication', 'scenario'] as const;
 
   return kpis.map(kpi => {
-    const recentAvg = recent.length > 0
-      ? Math.round(recent.reduce((sum, s) => sum + s[kpi], 0) / recent.length)
+    // Only include scores where this KPI was actually measured (non-zero)
+    const recentMeasured = recent.filter(s => s[kpi] > 0);
+    const previousMeasured = previous.filter(s => s[kpi] > 0);
+
+    const recentAvg = recentMeasured.length > 0
+      ? Math.round(recentMeasured.reduce((sum, s) => sum + s[kpi], 0) / recentMeasured.length)
       : 0;
-    const previousAvg = previous.length > 0
-      ? Math.round(previous.reduce((sum, s) => sum + s[kpi], 0) / previous.length)
+    const previousAvg = previousMeasured.length > 0
+      ? Math.round(previousMeasured.reduce((sum, s) => sum + s[kpi], 0) / previousMeasured.length)
       : 0;
 
     const delta = recentAvg - previousAvg;

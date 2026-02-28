@@ -149,8 +149,8 @@ export default function PracticeReadingScreen() {
     savePracticeScore(user.id, 'reading', {
       communication: pct,
       scenario: pct,
-      fluency: Math.round(pct * 0.8),
-      articulation: Math.round(pct * 0.7),
+      fluency: 0,        // Not measured by reading comprehension
+      articulation: 0,    // Not measured by reading comprehension
     }).catch(() => {});
 
     // Persist points: 10 base + score bonus

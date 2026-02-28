@@ -131,10 +131,22 @@ export interface UseElevenLabsConversationReturn {
   // Error state
   error: Error | null;
 
+  // Reconnection state
+  /** True when connection dropped unexpectedly (not user-initiated) */
+  isDisconnected: boolean;
+  /** Reason for the unexpected disconnection */
+  disconnectReason: string | null;
+  /** Number of reconnection attempts made so far */
+  reconnectAttempts: number;
+
   // Actions
   startSession: () => Promise<void>;
   endSession: () => Promise<void>;
   resetError: () => void;
+  /** Attempt to reconnect after an unexpected disconnection */
+  reconnect: () => Promise<void>;
+  /** Finalize session with partial data after unexpected disconnect */
+  finalizePartialSession: () => void;
 }
 
 // =============================================================================
@@ -186,12 +198,17 @@ export function useElevenLabsConversation(
       turnCount: 0,
       targetDuration: undefined,
       error: notAvailableError,
+      isDisconnected: false,
+      disconnectReason: null,
+      reconnectAttempts: 0,
       startSession: async () => {
         onError?.(notAvailableError);
         throw notAvailableError;
       },
       endSession: async () => {},
       resetError: () => {},
+      reconnect: async () => {},
+      finalizePartialSession: () => {},
     };
   }
 
@@ -203,6 +220,15 @@ export function useElevenLabsConversation(
   const [error, setError] = useState<Error | null>(null);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [currentSession, setCurrentSession] = useState<ConversationSession | null>(null);
+
+  // Reconnection state
+  const [isDisconnected, setIsDisconnected] = useState(false);
+  const [disconnectReason, setDisconnectReason] = useState<string | null>(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const MAX_RECONNECT_ATTEMPTS = 2;
+
+  // Ref to track if the user intentionally ended the session
+  const userEndedSessionRef = useRef(false);
 
   // Refs for timer management
   const sessionStartRef = useRef<number | null>(null);
@@ -284,7 +310,7 @@ export function useElevenLabsConversation(
     },
 
     onDisconnect: () => {
-      console.log('[ElevenLabs] Disconnected');
+      console.log('[ElevenLabs] Disconnected, userEnded:', userEndedSessionRef.current);
 
       // Stop duration timer
       if (durationIntervalRef.current) {
@@ -292,33 +318,42 @@ export function useElevenLabsConversation(
         durationIntervalRef.current = null;
       }
 
-      // Finalize session using refs to avoid stale closures
-      const session = currentSessionRef.current;
-      const currentMessages = messagesRef.current;
+      if (userEndedSessionRef.current) {
+        // User-initiated disconnect: finalize session normally
+        const session = currentSessionRef.current;
+        const currentMessages = messagesRef.current;
 
-      if (session && sessionStartRef.current) {
-        const duration = Math.floor((Date.now() - sessionStartRef.current) / 1000);
-        const userMessages = currentMessages.filter(m => m.role === 'user');
-        const totalWords = userMessages.reduce((acc, m) => acc + m.content.split(' ').length, 0);
+        if (session && sessionStartRef.current) {
+          const duration = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+          const userMessages = currentMessages.filter(m => m.role === 'user');
+          const totalWords = userMessages.reduce((acc, m) => acc + m.content.split(' ').length, 0);
 
-        const finalSession: ConversationSession = {
-          ...session,
-          endTime: Date.now(),
-          messages: currentMessages,
-          duration,
-          turnCount: userMessages.length,
-          avgWordsPerTurn: userMessages.length > 0 ? totalWords / userMessages.length : 0,
-          pointsEarned: calculateSessionPoints({
+          const finalSession: ConversationSession = {
+            ...session,
+            endTime: Date.now(),
             messages: currentMessages,
             duration,
-          }),
-        };
+            turnCount: userMessages.length,
+            avgWordsPerTurn: userMessages.length > 0 ? totalWords / userMessages.length : 0,
+            pointsEarned: calculateSessionPoints({
+              messages: currentMessages,
+              duration,
+            }),
+          };
 
-        onSessionEndRef.current?.(finalSession);
-        setCurrentSession(null);
+          onSessionEndRef.current?.(finalSession);
+          setCurrentSession(null);
+        }
+
+        sessionStartRef.current = null;
+        userEndedSessionRef.current = false;
+      } else {
+        // Unexpected disconnect: preserve messages, don't finalize
+        console.warn('[ElevenLabs] Unexpected disconnection — preserving session for reconnection');
+        setIsDisconnected(true);
+        setDisconnectReason('Connection lost unexpectedly');
+        // Keep sessionStartRef, messages, and currentSession intact for reconnection
       }
-
-      sessionStartRef.current = null;
     },
 
     onMessage: (messagePayload: { source: string; message: string }) => {
@@ -395,7 +430,11 @@ export function useElevenLabsConversation(
       setError(null);
       setMessages([]);
       setSessionDuration(0);
+      setIsDisconnected(false);
+      setDisconnectReason(null);
+      setReconnectAttempts(0);
       messageIdCounterRef.current = 0;
+      userEndedSessionRef.current = false;
 
       console.log('[ElevenLabs] Starting session with agent:', agentId);
 
@@ -486,11 +525,13 @@ export function useElevenLabsConversation(
   }, [agentId, sdkStartSession, voice, systemPrompt, firstMessage, userProficiency, slowSpeechMode, onError, disableOverrides, enablePrompt, enableFirstMessage, enableLanguage, enableVoice]);
 
   /**
-   * End the current conversation session
+   * End the current conversation session (user-initiated)
    */
   const endSession = useCallback(async () => {
     try {
-      console.log('[ElevenLabs] Ending session...');
+      console.log('[ElevenLabs] Ending session (user-initiated)...');
+      // Mark as user-initiated so onDisconnect finalizes normally
+      userEndedSessionRef.current = true;
       // SDK endSession takes no arguments per the API
       await sdkEndSession();
     } catch (err) {
@@ -504,6 +545,132 @@ export function useElevenLabsConversation(
    */
   const resetError = useCallback(() => {
     setError(null);
+  }, []);
+
+  /**
+   * Reconnect after an unexpected disconnection.
+   * Preserves existing messages and re-establishes the connection
+   * with the same system prompt and scenario.
+   */
+  const reconnect = useCallback(async () => {
+    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      console.warn('[ElevenLabs] Max reconnect attempts reached');
+      setDisconnectReason('Maximum reconnection attempts reached');
+      return;
+    }
+
+    try {
+      console.log(`[ElevenLabs] Reconnecting (attempt ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+      setReconnectAttempts(prev => prev + 1);
+      setIsDisconnected(false);
+      setDisconnectReason(null);
+      setError(null);
+
+      // NOTE: We do NOT reset messages or messageIdCounterRef here
+      // so the conversation transcript is preserved across reconnection.
+
+      // Validate configuration
+      if (!agentId) {
+        throw createElevenLabsError(
+          'agent_not_found',
+          'ElevenLabs Agent ID not configured'
+        );
+      }
+
+      // Build overrides (same logic as startSession)
+      const shouldUseOverrides = voice && !disableOverrides;
+
+      const agentOverrides: Record<string, unknown> = {};
+      if (enablePrompt && systemPrompt) {
+        agentOverrides.prompt = { prompt: systemPrompt };
+      }
+      if (enableFirstMessage && firstMessage) {
+        agentOverrides.firstMessage = firstMessage;
+      }
+      if (enableLanguage && voice?.language) {
+        agentOverrides.language = voice.language;
+      }
+
+      const ttsOverrides: Record<string, unknown> = {};
+      if (enableVoice && voice?.elevenLabsVoiceId) {
+        ttsOverrides.voiceId = voice.elevenLabsVoiceId;
+      }
+      if (slowSpeechMode !== 'normal') {
+        ttsOverrides.speed = getSlowSpeechSpeed(slowSpeechMode);
+      }
+
+      const hasAgentOverrides = Object.keys(agentOverrides).length > 0;
+      const hasTtsOverrides = Object.keys(ttsOverrides).length > 0;
+
+      const overrides = shouldUseOverrides && (hasAgentOverrides || hasTtsOverrides) ? {
+        ...(hasAgentOverrides && { agent: agentOverrides }),
+        ...(hasTtsOverrides && { tts: ttsOverrides }),
+      } : undefined;
+
+      try {
+        if (overrides) {
+          await sdkStartSession({ agentId, overrides });
+        } else {
+          await sdkStartSession({ agentId });
+        }
+      } catch (overrideErr) {
+        if (overrides) {
+          console.warn('[ElevenLabs] Reconnect with overrides failed, retrying without:', overrideErr);
+          await sdkStartSession({ agentId });
+        } else {
+          throw overrideErr;
+        }
+      }
+
+      console.log('[ElevenLabs] Reconnected successfully');
+    } catch (err) {
+      const reconnectError = err instanceof Error ? err : new Error(String(err));
+      console.error('[ElevenLabs] Reconnection failed:', reconnectError);
+      setError(reconnectError);
+      setIsDisconnected(true);
+      setDisconnectReason('Reconnection failed');
+      onError?.(reconnectError);
+    }
+  }, [reconnectAttempts, agentId, sdkStartSession, voice, systemPrompt, firstMessage, slowSpeechMode, onError, disableOverrides, enablePrompt, enableFirstMessage, enableLanguage, enableVoice]);
+
+  /**
+   * Finalize a partial session after an unexpected disconnect.
+   * Called when the user chooses "End Call" from the reconnection overlay.
+   */
+  const finalizePartialSession = useCallback(() => {
+    console.log('[ElevenLabs] Finalizing partial session after unexpected disconnect');
+
+    const session = currentSessionRef.current;
+    const currentMessages = messagesRef.current;
+
+    if (session && sessionStartRef.current) {
+      const duration = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+      const userMessages = currentMessages.filter(m => m.role === 'user');
+      const totalWords = userMessages.reduce((acc, m) => acc + m.content.split(' ').length, 0);
+
+      const finalSession: ConversationSession = {
+        ...session,
+        endTime: Date.now(),
+        messages: currentMessages,
+        duration,
+        turnCount: userMessages.length,
+        avgWordsPerTurn: userMessages.length > 0 ? totalWords / userMessages.length : 0,
+        pointsEarned: calculateSessionPoints({
+          messages: currentMessages,
+          duration,
+        }),
+      };
+
+      onSessionEndRef.current?.(finalSession);
+    }
+
+    // Clean up all state
+    setCurrentSession(null);
+    setIsDisconnected(false);
+    setDisconnectReason(null);
+    setReconnectAttempts(0);
+    sessionStartRef.current = null;
+    userEndedSessionRef.current = false;
   }, []);
 
   // ==========================================================================
@@ -539,10 +706,17 @@ export function useElevenLabsConversation(
     // Error state
     error,
 
+    // Reconnection state
+    isDisconnected,
+    disconnectReason,
+    reconnectAttempts,
+
     // Actions
     startSession,
     endSession,
     resetError,
+    reconnect,
+    finalizePartialSession,
   };
 }
 

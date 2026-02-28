@@ -119,9 +119,14 @@ export default function LessonSessionScreen() {
       const completion = await loadActivityCompletion();
       if (completion) {
         await clearActivityCompletion();
-        console.log(`[LessonSession] Processing completion: ${completion.activityId} score=${completion.score}`);
-        activePlan = advanceActivity(activePlan, completion.score);
-        await storeActiveLessonPlan(activePlan);
+        const currentAct = activePlan.activities.find(a => a.status === 'current');
+        if (currentAct && completion.activityId === currentAct.id) {
+          console.log(`[LessonSession] Processing completion: ${completion.activityId} score=${completion.score}`);
+          activePlan = advanceActivity(activePlan, completion.score);
+          await storeActiveLessonPlan(activePlan);
+        } else {
+          console.warn('[LessonSession] Stale completion signal cleared:', completion.activityId, '(expected:', currentAct?.id, ')');
+        }
       }
 
       setPlan(activePlan);
@@ -247,7 +252,8 @@ export default function LessonSessionScreen() {
     if (type === 'vocabulary') return; // rendered inline, no navigation needed
 
     if (type === 'listening') {
-      const listeningContent = discoveryContent?.activities[currentActivity.id] as ListeningContent | undefined;
+      const raw = discoveryContent?.activities[currentActivity.id];
+      const listeningContent = raw?.type === 'listening' ? raw as ListeningContent : undefined;
       router.replace({
         pathname: '/practice-listening',
         params: {
@@ -259,7 +265,8 @@ export default function LessonSessionScreen() {
         },
       });
     } else if (type === 'reading') {
-      const readingContent = discoveryContent?.activities[currentActivity.id] as ReadingContent | undefined;
+      const raw = discoveryContent?.activities[currentActivity.id];
+      const readingContent = raw?.type === 'reading' ? raw as ReadingContent : undefined;
       router.replace({
         pathname: '/practice-reading',
         params: {
@@ -271,7 +278,8 @@ export default function LessonSessionScreen() {
         },
       });
     } else if (type === 'voice_call') {
-      const voiceContent = discoveryContent?.activities[currentActivity.id] as VoiceCallContent | undefined;
+      const rawVoice = discoveryContent?.activities[currentActivity.id];
+      const voiceContent = rawVoice?.type === 'voice_call' ? rawVoice as VoiceCallContent : undefined;
       router.replace({
         pathname: '/voice-conversation',
         params: {
@@ -291,7 +299,8 @@ export default function LessonSessionScreen() {
         },
       });
     } else if (type === 'writing') {
-      const writingContent = discoveryContent?.activities[currentActivity.id] as WritingContent | undefined;
+      const rawWriting = discoveryContent?.activities[currentActivity.id];
+      const writingContent = rawWriting?.type === 'writing' ? rawWriting as WritingContent : undefined;
       router.replace({
         pathname: '/practice-writing',
         params: {
@@ -355,7 +364,8 @@ export default function LessonSessionScreen() {
         : 5;
 
       // Tier 0: Discovery content (pre-generated, already has word bank words)
-      const discoveryVocab = discoveryContent?.activities[currentActivity.id] as VocabularyContent | undefined;
+      const rawVocab = discoveryContent?.activities[currentActivity.id];
+      const discoveryVocab = rawVocab?.type === 'vocabulary' ? rawVocab as VocabularyContent : undefined;
       let lessonVocab: any[] = [];
 
       if (discoveryVocab?.words?.length) {

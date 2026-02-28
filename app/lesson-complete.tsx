@@ -37,6 +37,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, glass } from '@/constants/designSystem';
 import { advanceStairProgression } from '@/lib/services/previewStairs';
 import { useAuth } from '@/hooks/useAuth';
+import { useLearningPath } from '@/hooks/useLearningPath';
 import { updateStreakData } from '@/lib/db/sqlite';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -254,6 +255,7 @@ function ScoreRing({
 export default function LessonCompleteScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { completeStair } = useLearningPath(user?.id ?? null);
   const params = useLocalSearchParams<{
     scores: string;
     stairTitle: string;
@@ -314,7 +316,18 @@ export default function LessonCompleteScreen() {
 
     // Advance stair progression: completed stair → next stair unlocked
     if (params.stairId) {
+      // Always update local preview stairs (AsyncStorage)
       await advanceStairProgression(params.stairId);
+
+      // Also persist to Supabase for authenticated users
+      if (user?.id) {
+        try {
+          await completeStair(params.stairId);
+        } catch (err) {
+          // Don't block navigation — Supabase sync is best-effort
+          console.warn('[LessonComplete] Supabase stair sync failed:', err);
+        }
+      }
     }
 
     // Unauthenticated discovery → sign-up wall with scores

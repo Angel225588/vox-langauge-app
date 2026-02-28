@@ -67,6 +67,10 @@ export function getNextCEFR(current: string): string {
 
 /**
  * Compute averages from a list of scores.
+ *
+ * Only counts non-zero values per KPI so that unmeasured KPIs (saved as 0)
+ * don't drag down averages. E.g. reading saves articulation=0 because reading
+ * doesn't measure pronunciation — those zeros are excluded from the articulation average.
  */
 export function computeAverages(scores: PracticeScore[]): {
   articulation: number;
@@ -79,24 +83,28 @@ export function computeAverages(scores: PracticeScore[]): {
     return { articulation: 0, fluency: 0, communication: 0, scenario: 0, overall: 0 };
   }
 
-  const sum = scores.reduce(
-    (acc, s) => ({
-      articulation: acc.articulation + s.articulation,
-      fluency: acc.fluency + s.fluency,
-      communication: acc.communication + s.communication,
-      scenario: acc.scenario + s.scenario,
-    }),
-    { articulation: 0, fluency: 0, communication: 0, scenario: 0 }
-  );
+  const kpis = ['articulation', 'fluency', 'communication', 'scenario'] as const;
+  const result: Record<string, number> = {};
 
-  const n = scores.length;
-  const articulation = Math.round(sum.articulation / n);
-  const fluency = Math.round(sum.fluency / n);
-  const communication = Math.round(sum.communication / n);
-  const scenario = Math.round(sum.scenario / n);
-  const overall = Math.round((articulation + fluency + communication + scenario) / 4);
+  for (const kpi of kpis) {
+    const measured = scores.filter(s => s[kpi] > 0);
+    result[kpi] = measured.length > 0
+      ? Math.round(measured.reduce((sum, s) => sum + s[kpi], 0) / measured.length)
+      : 0;
+  }
 
-  return { articulation, fluency, communication, scenario, overall };
+  const measuredAvgs = kpis.map(k => result[k]).filter(v => v > 0);
+  const overall = measuredAvgs.length > 0
+    ? Math.round(measuredAvgs.reduce((a, b) => a + b, 0) / measuredAvgs.length)
+    : 0;
+
+  return {
+    articulation: result.articulation,
+    fluency: result.fluency,
+    communication: result.communication,
+    scenario: result.scenario,
+    overall,
+  };
 }
 
 /**

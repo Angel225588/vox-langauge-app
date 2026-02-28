@@ -34,6 +34,9 @@ import { sanitizePromptInput } from '@/lib/ai/sanitize';
 import { savePracticeScore } from '@/lib/db/competencyMetrics';
 import { storeActivityCompletion } from '@/app/lesson-session';
 import { updateStreakData } from '@/lib/db/sqlite';
+import { analyzeWriting } from '@/lib/writing';
+import type { WritingTask, TaskCategory } from '@/components/cards/writing/types';
+import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 
 // ─── Palette ───
 const C = {
@@ -133,7 +136,94 @@ export default function PracticeWritingScreen() {
     if (!prompt || !userText.trim() || submitting) return;
     setSubmitting(true);
     try {
-      const feedbackPrompt = `You are a language tutor evaluating a student's writing.
+      // ── Build WritingTask from current prompt for the analyzer ──
+      const onboardingState = useOnboardingV3.getState();
+      const targetLanguage = onboardingState.target_language || 'en';
+      const rawLevel = onboardingState.proficiency_level || 'starting_fresh';
+      // Map onboarding proficiency to analyzer's 3-tier scale
+      const userLevel: 'beginner' | 'intermediate' | 'advanced' =
+        rawLevel === 'starting_fresh' || rawLevel === 'basics'
+          ? 'beginner'
+          : rawLevel === 'conversational'
+            ? 'intermediate'
+            : 'advanced';
+
+      // Determine a reasonable task category from the prompt content
+      const categoryMap: Record<string, TaskCategory> = {
+        email: 'email', message: 'message', travel: 'travel',
+        interview: 'job_interview', story: 'story', opinion: 'opinion',
+        introduction: 'self_introduction', routine: 'daily_routine',
+      };
+      let taskCategory: TaskCategory = 'custom';
+      const lowerScenario = (prompt.scenario || '').toLowerCase();
+      for (const [keyword, cat] of Object.entries(categoryMap)) {
+        if (lowerScenario.includes(keyword)) { taskCategory = cat; break; }
+      }
+
+      const writingTask: WritingTask = {
+        id: `practice-${Date.now()}`,
+        title: prompt.title,
+        category: taskCategory,
+        scenario: prompt.scenario,
+        goal: prompt.prompt,
+        recommendations: prompt.keyPhrases,
+        targetLanguage,
+        minWords: 5,
+        maxWords: prompt.wordCountTarget * 2,
+        difficulty: userLevel,
+      };
+
+      // ── Call the dedicated writing analyzer ──
+      const analysis = await analyzeWriting({
+        text: userText,
+        task: writingTask,
+        targetLanguage,
+        userLevel,
+      });
+
+      // ── Map WritingAnalysis → WritingFeedback for the UI ──
+      const overallScore = Math.round(
+        (analysis.grammarScore + analysis.vocabularyScore + analysis.clarityScore) / 3
+      );
+
+      // Build a corrected text string: prefer analyzer's correctedText,
+      // fall back to assembling from corrections array
+      const correctedText = analysis.correctedText || undefined;
+
+      setFeedback({
+        score: overallScore,
+        summary: analysis.overallFeedback,
+        strengths: analysis.strengths,
+        improvements: analysis.areasToImprove,
+        correctedText,
+      });
+
+      setPhase('feedback');
+
+      // ── Save KPIs with accurate per-dimension mapping ──
+      if (user?.id) {
+        savePracticeScore(user.id, 'writing', {
+          articulation: analysis.grammarScore,     // writing accuracy = articulation proxy
+          communication: analysis.vocabularyScore, // word choice = communication proxy
+          fluency: analysis.clarityScore,          // clear writing = fluency proxy
+          scenario: overallScore,                  // overall = scenario competency
+        }).catch(() => {});
+      }
+      // Persist points: 15 base + score bonus (writing is harder)
+      if (user?.id) {
+        const writePoints = 15 + Math.round(overallScore / 10);
+        updateStreakData(user.id, writePoints).catch(() => {});
+      }
+      // Signal lesson-session if we're inside a lesson
+      if (isSessionActivity && params.activityId) {
+        storeActivityCompletion(params.activityId, overallScore).catch(() => {});
+      }
+    } catch (err) {
+      console.error('[Writing] Analyzer failed, using inline fallback:', err);
+      // ── Fallback: use generic Gemini prompt if analyzer fails ──
+      let fallbackScore = 65;
+      try {
+        const feedbackPrompt = `You are a language tutor evaluating a student's writing.
 
 ## Writing Prompt Given:
 ${sanitizePromptInput(prompt.prompt)}
@@ -158,58 +248,41 @@ Respond in JSON:
   "improvements": ["Improvement 1", "Improvement 2"],
   "correctedText": "Corrected version of their text..."
 }`;
-
-      const raw = await generateWithGemini(feedbackPrompt);
-      let resultScore = 70;
-      // Extract JSON from response
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]) as WritingFeedback;
-        setFeedback(parsed);
-        resultScore = parsed.score || 70;
-      } else {
+        const raw = await generateWithGemini(feedbackPrompt);
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]) as WritingFeedback;
+          setFeedback(parsed);
+          fallbackScore = parsed.score || 65;
+        } else {
+          setFeedback({
+            score: 65,
+            summary: 'Your writing shows effort. Keep practicing!',
+            strengths: ['You attempted the writing task', 'Good effort with vocabulary'],
+            improvements: ['Try using more key phrases', 'Review grammar patterns'],
+          });
+        }
+      } catch {
         setFeedback({
-          score: 70,
-          summary: 'Your writing shows effort. Keep practicing!',
-          strengths: ['You attempted the writing task', 'Good effort with vocabulary'],
-          improvements: ['Try using more key phrases', 'Review grammar patterns'],
+          score: 65,
+          summary: 'Could not generate detailed feedback. Keep writing!',
+          strengths: ['You completed the writing exercise'],
+          improvements: ['Practice with more writing prompts'],
         });
       }
       setPhase('feedback');
-      // Save score to competency metrics
       if (user?.id) {
         savePracticeScore(user.id, 'writing', {
-          articulation: resultScore,
-          communication: resultScore,
-          fluency: Math.round(resultScore * 0.85),
-          scenario: Math.round(resultScore * 0.8),
+          articulation: fallbackScore, communication: fallbackScore,
+          fluency: Math.round(fallbackScore * 0.85), scenario: Math.round(fallbackScore * 0.8),
         }).catch(() => {});
       }
-      // Persist points: 15 base + score bonus (writing is harder)
       if (user?.id) {
-        const writePoints = 15 + Math.round(resultScore / 10);
+        const writePoints = 15 + Math.round(fallbackScore / 10);
         updateStreakData(user.id, writePoints).catch(() => {});
       }
-      // Signal lesson-session if we're inside a lesson
       if (isSessionActivity && params.activityId) {
-        storeActivityCompletion(params.activityId, resultScore).catch(() => {});
-      }
-    } catch (err) {
-      console.error('[Writing] Feedback generation failed:', err);
-      setFeedback({
-        score: 65,
-        summary: 'Could not generate detailed feedback. Keep writing!',
-        strengths: ['You completed the writing exercise'],
-        improvements: ['Practice with more writing prompts'],
-      });
-      setPhase('feedback');
-      if (user?.id) {
-        savePracticeScore(user.id, 'writing', {
-          articulation: 65, communication: 65, fluency: 55, scenario: 52,
-        }).catch(() => {});
-      }
-      if (isSessionActivity && params.activityId) {
-        storeActivityCompletion(params.activityId, 65).catch(() => {});
+        storeActivityCompletion(params.activityId, fallbackScore).catch(() => {});
       }
     } finally {
       setSubmitting(false);

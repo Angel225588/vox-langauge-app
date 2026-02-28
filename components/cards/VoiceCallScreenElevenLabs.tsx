@@ -490,9 +490,14 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
     sessionDuration,
     turnCount,
     error,
+    isDisconnected,
+    disconnectReason,
+    reconnectAttempts,
     startSession,
     endSession,
     resetError,
+    reconnect,
+    finalizePartialSession,
   } = useElevenLabsConversation({
     voice,
     scenario: scenario.id,
@@ -602,6 +607,35 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
     }, 2000);
   }, [messages, status, error, sessionTime, endSession, onComplete, haptics]);
 
+  // Handle end call from the disconnection overlay (partial session)
+  const handleEndCallAfterDisconnect = useCallback(() => {
+    const conversationMessages: ConversationMessage[] = messages.map((m, index) => ({
+      id: m.id || `msg_${index}`,
+      role: m.role,
+      content: m.content,
+      timestamp: m.timestamp,
+    }));
+
+    const hasEnoughContent = messages.length >= 2 || sessionTime >= 30;
+
+    haptics.medium();
+    finalizePartialSession();
+
+    onComplete({
+      success: hasEnoughContent,
+      messages: conversationMessages,
+      endReason: 'error',
+      duration: sessionTime,
+      transcript: messages,
+    });
+  }, [messages, sessionTime, finalizePartialSession, onComplete, haptics]);
+
+  // Handle reconnection attempt
+  const handleReconnect = useCallback(async () => {
+    haptics.light();
+    await reconnect();
+  }, [reconnect, haptics]);
+
   // Format time
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -629,6 +663,60 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
       {showResultAnimation && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.lottieOverlay}>
           {showResultAnimation === 'success' ? <LottieSuccess /> : <LottieError />}
+        </Animated.View>
+      )}
+
+      {/* Disconnection Overlay */}
+      {isDisconnected && !showResultAnimation && (
+        <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.disconnectOverlay}>
+          <View style={styles.disconnectCard}>
+            <View style={styles.disconnectIconContainer}>
+              <Ionicons name="cloud-offline" size={40} color={colors.warning.DEFAULT} />
+            </View>
+
+            <Text style={styles.disconnectTitle}>Connection Lost</Text>
+            <Text style={styles.disconnectMessage}>
+              {disconnectReason || 'The connection dropped unexpectedly.'}
+            </Text>
+
+            {messages.length > 0 && (
+              <Text style={styles.disconnectDetail}>
+                Your conversation ({messages.length} messages) has been preserved.
+              </Text>
+            )}
+
+            <View style={styles.disconnectActions}>
+              {reconnectAttempts < 2 && (
+                <Pressable
+                  style={styles.reconnectButton}
+                  onPress={handleReconnect}
+                  accessibilityLabel="Reconnect"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="refresh" size={20} color={colors.text.primary} />
+                  <Text style={styles.reconnectText}>
+                    Reconnect{reconnectAttempts > 0 ? ` (${2 - reconnectAttempts} left)` : ''}
+                  </Text>
+                </Pressable>
+              )}
+
+              <Pressable
+                style={styles.disconnectEndButton}
+                onPress={handleEndCallAfterDisconnect}
+                accessibilityLabel="End call"
+                accessibilityRole="button"
+              >
+                <Ionicons name="call" size={20} color={colors.text.primary} />
+                <Text style={styles.disconnectEndText}>End Call</Text>
+              </Pressable>
+            </View>
+
+            {reconnectAttempts >= 2 && (
+              <Text style={styles.disconnectExhausted}>
+                Reconnection attempts exhausted. You can end the call to save your progress.
+              </Text>
+            )}
+          </View>
         </Animated.View>
       )}
 
@@ -847,6 +935,91 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
+  },
+
+  // Disconnection Overlay
+  disconnectOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+    paddingHorizontal: spacing.lg,
+  },
+  disconnectCard: {
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 340,
+    gap: spacing.md,
+  },
+  disconnectIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.warning.DEFAULT + '1A', // 10% opacity
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  disconnectTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  disconnectMessage: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: typography.fontSize.sm * 1.5,
+  },
+  disconnectDetail: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  disconnectActions: {
+    width: '100%',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  reconnectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary.DEFAULT,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  reconnectText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  disconnectEndButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.error.DEFAULT,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  disconnectEndText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  disconnectExhausted: {
+    fontSize: typography.fontSize.xs,
+    color: colors.warning.DEFAULT,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
 });
 

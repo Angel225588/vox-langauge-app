@@ -101,41 +101,54 @@ function shuffleArray<T>(arr: T[]): T[] {
 function shuffleQuestionOptions(
   questions: NormalizedContent['questions'],
 ): NormalizedContent['questions'] {
-  return questions.map((q) => {
-    // Create index mapping
-    const indices = q.options.map((_, i) => i);
-    const shuffled = shuffleArray(indices);
-    const newOptions = shuffled.map((i) => q.options[i]);
-    const newCorrectIndex = shuffled.indexOf(q.correctIndex);
-    return { ...q, options: newOptions, correctIndex: newCorrectIndex };
-  });
+  if (!Array.isArray(questions)) return [];
+  return questions
+    .filter((q) => Array.isArray(q.options) && q.options.length > 0)
+    .map((q) => {
+      // Create index mapping
+      const indices = q.options.map((_, i) => i);
+      const shuffled = shuffleArray(indices);
+      const newOptions = shuffled.map((i) => q.options[i]);
+      const newCorrectIndex = shuffled.indexOf(q.correctIndex);
+      return { ...q, options: newOptions, correctIndex: newCorrectIndex };
+    });
 }
 
-/** Normalize discovery ListeningContent into our common shape */
-function normalizeDiscoveryContent(dc: ListeningContent): NormalizedContent {
+/** Normalize discovery ListeningContent into our common shape. Returns null if data is malformed. */
+function normalizeDiscoveryContent(dc: ListeningContent): NormalizedContent | null {
+  if (!Array.isArray(dc?.dialogue) || dc.dialogue.length === 0) return null;
+  if (!Array.isArray(dc?.comprehensionQuestions) || dc.comprehensionQuestions.length === 0) return null;
+
   return {
-    title: dc.title,
+    title: dc.title || 'Listening Practice',
     dialogueLines: dc.dialogue.map((d) => ({
-      speaker: d.speaker,
+      speaker: d.speaker || 'Speaker',
       text: d.text,
       translation: d.translation,
     })),
-    vocabulary: dc.vocabulary,
-    questions: dc.comprehensionQuestions,
+    vocabulary: Array.isArray(dc.vocabulary) ? dc.vocabulary : [],
+    questions: dc.comprehensionQuestions.filter(
+      (q) => q.question && Array.isArray(q.options) && q.options.length > 0,
+    ),
   };
 }
 
-/** Normalize practice-tab ListeningExercise into our common shape */
-function normalizeExerciseContent(ex: ListeningExercise): NormalizedContent {
+/** Normalize practice-tab ListeningExercise into our common shape. Returns null if data is malformed. */
+function normalizeExerciseContent(ex: ListeningExercise): NormalizedContent | null {
+  if (!Array.isArray(ex?.sentences) || ex.sentences.length === 0) return null;
+  if (!Array.isArray(ex?.comprehensionQuestions) || ex.comprehensionQuestions.length === 0) return null;
+
   return {
-    title: ex.title,
+    title: ex.title || 'Listening Practice',
     dialogueLines: ex.sentences.map((s, i) => ({
       speaker: `Speaker ${i % 2 === 0 ? 'A' : 'B'}`,
       text: s.text,
       translation: s.translation,
     })),
-    vocabulary: ex.vocabulary,
-    questions: ex.comprehensionQuestions,
+    vocabulary: Array.isArray(ex.vocabulary) ? ex.vocabulary : [],
+    questions: ex.comprehensionQuestions.filter(
+      (q) => q.question && Array.isArray(q.options) && q.options.length > 0,
+    ),
   };
 }
 
@@ -267,12 +280,19 @@ export default function PracticeListeningScreen() {
     try {
       // Try discovery content from route params first
       if (params.discoveryContent) {
-        const parsed: ListeningContent = JSON.parse(params.discoveryContent);
-        const normalized = normalizeDiscoveryContent(parsed);
-        if (normalized.dialogueLines.length > 0 && normalized.questions.length > 0) {
-          setContent(normalized);
-          setStage('stage1_listen');
-          return;
+        try {
+          const parsed: ListeningContent = JSON.parse(params.discoveryContent);
+          const normalized = normalizeDiscoveryContent(parsed);
+          if (normalized && normalized.dialogueLines.length > 0 && normalized.questions.length > 0) {
+            setContent(normalized);
+            setStage('stage1_listen');
+            return;
+          }
+          // Malformed discovery content — fall through to AI generation
+          console.warn('[PracticeListening] Discovery content malformed, keys:', Object.keys(parsed), 'falling back to AI generation');
+        } catch (parseErr) {
+          console.warn('[PracticeListening] Discovery content parse failed:', parseErr);
+          // Fall through to AI generation
         }
       }
 
@@ -288,6 +308,10 @@ export default function PracticeListeningScreen() {
         return;
       }
       const normalized = normalizeExerciseContent(exercise);
+      if (!normalized || normalized.dialogueLines.length === 0 || normalized.questions.length === 0) {
+        setError('Generated exercise was incomplete. Try again.');
+        return;
+      }
       setContent(normalized);
       setStage('stage1_listen');
     } catch (err: any) {
@@ -340,10 +364,10 @@ export default function PracticeListeningScreen() {
     const userId = user?.id;
     if (userId) {
       savePracticeScore(userId, 'listening', {
-        fluency: pct,
         communication: pct,
-        articulation: Math.round(pct * 0.8),
-        scenario: Math.round(pct * 0.7),
+        fluency: pct,
+        articulation: 0,    // Not measured by listening comprehension
+        scenario: 0,        // Not measured by listening comprehension
       }).catch(() => {});
 
       // Persist points
