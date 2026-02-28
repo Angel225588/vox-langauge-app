@@ -119,6 +119,22 @@ export default function VocabularyPreScreen({
         })}
       </ScrollView>
 
+      {/* What you'll do — 3 icon+text pairs, 16 words total */}
+      <View style={styles.purposeSection}>
+        <View style={styles.purposeRow}>
+          <Ionicons name="ear-outline" size={16} color={LISTENING.teal} />
+          <Text style={styles.purposeText}>Listen to a short conversation</Text>
+        </View>
+        <View style={styles.purposeRow}>
+          <Ionicons name="help-circle-outline" size={16} color={LISTENING.teal} />
+          <Text style={styles.purposeText}>Answer questions about what you hear</Text>
+        </View>
+        <View style={styles.purposeRow}>
+          <Ionicons name="trending-up-outline" size={16} color={LISTENING.teal} />
+          <Text style={styles.purposeText}>Track your comprehension over time</Text>
+        </View>
+      </View>
+
       {/* CTA */}
       <View style={styles.ctaBar}>
         <TouchableOpacity onPress={handleContinue} activeOpacity={0.8}>
@@ -223,6 +239,27 @@ const styles = StyleSheet.create({
   checkboxSelected: {
     backgroundColor: LISTENING.teal,
     borderColor: LISTENING.teal,
+  },
+  purposeSection: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 4,
+    borderRadius: 12,
+    backgroundColor: LISTENING.glassBg,
+    borderWidth: 1,
+    borderColor: LISTENING.glassBorder,
+    gap: 8,
+  },
+  purposeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  purposeText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: LISTENING.textTertiary,
+    flex: 1,
   },
   ctaBar: {
     paddingTop: 12,
