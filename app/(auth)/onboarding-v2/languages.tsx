@@ -46,12 +46,8 @@ export default function LanguagesScreen() {
     setNativeLanguage(code);
     setShowNativePicker(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    // Auto-switch app UI language if translations are available
-    // This makes the app speak the user's native language immediately
-    if (hasTranslations(code) && code !== currentLanguage) {
-      await changeLanguage(code as SupportedLanguageCode);
-    }
+    // Language is resolved from device locale — no auto-switch during onboarding.
+    // Post-discovery, AI may recommend target-language immersion if level is high enough.
   };
 
   const handleTargetLanguageSelect = (code: string) => {

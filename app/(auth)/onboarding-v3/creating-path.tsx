@@ -39,6 +39,8 @@ import { generateInitialVocabulary } from '@/lib/word-bank/initialVocabGenerator
 import { generateLessonPlan, generateFirstActivityContent } from '@/lib/lesson';
 import { storeActiveLessonPlan } from '@/app/lesson-session';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
+import { buildLanguageRecommendation, saveAILanguageRecommendation } from '@/lib/storage/languageStorage';
+import { getDeviceLanguage } from '@/i18n/utils/languageDetector';
 
 const ONBOARDING_COMPLETED_KEY = 'vox-onboarding-completed';
 
@@ -313,6 +315,20 @@ export default function CreatingPathRoute() {
         updateStep(1, 'error');
       }
       await ensureMinVisible(step2Start);
+
+      // ── Language recommendation (based on proficiency + target) ──
+      // If user is conversational+ and we have target-language translations,
+      // save a recommendation so next app launch uses target language for immersion.
+      if (v3Data.proficiency_level && v3Data.target_language) {
+        const deviceLang = getDeviceLanguage();
+        const rec = buildLanguageRecommendation(
+          v3Data.proficiency_level,
+          v3Data.target_language,
+          deviceLang,
+        );
+        await saveAILanguageRecommendation(rec);
+        console.log(`[CreatingPath] Language recommendation: ${rec.reason} → ${rec.language}`);
+      }
 
       // ── Step 3: Prepare First Activity (only 1st, not all) ──
       const step3Start = Date.now();
