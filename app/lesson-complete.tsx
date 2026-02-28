@@ -317,6 +317,19 @@ export default function LessonCompleteScreen() {
       await advanceStairProgression(params.stairId);
     }
 
+    // Unauthenticated discovery → sign-up wall with scores
+    if (isDiscovery && !user) {
+      router.replace({
+        pathname: '/discovery-signup',
+        params: {
+          scores: params.scores || '{}',
+          stairTitle,
+          cefrLevel,
+        },
+      } as any);
+      return;
+    }
+
     router.replace('/(tabs)/home');
   };
 

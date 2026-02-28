@@ -151,6 +151,7 @@ export default function RootLayout() {
           <Stack.Screen name="lesson-carousel" options={{ headerShown: false }} />
           <Stack.Screen name="feedback-detail" options={{ headerShown: false }} />
           <Stack.Screen name="feedback-history" options={{ headerShown: false }} />
+          <Stack.Screen name="discovery-signup" options={{ headerShown: false, gestureEnabled: false }} />
 
           {/* ─── Content ─── */}
           <Stack.Screen name="library" options={{ headerShown: false }} />
