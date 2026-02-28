@@ -3,6 +3,10 @@
  *
  * AI-generated writing prompt based on user's stair scenarios.
  * Shows prompt → text input → AI feedback on submission.
+ *
+ * Supports two entry modes:
+ * - Lesson session: discoveryContent passed via route params
+ * - Practice tab: AI-generated via practiceGenerator
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -24,6 +28,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { generateWritingContent, type WritingPrompt } from '@/lib/ai/practiceGenerator';
+import type { WritingContent } from '@/lib/lesson/discoveryGenerator';
 import { generateWithGemini } from '@/lib/ai/gemini';
 import { sanitizePromptInput } from '@/lib/ai/sanitize';
 import { savePracticeScore } from '@/lib/db/competencyMetrics';
@@ -59,6 +64,9 @@ export default function PracticeWritingScreen() {
   const params = useLocalSearchParams<{
     returnToSession?: string;
     activityId?: string;
+    discoveryContent?: string;
+    planId?: string;
+    stairStepId?: string;
   }>();
   const isSessionActivity = params.returnToSession === 'true';
 
@@ -69,18 +77,39 @@ export default function PracticeWritingScreen() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    loadContent();
-  }, [user?.id]);
-
   const loadContent = useCallback(async () => {
-    if (!user?.id) return;
     setPhase('loading');
     setError(null);
     setUserText('');
     setFeedback(null);
+
     try {
+      // Try discovery content from route params first (lesson session mode)
+      if (params.discoveryContent) {
+        const parsed: WritingContent = JSON.parse(params.discoveryContent);
+        // Normalize discovery WritingContent → WritingPrompt shape
+        const normalized: WritingPrompt = {
+          title: parsed.title,
+          scenario: parsed.scenario,
+          prompt: parsed.prompt,
+          keyPhrases: parsed.keyPhrases || [],
+          wordCountTarget: parsed.wordCountTarget || 80,
+          exampleOpener: parsed.exampleOpener || '',
+          rubric: [],
+        };
+        if (normalized.prompt && normalized.keyPhrases.length > 0) {
+          setPrompt(normalized);
+          setPhase('prompt');
+          return;
+        }
+      }
+
+      // Fall back to AI generation (practice tab mode)
+      if (!user?.id) {
+        setError('Sign in to generate writing exercises.');
+        return;
+      }
+
       const content = await generateWritingContent(user.id);
       if (!content) {
         setError('Could not generate writing prompt. Check your learning path.');
@@ -91,7 +120,12 @@ export default function PracticeWritingScreen() {
     } catch (err: any) {
       setError(err.message || 'Generation failed');
     }
-  }, [user?.id]);
+  }, [params.discoveryContent, user?.id]);
+
+  // Initial load
+  useEffect(() => {
+    loadContent();
+  }, []);
 
   const handleStartWriting = () => setPhase('writing');
 
