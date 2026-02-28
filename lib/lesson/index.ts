@@ -50,3 +50,11 @@ export {
   type WritingContent,
   type VoiceCallContent,
 } from './discoveryGenerator';
+
+export {
+  // Stair Content Generator (non-discovery stairs)
+  generateStairLessonContent,
+  generateFirstStairActivityContent,
+  generateRemainingStairActivities,
+  clearStairCache,
+} from './stairContentGenerator';

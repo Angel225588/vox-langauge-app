@@ -10,20 +10,27 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { colors, spacing, typography } from '@/constants/designSystem';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
 import {
   advanceActivity,
   calculateLessonScores,
   generateDiscoveryLessonContent,
   generateSingleActivityContent,
   generateRemainingActivities,
+  generateStairLessonContent,
+  generateRemainingStairActivities,
+  generateLessonPlan,
+  getLevelGroup,
   type LessonPlan,
   type LessonActivity,
   type DiscoveryLessonContent,
+  type ActivityType,
   type VocabularyContent,
   type ListeningContent,
   type ReadingContent,
@@ -38,6 +45,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWordPriority } from '@/lib/word-bank';
 import { bankWordToVocabularyItem } from '@/lib/word-bank/adapter';
 import { updateStreakData } from '@/lib/db/sqlite';
+import { loadPreviewStairs } from '@/lib/services/previewStairs';
+import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 
 const LESSON_PLAN_KEY = 'vox-active-lesson-plan';
 const ACTIVITY_COMPLETE_KEY = 'vox-activity-completion';
@@ -115,6 +124,162 @@ async function clearActivityCompletion(): Promise<void> {
   await AsyncStorage.removeItem(ACTIVITY_COMPLETE_KEY);
 }
 
+// ─── 80% Pre-Generation Trigger ──────────────────
+
+/**
+ * When a user reaches 80% completion of their current stair's activities,
+ * pre-generate content for the next stair in the background.
+ * This prevents wait time when they start the next lesson.
+ */
+async function maybePreGenerateNextStair(
+  plan: LessonPlan,
+  userId: string,
+): Promise<void> {
+  const completed = plan.activities.filter((a) => a.status === 'completed').length;
+  const total = plan.activities.length;
+  const ratio = completed / total;
+
+  if (ratio < 0.8) return; // Not at 80% yet
+
+  console.log(`[LessonSession] 80% threshold reached (${completed}/${total}). Pre-generating next stair content.`);
+
+  try {
+    // Find the next stair from preview stairs (AsyncStorage)
+    const stairs = await loadPreviewStairs();
+    if (!stairs || stairs.length === 0) return;
+
+    const currentIndex = stairs.findIndex((s) => s.id === plan.stair_id);
+    if (currentIndex === -1 || currentIndex + 1 >= stairs.length) return;
+
+    const nextStair = stairs[currentIndex + 1];
+    if (nextStair.status !== 'locked') return; // Already unlocked/completed
+
+    // Generate a lesson plan for the next stair
+    const proficiency = useOnboardingV3.getState().proficiency_level;
+    const nextPlan = generateLessonPlan(nextStair, proficiency, false);
+
+    // Pre-generate content (fire-and-forget, this is background work)
+    generateStairLessonContent(nextPlan, userId).then(() => {
+      console.log(`[LessonSession] Pre-generated content for next stair: ${nextStair.title}`);
+    }).catch((err) => {
+      console.warn('[LessonSession] Pre-generation for next stair failed (non-critical):', err);
+    });
+  } catch (err) {
+    console.warn('[LessonSession] maybePreGenerateNextStair error:', err);
+  }
+}
+
+// ─── Calm Transition Messages ─────────────────────
+
+const CALM_TRANSITION_MS = 3000; // 3 seconds auto-advance
+
+interface CalmConfig {
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  title: string;
+  subtitle: string;
+}
+
+const CALM_CONFIGS: Record<ActivityType, CalmConfig> = {
+  listening: {
+    icon: 'headset-outline',
+    color: '#06D6A0',
+    title: 'Time to listen',
+    subtitle: 'Focus on understanding the conversation',
+  },
+  reading: {
+    icon: 'reader-outline',
+    color: '#F59E0B',
+    title: 'Time to read',
+    subtitle: 'Pay attention to key vocabulary',
+  },
+  writing: {
+    icon: 'create-outline',
+    color: '#EC4899',
+    title: 'Time to write',
+    subtitle: 'Express your ideas',
+  },
+  voice_call: {
+    icon: 'mic-outline',
+    color: '#8B5CF6',
+    title: 'Time to speak',
+    subtitle: 'Practice real conversation',
+  },
+  vocabulary: {
+    icon: 'book-outline',
+    color: '#3D6BFF',
+    title: 'Vocabulary check',
+    subtitle: 'Review the words you have learned',
+  },
+};
+
+function CalmTransitionScreen({
+  activityType,
+  activityIndex,
+  totalActivities,
+  onSkip,
+}: {
+  activityType: ActivityType;
+  activityIndex: number;
+  totalActivities: number;
+  onSkip: () => void;
+}) {
+  const config = CALM_CONFIGS[activityType];
+
+  return (
+    <Animated.View
+      entering={FadeIn.duration(400)}
+      exiting={FadeOut.duration(300)}
+      style={calmStyles.container}
+    >
+      {/* Progress indicator */}
+      <View style={calmStyles.progressRow}>
+        {Array.from({ length: totalActivities }).map((_, i) => (
+          <View
+            key={i}
+            style={[
+              calmStyles.progressDot,
+              {
+                backgroundColor:
+                  i < activityIndex
+                    ? colors.success.DEFAULT
+                    : i === activityIndex
+                      ? config.color
+                      : 'rgba(255,255,255,0.12)',
+              },
+            ]}
+          />
+        ))}
+      </View>
+
+      {/* Icon */}
+      <View style={[calmStyles.iconCircle, { backgroundColor: config.color + '20' }]}>
+        <Ionicons name={config.icon as any} size={40} color={config.color} />
+      </View>
+
+      {/* Title */}
+      <Text style={calmStyles.title}>{config.title}</Text>
+
+      {/* Subtitle */}
+      <Text style={calmStyles.subtitle}>{config.subtitle}</Text>
+
+      {/* Step counter */}
+      <Text style={calmStyles.stepText}>
+        Activity {activityIndex + 1} of {totalActivities}
+      </Text>
+
+      {/* Tap to skip */}
+      <TouchableOpacity
+        style={calmStyles.skipArea}
+        onPress={onSkip}
+        activeOpacity={0.7}
+      >
+        <Text style={calmStyles.skipText}>Tap to continue</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
 // ─── Session Screen ────────────────────────────────
 
 export default function LessonSessionScreen() {
@@ -126,6 +291,12 @@ export default function LessonSessionScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingSlow, setLoadingSlow] = useState(false);
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Calm transition state — shown between activities
+  const [showCalmTransition, setShowCalmTransition] = useState(false);
+  const calmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track whether this is the first activity (skip calm for the very first one)
+  const hasCompletedFirstActivity = useRef(false);
 
   // Load the active lesson plan, check for pending activity completion, load discovery content
   useEffect(() => {
@@ -146,6 +317,7 @@ export default function LessonSessionScreen() {
 
       // Check if a practice screen signaled completion before navigating here
       let activePlan = loaded;
+      let didAdvance = false;
       const completion = await loadActivityCompletion();
       if (completion) {
         await clearActivityCompletion();
@@ -154,12 +326,19 @@ export default function LessonSessionScreen() {
           console.log(`[LessonSession] Processing completion: ${completion.activityId} score=${completion.score}`);
           activePlan = advanceActivity(activePlan, completion.score);
           await storeActiveLessonPlan(activePlan);
+          didAdvance = true;
+          hasCompletedFirstActivity.current = true;
         } else {
           console.warn('[LessonSession] Stale completion signal cleared:', completion.activityId, '(expected:', currentAct?.id, ')');
         }
       }
 
       setPlan(activePlan);
+
+      // Check if we should pre-generate next stair (80% threshold)
+      if (didAdvance) {
+        maybePreGenerateNextStair(activePlan, userId).catch(() => {});
+      }
 
       // If all activities done after processing completion, go to feedback
       if (activePlan.completed) {
@@ -189,47 +368,63 @@ export default function LessonSessionScreen() {
         return;
       }
 
-      // Load discovery content for discovery lessons (with timeout)
-      if (activePlan.is_discovery) {
-        try {
-          const contentOrNull = await withTimeout(
-            generateDiscoveryLessonContent(activePlan, userId),
-            DISCOVERY_CONTENT_TIMEOUT_MS,
-            'Discovery content generation',
-          );
+      // Load AI content for ALL lessons (discovery and non-discovery)
+      try {
+        const generateFn = activePlan.is_discovery
+          ? generateDiscoveryLessonContent
+          : generateStairLessonContent;
+        const bgGenerateFn = activePlan.is_discovery
+          ? generateRemainingActivities
+          : generateRemainingStairActivities;
+        const label = activePlan.is_discovery ? 'Discovery' : 'Stair';
 
-          if (contentOrNull) {
-            setDiscoveryContent(contentOrNull);
-          } else {
-            console.warn('[LessonSession] Discovery content timed out — proceeding without AI content (practice screens have fallbacks)');
-          }
+        const contentOrNull = await withTimeout(
+          generateFn(activePlan, userId),
+          DISCOVERY_CONTENT_TIMEOUT_MS,
+          `${label} content generation`,
+        );
 
-          // Generate remaining activities in background (with timeout)
-          withTimeout(
-            generateRemainingActivities(activePlan, userId),
-            BACKGROUND_GEN_TIMEOUT_MS,
-            'Background remaining activities',
-          )
-            .then(fullContent => {
-              if (fullContent) {
-                console.log('[LessonSession] Background content generation complete');
-                setDiscoveryContent(fullContent);
-              }
-            })
-            .catch(err =>
-              console.warn('[LessonSession] Background gen error:', err),
-            );
-        } catch (err) {
-          console.warn('[LessonSession] Discovery content load failed:', err);
+        if (contentOrNull) {
+          setDiscoveryContent(contentOrNull);
+        } else {
+          console.warn(`[LessonSession] ${label} content timed out — proceeding without AI content (practice screens have fallbacks)`);
         }
+
+        // Generate remaining activities in background (with timeout)
+        withTimeout(
+          bgGenerateFn(activePlan, userId),
+          BACKGROUND_GEN_TIMEOUT_MS,
+          `Background remaining activities (${label})`,
+        )
+          .then(fullContent => {
+            if (fullContent) {
+              console.log(`[LessonSession] Background content generation complete (${label})`);
+              setDiscoveryContent(fullContent);
+            }
+          })
+          .catch(err =>
+            console.warn(`[LessonSession] Background gen error (${label}):`, err),
+          );
+      } catch (err) {
+        console.warn('[LessonSession] Content load failed:', err);
       }
 
       if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+
+      // Show calm transition if we just advanced from an external activity
+      if (didAdvance && !activePlan.completed) {
+        setShowCalmTransition(true);
+        calmTimerRef.current = setTimeout(() => {
+          setShowCalmTransition(false);
+        }, CALM_TRANSITION_MS);
+      }
+
       setIsLoading(false);
     });
 
     return () => {
       if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+      if (calmTimerRef.current) clearTimeout(calmTimerRef.current);
     };
   }, []);
 
@@ -263,7 +458,11 @@ export default function LessonSessionScreen() {
     // Persist updated plan
     await storeActiveLessonPlan(updatedPlan);
 
-    // If lesson is complete, navigate to feedback → then lesson-complete
+    // Check if we should pre-generate next stair content (80% threshold)
+    const userId = user?.id || 'anonymous';
+    maybePreGenerateNextStair(updatedPlan, userId).catch(() => {});
+
+    // If lesson is complete, navigate to feedback
     if (updatedPlan.completed) {
       const scores = calculateLessonScores(updatedPlan);
       await clearActiveLessonPlan();
@@ -289,12 +488,22 @@ export default function LessonSessionScreen() {
           scenario: updatedPlan.stair_title,
         },
       });
+      return;
     }
+
+    // Show calm transition before the next activity (skip for the very first activity)
+    if (hasCompletedFirstActivity.current) {
+      setShowCalmTransition(true);
+      calmTimerRef.current = setTimeout(() => {
+        setShowCalmTransition(false);
+      }, CALM_TRANSITION_MS);
+    }
+    hasCompletedFirstActivity.current = true;
   }, [plan, router]);
 
   // ─── Navigate to external practice screens via useEffect (not during render) ───
   useEffect(() => {
-    if (isLoading || !plan || !currentActivity) return;
+    if (isLoading || !plan || !currentActivity || showCalmTransition) return;
 
     const type = currentActivity.type;
     if (type === 'vocabulary') return; // rendered inline, no navigation needed
@@ -360,7 +569,20 @@ export default function LessonSessionScreen() {
         },
       });
     }
-  }, [currentActivity?.id, currentActivity?.type, isLoading, plan, discoveryContent, router]);
+  }, [currentActivity?.id, currentActivity?.type, isLoading, plan, discoveryContent, router, showCalmTransition]);
+
+  // Handle calm transition skip
+  const handleCalmSkip = useCallback(() => {
+    if (calmTimerRef.current) clearTimeout(calmTimerRef.current);
+    setShowCalmTransition(false);
+  }, []);
+
+  // Clean up calm timer on unmount
+  useEffect(() => {
+    return () => {
+      if (calmTimerRef.current) clearTimeout(calmTimerRef.current);
+    };
+  }, []);
 
   // Handle "Skip" when loading is slow — proceed without AI content
   const handleSkipLoading = useCallback(() => {
@@ -419,6 +641,18 @@ export default function LessonSessionScreen() {
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
       </View>
+    );
+  }
+
+  // ─── Calm Transition Screen ─────────────────────
+  if (showCalmTransition) {
+    return (
+      <CalmTransitionScreen
+        activityType={currentActivity.type}
+        activityIndex={currentActivity.order - 1}
+        totalActivities={plan.activities.length}
+        onSkip={handleCalmSkip}
+      />
     );
   }
 
@@ -540,5 +774,66 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     color: colors.text.primary,
     fontWeight: '600' as const,
+  },
+});
+
+// ─── Calm Transition Styles ──────────────────────────
+
+const calmStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background.primary,
+    padding: spacing.xl,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginBottom: spacing['3xl'],
+  },
+  progressDot: {
+    width: 28,
+    height: 4,
+    borderRadius: 2,
+  },
+  iconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: colors.text.primary,
+    letterSpacing: -0.3,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 280,
+  },
+  stepText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    marginTop: spacing.xl,
+  },
+  skipArea: {
+    position: 'absolute',
+    bottom: 60,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+  },
+  skipText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    fontWeight: '500' as const,
   },
 });
