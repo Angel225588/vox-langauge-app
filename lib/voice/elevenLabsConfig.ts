@@ -247,6 +247,40 @@ export function getDefaultVoiceForLanguage(language: SupportedLanguage): ElevenL
 }
 
 /**
+ * Get voices for multi-speaker dialogue.
+ *
+ * Returns up to N distinct voices for the language, alternating
+ * male/female for natural-sounding conversations.
+ * Prioritizes gender diversity: male first, then female, then remaining.
+ *
+ * Max speakers per language:
+ *   French: 3 (Thomas, Charlotte, Matilda)
+ *   English: 4 (Roger, Rachel, Adam, Aria)
+ *   Spanish: up to 5
+ */
+export function getDialogueVoices(
+  language: SupportedLanguage,
+  speakerCount: number = 2,
+): ElevenLabsVoiceConfig[] {
+  const allVoices = getVoicesForLanguage(language);
+  if (allVoices.length === 0) return [];
+
+  // Separate by gender for natural alternation
+  const males = allVoices.filter(v => v.gender === 'male');
+  const females = allVoices.filter(v => v.gender === 'female');
+
+  // Interleave: male, female, male, female...
+  const interleaved: ElevenLabsVoiceConfig[] = [];
+  const maxLen = Math.max(males.length, females.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (i < males.length) interleaved.push(males[i]);
+    if (i < females.length) interleaved.push(females[i]);
+  }
+
+  return interleaved.slice(0, Math.min(speakerCount, interleaved.length));
+}
+
+/**
  * Get voices suitable for a proficiency level
  */
 export function getVoicesForProficiency(

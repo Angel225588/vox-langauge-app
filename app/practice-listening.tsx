@@ -37,7 +37,7 @@ import { savePracticeScore } from '@/lib/db/competencyMetrics';
 import { storeActivityCompletion } from '@/app/lesson-session';
 import { updateStreakData } from '@/lib/db/sqlite';
 import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS';
-import { getDefaultVoiceForLanguage } from '@/lib/voice/elevenLabsConfig';
+import { getDefaultVoiceForLanguage, getDialogueVoices } from '@/lib/voice/elevenLabsConfig';
 import type { SupportedLanguage } from '@/lib/voice/types';
 
 import StageIndicator from '@/components/listening/StageIndicator';
@@ -187,6 +187,8 @@ export default function PracticeListeningScreen() {
   const targetLangCode = LANG_NAME_TO_CODE[v3Store.target_language || ''] || 'fr';
   const speechLocale = LANG_CODE_TO_SPEECH[targetLangCode] || 'fr-FR';
   const voiceConfig = getDefaultVoiceForLanguage(targetLangCode);
+  // Multi-speaker: get all available voices for this language (up to 5)
+  const dialogueVoices = getDialogueVoices(targetLangCode, 5);
 
   // ─── State ──────────────────────────────────────────
   const [stage, setStage] = useState<ListeningStage>('loading');
@@ -225,30 +227,41 @@ export default function PracticeListeningScreen() {
       setAudioCurrentTime(0);
       setAudioProgress(0);
 
-      // Speak each line — try ElevenLabs first, fall back to expo-speech per line
+      // Build speaker → voice map (each unique speaker gets a distinct voice)
+      const uniqueSpeakers = [...new Set(content.dialogueLines.map(l => l.speaker))];
+      const speakerVoiceMap = new Map<string, string>();
+      for (let s = 0; s < uniqueSpeakers.length; s++) {
+        const voice = dialogueVoices[s % dialogueVoices.length];
+        if (voice) {
+          speakerVoiceMap.set(uniqueSpeakers[s], voice.elevenLabsVoiceId);
+        }
+      }
+
+      // Speak each line with the correct speaker's voice
       for (let i = 0; i < content.dialogueLines.length; i++) {
         if (speechStopRef.current) break;
         setCurrentLineIndex(i);
         setAudioCurrentTime(i * avgLineTime);
         setAudioProgress((i + 0.5) / totalLines);
 
-        const lineText = content.dialogueLines[i].text;
+        const line = content.dialogueLines[i];
+        const lineVoiceId = speakerVoiceMap.get(line.speaker) || voiceConfig?.elevenLabsVoiceId;
         let spoken = false;
 
-        // Try ElevenLabs with the correct voice
-        if (tts.isConfigured && voiceConfig) {
+        // Try ElevenLabs with the speaker's specific voice
+        if (tts.isConfigured && lineVoiceId) {
           try {
-            await tts.speak(lineText, voiceConfig.elevenLabsVoiceId, slow ? 0.75 : undefined);
+            await tts.speak(line.text, lineVoiceId, slow ? 0.75 : undefined);
             spoken = true;
           } catch {
-            // ElevenLabs failed (404/network) — fall through to expo-speech
+            // ElevenLabs failed — fall through to expo-speech
           }
         }
 
         // Fallback: expo-speech with correct language locale
         if (!spoken && !speechStopRef.current) {
           await new Promise<void>((resolve) => {
-            Speech.speak(lineText, {
+            Speech.speak(line.text, {
               language: speechLocale,
               rate: slow ? 0.6 : 0.85,
               onDone: resolve,
@@ -271,7 +284,7 @@ export default function PracticeListeningScreen() {
         setIsSpeaking(false);
       }
     },
-    [content, isSpeaking, tts],
+    [content, isSpeaking, tts, dialogueVoices, voiceConfig, speechLocale],
   );
 
   const stopSpeaking = useCallback(async () => {
