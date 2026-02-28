@@ -24,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface ReadingPassage {
   title: string;
   passage: string;
+  translation?: string;
   wordCount: number;
   difficulty: string;
   targetVocabulary: string[];
@@ -301,6 +302,7 @@ ${data.grammarPoints?.length ? `## Grammar to Practice:\n${data.grammarPoints.jo
 - Write the passage IN THE TARGET LANGUAGE (${data.profile.target_language})
 - 120-250 words depending on proficiency level
 - Professional/realistic context matching learner motivation
+- Include a full translation of the passage in the native language (${data.profile.native_language})
 - Include 3 comprehension questions (in the native language: ${data.profile.native_language})
 - Each question has 4 options with one correct answer
 - Questions test understanding, not translation
@@ -309,6 +311,7 @@ ${data.grammarPoints?.length ? `## Grammar to Practice:\n${data.grammarPoints.jo
 {
   "title": "Title of passage (in target language)",
   "passage": "The full reading passage in target language...",
+  "translation": "Full translation of the passage in native language...",
   "wordCount": 180,
   "difficulty": "intermediate",
   "targetVocabulary": ["word1", "word2"],

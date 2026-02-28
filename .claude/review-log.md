@@ -368,3 +368,150 @@ This file tracks all automated code reviews triggered by commits.
 - **Time**: 2026-02-25 19:13:18
 - **Status**: Pending review via /master-review
 
+
+## Commit Review Triggered
+- **Commit**: 7cb3742
+- **Message**: feat(onboarding): initial vocab generator, progress checklist, 3-tier practice waterfall
+- **Time**: 2026-02-27 11:47:50
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: d4810b5
+- **Message**: feat(wiring): vocab→lessons waterfall, stair progression, content architecture doc
+- **Time**: 2026-02-27 17:21:46
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 636e3c6
+- **Message**: feat(onboarding): two-phase vocab loading — bundled defaults + Gemini personalization
+- **Time**: 2026-02-27 18:36:50
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 9d45189
+- **Message**: feat(wiring): discovery lesson generator, bundled vocab, end-to-end lesson flow
+- **Time**: 2026-02-27 18:47:40
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: da7d4ab
+- **Message**: fix(production): splash color, bundle ID, duplicate route, audio mode
+- **Time**: 2026-02-27 19:12:19
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: f3e2f2c
+- **Message**: feat(wiring): lesson-first onboarding flow, waterfall content, feedback-detail nav
+- **Time**: 2026-02-27 21:26:34
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 221efd3
+- **Message**: feat(wiring): activity completion loop, real feedback scores, session return
+- **Time**: 2026-02-27 22:35:20
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: fb10a62
+- **Message**: feat(points): unified points system — SQLite single source of truth
+- **Time**: 2026-02-27 22:59:20
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: d2eaba4
+- **Message**: feat(profile): rewire profile tab to V3 onboarding + create edit-profile screen
+- **Time**: 2026-02-27 22:59:57
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: e71cc48
+- **Message**: fix(home): wire V3 data, dynamic flag, animated Voice CTA aligned to staircase
+- **Time**: 2026-02-27 23:34:12
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 830c425
+- **Message**: feat(listening): 4-stage scaffolding loop with ElevenLabs TTS + feature spec framework
+- **Time**: 2026-02-27 23:44:10
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: e058fc2
+- **Message**: feat(practice): auth gating, fix reading route, listening label update
+- **Time**: 2026-02-27 23:47:42
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: f7152eb
+- **Message**: fix(privacy): remove user speech content from console logs
+- **Time**: 2026-02-27 23:52:50
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: d252b8d
+- **Message**: fix(production): register all routes, hide dev tools, guard JSON.parse
+- **Time**: 2026-02-27 23:57:10
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 7a07b59
+- **Message**: fix(wiring): practice tab stat pills, vocabulary dashboard dead routes + back nav
+- **Time**: 2026-02-28 00:04:29
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 3fe98c6
+- **Message**: fix(home): replace hardcoded 35% progress bar with real stair progress
+- **Time**: 2026-02-28 00:09:58
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: fb587d9
+- **Message**: fix(core): render-safe navigation, discovery content wiring, streak_data init
+- **Time**: 2026-02-28 00:32:17
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 9906ccf
+- **Message**: fix(writing): consume discoveryContent route param instead of always regenerating
+- **Time**: 2026-02-28 12:23:24
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: ebeb849
+- **Message**: feat(conversion): add sign-up wall after discovery lesson for unauthenticated users
+- **Time**: 2026-02-28 13:52:00
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: d5fbba2
+- **Message**: fix(core): 5 high-priority fixes — stair sync, validation, analyzer, KPIs, reconnection
+- **Time**: 2026-02-28 14:00:08
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 166a31f
+- **Message**: fix(tts): use expo-file-system/legacy import for Base64 encoding
+- **Time**: 2026-02-28 14:08:44
+- **Status**: Pending review via /master-review
+

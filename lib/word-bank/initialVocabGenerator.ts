@@ -18,6 +18,7 @@ import { addOrReinforceWord } from '@/lib/word-bank/storage';
 import { getWordCount } from '@/lib/word-bank/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AddWordInput, CEFRLevel, PartOfSpeech } from '@/lib/word-bank/types';
+import { getDefaultVocabulary } from '@/lib/word-bank/defaults';
 
 // ============================================================================
 // Types
@@ -246,7 +247,6 @@ export async function generateInitialVocabulary(
 
   // ── Phase 1: Load bundled defaults (instant, $0) ──────────
   try {
-    const { getDefaultVocabulary } = await import('./defaults');
     const defaults = getDefaultVocabulary(input.target_language, input.proficiency_level);
 
     if (defaults.length > 0) {

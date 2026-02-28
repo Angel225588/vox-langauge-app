@@ -236,6 +236,13 @@ export default function ProfileScreen() {
                   value="All sessions"
                   onPress={() => router.push('/feedback-history' as any)}
                   color={colors.primary.DEFAULT}
+                />
+                <SettingRow
+                  iconName="mic-outline"
+                  label="Voice Conversations"
+                  value="Transcripts"
+                  onPress={() => router.push('/conversation-history' as any)}
+                  color={colors.accent.cyan}
                   isLast
                 />
               </View>

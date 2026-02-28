@@ -10,7 +10,7 @@
  * Professional tone — Ionicons only, no emojis.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,8 @@ import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
+import { useAuth } from '@/hooks/useAuth';
+import { getAllScores, type PracticeScore } from '@/lib/db/competencyMetrics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -133,11 +135,29 @@ function deriveImprovements(s: ParsedScores): DetailedImprovement[] {
   return improvements;
 }
 
-function deriveProgress(s: ParsedScores): ProgressMetric[] {
+interface PreviousAverages {
+  articulation: number;
+  fluency: number;
+  communication: number;
+}
+
+function computeTrend(previous: number, current: number): 'up' | 'stable' | 'down' {
+  const delta = current - previous;
+  if (delta > 3) return 'up';
+  if (delta < -3) return 'down';
+  return 'stable';
+}
+
+function deriveProgress(s: ParsedScores, prev: PreviousAverages | null): ProgressMetric[] {
+  // If no historical data, use 0 as previous (first session shows full improvement)
+  const prevArt = prev?.articulation ?? 0;
+  const prevFlu = prev?.fluency ?? 0;
+  const prevComm = prev?.communication ?? 0;
+
   return [
-    { name: 'Articulation', previous: Math.max(s.articulation - 5, 40), current: s.articulation, color: '#00A3FF', trend: 'up' as const },
-    { name: 'Fluency', previous: Math.max(s.fluency - 3, 40), current: s.fluency, color: '#06D6A0', trend: s.fluency > 60 ? 'up' as const : 'stable' as const },
-    { name: 'Communication', previous: Math.max(s.communication - 4, 40), current: s.communication, color: '#8B5CF6', trend: 'up' as const },
+    { name: 'Articulation', previous: prevArt, current: s.articulation, color: '#00A3FF', trend: computeTrend(prevArt, s.articulation) },
+    { name: 'Fluency', previous: prevFlu, current: s.fluency, color: '#06D6A0', trend: computeTrend(prevFlu, s.fluency) },
+    { name: 'Communication', previous: prevComm, current: s.communication, color: '#8B5CF6', trend: computeTrend(prevComm, s.communication) },
   ];
 }
 
@@ -287,13 +307,15 @@ function ProgressChip({ item }: { item: ProgressMetric }) {
           styles.progTrend,
           item.trend === 'up'
             ? { backgroundColor: 'rgba(16,185,129,0.15)' }
+            : item.trend === 'down'
+            ? { backgroundColor: 'rgba(239,68,68,0.12)' }
             : { backgroundColor: 'rgba(245,158,11,0.12)' },
         ]}>
           <Text style={{
             fontSize: 12, fontWeight: '700',
-            color: item.trend === 'up' ? '#10B981' : '#F59E0B',
+            color: item.trend === 'up' ? '#10B981' : item.trend === 'down' ? '#EF4444' : '#F59E0B',
           }}>
-            {item.trend === 'up' ? '\u2191' : '\u2500'}
+            {item.trend === 'up' ? '\u2191' : item.trend === 'down' ? '\u2193' : '\u2500'}
           </Text>
         </View>
       </View>
@@ -305,6 +327,7 @@ function ProgressChip({ item }: { item: ProgressMetric }) {
 
 export default function FeedbackDetailScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const params = useLocalSearchParams<{
     scores?: string;
     stairTitle?: string;
@@ -320,7 +343,66 @@ export default function FeedbackDetailScreen() {
 
   const strengths = deriveStrengths(scores);
   const improvements = deriveImprovements(scores);
-  const progress = deriveProgress(scores);
+
+  // Historical trend data — loaded async, null until ready
+  const [previousAverages, setPreviousAverages] = useState<PreviousAverages | null>(null);
+  const [trendsLoaded, setTrendsLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPreviousScores() {
+      if (!user?.id) {
+        setTrendsLoaded(true);
+        return;
+      }
+
+      try {
+        const allScores = await getAllScores(user.id);
+
+        // Exclude the most recent score (the current session) to get "previous" averages.
+        // The current session's score may or may not be saved yet, so we also
+        // exclude any score completed in the last 60 seconds to be safe.
+        const nowMs = Date.now();
+        const previousScores = allScores.filter(
+          s => nowMs - new Date(s.completedAt).getTime() > 60_000
+        );
+
+        if (cancelled) return;
+
+        if (previousScores.length === 0) {
+          // First session — no historical data
+          setPreviousAverages(null);
+          setTrendsLoaded(true);
+          return;
+        }
+
+        // Take the last 5 sessions for a meaningful average
+        const recentPrevious = previousScores.slice(0, 5);
+
+        const avgKpi = (scores: PracticeScore[], kpi: 'articulation' | 'fluency' | 'communication') => {
+          const measured = scores.filter(s => s[kpi] > 0);
+          if (measured.length === 0) return 0;
+          return Math.round(measured.reduce((sum, s) => sum + s[kpi], 0) / measured.length);
+        };
+
+        setPreviousAverages({
+          articulation: avgKpi(recentPrevious, 'articulation'),
+          fluency: avgKpi(recentPrevious, 'fluency'),
+          communication: avgKpi(recentPrevious, 'communication'),
+        });
+      } catch {
+        // On error, leave previousAverages as null (first-session behavior)
+      } finally {
+        if (!cancelled) setTrendsLoaded(true);
+      }
+    }
+
+    loadPreviousScores();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  const progress = deriveProgress(scores, trendsLoaded ? previousAverages : null);
 
   const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

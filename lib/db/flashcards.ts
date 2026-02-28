@@ -142,7 +142,12 @@ async function addFSRSColumns(db: any): Promise<void> {
 }
 
 /**
- * Build FSRSCardState from UserFlashcardProgress fields
+ * Build FSRSCardState from UserFlashcardProgress fields.
+ *
+ * When migrating SM-2 cards to FSRS, we derive FSRS state from the SM-2
+ * interval, ease_factor, and repetitions so that the card's learned state
+ * is preserved. Without this, cards that were scheduled days/weeks out
+ * under SM-2 would appear "due immediately" after migration.
  */
 function progressToFSRSState(progress: UserFlashcardProgress): FSRSCardState {
   if (progress.algorithm === 'fsrs' && progress.fsrs_stability != null) {
@@ -158,8 +163,61 @@ function progressToFSRSState(progress: UserFlashcardProgress): FSRSCardState {
       last_review: progress.fsrs_last_review ?? null,
     };
   }
-  // First-time FSRS — initialize fresh card
+
+  // SM-2 card with learned state — migrate preserving scheduling data
+  if (progress.interval > 0 && progress.repetitions > 0) {
+    return migrateSM2ToFSRS(progress);
+  }
+
+  // Truly new card (no SM-2 history) — initialize fresh
   return initializeFSRS();
+}
+
+/**
+ * Derive FSRS card state from SM-2 fields.
+ *
+ * Mapping rationale:
+ * - stability ← interval * 0.9 (FSRS stability ~ days until 90% retention)
+ * - difficulty ← 11 - ease_factor * 3, clamped [1, 10]
+ *   (ease 2.5 → difficulty ~3.5; ease 1.3 → difficulty ~7.1)
+ * - state ← Review (2) since the card has been successfully learned
+ * - reps ← SM-2 repetitions count
+ * - lapses ← SM-2 incorrect_count (times forgotten)
+ * - scheduled_days ← SM-2 interval (preserves the review schedule)
+ * - elapsed_days ← days since last_reviewed_at (or 0 if unknown)
+ * - last_review ← SM-2 last_reviewed_at
+ * - due ← SM-2 next_review (preserves the scheduled review date)
+ */
+function migrateSM2ToFSRS(progress: UserFlashcardProgress): FSRSCardState {
+  const stability = progress.interval * 0.9;
+  const difficulty = Math.max(1, Math.min(10, 11 - progress.ease_factor * 3));
+
+  // Calculate elapsed days since last review
+  let elapsedDays = 0;
+  if (progress.last_reviewed_at) {
+    const lastReview = new Date(progress.last_reviewed_at);
+    const now = new Date();
+    elapsedDays = Math.max(
+      0,
+      Math.round((now.getTime() - lastReview.getTime()) / (1000 * 60 * 60 * 24))
+    );
+  }
+
+  // Ensure next_review is not in the past — if it is, keep the original
+  // (the card is overdue and should be reviewed, which is correct behavior)
+  const due = progress.next_review;
+
+  return {
+    due,
+    stability,
+    difficulty,
+    elapsed_days: elapsedDays,
+    scheduled_days: progress.interval,
+    reps: progress.repetitions,
+    lapses: progress.incorrect_count || 0,
+    state: 2, // FSRSState.Review — card has been learned under SM-2
+    last_review: progress.last_reviewed_at ?? null,
+  };
 }
 
 /**
@@ -275,12 +333,12 @@ export async function getOrCreateProgress(
     algorithm: 'fsrs',
     fsrs_stability: fsrsState.stability,
     fsrs_difficulty: fsrsState.difficulty,
-    fsrs_elapsed_days: fsrsState.elapsed_days,
-    fsrs_scheduled_days: fsrsState.scheduled_days,
-    fsrs_reps: fsrsState.reps,
-    fsrs_lapses: fsrsState.lapses,
-    fsrs_state: fsrsState.state,
-    fsrs_last_review: fsrsState.last_review,
+    fsrs_elapsed_days: fsrsState.elapsed_days ?? 0,
+    fsrs_scheduled_days: fsrsState.scheduled_days ?? 0,
+    fsrs_reps: fsrsState.reps ?? 0,
+    fsrs_lapses: fsrsState.lapses ?? 0,
+    fsrs_state: fsrsState.state ?? 0,
+    fsrs_last_review: fsrsState.last_review ?? null,
     // Tracking
     total_reviews: 0,
     correct_count: 0,
@@ -305,14 +363,14 @@ export async function getOrCreateProgress(
       newProgress.repetitions,
       newProgress.next_review,
       newProgress.algorithm,
-      newProgress.fsrs_stability,
-      newProgress.fsrs_difficulty,
-      newProgress.fsrs_elapsed_days,
-      newProgress.fsrs_scheduled_days,
-      newProgress.fsrs_reps,
-      newProgress.fsrs_lapses,
-      newProgress.fsrs_state,
-      newProgress.fsrs_last_review,
+      newProgress.fsrs_stability ?? 0,
+      newProgress.fsrs_difficulty ?? 0,
+      newProgress.fsrs_elapsed_days ?? 0,
+      newProgress.fsrs_scheduled_days ?? 0,
+      newProgress.fsrs_reps ?? 0,
+      newProgress.fsrs_lapses ?? 0,
+      newProgress.fsrs_state ?? 0,
+      newProgress.fsrs_last_review ?? null,
       newProgress.total_reviews,
       newProgress.correct_count,
       newProgress.incorrect_count,

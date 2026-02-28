@@ -72,8 +72,8 @@ interface UseElevenLabsTTSReturn {
 const ELEVENLABS_TTS_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
 const DEFAULT_VOICE_ID = 'd6dMXDDMQ9zlhV3hOfx0'; // Daniel (American English)
 
-// Model optimized for low latency
-const TTS_MODEL = 'eleven_turbo_v2_5';
+// Multilingual model — supports French, Spanish, and 28+ languages
+const TTS_MODEL = 'eleven_multilingual_v2';
 
 // =============================================================================
 // Hook Implementation

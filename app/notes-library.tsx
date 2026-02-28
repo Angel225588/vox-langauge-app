@@ -127,9 +127,10 @@ export default function NotesLibraryScreen() {
   }, []);
 
   const handleViewFeedback = useCallback((noteId: string) => {
+    // TODO: Wire to real writing feedback screen once implemented
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(`/writing-feedback/${noteId}` as any);
-  }, [router]);
+    Alert.alert('Coming Soon', 'Writing feedback detail view is not yet available.');
+  }, []);
 
   const handleCreateNew = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -214,10 +215,10 @@ export default function NotesLibraryScreen() {
       Alert.alert('Empty Note', 'Please write some content first.');
       return;
     }
+    // TODO: Wire to real writing analysis flow (WritingTaskFlow component available in components/cards/writing/)
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Navigate to writing task flow with this content for analysis
-    router.push('/test-writing-task');
-  }, [noteContent, router]);
+    Alert.alert('Coming Soon', 'AI writing analysis will be available in a future update.');
+  }, [noteContent]);
 
   // Filter notes by category
   const filteredNotes = selectedCategory === 'all'

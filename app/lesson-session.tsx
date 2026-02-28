@@ -9,8 +9,8 @@
  * lesson-complete when all activities are done.
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -41,6 +41,28 @@ import { updateStreakData } from '@/lib/db/sqlite';
 
 const LESSON_PLAN_KEY = 'vox-active-lesson-plan';
 const ACTIVITY_COMPLETE_KEY = 'vox-activity-completion';
+
+// ─── Timeout Constants ────────────────────────────
+const DISCOVERY_CONTENT_TIMEOUT_MS = 10_000; // 10s for primary content generation
+const BACKGROUND_GEN_TIMEOUT_MS = 15_000;    // 15s for background remaining activities
+const LOADING_UX_TIMEOUT_MS = 12_000;         // 12s before showing "taking longer" message
+
+/** Race a promise against a timeout. Returns null if the timeout fires first. */
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) =>
+      setTimeout(() => {
+        console.warn(`[LessonSession] ${label} timed out after ${ms}ms`);
+        resolve(null);
+      }, ms),
+    ),
+  ]);
+}
 
 // ─── Storage Helpers ───────────────────────────────
 
@@ -102,14 +124,22 @@ export default function LessonSessionScreen() {
   const [plan, setPlan] = useState<LessonPlan | null>(null);
   const [discoveryContent, setDiscoveryContent] = useState<DiscoveryLessonContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingSlow, setLoadingSlow] = useState(false);
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load the active lesson plan, check for pending activity completion, load discovery content
   useEffect(() => {
     const userId = user?.id || 'anonymous';
 
+    // Start the UX loading timer — shows "taking longer" message if loading exceeds threshold
+    loadingTimerRef.current = setTimeout(() => {
+      setLoadingSlow(true);
+    }, LOADING_UX_TIMEOUT_MS);
+
     loadActiveLessonPlan().then(async (loaded) => {
       if (!loaded) {
         router.replace('/(tabs)/home');
+        if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
         setIsLoading(false);
         return;
       }
@@ -135,6 +165,7 @@ export default function LessonSessionScreen() {
       if (activePlan.completed) {
         const scores = calculateLessonScores(activePlan);
         await clearActiveLessonPlan();
+        if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
         router.replace({
           pathname: '/feedback-detail',
           params: {
@@ -158,20 +189,32 @@ export default function LessonSessionScreen() {
         return;
       }
 
-      // Load discovery content for discovery lessons
+      // Load discovery content for discovery lessons (with timeout)
       if (activePlan.is_discovery) {
         try {
-          const cachedContent = await generateDiscoveryLessonContent(
-            activePlan,
-            userId,
+          const contentOrNull = await withTimeout(
+            generateDiscoveryLessonContent(activePlan, userId),
+            DISCOVERY_CONTENT_TIMEOUT_MS,
+            'Discovery content generation',
           );
-          setDiscoveryContent(cachedContent);
 
-          // Generate remaining activities in background while user does current activity
-          generateRemainingActivities(activePlan, userId)
+          if (contentOrNull) {
+            setDiscoveryContent(contentOrNull);
+          } else {
+            console.warn('[LessonSession] Discovery content timed out — proceeding without AI content (practice screens have fallbacks)');
+          }
+
+          // Generate remaining activities in background (with timeout)
+          withTimeout(
+            generateRemainingActivities(activePlan, userId),
+            BACKGROUND_GEN_TIMEOUT_MS,
+            'Background remaining activities',
+          )
             .then(fullContent => {
-              console.log('[LessonSession] Background content generation complete');
-              setDiscoveryContent(fullContent);
+              if (fullContent) {
+                console.log('[LessonSession] Background content generation complete');
+                setDiscoveryContent(fullContent);
+              }
             })
             .catch(err =>
               console.warn('[LessonSession] Background gen error:', err),
@@ -181,8 +224,13 @@ export default function LessonSessionScreen() {
         }
       }
 
+      if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
       setIsLoading(false);
     });
+
+    return () => {
+      if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+    };
   }, []);
 
   // Load stair content for vocabulary activities (Tier 1: Supabase stairs)
@@ -314,6 +362,14 @@ export default function LessonSessionScreen() {
     }
   }, [currentActivity?.id, currentActivity?.type, isLoading, plan, discoveryContent, router]);
 
+  // Handle "Skip" when loading is slow — proceed without AI content
+  const handleSkipLoading = useCallback(() => {
+    console.warn('[LessonSession] User skipped slow content loading');
+    if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+    setLoadingSlow(false);
+    setIsLoading(false);
+  }, []);
+
   // Handle early exit
   const handleExit = useCallback(async () => {
     await clearActiveLessonPlan();
@@ -340,7 +396,19 @@ export default function LessonSessionScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
-        <Text style={styles.loadingText}>Loading lesson...</Text>
+        <Text style={styles.loadingText}>
+          {loadingSlow ? 'Taking longer than expected...' : 'Loading lesson...'}
+        </Text>
+        {loadingSlow && (
+          <Pressable
+            style={styles.skipButton}
+            onPress={handleSkipLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Skip content loading and continue"
+          >
+            <Text style={styles.skipButtonText}>Skip</Text>
+          </Pressable>
+        )}
       </View>
     );
   }
@@ -459,5 +527,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     fontSize: typography.fontSize.lg,
     color: colors.text.secondary,
+  },
+  skipButton: {
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.text.secondary,
+  },
+  skipButtonText: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    fontWeight: '600' as const,
   },
 });

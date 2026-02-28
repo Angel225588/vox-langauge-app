@@ -5,7 +5,7 @@
 
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { getLanguagePreference, saveLanguagePreference } from '@/lib/storage/languageStorage';
+import { getLanguagePreference, saveLanguagePreference, getAILanguageRecommendation } from '@/lib/storage/languageStorage';
 import { getDeviceLanguage } from './utils/languageDetector';
 import { allowRTL } from './utils/rtl';
 import {
@@ -125,14 +125,25 @@ export async function initializeI18n(): Promise<void> {
   // Allow RTL layouts
   allowRTL(true);
 
-  // Get saved preference or use device language
-  const savedLanguage = await getLanguagePreference();
+  // Three-layer resolution: user preference > AI recommendation > device language
   const deviceLanguage = getDeviceLanguage();
-  const initialLanguage = savedLanguage || deviceLanguage;
+  const userPreference = await getLanguagePreference();
+  const aiRec = await getAILanguageRecommendation();
 
-  console.log(`[i18n] Initializing with language: ${initialLanguage}`);
-  console.log(`[i18n] Device language: ${deviceLanguage}`);
-  console.log(`[i18n] Saved preference: ${savedLanguage || 'none'}`);
+  let initialLanguage = deviceLanguage;
+  let source = 'device';
+
+  if (aiRec?.reason === 'immersion_ready') {
+    initialLanguage = aiRec.language;
+    source = 'ai_immersion';
+  }
+
+  if (userPreference) {
+    initialLanguage = userPreference;
+    source = 'user_preference';
+  }
+
+  console.log(`[i18n] Language: ${initialLanguage} (source: ${source}, device: ${deviceLanguage})`);
 
   await i18n
     .use(initReactI18next)
@@ -148,18 +159,6 @@ export async function initializeI18n(): Promise<void> {
       // Interpolation settings
       interpolation: {
         escapeValue: false, // React already escapes
-        format: (value, format, lng) => {
-          if (format === 'uppercase') return String(value).toUpperCase();
-          if (format === 'lowercase') return String(value).toLowerCase();
-          if (format === 'capitalize') {
-            const str = String(value);
-            return str.charAt(0).toUpperCase() + str.slice(1);
-          }
-          if (value instanceof Date) {
-            return new Intl.DateTimeFormat(lng).format(value);
-          }
-          return String(value);
-        },
       },
 
       // Pluralization
@@ -172,19 +171,29 @@ export async function initializeI18n(): Promise<void> {
         bindI18nStore: 'added removed',
       },
 
-      // Debugging (disable in production)
-      debug: __DEV__,
+      // Debugging — disabled (our own logs are sufficient)
+      debug: false,
 
       // Return empty string for missing keys (shows key in dev)
       returnEmptyString: false,
       returnNull: false,
     });
 
-  // Save the initial language if not already saved
-  if (!savedLanguage) {
-    await saveLanguagePreference(initialLanguage);
-  }
+  // Register custom formatters (replaces legacy interpolation.format)
+  i18n.services.formatter?.add('uppercase', (value) => String(value).toUpperCase());
+  i18n.services.formatter?.add('lowercase', (value) => String(value).toLowerCase());
+  i18n.services.formatter?.add('capitalize', (value) => {
+    const str = String(value);
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  });
+  i18n.services.formatter?.add('datetime', (value, lng) => {
+    if (value instanceof Date) {
+      return new Intl.DateTimeFormat(lng).format(value);
+    }
+    return String(value);
+  });
 
+  // No auto-save — preference is only set by explicit user action or AI recommendation
   isInitialized = true;
   console.log('[i18n] Initialization complete');
 }

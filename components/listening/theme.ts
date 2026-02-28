@@ -47,8 +47,8 @@ export const LISTENING = {
   grayBorder: 'rgba(255, 255, 255, 0.20)',
 } as const;
 
-/** Stage labels for the 4 listening stages */
-export const STAGE_LABELS = ['Listen', 'Read Along', 'Understand', 'Prove It'] as const;
+/** Stage labels for the 3 listening stages */
+export const STAGE_LABELS = ['Listen', 'Read Along', 'Prove It'] as const;
 
 /** Hidden-mode prompts for subtitle display */
 export const HIDDEN_PROMPTS = [

@@ -820,10 +820,14 @@ export default function VoiceConversationScreen() {
           <Text style={styles.title}>Voice Practice</Text>
           <Text style={styles.subtitle}>Real conversations with AI</Text>
         </View>
-        {/* Call icon indicator */}
-        <View style={styles.callIndicator}>
-          <Ionicons name="call" size={18} color={colors.primary.DEFAULT} />
-        </View>
+        {/* Past conversations link */}
+        <TouchableOpacity
+          style={styles.callIndicator}
+          onPress={() => router.push('/conversation-history')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="time-outline" size={20} color={colors.text.secondary} />
+        </TouchableOpacity>
       </View>
 
       {/* Accent Selector - Premium Style */}

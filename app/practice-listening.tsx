@@ -1,11 +1,11 @@
 /**
- * Listening Practice Screen — 4-Stage Scaffolding Loop
+ * Listening Practice Screen — 3-Stage Scaffolding Loop
  *
  * Progressive listening exercise that proves comprehension improvement:
- *   Stage 1: Pure audio → quiz (before score)
- *   Stage 2: Audio + target language subtitles
- *   Stage 3: Audio + native translation subtitles
- *   Stage 4: Pure audio → quiz (after score) → results comparison
+ *   Vocab Pre-Screen: Select known words → word bank
+ *   Stage 1: Pure audio (waveform) → quiz (before score)
+ *   Stage 2: Audio + Spotify-style lyrics with translation toggle
+ *   Stage 3: Pure audio (prove it) → quiz (after score) → results comparison
  *
  * Supports two entry modes:
  * - Lesson session: discoveryContent passed via route params
@@ -14,31 +14,36 @@
  * Audio: ElevenLabs TTS with expo-speech fallback.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/useAuth';
+import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { generateListeningContent, type ListeningExercise } from '@/lib/ai/practiceGenerator';
 import type { ListeningContent, DialogueLine } from '@/lib/lesson/discoveryGenerator';
 import { savePracticeScore } from '@/lib/db/competencyMetrics';
 import { storeActivityCompletion } from '@/app/lesson-session';
 import { updateStreakData } from '@/lib/db/sqlite';
 import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS';
+import { getDefaultVoiceForLanguage } from '@/lib/voice/elevenLabsConfig';
+import type { SupportedLanguage } from '@/lib/voice/types';
 
 import StageIndicator from '@/components/listening/StageIndicator';
-import SubtitleDisplay from '@/components/listening/SubtitleDisplay';
+import VocabularyPreScreen from '@/components/listening/VocabularyPreScreen';
+import PureAudioStage from '@/components/listening/PureAudioStage';
+import LyricsSubtitleDisplay from '@/components/listening/LyricsSubtitleDisplay';
 import ComprehensionQuiz from '@/components/listening/ComprehensionQuiz';
 import ResultsComparison from '@/components/listening/ResultsComparison';
 import { LISTENING } from '@/components/listening/theme';
@@ -47,12 +52,12 @@ import { LISTENING } from '@/components/listening/theme';
 
 type ListeningStage =
   | 'loading'
+  | 'vocab_prescreen'
   | 'stage1_listen'
   | 'stage1_quiz'
-  | 'stage2_subtitles'
-  | 'stage3_translation'
-  | 'stage4_listen'
-  | 'stage4_quiz'
+  | 'lyrics'
+  | 'stage3_listen'
+  | 'stage3_quiz'
   | 'results';
 
 /** Normalized content shape used by all stages */
@@ -69,19 +74,17 @@ interface NormalizedContent {
 
 // ─── Helpers ─────────────────────────────────────────────
 
-/** Map a ListeningStage to the 1-4 stage number for the indicator */
+/** Map a ListeningStage to the 1-3 stage number for the indicator */
 function stageToNumber(stage: ListeningStage): number {
   switch (stage) {
     case 'stage1_listen':
     case 'stage1_quiz':
       return 1;
-    case 'stage2_subtitles':
+    case 'lyrics':
       return 2;
-    case 'stage3_translation':
+    case 'stage3_listen':
+    case 'stage3_quiz':
       return 3;
-    case 'stage4_listen':
-    case 'stage4_quiz':
-      return 4;
     default:
       return 1;
   }
@@ -105,7 +108,6 @@ function shuffleQuestionOptions(
   return questions
     .filter((q) => Array.isArray(q.options) && q.options.length > 0)
     .map((q) => {
-      // Create index mapping
       const indices = q.options.map((_, i) => i);
       const shuffled = shuffleArray(indices);
       const newOptions = shuffled.map((i) => q.options[i]);
@@ -156,15 +158,35 @@ function normalizeExerciseContent(ex: ListeningExercise): NormalizedContent | nu
 // COMPONENT
 // ═════════════════════════════════════════════════════════
 
+/** Map onboarding language name → voice config language code */
+const LANG_NAME_TO_CODE: Record<string, SupportedLanguage> = {
+  english: 'en',
+  french: 'fr',
+  spanish: 'es',
+};
+
+/** Map language code → expo-speech BCP-47 locale */
+const LANG_CODE_TO_SPEECH: Record<string, string> = {
+  en: 'en-US',
+  fr: 'fr-FR',
+  es: 'es-ES',
+};
+
 export default function PracticeListeningScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const v3Store = useOnboardingV3();
   const params = useLocalSearchParams<{
     returnToSession?: string;
     activityId?: string;
     discoveryContent?: string;
   }>();
   const isSessionActivity = params.returnToSession === 'true';
+
+  // ─── Target language → voice config ──────────────────
+  const targetLangCode = LANG_NAME_TO_CODE[v3Store.target_language || ''] || 'fr';
+  const speechLocale = LANG_CODE_TO_SPEECH[targetLangCode] || 'fr-FR';
+  const voiceConfig = getDefaultVoiceForLanguage(targetLangCode);
 
   // ─── State ──────────────────────────────────────────
   const [stage, setStage] = useState<ListeningStage>('loading');
@@ -173,90 +195,84 @@ export default function PracticeListeningScreen() {
   const [beforeScore, setBeforeScore] = useState(0);
   const [afterScore, setAfterScore] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [wordsLearned, setWordsLearned] = useState(0);
+  const startTimeRef = useRef(Date.now());
 
   // ─── Audio ──────────────────────────────────────────
   const tts = useElevenLabsTTS();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const speechStopRef = useRef(false);
 
-  // Build the full dialogue text for TTS
-  const fullDialogueText = useMemo(() => {
-    if (!content) return '';
-    return content.dialogueLines.map((l) => l.text).join('. ');
-  }, [content]);
+  // Lyrics tracking
+  const [currentLineIndex, setCurrentLineIndex] = useState(0);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
 
-  // ─── Speak function with ElevenLabs → expo-speech fallback ──
+  // ─── Speak dialogue line-by-line (enables lyrics tracking) ──
   const speakDialogue = useCallback(
     async (slow: boolean = false) => {
       if (!content || isSpeaking) return;
 
       setIsSpeaking(true);
       speechStopRef.current = false;
+      setCurrentLineIndex(0);
 
-      try {
-        if (tts.isConfigured) {
-          // ElevenLabs: speak the full dialogue as a sequence
-          await tts.speakSequence(
-            content.dialogueLines.map((line) => ({
-              text: line.text,
-              delayBefore: 200,
-            })),
-          );
-        } else {
-          // Fallback: expo-speech
-          const text = fullDialogueText;
+      const totalLines = content.dialogueLines.length;
+      const avgLineTime = slow ? 4 : 2.5;
+      const estimatedDuration = totalLines * avgLineTime;
+      setAudioDuration(estimatedDuration);
+      setAudioCurrentTime(0);
+      setAudioProgress(0);
+
+      // Speak each line — try ElevenLabs first, fall back to expo-speech per line
+      for (let i = 0; i < content.dialogueLines.length; i++) {
+        if (speechStopRef.current) break;
+        setCurrentLineIndex(i);
+        setAudioCurrentTime(i * avgLineTime);
+        setAudioProgress((i + 0.5) / totalLines);
+
+        const lineText = content.dialogueLines[i].text;
+        let spoken = false;
+
+        // Try ElevenLabs with the correct voice
+        if (tts.isConfigured && voiceConfig) {
+          try {
+            await tts.speak(lineText, voiceConfig.elevenLabsVoiceId, slow ? 0.75 : undefined);
+            spoken = true;
+          } catch {
+            // ElevenLabs failed (404/network) — fall through to expo-speech
+          }
+        }
+
+        // Fallback: expo-speech with correct language locale
+        if (!spoken && !speechStopRef.current) {
           await new Promise<void>((resolve) => {
-            Speech.speak(text, {
+            Speech.speak(lineText, {
+              language: speechLocale,
               rate: slow ? 0.6 : 0.85,
               onDone: resolve,
               onError: () => resolve(),
             });
           });
         }
-      } catch {
-        // Audio failure is non-blocking
+
+        if (!speechStopRef.current) {
+          await new Promise((resolve) => setTimeout(resolve, slow ? 500 : 200));
+        }
+      }
+
+      if (!speechStopRef.current) {
+        setAudioProgress(1);
+        setAudioCurrentTime(estimatedDuration);
       }
 
       if (!speechStopRef.current) {
         setIsSpeaking(false);
       }
     },
-    [content, isSpeaking, tts, fullDialogueText],
+    [content, isSpeaking, tts],
   );
-
-  const speakSlow = useCallback(async () => {
-    if (!content || isSpeaking) return;
-
-    setIsSpeaking(true);
-    speechStopRef.current = false;
-
-    try {
-      if (tts.isConfigured) {
-        // Slow mode — speak each line individually at a slower pace
-        for (const line of content.dialogueLines) {
-          if (speechStopRef.current) break;
-          await tts.speak(line.text, undefined, 0.75);
-          // Pause between lines
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      } else {
-        const text = fullDialogueText;
-        await new Promise<void>((resolve) => {
-          Speech.speak(text, {
-            rate: 0.6,
-            onDone: resolve,
-            onError: () => resolve(),
-          });
-        });
-      }
-    } catch {
-      // Non-blocking
-    }
-
-    if (!speechStopRef.current) {
-      setIsSpeaking(false);
-    }
-  }, [content, isSpeaking, tts, fullDialogueText]);
 
   const stopSpeaking = useCallback(async () => {
     speechStopRef.current = true;
@@ -276,6 +292,10 @@ export default function PracticeListeningScreen() {
     setBeforeScore(0);
     setAfterScore(0);
     setShuffledQuestions(null);
+    setWordsLearned(0);
+    setCurrentLineIndex(0);
+    setAudioProgress(0);
+    startTimeRef.current = Date.now();
 
     try {
       // Try discovery content from route params first
@@ -285,14 +305,12 @@ export default function PracticeListeningScreen() {
           const normalized = normalizeDiscoveryContent(parsed);
           if (normalized && normalized.dialogueLines.length > 0 && normalized.questions.length > 0) {
             setContent(normalized);
-            setStage('stage1_listen');
+            setStage(normalized.vocabulary.length > 0 ? 'vocab_prescreen' : 'stage1_listen');
             return;
           }
-          // Malformed discovery content — fall through to AI generation
-          console.warn('[PracticeListening] Discovery content malformed, keys:', Object.keys(parsed), 'falling back to AI generation');
+          console.warn('[PracticeListening] Discovery content malformed, falling back to AI generation');
         } catch (parseErr) {
           console.warn('[PracticeListening] Discovery content parse failed:', parseErr);
-          // Fall through to AI generation
         }
       }
 
@@ -313,7 +331,7 @@ export default function PracticeListeningScreen() {
         return;
       }
       setContent(normalized);
-      setStage('stage1_listen');
+      setStage(normalized.vocabulary.length > 0 ? 'vocab_prescreen' : 'stage1_listen');
     } catch (err: any) {
       setError(err.message || 'Generation failed');
     }
@@ -329,19 +347,27 @@ export default function PracticeListeningScreen() {
 
   // ─── Stage Transitions ─────────────────────────────
 
-  const handleStage1QuizComplete = useCallback(
-    (score: number) => {
-      setBeforeScore(score);
-      // Prepare shuffled questions for stage 4
-      if (content) {
-        setShuffledQuestions(shuffleQuestionOptions(content.questions));
-      }
-      setStage('stage2_subtitles');
+  const handleVocabComplete = useCallback(
+    (knownWords: string[]) => {
+      const totalVocab = content?.vocabulary.length || 0;
+      setWordsLearned(totalVocab - knownWords.length);
+      setStage('stage1_listen');
     },
     [content],
   );
 
-  const handleStage4QuizComplete = useCallback(
+  const handleStage1QuizComplete = useCallback(
+    (score: number) => {
+      setBeforeScore(score);
+      if (content) {
+        setShuffledQuestions(shuffleQuestionOptions(content.questions));
+      }
+      setStage('lyrics');
+    },
+    [content],
+  );
+
+  const handleStage3QuizComplete = useCallback(
     (score: number) => {
       setAfterScore(score);
       setStage('results');
@@ -360,20 +386,17 @@ export default function PracticeListeningScreen() {
     const practicePoints = 10 + Math.round(pct / 10);
     pointsRef.current = practicePoints;
 
-    // Save competency score
     const userId = user?.id;
     if (userId) {
       savePracticeScore(userId, 'listening', {
         communication: pct,
         fluency: pct,
-        articulation: 0,    // Not measured by listening comprehension
-        scenario: 0,        // Not measured by listening comprehension
+        articulation: 0,
+        scenario: 0,
       }).catch(() => {});
 
-      // Persist points
       updateStreakData(userId, practicePoints).catch(() => {});
 
-      // Signal lesson-session if inside a lesson
       if (isSessionActivity && params.activityId) {
         storeActivityCompletion(params.activityId, pct).catch(() => {});
       }
@@ -381,6 +404,23 @@ export default function PracticeListeningScreen() {
   }, [stage, afterScore, totalQuestions, user?.id, isSessionActivity, params.activityId]);
 
   // ─── Navigation ────────────────────────────────────
+
+  /** Confirm before exiting when inside a lesson session */
+  const handleBack = useCallback(() => {
+    stopSpeaking();
+    if (isSessionActivity) {
+      Alert.alert(
+        'Leave exercise?',
+        'Your progress on this activity will be lost.',
+        [
+          { text: 'Stay', style: 'cancel' },
+          { text: 'Leave', style: 'destructive', onPress: () => router.back() },
+        ],
+      );
+    } else {
+      router.back();
+    }
+  }, [isSessionActivity, router, stopSpeaking]);
 
   const handleDone = useCallback(() => {
     stopSpeaking();
@@ -402,7 +442,7 @@ export default function PracticeListeningScreen() {
   if (stage === 'loading') {
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => { stopSpeaking(); router.back(); }} />
+        <Header onBack={handleBack} />
         <View style={s.center}>
           <ActivityIndicator size="large" color={LISTENING.teal} />
           <Text style={s.loadingText}>Generating listening exercise...</Text>
@@ -423,12 +463,27 @@ export default function PracticeListeningScreen() {
 
   if (!content) return null;
 
-  // ─── QUIZ STAGES (Stage 1 and Stage 4) ─────────────
+  // ─── VOCAB PRE-SCREEN ─────────────────────────────
+  if (stage === 'vocab_prescreen') {
+    return (
+      <SafeAreaView style={s.container}>
+        <Header onBack={handleBack} />
+        <View style={s.stageBody}>
+          <VocabularyPreScreen
+            vocabulary={content.vocabulary}
+            onComplete={handleVocabComplete}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ─── QUIZ STAGES ─────────────────────────────────
   if (stage === 'stage1_quiz') {
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => { stopSpeaking(); router.back(); }} />
-        <StageIndicator currentStage={1} />
+        <Header onBack={handleBack} />
+        <StageIndicator currentStage={1} totalStages={3} />
         <ComprehensionQuiz
           questions={content.questions}
           isRevealMode={false}
@@ -438,15 +493,15 @@ export default function PracticeListeningScreen() {
     );
   }
 
-  if (stage === 'stage4_quiz') {
+  if (stage === 'stage3_quiz') {
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => { stopSpeaking(); router.back(); }} />
-        <StageIndicator currentStage={4} />
+        <Header onBack={handleBack} />
+        <StageIndicator currentStage={3} totalStages={3} />
         <ComprehensionQuiz
           questions={shuffledQuestions || content.questions}
           isRevealMode={true}
-          onComplete={handleStage4QuizComplete}
+          onComplete={handleStage3QuizComplete}
         />
       </SafeAreaView>
     );
@@ -454,14 +509,18 @@ export default function PracticeListeningScreen() {
 
   // ─── RESULTS ──────────────────────────────────────
   if (stage === 'results') {
+    const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => { stopSpeaking(); router.back(); }} />
+        <Header onBack={handleBack} />
         <ResultsComparison
           beforeScore={beforeScore}
           afterScore={afterScore}
           totalQuestions={totalQuestions}
           points={pointsRef.current}
+          wordsLearned={wordsLearned}
+          timeSpent={timeSpent}
+          lessonTitle={content.title}
           onNewExercise={handleNewExercise}
           onContinue={handleDone}
           continueLabel={isSessionActivity ? 'Continue Lesson' : 'Back to Practice'}
@@ -470,19 +529,12 @@ export default function PracticeListeningScreen() {
     );
   }
 
-  // ─── LISTEN / SUBTITLE STAGES ─────────────────────
+  // ─── LISTEN / LYRICS STAGES ─────────────────────
   const currentStageNum = stageToNumber(stage);
-  const subtitleMode: 'hidden' | 'target' | 'translation' =
-    stage === 'stage2_subtitles'
-      ? 'target'
-      : stage === 'stage3_translation'
-        ? 'translation'
-        : 'hidden';
+  const isListenStage = stage === 'stage1_listen' || stage === 'stage3_listen';
+  const isLyricsStage = stage === 'lyrics';
 
-  const actionLabel =
-    stage === 'stage1_listen' || stage === 'stage4_listen'
-      ? 'Answer Questions'
-      : 'Next Stage';
+  const actionLabel = isListenStage ? 'Answer Questions' : 'Next Stage';
 
   const handleAction = () => {
     stopSpeaking();
@@ -490,110 +542,98 @@ export default function PracticeListeningScreen() {
       case 'stage1_listen':
         setStage('stage1_quiz');
         break;
-      case 'stage2_subtitles':
-        setStage('stage3_translation');
+      case 'lyrics':
+        setStage('stage3_listen');
         break;
-      case 'stage3_translation':
-        setStage('stage4_listen');
-        break;
-      case 'stage4_listen':
-        setStage('stage4_quiz');
+      case 'stage3_listen':
+        setStage('stage3_quiz');
         break;
     }
   };
 
-  const showVocabSidebar =
-    (stage === 'stage1_listen' || stage === 'stage4_listen') &&
-    content.vocabulary.length > 0;
-
   return (
     <SafeAreaView style={s.container}>
-      <Header onBack={() => { stopSpeaking(); router.back(); }} />
+      <Header onBack={handleBack} />
 
       {/* Stage indicator */}
-      <StageIndicator currentStage={currentStageNum} />
+      <StageIndicator currentStage={currentStageNum} totalStages={3} />
 
-      {/* Audio controls */}
-      <View style={s.audioSection}>
-        <Animated.View entering={FadeIn.duration(300)} key={stage} style={s.audioContent}>
-          {/* Audio buttons */}
-          <View style={s.audioRow}>
-            <TouchableOpacity
-              onPress={isSpeaking ? stopSpeaking : () => speakDialogue(false)}
-              activeOpacity={0.7}
-            >
-              <LinearGradient
-                colors={LISTENING.tealGradient}
-                style={s.audioBtnMain}
-              >
-                <Ionicons
-                  name={isSpeaking ? 'stop' : 'play'}
-                  size={28}
-                  color="#FFFFFF"
-                />
-              </LinearGradient>
-            </TouchableOpacity>
+      {/* Main content area */}
+      <View style={s.mainContent}>
+        {isListenStage && (
+          <PureAudioStage
+            isSpeaking={isSpeaking}
+            variant={stage === 'stage1_listen' ? 'listen' : 'prove'}
+          />
+        )}
 
-            <TouchableOpacity
-              style={s.audioBtnSlow}
-              onPress={isSpeaking ? stopSpeaking : speakSlow}
-              activeOpacity={0.7}
-            >
-              <Text style={{ fontSize: 18 }}>🐢</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={s.audioHint}>
-            {isSpeaking ? 'Playing...' : 'Tap to play the dialogue'}
-          </Text>
-        </Animated.View>
+        {isLyricsStage && (
+          <LyricsSubtitleDisplay
+            dialogueLines={content.dialogueLines.map((line) => ({
+              speaker: line.speaker,
+              text: line.text,
+              translation: line.translation,
+            }))}
+            currentLineIndex={currentLineIndex}
+            audioProgress={audioProgress}
+            audioDuration={audioDuration}
+            audioCurrentTime={audioCurrentTime}
+          />
+        )}
       </View>
 
-      {/* Subtitle display area */}
-      <SubtitleDisplay
-        mode={subtitleMode}
-        dialogueLines={content.dialogueLines}
-      />
-
-      {/* Vocabulary sidebar */}
-      {showVocabSidebar && (
-        <View style={s.vocabBar}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}
-          >
-            {content.vocabulary.map((v, i) => (
-              <TouchableOpacity
-                key={i}
-                style={s.vocabChip}
-                onPress={() => {
-                  if (tts.isConfigured) {
-                    tts.speak(v.word).catch(() => {});
-                  } else {
-                    Speech.speak(v.word);
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={s.vocabWord}>{v.word}</Text>
-                {v.phonetic && <Text style={s.vocabPhonetic}>{v.phonetic}</Text>}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Action button */}
-      <View style={s.bottomBar}>
-        <TouchableOpacity onPress={handleAction} activeOpacity={0.8}>
+      {/* Audio controls — glass bar */}
+      <View style={s.audioBar}>
+        <TouchableOpacity
+          style={s.playBtnWrap}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            if (isSpeaking) { stopSpeaking(); } else { speakDialogue(false); }
+          }}
+          activeOpacity={0.8}
+        >
           <LinearGradient
             colors={LISTENING.tealGradient}
-            style={s.ctaBtn}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={s.playBtn}
           >
-            <Text style={s.ctaText}>{actionLabel}</Text>
-            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            <Ionicons
+              name={isSpeaking ? 'stop' : 'play'}
+              size={20}
+              color="#FFFFFF"
+            />
+            <Text style={s.playBtnText}>
+              {isSpeaking ? 'Stop' : 'Play Dialogue'}
+            </Text>
           </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={s.slowBtn}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (isSpeaking) { stopSpeaking(); } else { speakDialogue(true); }
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={s.slowBtnEmoji}>🐢</Text>
+          <Text style={s.slowBtnText}>Slow</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Action CTA */}
+      <View style={s.bottomBar}>
+        <TouchableOpacity
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            handleAction();
+          }}
+          activeOpacity={0.8}
+          style={s.ctaButton}
+        >
+          <Text style={s.ctaText}>{actionLabel}</Text>
+          <Ionicons name="arrow-forward" size={16} color={LISTENING.teal} />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -657,80 +697,83 @@ const s = StyleSheet.create({
     color: LISTENING.teal,
   },
 
-  // Audio section
-  audioSection: {
-    alignItems: 'center',
-    paddingVertical: 16,
+  // Stage body (vocab prescreen wrapper)
+  stageBody: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
-  audioContent: {
-    alignItems: 'center',
+
+  // Main content area (PureAudioStage or LyricsSubtitleDisplay)
+  mainContent: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
-  audioRow: {
+
+  // Audio controls — glass bar
+  audioBar: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 8,
+    gap: 10,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(6, 214, 160, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 214, 160, 0.12)',
   },
-  audioBtnMain: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  playBtnWrap: {
+    flex: 1,
+  },
+  playBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    borderRadius: 14,
   },
-  audioBtnSlow: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: LISTENING.glassBg,
-    borderWidth: 1,
-    borderColor: LISTENING.glassBorder,
-  },
-  audioHint: {
-    fontSize: 12,
-    color: LISTENING.textTertiary,
-  },
-
-  // Vocabulary sidebar
-  vocabBar: {
-    paddingVertical: 12,
-  },
-  vocabChip: {
-    backgroundColor: LISTENING.glassBg,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: LISTENING.glassBorder,
-    alignItems: 'center',
-  },
-  vocabWord: {
-    fontSize: 13,
+  playBtnText: {
+    fontSize: 15,
     fontWeight: '700',
-    color: LISTENING.textPrimary,
+    color: '#FFFFFF',
   },
-  vocabPhonetic: {
-    fontSize: 10,
+  slowBtn: {
+    width: 64,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  slowBtnEmoji: {
+    fontSize: 18,
+  },
+  slowBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
     color: LISTENING.textTertiary,
-    marginTop: 2,
   },
 
-  // Bottom bar
+  // Bottom CTA — glass outline (distinct from play button)
   bottomBar: {
-    padding: 20,
-    paddingBottom: 10,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
-  ctaBtn: {
+  ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    borderRadius: 14,
+    borderRadius: 16,
     paddingVertical: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(6, 214, 160, 0.25)',
   },
   ctaText: {
-    color: '#FFFFFF',
+    color: LISTENING.teal,
     fontSize: 16,
     fontWeight: '700',
   },

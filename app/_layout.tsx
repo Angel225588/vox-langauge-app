@@ -174,7 +174,6 @@ export default function RootLayout() {
           <Stack.Screen name="test-voice-system" options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen name="test-gemini-live" options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen name="test-interactive-scenario" options={{ headerShown: false, presentation: 'modal' }} />
-          <Stack.Screen name="test-writing-task" options={{ headerShown: false, presentation: 'modal' }} />
           </Stack>
         </TamaguiProvider>
       </ConditionalElevenLabsProvider>

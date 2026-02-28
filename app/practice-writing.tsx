@@ -20,6 +20,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,6 +38,7 @@ import { updateStreakData } from '@/lib/db/sqlite';
 import { analyzeWriting } from '@/lib/writing';
 import type { WritingTask, TaskCategory } from '@/components/cards/writing/types';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
+import { saveWritingHistoryEntry } from '@/lib/db/writingHistory';
 
 // ─── Palette ───
 const C = {
@@ -218,10 +220,32 @@ export default function PracticeWritingScreen() {
       if (isSessionActivity && params.activityId) {
         storeActivityCompletion(params.activityId, overallScore).catch(() => {});
       }
+
+      // Persist writing session for later review
+      saveWritingHistoryEntry({
+        id: `writing_${Date.now()}`,
+        timestamp: Date.now(),
+        prompt: { title: prompt.title, scenario: prompt.scenario, prompt: prompt.prompt },
+        userText,
+        feedback: {
+          score: overallScore,
+          summary: analysis.overallFeedback,
+          strengths: analysis.strengths,
+          improvements: analysis.areasToImprove,
+          correctedText,
+        },
+        stairStepId: params.stairStepId,
+      }).catch(() => {});
     } catch (err) {
       console.error('[Writing] Analyzer failed, using inline fallback:', err);
       // ── Fallback: use generic Gemini prompt if analyzer fails ──
       let fallbackScore = 65;
+      let fallbackFeedback: WritingFeedback = {
+        score: 65,
+        summary: 'Could not generate detailed feedback. Keep writing!',
+        strengths: ['You completed the writing exercise'],
+        improvements: ['Practice with more writing prompts'],
+      };
       try {
         const feedbackPrompt = `You are a language tutor evaluating a student's writing.
 
@@ -252,24 +276,20 @@ Respond in JSON:
         const jsonMatch = raw.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]) as WritingFeedback;
-          setFeedback(parsed);
+          fallbackFeedback = parsed;
           fallbackScore = parsed.score || 65;
         } else {
-          setFeedback({
+          fallbackFeedback = {
             score: 65,
             summary: 'Your writing shows effort. Keep practicing!',
             strengths: ['You attempted the writing task', 'Good effort with vocabulary'],
             improvements: ['Try using more key phrases', 'Review grammar patterns'],
-          });
+          };
         }
       } catch {
-        setFeedback({
-          score: 65,
-          summary: 'Could not generate detailed feedback. Keep writing!',
-          strengths: ['You completed the writing exercise'],
-          improvements: ['Practice with more writing prompts'],
-        });
+        // fallbackFeedback already set to default above
       }
+      setFeedback(fallbackFeedback);
       setPhase('feedback');
       if (user?.id) {
         savePracticeScore(user.id, 'writing', {
@@ -284,10 +304,42 @@ Respond in JSON:
       if (isSessionActivity && params.activityId) {
         storeActivityCompletion(params.activityId, fallbackScore).catch(() => {});
       }
+
+      // Persist writing session for later review (fallback path)
+      saveWritingHistoryEntry({
+        id: `writing_${Date.now()}`,
+        timestamp: Date.now(),
+        prompt: { title: prompt.title, scenario: prompt.scenario, prompt: prompt.prompt },
+        userText,
+        feedback: {
+          score: fallbackFeedback.score,
+          summary: fallbackFeedback.summary,
+          strengths: fallbackFeedback.strengths,
+          improvements: fallbackFeedback.improvements,
+          correctedText: fallbackFeedback.correctedText,
+        },
+        stairStepId: params.stairStepId,
+      }).catch(() => {});
     } finally {
       setSubmitting(false);
     }
   }, [prompt, userText, submitting]);
+
+  /** Confirm before exiting when inside a lesson session */
+  const handleBack = useCallback(() => {
+    if (isSessionActivity) {
+      Alert.alert(
+        'Leave exercise?',
+        'Your progress on this activity will be lost.',
+        [
+          { text: 'Stay', style: 'cancel' },
+          { text: 'Leave', style: 'destructive', onPress: () => router.back() },
+        ],
+      );
+    } else {
+      router.back();
+    }
+  }, [isSessionActivity, router]);
 
   // Return to lesson session or practice tab
   const handleDone = useCallback(() => {
@@ -304,7 +356,7 @@ Respond in JSON:
   if (phase === 'loading') {
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => router.back()} />
+        <Header onBack={handleBack} />
         <View style={s.center}>
           <ActivityIndicator size="large" color={C.gold} />
           <Text style={s.loadingText}>Generating your writing prompt...</Text>
@@ -325,7 +377,7 @@ Respond in JSON:
   if (phase === 'prompt') {
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => router.back()} />
+        <Header onBack={handleBack} />
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
           <Animated.View entering={FadeInDown.duration(400)}>
             <Text style={s.title}>{prompt.title}</Text>
@@ -449,7 +501,7 @@ Respond in JSON:
   // ═══ FEEDBACK PHASE ═══
   return (
     <SafeAreaView style={s.container}>
-      <Header onBack={() => router.back()} />
+      <Header onBack={handleBack} />
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.duration(400)}>
           {/* Score */}

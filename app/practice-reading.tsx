@@ -9,7 +9,7 @@
  * - Practice tab: AI-generated via practiceGenerator
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
+  Animated as RNAnimated,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -63,11 +65,15 @@ export default function PracticeReadingScreen() {
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const translationOpacity = useRef(new RNAnimated.Value(0)).current;
 
   const loadContent = useCallback(async () => {
     setPhase('loading');
     setError(null);
     setCurrentQ(0);
+    setShowTranslation(false);
+    translationOpacity.setValue(0);
 
     try {
       // Try discovery content from route params first (lesson session mode)
@@ -77,6 +83,7 @@ export default function PracticeReadingScreen() {
         const normalized: ReadingPassage = {
           title: parsed.title,
           passage: parsed.passage,
+          translation: parsed.translation,
           wordCount: parsed.wordCount || parsed.passage.split(' ').length,
           difficulty: 'READING',
           targetVocabulary: parsed.targetVocabulary || [],
@@ -113,6 +120,16 @@ export default function PracticeReadingScreen() {
   useEffect(() => {
     loadContent();
   }, []);
+
+  const toggleTranslation = useCallback(() => {
+    const next = !showTranslation;
+    setShowTranslation(next);
+    RNAnimated.timing(translationOpacity, {
+      toValue: next ? 1 : 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [showTranslation, translationOpacity]);
 
   const handleStartQuestions = () => {
     setPhase('questions');
@@ -163,6 +180,22 @@ export default function PracticeReadingScreen() {
     }
   }, [phase]);
 
+  /** Confirm before exiting when inside a lesson session */
+  const handleBack = useCallback(() => {
+    if (isSessionActivity) {
+      Alert.alert(
+        'Leave exercise?',
+        'Your progress on this activity will be lost.',
+        [
+          { text: 'Stay', style: 'cancel' },
+          { text: 'Leave', style: 'destructive', onPress: () => router.back() },
+        ],
+      );
+    } else {
+      router.back();
+    }
+  }, [isSessionActivity, router]);
+
   // Return to lesson session or practice tab
   const handleDone = useCallback(() => {
     if (isSessionActivity) {
@@ -176,7 +209,7 @@ export default function PracticeReadingScreen() {
   if (phase === 'loading') {
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => router.back()} />
+        <Header onBack={handleBack} />
         <View style={s.center}>
           <ActivityIndicator size="large" color={C.purple} />
           <Text style={s.loadingText}>Generating your reading passage...</Text>
@@ -197,7 +230,7 @@ export default function PracticeReadingScreen() {
   if (phase === 'reading') {
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => router.back()} />
+        <Header onBack={handleBack} />
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
           <Animated.View entering={FadeInDown.duration(400)}>
             {/* Title */}
@@ -215,6 +248,33 @@ export default function PracticeReadingScreen() {
             <View style={s.passageCard}>
               <Text style={s.passageText}>{passage.passage}</Text>
             </View>
+
+            {/* Translation toggle */}
+            {passage.translation ? (
+              <View style={s.translationSection}>
+                <TouchableOpacity
+                  style={s.translationToggle}
+                  onPress={toggleTranslation}
+                  activeOpacity={0.7}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name={showTranslation ? 'eye-off-outline' : 'eye-outline'}
+                    size={16}
+                    color={C.sub}
+                  />
+                  <Text style={s.translationToggleText}>
+                    {showTranslation ? 'Hide translation' : 'Show translation'}
+                  </Text>
+                </TouchableOpacity>
+
+                {showTranslation && (
+                  <RNAnimated.View style={[s.translationCard, { opacity: translationOpacity }]}>
+                    <Text style={s.translationText}>{passage.translation}</Text>
+                  </RNAnimated.View>
+                )}
+              </View>
+            ) : null}
 
             {/* Vocab highlight */}
             {passage.targetVocabulary && passage.targetVocabulary.length > 0 && (
@@ -259,7 +319,7 @@ export default function PracticeReadingScreen() {
 
     return (
       <SafeAreaView style={s.container}>
-        <Header onBack={() => router.back()} />
+        <Header onBack={handleBack} />
         <View style={s.qProgress}>
           {passage.comprehensionQuestions.map((_, i) => (
             <View
@@ -318,7 +378,7 @@ export default function PracticeReadingScreen() {
   // ═══ SCORE PHASE ═══
   return (
     <SafeAreaView style={s.container}>
-      <Header onBack={() => router.back()} />
+      <Header onBack={handleBack} />
       <View style={s.center}>
         <Animated.View entering={FadeInDown.duration(500)} style={{ alignItems: 'center' }}>
           <View style={s.scoreCircle}>
@@ -394,6 +454,22 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.border,
   },
   passageText: { fontSize: 16, lineHeight: 26, color: C.text },
+
+  translationSection: { marginTop: 12 },
+  translationToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 8,
+  },
+  translationToggleText: {
+    fontSize: 13, fontWeight: '600', color: C.sub,
+  },
+  translationCard: {
+    backgroundColor: C.card, borderRadius: 12, padding: 16,
+    borderWidth: 1, borderColor: C.border, marginTop: 4,
+  },
+  translationText: {
+    fontSize: 15, lineHeight: 24, color: C.sub, fontStyle: 'italic',
+  },
 
   vocabSection: { marginTop: 16 },
   vocabLabel: { fontSize: 12, fontWeight: '600', color: C.sub, marginBottom: 8 },

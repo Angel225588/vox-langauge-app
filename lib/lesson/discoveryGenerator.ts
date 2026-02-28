@@ -80,6 +80,7 @@ export interface ReadingContent {
   type: 'reading';
   title: string;
   passage: string;
+  translation?: string;
   wordCount: number;
   targetVocabulary: string[];
   comprehensionQuestions: ComprehensionQuestion[];
@@ -339,6 +340,7 @@ ${vocabWords}
 ## Requirements:
 - Write the passage IN THE TARGET LANGUAGE (${profile.targetLanguage})
 - ${targetWordCount} words, professional/realistic context
+- Include a full translation of the passage in the native language (${profile.nativeLanguage})
 - Include ${questionCount} comprehension questions in the native language (${profile.nativeLanguage})
 - Each question has 4 options with one correct answer
 - Questions test understanding, not translation
@@ -347,6 +349,7 @@ ${vocabWords}
 {
   "title": "Passage title (in target language)",
   "passage": "The full reading passage in target language...",
+  "translation": "Full translation of the passage in native language...",
   "wordCount": ${targetWordCount},
   "targetVocabulary": ["word1", "word2"],
   "comprehensionQuestions": [
@@ -505,10 +508,12 @@ function createFallbackReadingContent(
 ): ReadingContent {
   const vocab = words.slice(0, 8);
   const passage = vocab.map((w) => w.exampleSentences?.[0] || w.word).join('. ') + '.';
+  const translation = vocab.map((w) => w.translation).join('. ') + '.';
   return {
     type: 'reading',
     title: 'First Reading Practice',
     passage,
+    translation,
     wordCount: passage.split(/\s+/).length,
     targetVocabulary: vocab.map((w) => w.word),
     comprehensionQuestions: [
@@ -545,6 +550,23 @@ function createFallbackWritingContent(
 // ─── Main Generator ──────────────────────────────────
 
 /**
+ * Validate that cached content types match the plan's activity types.
+ * Returns true if cache is valid, false if stale.
+ */
+function isCacheValid(cached: DiscoveryLessonContent, plan: LessonPlan): boolean {
+  for (const activity of plan.activities) {
+    const content = cached.activities[activity.id];
+    if (content && content.type !== activity.type) {
+      console.warn(
+        `[DiscoveryGenerator] Cache mismatch: activity ${activity.id} expects '${activity.type}' but cache has '${content.type}'`,
+      );
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Generate all content for a discovery lesson plan.
  *
  * For each activity in the plan, generates the appropriate content
@@ -556,11 +578,15 @@ export async function generateDiscoveryLessonContent(
   plan: LessonPlan,
   userId: string,
 ): Promise<DiscoveryLessonContent> {
-  // Check cache first
+  // Check cache first — validate types match the plan
   const cached = await getCachedContent(plan.id);
-  if (cached) {
+  if (cached && isCacheValid(cached, plan)) {
     console.log('[DiscoveryGenerator] Using cached content for', plan.id);
     return cached;
+  }
+  if (cached) {
+    console.warn('[DiscoveryGenerator] Stale cache detected, regenerating for', plan.id);
+    await clearDiscoveryCache(plan.id);
   }
 
   const profile = getUserProfile();
@@ -682,11 +708,15 @@ export async function generateFirstActivityContent(
   plan: LessonPlan,
   userId: string,
 ): Promise<DiscoveryLessonContent> {
-  // Check cache first — if any content exists, use it
+  // Check cache first — if valid content exists, use it
   const cached = await getCachedContent(plan.id);
-  if (cached && Object.keys(cached.activities).length > 0) {
+  if (cached && Object.keys(cached.activities).length > 0 && isCacheValid(cached, plan)) {
     console.log('[DiscoveryGenerator] First activity already cached for', plan.id);
     return cached;
+  }
+  if (cached && !isCacheValid(cached, plan)) {
+    console.warn('[DiscoveryGenerator] Stale cache in first activity, clearing for', plan.id);
+    await clearDiscoveryCache(plan.id);
   }
 
   const profile = getUserProfile();
@@ -725,10 +755,23 @@ export async function generateRemainingActivities(
 ): Promise<DiscoveryLessonContent> {
   // Load existing cache (should have first activity from creating-path)
   const existing = await getCachedContent(plan.id);
-  const activities: Record<string, ActivityContent> = { ...(existing?.activities || {}) };
 
-  // Check if all activities are already generated
-  const missing = plan.activities.filter(a => !activities[a.id]);
+  // Validate cache isn't stale (activity types must match plan)
+  const cacheValid = existing ? isCacheValid(existing, plan) : true;
+  const activities: Record<string, ActivityContent> = cacheValid
+    ? { ...(existing?.activities || {}) }
+    : {};
+
+  if (!cacheValid) {
+    console.warn('[DiscoveryGenerator] Stale cache in remaining activities, clearing for', plan.id);
+    await clearDiscoveryCache(plan.id);
+  }
+
+  // Check if all activities are already generated (with correct types)
+  const missing = plan.activities.filter(a => {
+    const cached = activities[a.id];
+    return !cached || cached.type !== a.type;
+  });
   if (missing.length === 0) {
     console.log('[DiscoveryGenerator] All activities already cached for', plan.id);
     return existing!;
