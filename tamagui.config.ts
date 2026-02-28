@@ -129,9 +129,9 @@ const customTokens = createTokens({
   },
 })
 
-// Create fonts
+// Create fonts — DM Sans for headings, Source Sans 3 for body
 const headingFont = {
-  family: 'System',
+  family: 'DMSans_400Regular',
   size: {
     1: 11,
     2: 12,
@@ -177,23 +177,25 @@ const headingFont = {
     16: 174,
   },
   weight: {
-    1: '300',
+    1: '400',
     3: '600',
-    4: '900',
+    4: '700',
   },
   letterSpacing: {
     1: 0,
     2: -1,
   },
   face: {
-    300: { normal: 'System' },
-    600: { normal: 'System' },
-    900: { normal: 'System' },
+    400: { normal: 'DMSans_400Regular' },
+    500: { normal: 'DMSans_500Medium' },
+    600: { normal: 'DMSans_600SemiBold' },
+    700: { normal: 'DMSans_700Bold' },
+    800: { normal: 'DMSans_800ExtraBold' },
   },
 }
 
 const bodyFont = {
-  family: 'System',
+  family: 'SourceSans3_400Regular',
   size: {
     1: 11,
     2: 12,
@@ -239,18 +241,19 @@ const bodyFont = {
     16: 174,
   },
   weight: {
-    1: '300',
+    1: '400',
     3: '600',
-    4: '900',
+    4: '700',
   },
   letterSpacing: {
     1: 0,
     2: -1,
   },
   face: {
-    300: { normal: 'System' },
-    600: { normal: 'System' },
-    900: { normal: 'System' },
+    400: { normal: 'SourceSans3_400Regular' },
+    500: { normal: 'SourceSans3_500Medium' },
+    600: { normal: 'SourceSans3_600SemiBold' },
+    700: { normal: 'SourceSans3_700Bold' },
   },
 }
 

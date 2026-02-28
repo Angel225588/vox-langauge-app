@@ -22,6 +22,7 @@ import {
   typography,
   colors,
 } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 interface GlassInputProps extends Omit<TextInputProps, 'style'> {
   /** Label shown above input */
@@ -117,7 +118,7 @@ export function GlassInput({
 const styles = StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.secondary,
     marginBottom: spacing.sm,
   },
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.primary,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
   },
   inputLarge: {
     fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     paddingVertical: spacing.lg,
     textAlign: 'center',
   },

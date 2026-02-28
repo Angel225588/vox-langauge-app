@@ -3,6 +3,16 @@ import { View, Text, ActivityIndicator, useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TamaguiProvider } from 'tamagui';
+import { useFonts } from 'expo-font';
+import {
+  DMSans_400Regular, DMSans_500Medium,
+  DMSans_600SemiBold, DMSans_700Bold, DMSans_800ExtraBold,
+} from '@expo-google-fonts/dm-sans';
+import {
+  SourceSans3_400Regular, SourceSans3_500Medium,
+  SourceSans3_600SemiBold, SourceSans3_700Bold,
+} from '@expo-google-fonts/source-sans-3';
+import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
 import { validateEnvironment, logEnvironmentStatus } from '@/lib/config/env';
 import { colors } from '@/constants/designSystem';
 import { initializeFlashcardDB, insertSampleFlashcards } from '@/lib/db/flashcards';
@@ -35,6 +45,14 @@ export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const colorScheme = useColorScheme();
+
+  const [fontsLoaded] = useFonts({
+    DMSans_400Regular, DMSans_500Medium,
+    DMSans_600SemiBold, DMSans_700Bold, DMSans_800ExtraBold,
+    SourceSans3_400Regular, SourceSans3_500Medium,
+    SourceSans3_600SemiBold, SourceSans3_700Bold,
+    DMMono_400Regular, DMMono_500Medium,
+  });
 
   useEffect(() => {
     async function prepare() {
@@ -102,8 +120,8 @@ export default function RootLayout() {
     );
   }
 
-  // Show loading screen while initializing
-  if (!isReady) {
+  // Show loading screen while initializing (DB + fonts)
+  if (!isReady || !fontsLoaded) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator size="large" color={colors.accent.blue} />

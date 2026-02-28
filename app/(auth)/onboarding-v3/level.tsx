@@ -17,6 +17,7 @@ import { GlassProgressBar } from '@/components/ui/glass/GlassProgressBar';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useOnboardingV3, type ProficiencyLevel } from '@/hooks/useOnboardingV3';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 const TOTAL_STEPS = 6;
 
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: typography.fontSize['3xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
     lineHeight: typography.fontSize['3xl'] * 1.2,
   },
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   },
   levelLabel: {
     fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.text.secondary,
   },
   levelLabelSelected: {
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   },
   levelDesc: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.disabled,
   },
   levelDescSelected: {
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
   },
   checkIcon: {
     fontSize: 14,
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: '#FFFFFF',
   },
 

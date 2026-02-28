@@ -14,6 +14,9 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@elevenlabs/react-native": "^0.5.7",
+    "@expo-google-fonts/dm-mono": "^0.4.2",
+    "@expo-google-fonts/dm-sans": "^0.4.2",
+    "@expo-google-fonts/source-sans-3": "^0.4.1",
     "@google/generative-ai": "^0.24.1",
     "@livekit/react-native": "^2.9.6",
     "@livekit/react-native-webrtc": "^137.0.2",
@@ -34,6 +37,7 @@
     "expo-dev-client": "~6.0.20",
     "expo-edge-speech": "^0.1.1",
     "expo-file-system": "~19.0.19",
+    "expo-font": "^55.0.4",
     "expo-haptics": "~15.0.7",
     "expo-linear-gradient": "~15.0.7",
     "expo-linking": "~8.0.9",

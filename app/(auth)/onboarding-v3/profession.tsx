@@ -27,6 +27,7 @@ import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { GlassProgressBar } from '@/components/ui/glass/GlassProgressBar';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { colors, spacing, typography, borderRadius, glass } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 const TOTAL_STEPS = 6;
 
@@ -394,13 +395,13 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: typography.fontSize['3xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.tertiary,
     marginBottom: spacing.xl,
   },
@@ -443,7 +444,7 @@ const styles = StyleSheet.create({
   // Label
   profLabel: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.text.secondary,
     lineHeight: typography.fontSize.sm * 1.4,
   },
@@ -463,7 +464,7 @@ const styles = StyleSheet.create({
   },
   otherLabel: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.tertiary,
     lineHeight: typography.fontSize.sm * 1.4,
   },
@@ -493,7 +494,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
   },
 
@@ -513,7 +514,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.primary,
     height: '100%',
   },
@@ -539,11 +540,11 @@ const styles = StyleSheet.create({
   },
   customOptionText: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.secondary,
   },
   customOptionBold: {
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.primary.light,
   },
 
@@ -567,7 +568,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.secondary,
   },
 });

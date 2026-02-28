@@ -15,6 +15,7 @@ import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { GlassProgressBar } from '@/components/ui/glass/GlassProgressBar';
 import { useOnboardingV3, type TargetLanguage } from '@/hooks/useOnboardingV3';
 import { colors, spacing, typography, borderRadius, glass } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 const TOTAL_STEPS = 6;
 
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: typography.fontSize['3xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
   },
 
@@ -232,12 +233,12 @@ const styles = StyleSheet.create({
   },
   cardName: {
     fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
   },
   cardNative: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.tertiary,
   },
   cardFlag: {

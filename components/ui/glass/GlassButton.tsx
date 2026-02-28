@@ -29,6 +29,7 @@ import {
   typography,
   colors,
 } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -104,7 +105,7 @@ export function GlassButton({
               style={[
                 {
                   fontSize: sizeStyle.fontSize,
-                  fontWeight: typography.fontWeight.semibold,
+                  fontFamily: fonts.display.semibold,
                   color: isPrimary ? '#0A0E1A' : colors.text.primary,
                 },
                 textStyle,

@@ -15,6 +15,7 @@ import { GlassInput } from '@/components/ui/glass/GlassInput';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { colors, spacing, typography } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 const TOTAL_STEPS = 6;
 
@@ -100,13 +101,13 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: typography.fontSize['3xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.tertiary,
     marginBottom: spacing['2xl'],
   },

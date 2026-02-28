@@ -15,6 +15,7 @@ import {
   typography,
   colors,
 } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -105,7 +106,7 @@ export function GlassBadge({
         style={[
           {
             fontSize: s.fontSize,
-            fontWeight: selected ? typography.fontWeight.semibold : typography.fontWeight.medium,
+            fontFamily: selected ? fonts.display.semibold : fonts.body.medium,
             color: textColor,
           },
           textStyle,

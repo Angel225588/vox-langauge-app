@@ -39,6 +39,7 @@ import { generateInitialVocabulary } from '@/lib/word-bank/initialVocabGenerator
 import { generateLessonPlan, generateFirstActivityContent } from '@/lib/lesson';
 import { storeActiveLessonPlan } from '@/app/lesson-session';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 import { buildLanguageRecommendation, saveAILanguageRecommendation } from '@/lib/storage/languageStorage';
 import { getDeviceLanguage } from '@/i18n/utils/languageDetector';
 import { invalidateIfProfileChanged } from '@/lib/utils/profileFingerprint';
@@ -447,14 +448,14 @@ const styles = StyleSheet.create({
   },
   mainPhrase: {
     fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   subPhrase: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.tertiary,
     textAlign: 'center',
   },
@@ -511,13 +512,13 @@ const styles = StyleSheet.create({
   // Step labels
   stepLabel: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: 'rgba(255, 255, 255, 0.4)',
     flex: 1,
   },
   stepLabelActive: {
     color: colors.text.primary,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
   },
   stepLabelDone: {
     color: colors.text.secondary,

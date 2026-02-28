@@ -25,6 +25,7 @@ import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, spacing, typography, glass } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 // ─── Value Reminders ────────────────────────────────
 
@@ -229,13 +230,13 @@ const styles = StyleSheet.create({
 
   header: {
     fontSize: typography.fontSize['3xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.secondary,
     marginBottom: spacing.xl,
   },
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
   },
   valueText: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.secondary,
   },
 
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   },
   privacyNote: {
     fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.disabled,
     textAlign: 'center',
   },
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
   },
   signInLink: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.primary.light,
   },
 });

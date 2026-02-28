@@ -18,6 +18,7 @@ import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { GlassInput } from '@/components/ui/glass/GlassInput';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { colors, spacing, typography, borderRadius, glass } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 const TOTAL_STEPS = 6;
 
@@ -281,13 +282,13 @@ const styles = StyleSheet.create({
   // Header — dual font styling
   header: {
     fontSize: typography.fontSize['3xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
     lineHeight: typography.fontSize['3xl'] * 1.2,
   },
   headerHint: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     fontStyle: 'italic',
     color: colors.text.disabled,
     marginTop: spacing.xs,
@@ -328,13 +329,13 @@ const styles = StyleSheet.create({
   goalLabel: {
     flex: 1,
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.secondary,
     lineHeight: typography.fontSize.base * 1.35,
   },
   goalLabelSelected: {
     color: colors.text.primary,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
   },
 
   // Custom "Something else?" card
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
   },
   customCardLabel: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.tertiary,
   },
 
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
   },
   backToOptions: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.primary.light,
     paddingVertical: spacing.sm,
   },

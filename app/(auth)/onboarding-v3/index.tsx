@@ -26,6 +26,7 @@ import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { useLanguage } from '@/i18n/hooks/useLanguage';
 import { LANGUAGES_WITH_TRANSLATIONS, type SupportedLanguageCode, getLanguageInfo } from '@/i18n/types';
 import { colors, spacing, typography } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 // ─── Crystal Logo ───────────────────────────────────
 
@@ -263,7 +264,7 @@ const styles = StyleSheet.create({
   },
   brandName: {
     fontSize: typography.fontSize['4xl'],
-    fontWeight: typography.fontWeight.extrabold,
+    fontFamily: fonts.display.extrabold,
     color: colors.text.primary,
     letterSpacing: 4,
     textAlign: 'center',
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.secondary,
     textAlign: 'center',
     lineHeight: typography.fontSize.xl * 1.5,
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
   },
   promiseText: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.tertiary,
     textAlign: 'center',
     lineHeight: typography.fontSize.sm * 1.6,
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
   },
   langChange: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.primary.light,
   },
 
@@ -334,7 +335,7 @@ const styles = StyleSheet.create({
   },
   signInLink: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.primary.light,
   },
 });

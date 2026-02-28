@@ -22,6 +22,7 @@ import { GlassInput } from '@/components/ui/glass/GlassInput';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, spacing, typography } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -147,13 +148,13 @@ const styles = StyleSheet.create({
 
   header: {
     fontSize: typography.fontSize['3xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.secondary,
     marginBottom: spacing['2xl'],
   },
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
   },
   signUpLink: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.primary.light,
   },
 });

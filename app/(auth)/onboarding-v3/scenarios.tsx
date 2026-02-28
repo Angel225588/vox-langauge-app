@@ -27,6 +27,7 @@ import { GlassProgressBar } from '@/components/ui/glass/GlassProgressBar';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { colors, spacing, typography, borderRadius, glass } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 const TOTAL_STEPS = 6;
 const MAX_SCENARIOS = 5;
@@ -501,7 +502,7 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: typography.fontSize['3xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
     flex: 1,
     lineHeight: typography.fontSize['3xl'] * 1.2,
@@ -520,7 +521,7 @@ const styles = StyleSheet.create({
   },
   counterText: {
     fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.primary.light,
   },
   addButton: {
@@ -533,7 +534,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.tertiary,
     marginBottom: spacing.lg,
   },
@@ -578,12 +579,12 @@ const styles = StyleSheet.create({
   scenarioLabel: {
     flex: 1,
     fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.secondary,
   },
   scenarioLabelSelected: {
     color: colors.text.primary,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
   },
   scenarioLabelDisabled: {
     color: colors.text.disabled,
@@ -614,7 +615,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
   },
   sheetInputContainer: {
@@ -627,12 +628,12 @@ const styles = StyleSheet.create({
   },
   sheetInput: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.primary,
   },
   sheetHint: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.disabled,
     lineHeight: typography.fontSize.sm * 1.5,
     marginBottom: spacing.xl,

@@ -17,6 +17,7 @@ import { GlassBadge } from '@/components/ui/glass/GlassBadge';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { getLevelGroup, getLessonTemplate, getActivityColor } from '@/lib/lesson';
 import { colors, spacing, typography, glass, borderRadius } from '@/constants/designSystem';
+import { fonts } from '@/constants/fonts';
 
 const LANG_DISPLAY: Record<string, string> = {
   english: 'English',
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
   },
   lessonLabel: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.tertiary,
   },
 
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
   },
   scenarioTitle: {
     fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: fonts.display.bold,
     color: colors.text.primary,
     marginBottom: spacing.lg,
   },
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.secondary,
     textTransform: 'capitalize',
   },
@@ -237,7 +238,7 @@ const styles = StyleSheet.create({
   },
   discoveryTitle: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.text.primary,
   },
   durationBadge: {
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   },
   durationText: {
     fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.secondary,
   },
 
@@ -294,12 +295,12 @@ const styles = StyleSheet.create({
   },
   activityTitle: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.text.primary,
   },
   activityDuration: {
     fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: fonts.body.medium,
     color: colors.text.tertiary,
   },
   activityDescription: {
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
   },
   previewLabel: {
     fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
+    fontFamily: fonts.display.semibold,
     color: colors.text.tertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
 
   warmMessage: {
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    fontFamily: fonts.body.regular,
     color: colors.text.tertiary,
     textAlign: 'center',
     lineHeight: typography.fontSize.base * 1.5,

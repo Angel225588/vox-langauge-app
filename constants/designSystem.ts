@@ -259,13 +259,38 @@ export const typography = {
     '5xl': 48,
   },
 
-  // Font weights
+  // Font weights (kept for backward compat — prefer fontFamily from fonts.ts)
   fontWeight: {
     normal: '400' as const,
     medium: '500' as const,
     semibold: '600' as const,
     bold: '700' as const,
     extrabold: '800' as const,
+  },
+
+  // Font families — semantic roles mapped to loaded font names
+  // Import { fonts } from '@/constants/fonts' for direct use in styles
+  fontFamily: {
+    // Display — DM Sans (headlines, brand, large text)
+    display: {
+      regular:   'DMSans_400Regular',
+      medium:    'DMSans_500Medium',
+      semibold:  'DMSans_600SemiBold',
+      bold:      'DMSans_700Bold',
+      extrabold: 'DMSans_800ExtraBold',
+    },
+    // Body — Source Sans 3 (UI text, descriptions, paragraphs)
+    body: {
+      regular:  'SourceSans3_400Regular',
+      medium:   'SourceSans3_500Medium',
+      semibold: 'SourceSans3_600SemiBold',
+      bold:     'SourceSans3_700Bold',
+    },
+    // Mono — DM Mono (phonetics, code, technical)
+    mono: {
+      regular: 'DMMono_400Regular',
+      medium:  'DMMono_500Medium',
+    },
   },
 };
 

@@ -98,30 +98,30 @@ export const brandColors = {
 /**
  * Brand typography configuration.
  *
- * Primary: Inter - for body text and UI
- * Display: Poppins - for headlines and brand name
+ * Display: DM Sans — geometric humanist, confident, modern
+ * Body:    Source Sans 3 — Adobe, designed for readability at all sizes
+ * Mono:    DM Mono — monospace sibling of DM Sans
  */
 export const brandTypography = {
   // Font families
   fonts: {
-    display: 'Poppins',      // Headlines, brand name
-    body: 'Inter',           // Body text, UI elements
-    mono: 'JetBrains Mono',  // Code, technical content
+    display: 'DM Sans',       // Headlines, brand name
+    body: 'Source Sans 3',    // Body text, UI elements
+    mono: 'DM Mono',          // Code, technical content, phonetics
   },
 
   // Logo-specific typography
   logo: {
-    fontFamily: 'Poppins',
-    fontWeight: '700' as const, // Bold
-    letterSpacing: 2,           // Slightly expanded
+    fontFamily: 'DMSans_800ExtraBold',
+    letterSpacing: 2,
   },
 
-  // Headline styles
+  // Headline styles (fontFamily embeds weight — no separate fontWeight needed)
   headlines: {
-    h1: { fontSize: 32, fontWeight: '700' as const, letterSpacing: -0.5 },
-    h2: { fontSize: 24, fontWeight: '600' as const, letterSpacing: -0.3 },
-    h3: { fontSize: 20, fontWeight: '600' as const, letterSpacing: 0 },
-    h4: { fontSize: 18, fontWeight: '500' as const, letterSpacing: 0 },
+    h1: { fontSize: 32, fontFamily: 'DMSans_700Bold', letterSpacing: -0.5 },
+    h2: { fontSize: 24, fontFamily: 'DMSans_600SemiBold', letterSpacing: -0.3 },
+    h3: { fontSize: 20, fontFamily: 'DMSans_600SemiBold', letterSpacing: 0 },
+    h4: { fontSize: 18, fontFamily: 'DMSans_500Medium', letterSpacing: 0 },
   },
 } as const;
 
