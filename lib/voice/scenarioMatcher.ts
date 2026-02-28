@@ -27,7 +27,12 @@ export type ProficiencyType =
   | 'elementary'
   | 'intermediate'
   | 'upper_intermediate'
-  | 'advanced';
+  | 'advanced'
+  | 'starting_fresh'
+  | 'basics'
+  | 'conversational'
+  | 'confident'
+  | 'near_fluent';
 
 export interface UserProfile {
   targetLanguage: SupportedLanguage;
@@ -64,11 +69,18 @@ const MOTIVATION_TO_CATEGORIES: Record<MotivationType, VoiceScenario['category']
  * Difficulties: 'beginner' | 'intermediate' | 'advanced'
  */
 const PROFICIENCY_TO_DIFFICULTY: Record<ProficiencyType, VoiceScenario['difficulty'][]> = {
+  // Standard proficiency levels
   beginner: ['beginner'],
   elementary: ['beginner'],
   intermediate: ['beginner', 'intermediate'],
   upper_intermediate: ['intermediate', 'advanced'],
   advanced: ['intermediate', 'advanced'],
+  // Onboarding V3 proficiency levels (same mapping)
+  starting_fresh: ['beginner'],
+  basics: ['beginner'],
+  conversational: ['beginner', 'intermediate'],
+  confident: ['intermediate', 'advanced'],
+  near_fluent: ['intermediate', 'advanced'],
 };
 
 /**
@@ -110,7 +122,7 @@ export function getScenariosForUser(profile: UserProfile): MatchedScenario[] {
 
     // Score based on difficulty match
     if (proficiencyLevel) {
-      const appropriateDifficulties = PROFICIENCY_TO_DIFFICULTY[proficiencyLevel];
+      const appropriateDifficulties = PROFICIENCY_TO_DIFFICULTY[proficiencyLevel] || ['beginner'];
       if (appropriateDifficulties.includes(scenario.difficulty)) {
         score += 25;
         reason = `Matches your ${proficiencyLevel} level`;
@@ -121,7 +133,7 @@ export function getScenariosForUser(profile: UserProfile): MatchedScenario[] {
 
     // Score based on category match with motivation
     if (motivation) {
-      const preferredCategories = MOTIVATION_TO_CATEGORIES[motivation];
+      const preferredCategories = MOTIVATION_TO_CATEGORIES[motivation] || [];
       if (preferredCategories.includes(scenario.category)) {
         score += 25;
         reason = MOTIVATION_DESCRIPTIONS[motivation];
@@ -132,8 +144,8 @@ export function getScenariosForUser(profile: UserProfile): MatchedScenario[] {
 
     // Bonus for scenarios that match both difficulty AND motivation
     if (proficiencyLevel && motivation) {
-      const appropriateDifficulties = PROFICIENCY_TO_DIFFICULTY[proficiencyLevel];
-      const preferredCategories = MOTIVATION_TO_CATEGORIES[motivation];
+      const appropriateDifficulties = PROFICIENCY_TO_DIFFICULTY[proficiencyLevel] || ['beginner'];
+      const preferredCategories = MOTIVATION_TO_CATEGORIES[motivation] || [];
 
       if (
         appropriateDifficulties.includes(scenario.difficulty) &&
@@ -330,7 +342,7 @@ export function getEnhancedScenariosForUser(profile: EnhancedUserProfile): Match
 
     // Score based on difficulty match (+25)
     if (proficiencyLevel) {
-      const appropriateDifficulties = PROFICIENCY_TO_DIFFICULTY[proficiencyLevel];
+      const appropriateDifficulties = PROFICIENCY_TO_DIFFICULTY[proficiencyLevel] || ['beginner'];
       if (appropriateDifficulties.includes(scenario.difficulty)) {
         score += 25;
         reason = `Matches your ${proficiencyLevel} level`;
@@ -341,7 +353,7 @@ export function getEnhancedScenariosForUser(profile: EnhancedUserProfile): Match
 
     // Score based on category match with motivation (+25)
     if (motivation) {
-      const preferredCategories = MOTIVATION_TO_CATEGORIES[motivation];
+      const preferredCategories = MOTIVATION_TO_CATEGORIES[motivation] || [];
       if (preferredCategories.includes(scenario.category)) {
         score += 25;
         reason = MOTIVATION_DESCRIPTIONS[motivation];
@@ -352,8 +364,8 @@ export function getEnhancedScenariosForUser(profile: EnhancedUserProfile): Match
 
     // Bonus for matching both difficulty AND motivation (+15)
     if (proficiencyLevel && motivation) {
-      const appropriateDifficulties = PROFICIENCY_TO_DIFFICULTY[proficiencyLevel];
-      const preferredCategories = MOTIVATION_TO_CATEGORIES[motivation];
+      const appropriateDifficulties = PROFICIENCY_TO_DIFFICULTY[proficiencyLevel] || ['beginner'];
+      const preferredCategories = MOTIVATION_TO_CATEGORIES[motivation] || [];
       if (
         appropriateDifficulties.includes(scenario.difficulty) &&
         preferredCategories.includes(scenario.category)

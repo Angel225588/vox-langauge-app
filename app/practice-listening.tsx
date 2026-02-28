@@ -70,6 +70,18 @@ interface NormalizedContent {
     options: string[];
     correctIndex: number;
   }[];
+  /** Easier gist questions for Stage 1 */
+  beforeQuestions?: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+  }[];
+  /** Harder detail questions for Stage 3 */
+  afterQuestions?: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+  }[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -119,7 +131,13 @@ function shuffleQuestionOptions(
 /** Normalize discovery ListeningContent into our common shape. Returns null if data is malformed. */
 function normalizeDiscoveryContent(dc: ListeningContent): NormalizedContent | null {
   if (!Array.isArray(dc?.dialogue) || dc.dialogue.length === 0) return null;
-  if (!Array.isArray(dc?.comprehensionQuestions) || dc.comprehensionQuestions.length === 0) return null;
+  // Accept content if it has ANY type of questions
+  const hasQuestions = (Array.isArray(dc?.comprehensionQuestions) && dc.comprehensionQuestions.length > 0)
+    || (Array.isArray(dc?.beforeQuestions) && dc.beforeQuestions.length > 0);
+  if (!hasQuestions) return null;
+
+  const filterQuestions = (qs?: any[]) =>
+    (qs || []).filter((q: any) => q.question && Array.isArray(q.options) && q.options.length > 0);
 
   return {
     title: dc.title || 'Listening Practice',
@@ -127,11 +145,14 @@ function normalizeDiscoveryContent(dc: ListeningContent): NormalizedContent | nu
       speaker: d.speaker || 'Speaker',
       text: d.text,
       translation: d.translation,
+      gender: d.gender,
+      mood: d.mood,
     })),
     vocabulary: Array.isArray(dc.vocabulary) ? dc.vocabulary : [],
-    questions: dc.comprehensionQuestions.filter(
-      (q) => q.question && Array.isArray(q.options) && q.options.length > 0,
-    ),
+    // Fallback: use comprehensionQuestions if before/after not provided
+    questions: filterQuestions(dc.comprehensionQuestions),
+    beforeQuestions: filterQuestions(dc.beforeQuestions),
+    afterQuestions: filterQuestions(dc.afterQuestions),
   };
 }
 
@@ -227,13 +248,32 @@ export default function PracticeListeningScreen() {
       setAudioCurrentTime(0);
       setAudioProgress(0);
 
-      // Build speaker → voice map (each unique speaker gets a distinct voice)
-      const uniqueSpeakers = [...new Set(content.dialogueLines.map(l => l.speaker))];
+      // Build speaker → voice map using gender from AI-generated dialogue
       const speakerVoiceMap = new Map<string, string>();
-      for (let s = 0; s < uniqueSpeakers.length; s++) {
-        const voice = dialogueVoices[s % dialogueVoices.length];
-        if (voice) {
-          speakerVoiceMap.set(uniqueSpeakers[s], voice.elevenLabsVoiceId);
+      const usedVoiceIds = new Set<string>();
+      const uniqueSpeakers = [...new Set(content.dialogueLines.map(l => l.speaker))];
+
+      for (const speakerName of uniqueSpeakers) {
+        // Find the first line by this speaker to get their gender
+        const speakerLine = content.dialogueLines.find(l => l.speaker === speakerName);
+        const speakerGender = speakerLine?.gender;
+
+        // Try to find a voice matching the gender that hasn't been used yet
+        let bestVoice = dialogueVoices.find(
+          v => v.gender === speakerGender && !usedVoiceIds.has(v.elevenLabsVoiceId),
+        );
+        // Fallback: any unused voice
+        if (!bestVoice) {
+          bestVoice = dialogueVoices.find(v => !usedVoiceIds.has(v.elevenLabsVoiceId));
+        }
+        // Last resort: cycle back to first voice
+        if (!bestVoice && dialogueVoices.length > 0) {
+          bestVoice = dialogueVoices[0];
+        }
+
+        if (bestVoice) {
+          speakerVoiceMap.set(speakerName, bestVoice.elevenLabsVoiceId);
+          usedVoiceIds.add(bestVoice.elevenLabsVoiceId);
         }
       }
 
@@ -316,7 +356,12 @@ export default function PracticeListeningScreen() {
         try {
           const parsed: ListeningContent = JSON.parse(params.discoveryContent);
           const normalized = normalizeDiscoveryContent(parsed);
-          if (normalized && normalized.dialogueLines.length > 0 && normalized.questions.length > 0) {
+          // Accept content if it has ANY question set (questions, beforeQuestions, or afterQuestions)
+          const hasAnyQuestions = normalized && normalized.dialogueLines.length > 0 &&
+            ((normalized.questions?.length ?? 0) > 0 ||
+             (normalized.beforeQuestions?.length ?? 0) > 0 ||
+             (normalized.afterQuestions?.length ?? 0) > 0);
+          if (hasAnyQuestions) {
             setContent(normalized);
             setStage(normalized.vocabulary.length > 0 ? 'vocab_prescreen' : 'stage1_listen');
             return;
@@ -373,7 +418,11 @@ export default function PracticeListeningScreen() {
     (score: number) => {
       setBeforeScore(score);
       if (content) {
-        setShuffledQuestions(shuffleQuestionOptions(content.questions));
+        // Shuffle afterQuestions for Stage 3 (fall back to general questions)
+        const stage3Questions = content.afterQuestions?.length
+          ? content.afterQuestions
+          : content.questions;
+        setShuffledQuestions(shuffleQuestionOptions(stage3Questions));
       }
       setStage('lyrics');
     },
@@ -389,7 +438,10 @@ export default function PracticeListeningScreen() {
   );
 
   // ─── Score Persistence ─────────────────────────────
-  const totalQuestions = content?.questions.length || 0;
+  // Use afterQuestions count for scoring (that's what Stage 3 quiz uses)
+  const totalQuestions = content?.afterQuestions?.length
+    || content?.questions?.length
+    || 0;
   const pointsRef = useRef(0);
 
   useEffect(() => {
@@ -493,12 +545,16 @@ export default function PracticeListeningScreen() {
 
   // ─── QUIZ STAGES ─────────────────────────────────
   if (stage === 'stage1_quiz') {
+    // Stage 1: easier gist questions (beforeQuestions) or fallback to general questions
+    const stage1Questions = content.beforeQuestions?.length
+      ? content.beforeQuestions
+      : content.questions;
     return (
       <SafeAreaView style={s.container}>
         <Header onBack={handleBack} />
         <StageIndicator currentStage={1} totalStages={3} />
         <ComprehensionQuiz
-          questions={content.questions}
+          questions={stage1Questions}
           isRevealMode={false}
           onComplete={handleStage1QuizComplete}
         />

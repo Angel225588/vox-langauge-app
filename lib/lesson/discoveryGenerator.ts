@@ -56,12 +56,20 @@ export interface ListeningContent {
   dialogue: DialogueLine[];
   vocabulary: ListeningVocab[];
   comprehensionQuestions: ComprehensionQuestion[];
+  /** Easier gist-level questions for Stage 1 (before scaffolding) */
+  beforeQuestions?: ComprehensionQuestion[];
+  /** Harder detail questions for Stage 3 (after scaffolding) */
+  afterQuestions?: ComprehensionQuestion[];
 }
 
 export interface DialogueLine {
   speaker: string;
   text: string;
   translation: string;
+  /** Speaker gender — used to assign the right TTS voice */
+  gender?: 'male' | 'female';
+  /** Emotional tone of this line — used for voice selection/tuning */
+  mood?: 'neutral' | 'friendly' | 'formal' | 'excited' | 'serious' | 'warm';
 }
 
 export interface ListeningVocab {
@@ -266,19 +274,23 @@ ${profile.profession ? `## Profession: ${sanitizePromptInput(profile.profession)
 ${vocabList}
 
 ## Requirements:
-- Create a dialogue between 2 people with ${sentenceCount} exchanges
+- Create a dialogue between 2-3 people with ${sentenceCount} exchanges
+- Give each speaker a real name (not "Speaker A") appropriate to the target language
+- Each speaker must have a gender (male/female) and mood (neutral/friendly/formal/excited/serious/warm)
 - Write the dialogue IN THE TARGET LANGUAGE (${profile.targetLanguage})
 - The scenario should feel realistic and relate to the learner's context
 - Include translations for each line in the native language (${profile.nativeLanguage})
-- Add 3 comprehension questions in the native language
-- Each question has 4 options with one correct answer
 - Include a vocabulary list with the key words used
+- Generate TWO sets of 3 comprehension questions each:
+  - "beforeQuestions": easier gist-level questions (main topic, who is speaking, general mood)
+  - "afterQuestions": harder detail questions (specific words, exact meaning, inference)
+  This lets us measure comprehension growth between first and second listen.
 
 ## Response Format (JSON only):
 {
   "title": "Dialogue title (in native language)",
   "dialogue": [
-    { "speaker": "Speaker A", "text": "Line in target language", "translation": "Translation" }
+    { "speaker": "Marie", "text": "Line in target language", "translation": "Translation", "gender": "female", "mood": "friendly" }
   ],
   "vocabulary": [
     { "word": "word", "translation": "translation", "phonetic": "/phonetic/" }
@@ -286,6 +298,20 @@ ${vocabList}
   "comprehensionQuestions": [
     {
       "question": "Question in native language?",
+      "options": ["A", "B", "C", "D"],
+      "correctIndex": 0
+    }
+  ],
+  "beforeQuestions": [
+    {
+      "question": "Easy gist question in native language?",
+      "options": ["A", "B", "C", "D"],
+      "correctIndex": 0
+    }
+  ],
+  "afterQuestions": [
+    {
+      "question": "Harder detail question in native language?",
       "options": ["A", "B", "C", "D"],
       "correctIndex": 0
     }
