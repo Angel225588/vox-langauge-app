@@ -81,6 +81,7 @@ async function deleteCloudData(userId: string): Promise<{ deleted: string[]; err
     { table: 'user_ai_memory', column: 'user_id' },
     { table: 'user_accent_preferences', column: 'user_id' },
     { table: 'conversation_feedback', column: 'user_id' },
+    { table: 'user_consents', column: 'user_id' },
   ];
 
   // First, get session IDs to delete messages

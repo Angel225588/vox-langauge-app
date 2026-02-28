@@ -5,6 +5,12 @@
  * Voice scores come from conversation_sessions.feedback JSONB.
  * Practice scores stored via AsyncStorage (lightweight, no migration needed).
  *
+ * Sync strategy: Local-first with best-effort Supabase sync.
+ * - AsyncStorage is the primary store (works offline)
+ * - After saving locally, attempts non-blocking sync to Supabase `practice_scores` table
+ * - `syncPracticeScores()` bulk-uploads unsynced entries
+ * - `loadCloudScores()` merges cloud + local scores (dedup by completedAt)
+ *
  * Used by: competency dashboard, practice tab KPIs, trend engine.
  */
 
@@ -32,6 +38,10 @@ export interface PracticeScore {
   /** Overall composite score 0-100 */
   overallScore: number;
   completedAt: string;
+  /** Whether this score has been synced to Supabase */
+  synced?: boolean;
+  /** Optional metadata (passed through to Supabase JSONB) */
+  metadata?: Record<string, unknown>;
 }
 
 export interface ScoreTrend {
@@ -77,6 +87,9 @@ const SCORES_KEY = 'vox_practice_scores';
 
 /**
  * Save a practice score from any mode.
+ *
+ * Saves locally first (always succeeds), then attempts background sync to Supabase.
+ * The score is marked as unsynced until Supabase confirms the upload.
  */
 export async function savePracticeScore(
   userId: string,
@@ -86,7 +99,8 @@ export async function savePracticeScore(
     fluency?: number;
     communication?: number;
     scenario?: number;
-  }
+  },
+  metadata?: Record<string, unknown>
 ): Promise<PracticeScore> {
   const articulation = scores.articulation ?? 0;
   const fluency = scores.fluency ?? 0;
@@ -107,6 +121,8 @@ export async function savePracticeScore(
     scenario,
     overallScore,
     completedAt: new Date().toISOString(),
+    synced: false,
+    metadata: metadata ?? {},
   };
 
   // Append to local storage
@@ -115,6 +131,17 @@ export async function savePracticeScore(
   // Keep last 200 scores max
   const trimmed = existing.slice(-200);
   await AsyncStorage.setItem(`${SCORES_KEY}_${userId}`, JSON.stringify(trimmed));
+
+  // Best-effort background sync — fire-and-forget, never blocks the caller
+  syncScoreToCloud(score)
+    .then((synced) => {
+      if (synced) {
+        markScoreSynced(userId, score.id).catch(() => {});
+      }
+    })
+    .catch(() => {
+      // Silently skip — will be retried on next syncPracticeScores() call
+    });
 
   return score;
 }
@@ -246,4 +273,237 @@ export async function getScoreTrends(
 
     return { kpi, current: recentAvg, previous: previousAvg, delta, direction };
   });
+}
+
+// =============================================================================
+// Supabase Sync — Local-First with Best-Effort Cloud Sync
+// =============================================================================
+
+/**
+ * Get the current authenticated user ID, or null if not signed in.
+ * Used to gate all Supabase operations — unauthenticated users only use local storage.
+ */
+async function getAuthUserId(): Promise<string | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sync a single score to the Supabase `practice_scores` table.
+ * Returns true if the upsert succeeded, false otherwise.
+ */
+async function syncScoreToCloud(score: PracticeScore): Promise<boolean> {
+  try {
+    const authUserId = await getAuthUserId();
+    if (!authUserId) return false;
+
+    const { error } = await supabase
+      .from('practice_scores')
+      .upsert(
+        {
+          id: score.id,
+          user_id: authUserId,
+          practice_type: score.type,
+          articulation: score.articulation,
+          fluency: score.fluency,
+          communication: score.communication,
+          scenario: score.scenario,
+          overall_score: score.overallScore,
+          metadata: score.metadata ?? {},
+          completed_at: score.completedAt,
+          created_at: score.completedAt,
+        },
+        { onConflict: 'id' }
+      );
+
+    if (error) {
+      console.warn('[CompetencySync] Failed to sync score:', error.message);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[CompetencySync] Exception syncing score:', err);
+    return false;
+  }
+}
+
+/**
+ * Mark a local score as synced in AsyncStorage.
+ */
+async function markScoreSynced(userId: string, scoreId: string): Promise<void> {
+  try {
+    const scores = await getStoredScores(userId);
+    const updated = scores.map(s =>
+      s.id === scoreId ? { ...s, synced: true } : s
+    );
+    await AsyncStorage.setItem(`${SCORES_KEY}_${userId}`, JSON.stringify(updated));
+  } catch {
+    // Non-critical — worst case the score gets re-uploaded on next bulk sync
+  }
+}
+
+/**
+ * Bulk-sync all unsynced local practice scores to Supabase.
+ *
+ * Call this on app foreground, after sign-in, or periodically.
+ * Reads all local scores, filters to unsynced, uploads in batch,
+ * then marks each as synced locally.
+ *
+ * Returns the number of scores successfully synced.
+ */
+export async function syncPracticeScores(userId: string): Promise<number> {
+  try {
+    const authUserId = await getAuthUserId();
+    if (!authUserId) {
+      console.warn('[CompetencySync] No authenticated user — skipping sync');
+      return 0;
+    }
+
+    const localScores = await getStoredScores(userId);
+    const unsynced = localScores.filter(s => !s.synced);
+
+    if (unsynced.length === 0) return 0;
+
+    // Upload in batches of 50 to avoid payload limits
+    const BATCH_SIZE = 50;
+    let syncedCount = 0;
+
+    for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
+      const batch = unsynced.slice(i, i + BATCH_SIZE);
+
+      const rows = batch.map(score => ({
+        id: score.id,
+        user_id: authUserId,
+        practice_type: score.type,
+        articulation: score.articulation,
+        fluency: score.fluency,
+        communication: score.communication,
+        scenario: score.scenario,
+        overall_score: score.overallScore,
+        metadata: score.metadata ?? {},
+        completed_at: score.completedAt,
+        created_at: score.completedAt,
+      }));
+
+      const { error } = await supabase
+        .from('practice_scores')
+        .upsert(rows, { onConflict: 'id' });
+
+      if (error) {
+        console.warn(`[CompetencySync] Batch sync failed (${batch.length} scores):`, error.message);
+        // Stop on first batch failure — remaining will be retried next time
+        break;
+      }
+
+      // Mark this batch as synced locally
+      const syncedIds = new Set(batch.map(s => s.id));
+      const allScores = await getStoredScores(userId);
+      const updated = allScores.map(s =>
+        syncedIds.has(s.id) ? { ...s, synced: true } : s
+      );
+      await AsyncStorage.setItem(`${SCORES_KEY}_${userId}`, JSON.stringify(updated));
+
+      syncedCount += batch.length;
+    }
+
+    if (syncedCount > 0) {
+      console.log(`[CompetencySync] Synced ${syncedCount}/${unsynced.length} practice scores`);
+    }
+
+    return syncedCount;
+  } catch (err) {
+    console.warn('[CompetencySync] Exception during bulk sync:', err);
+    return 0;
+  }
+}
+
+/**
+ * Load practice scores from Supabase and merge with local scores.
+ *
+ * Fetches the authenticated user's cloud scores, then deduplicates
+ * against local entries by `completedAt` timestamp. Returns a unified
+ * list sorted newest-first.
+ *
+ * Use this after sign-in to pull scores from other devices, or to
+ * restore scores after app reinstall.
+ */
+export async function loadCloudScores(userId: string): Promise<PracticeScore[]> {
+  try {
+    const authUserId = await getAuthUserId();
+    if (!authUserId) {
+      // Not signed in — return local only
+      return getStoredScores(userId);
+    }
+
+    // Fetch cloud scores
+    const { data, error } = await supabase
+      .from('practice_scores')
+      .select('*')
+      .eq('user_id', authUserId)
+      .order('completed_at', { ascending: false })
+      .limit(200);
+
+    if (error) {
+      console.warn('[CompetencySync] Failed to load cloud scores:', error.message);
+      // Fall back to local only
+      return getStoredScores(userId);
+    }
+
+    const cloudScores: PracticeScore[] = (data || []).map((row: any) => ({
+      id: row.id,
+      userId,
+      type: row.practice_type as PracticeType,
+      articulation: row.articulation ?? 0,
+      fluency: row.fluency ?? 0,
+      communication: row.communication ?? 0,
+      scenario: row.scenario ?? 0,
+      overallScore: row.overall_score ?? 0,
+      completedAt: row.completed_at,
+      synced: true,
+      metadata: row.metadata ?? {},
+    }));
+
+    // Merge with local scores, dedup by completedAt
+    const localScores = await getStoredScores(userId);
+    const seenTimestamps = new Set<string>();
+    const merged: PracticeScore[] = [];
+
+    // Local scores take priority (they have the most recent state)
+    for (const score of localScores) {
+      seenTimestamps.add(score.completedAt);
+      merged.push(score);
+    }
+
+    // Add cloud-only scores (from other devices or post-reinstall)
+    for (const score of cloudScores) {
+      if (!seenTimestamps.has(score.completedAt)) {
+        seenTimestamps.add(score.completedAt);
+        merged.push(score);
+      }
+    }
+
+    // Sort newest first
+    merged.sort(
+      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+    );
+
+    // Persist the merged set locally (cap at 200)
+    const trimmed = merged.slice(0, 200);
+    await AsyncStorage.setItem(`${SCORES_KEY}_${userId}`, JSON.stringify(trimmed));
+
+    console.log(
+      `[CompetencySync] Merged scores: ${localScores.length} local + ${cloudScores.length} cloud = ${trimmed.length} total`
+    );
+
+    return trimmed;
+  } catch (err) {
+    console.warn('[CompetencySync] Exception loading cloud scores:', err);
+    // Fall back to local only
+    return getStoredScores(userId);
+  }
 }

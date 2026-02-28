@@ -7,7 +7,7 @@
 
 import { supabase } from '@/lib/db/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAllConsents } from './consentManager';
+import { getAllConsents, getCloudConsentRecords, CloudConsentRow } from './consentManager';
 
 // =============================================================================
 // Types
@@ -38,6 +38,9 @@ export interface UserDataExport {
     termsOfService: { accepted: boolean; acceptedAt: string | null };
   };
 
+  /** Full audit trail from Supabase — includes granted_at, revoked_at timestamps. */
+  consentAuditTrail: CloudConsentRow[];
+
   preferences: any | null;
 }
 
@@ -51,11 +54,12 @@ export interface UserDataExport {
  */
 export async function exportUserData(userId: string): Promise<UserDataExport> {
   // Fetch all data in parallel
-  const [sessions, aiMemory, practiceScores, consents, userInfo] = await Promise.all([
+  const [sessions, aiMemory, practiceScores, consents, consentAuditTrail, userInfo] = await Promise.all([
     fetchConversationSessions(userId),
     fetchAIMemory(userId),
     fetchPracticeScores(userId),
     getAllConsents(),
+    getCloudConsentRecords(userId),
     fetchUserInfo(userId),
   ]);
 
@@ -83,6 +87,8 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
       privacyPolicy: consents.privacyPolicy,
       termsOfService: consents.termsOfService,
     },
+
+    consentAuditTrail,
 
     preferences: null,
   };

@@ -98,6 +98,15 @@ export async function initializeDatabase() {
       );
     `);
 
+    // Add last_sync_at column to streak_data for sync tracking (idempotent)
+    try {
+      await db.execAsync(
+        `ALTER TABLE streak_data ADD COLUMN last_sync_at TEXT;`
+      );
+    } catch {
+      // Column already exists — safe to ignore
+    }
+
     console.log('SQLite database initialized successfully');
   } catch (error) {
     console.error('Error initializing SQLite database:', error);

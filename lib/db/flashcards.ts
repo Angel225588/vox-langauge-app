@@ -128,6 +128,7 @@ async function addFSRSColumns(db: any): Promise<void> {
     'fsrs_lapses INTEGER DEFAULT 0',
     'fsrs_state INTEGER DEFAULT 0',
     'fsrs_last_review TEXT',
+    'last_sync_at TEXT',
   ];
 
   for (const col of columns) {
