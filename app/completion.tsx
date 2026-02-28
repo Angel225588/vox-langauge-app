@@ -228,7 +228,7 @@ export default function CompletionScreen() {
           <TouchableOpacity
             onPress={handleContinue}
             style={{
-              backgroundColor: colors.accent.success,
+              backgroundColor: colors.success.DEFAULT,
               paddingVertical: spacing.lg,
               paddingHorizontal: spacing['2xl'],
               borderRadius: borderRadius.xl,

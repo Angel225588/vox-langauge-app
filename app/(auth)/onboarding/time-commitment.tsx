@@ -210,7 +210,7 @@ export default function TimeCommitmentScreen() {
                 <LinearGradient
                   colors={
                     selectedTime === timeOption.id
-                      ? timeOption.gradient
+                      ? (timeOption.gradient as [string, string])
                       : ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']
                   }
                   start={{ x: 0, y: 0 }}

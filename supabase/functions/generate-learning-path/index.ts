@@ -10,7 +10,17 @@
  *   supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
  */
 
+/* eslint-disable */
+// This file runs in Deno runtime (Supabase Edge Function), not Node/React Native.
+// Deno-specific globals and URL imports are not resolvable by the project tsc.
+
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+};
+
+// @ts-ignore Deno URL import
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+// @ts-ignore Deno URL import
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';

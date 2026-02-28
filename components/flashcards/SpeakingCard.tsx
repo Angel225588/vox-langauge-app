@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAudioPlayer, useAudioRecorder, AudioModule } from 'expo-audio';
+import { useAudioPlayer, useAudioRecorder, AudioModule, RecordingPresets } from 'expo-audio';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
@@ -43,10 +43,10 @@ const SpeakingCard: React.FC<SpeakingCardProps> = ({
   onComplete,
   onSkip,
 }) => {
-  const audioRecorder = useAudioRecorder();
-  const examplePlayer = useAudioPlayer(exampleAudioUrl || '');
-  const recordedPlayer = useAudioPlayer();
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const examplePlayer = useAudioPlayer(exampleAudioUrl || '');
+  const recordedPlayer = useAudioPlayer(recordedUri ?? '');
   const [recordingDuration, setRecordingDuration] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -96,7 +96,8 @@ const SpeakingCard: React.FC<SpeakingCardProps> = ({
 
   async function stopRecording() {
     try {
-      const uri = await audioRecorder.stop();
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
       if (uri) {
         setRecordedUri(uri);
         recordedPlayer.replace(uri);

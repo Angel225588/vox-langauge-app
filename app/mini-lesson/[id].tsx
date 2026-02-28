@@ -158,7 +158,7 @@ export default function MiniLessonFlowScreen() {
             correct_answer={typeof currentCard.content.correct_answer === 'number'
               ? currentCard.content.correct_answer
               : currentCard.content.options?.indexOf(currentCard.content.correct_answer || '') || 0}
-            explanation={currentCard.content.explanation}
+            explanation={(currentCard.content as any).explanation}
             onNext={handleNext}
           />
         );
@@ -166,6 +166,7 @@ export default function MiniLessonFlowScreen() {
         return (
           <TextInputCard
             {...currentCard.content}
+            correct_answer={String(currentCard.content.correct_answer ?? '')}
             onNext={handleNext}
           />
         );
@@ -232,7 +233,7 @@ export default function MiniLessonFlowScreen() {
               style={{
                 width: `${progress}%`,
                 height: '100%',
-                backgroundColor: colors.accent.success,
+                backgroundColor: colors.success.DEFAULT,
               }}
             />
           </View>

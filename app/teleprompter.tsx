@@ -175,12 +175,12 @@ export default function TeleprompterScreen() {
               id: params.storyId,
               title: params.title || 'Reading Practice',
               text,
-              difficulty: params.difficulty || 'intermediate',
+              difficulty: (params.difficulty || 'intermediate') as 'beginner' | 'intermediate' | 'advanced',
               category: params.category || 'General',
               language: 'target', // Will be resolved by the AI
               wordCount: text.split(/\s+/).length,
               estimatedDuration: Math.round(text.split(/\s+/).length / 2.5) * 1000,
-              sourceType: 'ai-generated',
+              sourceType: 'ai_generated',
               createdAt: new Date().toISOString(),
             });
           } else {
@@ -243,7 +243,7 @@ export default function TeleprompterScreen() {
         // Step 1: Transcribe the audio
         const transcriptionResult = await transcribe(
           teleprompterResults.recordingUri,
-          passage.text
+          passage!.text
         );
 
         if (!transcriptionResult) {
@@ -252,10 +252,10 @@ export default function TeleprompterScreen() {
 
         // Step 2: Analyze articulation (with language for AI-powered feedback)
         const analysis = await analyze(
-          passage.text,
+          passage!.text,
           transcriptionResult,
           teleprompterResults.duration * 1000,
-          passage.language // Pass language for Gemini-powered problem word filtering
+          passage!.language // Pass language for Gemini-powered problem word filtering
         );
 
         if (!analysis) {

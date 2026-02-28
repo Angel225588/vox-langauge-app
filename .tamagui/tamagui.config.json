@@ -28406,29 +28406,40 @@
     "onlyAllowShorthands": false,
     "fontLanguages": [],
     "animations": {
-      "quick": {
-        "type": "spring",
-        "damping": 20,
-        "mass": 1.2,
-        "stiffness": 250
+      "isReactNative": true,
+      "animations": {
+        "quick": {
+          "type": "spring",
+          "damping": 20,
+          "mass": 1.2,
+          "stiffness": 250
+        },
+        "bouncy": {
+          "type": "spring",
+          "damping": 9,
+          "mass": 0.9,
+          "stiffness": 150
+        },
+        "lazy": {
+          "type": "spring",
+          "damping": 18,
+          "stiffness": 50
+        },
+        "fast": {
+          "type": "spring",
+          "damping": 20,
+          "mass": 1,
+          "stiffness": 300
+        }
       },
-      "bouncy": {
-        "type": "spring",
-        "damping": 9,
-        "mass": 0.9,
-        "stiffness": 150
-      },
-      "lazy": {
-        "type": "spring",
-        "damping": 18,
-        "stiffness": 50
-      },
-      "fast": {
-        "type": "spring",
-        "damping": 20,
-        "mass": 1,
-        "stiffness": 300
-      }
+      "View": "Component",
+      "Text": "Component",
+      "useAnimatedNumber": "Function",
+      "useAnimatedNumberReaction": "Function",
+      "useAnimatedNumberStyle": "Function",
+      "usePresence": "Function",
+      "ResetPresence": "Function",
+      "useAnimations": "Function"
     },
     "media": {
       "xs": {

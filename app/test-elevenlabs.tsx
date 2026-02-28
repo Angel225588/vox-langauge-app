@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.DEFAULT + '15',
   },
   speedButtonText: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
     color: colors.text.primary,
   },

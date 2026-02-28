@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Skeleton Component Examples
  *

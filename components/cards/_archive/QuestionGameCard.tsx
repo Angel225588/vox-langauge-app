@@ -7,6 +7,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Activi
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { colors, borderRadius, spacing, shadows, typography } from '@/constants/designSystem';
 import { ResultAnimation } from '@/components/ui';
 import { LottieSuccess, LottieError } from '@/components/animations';

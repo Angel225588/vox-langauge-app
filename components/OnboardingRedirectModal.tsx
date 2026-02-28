@@ -50,7 +50,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
           <View
             style={{
               borderRadius: borderRadius.xl,
-              padding: spacing.xxl,
+              padding: spacing['2xl'],
               borderWidth: 1,
               borderColor: 'rgba(0, 54, 255, 0.3)',
               shadowColor: colors.glow.primary,
@@ -107,7 +107,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
                 color: colors.text.secondary,
                 textAlign: 'center',
                 lineHeight: 24,
-                marginBottom: spacing.xxl,
+                marginBottom: spacing['2xl'],
               }}
             >
               Create a personalized learning experience tailored to your goals, interests, and
@@ -118,7 +118,7 @@ export function OnboardingRedirectModal({ visible, onReady }: OnboardingRedirect
             <Animated.View
               entering={FadeIn.duration(600).delay(600)}
               style={{
-                marginBottom: spacing.xxl,
+                marginBottom: spacing['2xl'],
                 gap: spacing.md,
               }}
             >

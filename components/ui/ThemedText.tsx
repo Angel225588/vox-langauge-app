@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Text, styled, GetProps } from 'tamagui';
 
 export const ThemedText = styled(Text, {

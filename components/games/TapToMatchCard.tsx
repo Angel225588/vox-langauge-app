@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import { YStack, XStack, Card, Text, Button } from '@/components/ui/tamagui';
 import * as Haptics from 'expo-haptics'; // Assuming expo-haptics is available

@@ -275,10 +275,11 @@ export async function exampleGenerateCalibrator() {
   const completedSection = {
     id: 'section-1',
     path_id: 'path-123',
-    section_number: 1,
+    order: 1,
     title: 'Foundation Skills',
     description: 'Basic greetings and introductions',
     status: 'completed' as const,
+    stairs: [],
     stairs_count: 5,
     created_at: new Date().toISOString(),
   };

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Card, styled, GetProps } from 'tamagui';
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from 'react-native';

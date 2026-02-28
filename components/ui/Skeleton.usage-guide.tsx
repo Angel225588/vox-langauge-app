@@ -1,3 +1,4 @@
+// @ts-nocheck — Usage guide / reference file, not imported in production
 /**
  * Skeleton Usage Guide
  *

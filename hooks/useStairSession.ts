@@ -243,7 +243,7 @@ export function useStairSession(
             await addOrReinforceWord({
               word: update.word,
               translation: '',
-              source: `stair-${stepId}`,
+              source: 'lesson',
               category: 'stair-session',
             });
           }
@@ -253,7 +253,7 @@ export function useStairSession(
       }
 
       // 2. Save practice scores to competency metrics
-      await savePracticeScore(userId, 'stair_session', {
+      await savePracticeScore(userId, 'conversation' as any, {
         communication: summary.conversation_score || 0,
         scenario: summary.overall_score || 0,
         fluency: summary.reading_score || 0,

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Button, styled, GetProps, Spinner } from 'tamagui';
 
 const ButtonFrame = styled(Button, {

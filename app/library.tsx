@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
   arrowText: {
     fontSize: 24,
     color: colors.text.tertiary,
-    fontWeight: typography.fontWeight.light,
+    fontWeight: typography.fontWeight.normal,
   },
 
   // Empty State

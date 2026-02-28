@@ -133,7 +133,7 @@ export default function VoxLibraryScreen() {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <BackButton />
+          <BackButton onPress={() => router.back()} />
           <View style={styles.headerText}>
             <Text style={styles.headerTitle}>Vox Library</Text>
             <Text style={styles.headerSubtitle}>

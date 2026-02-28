@@ -17,12 +17,12 @@ import { colors, spacing, borderRadius, typography } from '@/constants/designSys
  */
 export function VocabularyScreenExample() {
   const [modalVisible, setModalVisible] = useState(false);
-  const { words, refresh, loading } = useWordBank();
+  const { words, refreshWords, loading } = useWordBank();
 
   const handleWordAdded = async (word: BankWord) => {
     console.log('New word added:', word);
     // Refresh the word list to show the new word
-    await refresh();
+    await refreshWords();
   };
 
   return (

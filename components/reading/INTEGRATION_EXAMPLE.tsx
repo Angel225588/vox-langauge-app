@@ -13,11 +13,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 // Import all passage management components and hooks
-import {
-  PassageSelector,
-  ImportPassageForm,
-  usePassages,
-} from '@/components/reading';
+import { ImportPassageForm } from '@/components/reading';
+// @ts-ignore PassageSelector is archived, this is a reference example only
+import { PassageSelector } from '@/components/reading/_archive/PassageSelector';
+import { usePassages } from '@/components/reading/usePassages';
 
 // Import reading session management
 import {
@@ -73,7 +72,7 @@ export default function ReadingPracticeIntegrationExample() {
     try {
       const session = await createSession({
         userId: 'user_123', // Replace with actual user ID
-        sourceType: passage.sourceType,
+        sourceType: passage.sourceType as any,
         text: passage.text,
         title: passage.title,
         difficulty: passage.difficulty,

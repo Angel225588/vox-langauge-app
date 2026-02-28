@@ -27,7 +27,7 @@ const CATEGORY_EMOJI_MAP: Record<string, string> = {
   default: '📖',
 };
 
-const CATEGORY_GRADIENTS: Record<number, string[]> = {
+const CATEGORY_GRADIENTS: Record<number, readonly string[]> = {
   0: colors.gradients.primary,      // Indigo to purple
   1: colors.gradients.secondary,    // Teal to turquoise
   2: colors.gradients.accent,       // Pink
@@ -71,7 +71,7 @@ export function CategoryGrid({ categories, onCategoryPress, loading = false }: C
     return CATEGORY_EMOJI_MAP[normalizedName] || CATEGORY_EMOJI_MAP.default;
   };
 
-  const getCategoryGradient = (index: number): string[] => {
+  const getCategoryGradient = (index: number): readonly string[] => {
     return CATEGORY_GRADIENTS[index % Object.keys(CATEGORY_GRADIENTS).length] || colors.gradients.primary;
   };
 
@@ -98,7 +98,7 @@ export function CategoryGrid({ categories, onCategoryPress, loading = false }: C
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={[...gradient, `${gradient[1]}dd`]}
+              colors={[gradient[0], gradient[1], `${gradient[1]}dd`] as [string, string, ...string[]]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.gradientCard}
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   glassOverlay: {
     flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(10px)',
+    // backdropFilter is not supported in React Native - use a blur library if needed
     padding: spacing.md,
     justifyContent: 'space-between',
   },

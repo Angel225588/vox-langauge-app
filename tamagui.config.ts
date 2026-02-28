@@ -1,4 +1,5 @@
 import { createTamagui, createTokens } from '@tamagui/core'
+import { createAnimations } from '@tamagui/animations-react-native'
 import { shorthands } from '@tamagui/shorthands'
 import { themes, tokens } from '@tamagui/themes'
 
@@ -355,7 +356,7 @@ const customConfig = {
     pointerCoarse: { pointer: 'coarse' },
   },
 
-  animations: {
+  animations: createAnimations({
     quick: {
       type: 'spring',
       damping: 20,
@@ -379,7 +380,7 @@ const customConfig = {
       mass: 1,
       stiffness: 300,
     },
-  },
+  }),
 }
 
 // Create and export Tamagui configuration

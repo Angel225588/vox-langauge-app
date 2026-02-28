@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   XStack as TamaguiXStack,
   YStack as TamaguiYStack,

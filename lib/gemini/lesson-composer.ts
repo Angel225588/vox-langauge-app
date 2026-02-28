@@ -9,7 +9,9 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { EXPO_PUBLIC_GEMINI_API_KEY } from '@/lib/config/env';
+import { ENV } from '@/lib/config/env';
+
+const EXPO_PUBLIC_GEMINI_API_KEY = ENV.GEMINI_API_KEY;
 import {
   getCardCatalog,
   getCardById,

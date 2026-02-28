@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle, DimensionValue } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -81,8 +81,8 @@ export function SkeletonBox({
       style={[
         styles.skeleton,
         {
-          width,
-          height,
+          width: width as DimensionValue,
+          height: height as DimensionValue,
           borderRadius: customBorderRadius,
           backgroundColor: SKELETON_BASE,
         },

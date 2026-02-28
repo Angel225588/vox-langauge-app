@@ -85,7 +85,7 @@ export function FillInBlankCard({
   const selectedWord = selectedIndex !== null ? options[selectedIndex] : null;
   const showWrongAnswer = showResult && selectedIndex !== correct_answer;
 
-  const getOptionState = (index: number) => {
+  const getOptionState = (index: number): 'default' | 'selected' | 'correct' | 'wrong' => {
     if (!showResult) {
       return selectedIndex === index ? 'selected' : 'default';
     }

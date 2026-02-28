@@ -97,7 +97,7 @@ const mockScenario: DialogueScenario = {
   id: 'test-scenario',
   title: 'Test Scenario',
   description: 'A test dialogue scenario',
-  category: 'everyday',
+  category: 'daily',
   difficulty: 'beginner',
   targetLanguage: 'en',
   context: 'Test context',

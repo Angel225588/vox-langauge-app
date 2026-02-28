@@ -500,11 +500,11 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     backgroundColor: colors.primary.DEFAULT,
-    borderBottomRightRadius: borderRadius.xs,
+    borderBottomRightRadius: 4,
   },
   aiBubble: {
     backgroundColor: colors.background.card,
-    borderBottomLeftRadius: borderRadius.xs,
+    borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: colors.border.light,
   },

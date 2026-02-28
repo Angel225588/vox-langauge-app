@@ -15,6 +15,13 @@
  *   assets/avatars/{language}-{gender}-{name}.png
  */
 
+// Type stub for @google/genai (installed on demand, not in deps)
+interface GoogleGenAIInstance {
+  models: {
+    generateContent(params: any): Promise<any>;
+  };
+}
+
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -229,8 +236,9 @@ async function generateImage(
 
   try {
     // Dynamic import to avoid errors if package not installed
+    // @ts-ignore - @google/genai is installed on demand, not in package.json deps
     const { GoogleGenAI } = await import('@google/genai');
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey }) as GoogleGenAIInstance;
 
     console.log('  Generating image with Gemini 3 Pro...');
 

@@ -68,7 +68,7 @@ export function ImmersiveText(props: ImmersiveTextProps) {
   if ('tKey' in props && props.tKey) {
     // Using translation key
     displayText = getImmersiveTranslation(props.tKey, tier, props.namespace);
-  } else if ('native' in props && 'target' in props) {
+  } else if ('native' in props && 'target' in props && props.native && props.target) {
     // Using provided strings
     displayText = getImmersiveText(props.native, props.target, tier);
   } else {

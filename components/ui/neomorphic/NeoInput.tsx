@@ -78,9 +78,9 @@ export function NeoInput({
           onBlur={() => setIsFocused(false)}
           style={[
             styles.input,
-            multiline && styles.multilineInput,
-            leftIcon && styles.inputWithLeftIcon,
-            rightIcon && styles.inputWithRightIcon,
+            multiline ? styles.multilineInput : undefined,
+            leftIcon ? styles.inputWithLeftIcon : undefined,
+            rightIcon ? styles.inputWithRightIcon : undefined,
             inputStyle,
           ]}
         />

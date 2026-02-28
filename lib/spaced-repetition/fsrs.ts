@@ -117,7 +117,7 @@ export function reviewCard(
   const rating = reviewQualityToRating(quality);
 
   // Get all scheduling options, pick the one for our rating
-  const schedulingCards = scheduler.repeat(card, now);
+  const schedulingCards = scheduler.repeat(card, now) as unknown as Record<Rating, { card: Card; log: any }>;
   const result = schedulingCards[rating];
 
   const newState = cardToState(result.card);

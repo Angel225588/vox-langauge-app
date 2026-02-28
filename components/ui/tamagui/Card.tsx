@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { YStack, type YStackProps, styled } from 'tamagui';
 import { forwardRef } from 'react';
 

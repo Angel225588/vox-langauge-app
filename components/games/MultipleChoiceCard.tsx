@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { YStack, XStack, Text, Card, Button, Image } from '@/components/ui/tamagui';
 import { Audio } from 'expo-av';

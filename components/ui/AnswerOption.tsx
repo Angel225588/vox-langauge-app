@@ -45,7 +45,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 import { useHaptics } from '@/hooks/useHaptics';
 
-export type AnswerOptionState = 'default' | 'correct' | 'wrong';
+export type AnswerOptionState = 'default' | 'selected' | 'correct' | 'wrong';
 
 export interface AnswerOptionProps {
   /** The text to display in the option */
@@ -85,6 +85,7 @@ export function AnswerOption({
     onPress();
   };
 
+  const isSelected = state === 'selected';
   const isCorrect = state === 'correct';
   const isWrong = state === 'wrong';
   const isRevealed = isCorrect || isWrong;
@@ -94,9 +95,11 @@ export function AnswerOption({
     ? colors.success.DEFAULT
     : isWrong
       ? colors.error.DEFAULT
-      : colors.background.card;
+      : isSelected
+        ? colors.background.elevated
+        : colors.background.card;
 
-  const borderColor = isRevealed ? 'transparent' : colors.border.light;
+  const borderColor = isRevealed ? 'transparent' : isSelected ? colors.primary.DEFAULT : colors.border.light;
 
   const shadowColor = isCorrect
     ? colors.success.DEFAULT

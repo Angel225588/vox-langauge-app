@@ -54,7 +54,7 @@ export function ReadingPracticeExample() {
       const result = await recording.stopRecording();
       if (result) {
         setRecordingUri(result.uri);
-        setDuration(result.durationMs);
+        setDuration(result.duration);
       }
     } catch (error) {
       console.error('Failed to stop recording:', error);
@@ -69,11 +69,8 @@ export function ReadingPracticeExample() {
     }
 
     try {
-      // Transcribe with Whisper
-      const transcriptionResult = await transcription.transcribe(recordingUri, {
-        language: 'en',
-        prompt: expectedText, // Hint for better accuracy
-      });
+      // Transcribe with Whisper (second arg is expected text for accuracy hint)
+      const transcriptionResult = await transcription.transcribe(recordingUri, expectedText);
 
       if (!transcriptionResult) {
         console.error('Transcription failed');
@@ -113,7 +110,6 @@ export function ReadingPracticeExample() {
           <Button
             title="Start Recording"
             onPress={handleStartRecording}
-            disabled={recording.isLoading}
           />
         ) : (
           <View>

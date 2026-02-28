@@ -63,20 +63,20 @@ export function CompletedBadge({
     switch (variant) {
       case 'gold':
         return {
-          base: ['#B8860B', '#FFD700', '#DAA520'],
-          shimmer: ['transparent', 'rgba(255, 255, 255, 0.4)', 'transparent'],
+          base: ['#B8860B', '#FFD700', '#DAA520'] as const,
+          shimmer: ['transparent', 'rgba(255, 255, 255, 0.4)', 'transparent'] as const,
           text: '#FFD700',
         };
       case 'silver':
         return {
-          base: ['#71797E', '#C0C0C0', '#A9A9A9'],
-          shimmer: ['transparent', 'rgba(255, 255, 255, 0.5)', 'transparent'],
+          base: ['#71797E', '#C0C0C0', '#A9A9A9'] as const,
+          shimmer: ['transparent', 'rgba(255, 255, 255, 0.5)', 'transparent'] as const,
           text: '#C0C0C0',
         };
       case 'bronze':
         return {
-          base: ['#8B4513', '#CD7F32', '#A0522D'],
-          shimmer: ['transparent', 'rgba(255, 255, 255, 0.3)', 'transparent'],
+          base: ['#8B4513', '#CD7F32', '#A0522D'] as const,
+          shimmer: ['transparent', 'rgba(255, 255, 255, 0.3)', 'transparent'] as const,
           text: '#CD7F32',
         };
     }

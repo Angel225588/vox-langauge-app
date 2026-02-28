@@ -47,8 +47,27 @@ jest.mock('@/lib/voice/elevenLabsConfig', () => ({
   ],
 }));
 
+// Mock expo-file-system/legacy
+jest.mock('expo-file-system/legacy', () => ({
+  cacheDirectory: 'file:///mock-cache/',
+  writeAsStringAsync: jest.fn().mockResolvedValue(undefined),
+  deleteAsync: jest.fn().mockResolvedValue(undefined),
+  EncodingType: {
+    Base64: 'base64',
+  },
+}));
+
 // Mock fetch
 global.fetch = jest.fn();
+
+// Helper: create a mock response with a working arrayBuffer()
+function createMockFetchResponse() {
+  const buffer = new ArrayBuffer(8);
+  return {
+    ok: true,
+    arrayBuffer: jest.fn().mockResolvedValue(buffer),
+  };
+}
 
 // Mock FileReader
 class MockFileReader {
@@ -139,10 +158,7 @@ describe('useElevenLabsTTS', () => {
         elevenLabsVoiceId: 'd6dMXDDMQ9zlhV3hOfx0',
       });
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        blob: jest.fn().mockResolvedValue(new Blob(['audio data'])),
-      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce(createMockFetchResponse());
 
       const { result } = renderHook(() => useElevenLabsTTS());
 
@@ -163,7 +179,7 @@ describe('useElevenLabsTTS', () => {
 
       const body = JSON.parse(options.body);
       expect(body.text).toBe('Hello world');
-      expect(body.model_id).toBe('eleven_turbo_v2_5');
+      expect(body.model_id).toBe('eleven_multilingual_v2');
     });
 
     it('should handle API errors gracefully', async () => {
@@ -212,10 +228,7 @@ describe('useElevenLabsTTS', () => {
         return undefined;
       });
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        blob: jest.fn().mockResolvedValue(new Blob(['audio data'])),
-      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce(createMockFetchResponse());
 
       const { result } = renderHook(() => useElevenLabsTTS());
 
@@ -235,10 +248,7 @@ describe('useElevenLabsTTS', () => {
       mockGetApiKey.mockReturnValue('test-api-key');
       mockGetVoiceById.mockReturnValue(undefined);
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        blob: jest.fn().mockResolvedValue(new Blob(['audio data'])),
-      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce(createMockFetchResponse());
 
       const { result } = renderHook(() => useElevenLabsTTS());
 

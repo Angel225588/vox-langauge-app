@@ -850,11 +850,11 @@ export default function TestCardsScreen() {
         };
         return <AudioCard {...audioSample} onNext={handleNext} />;
       }
-      case 'text-input': return <TextInputCard {...currentSample} onNext={handleNext} />;
-      case 'speaking': return <SpeakingCard {...currentSample} onComplete={handleNext} />;
-      case 'fill-in-blank': return <FillInBlankCard {...currentSample} onNext={handleNext} />;
-      case 'sentence-scramble': return <SentenceScrambleCard {...currentSample} onComplete={handleNext} />;
-      case 'role-play': return <RolePlayCard {...currentSample} onComplete={handleNext} />;
+      case 'text-input': return <TextInputCard {...(currentSample as any)} onNext={handleNext} />;
+      case 'speaking': return <SpeakingCard {...(currentSample as any)} onComplete={handleNext} />;
+      case 'fill-in-blank': return <FillInBlankCard {...(currentSample as any)} onNext={handleNext} />;
+      case 'sentence-scramble': return <SentenceScrambleCard {...(currentSample as any)} onComplete={handleNext} />;
+      case 'role-play': return <RolePlayCard {...(currentSample as any)} onComplete={handleNext} />;
       case 'comparison': {
         const compSample = currentSample as any;
         return (

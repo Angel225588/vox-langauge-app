@@ -604,12 +604,12 @@ const styles = StyleSheet.create({
   pointsValue: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: typography.fontWeight.bold,
-    color: colors.white,
+    color: colors.text.primary,
     marginRight: spacing.sm,
   },
   pointsLabel: {
-    fontSize: typography.fontSize.md,
-    color: colors.white,
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
     opacity: 0.9,
   },
   scoreContainer: {
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
     color: colors.text.primary,
     marginBottom: spacing.sm,
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   nextStepText: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.base,
     color: colors.text.primary,
     lineHeight: 22,
   },
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tryAgainText: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
     color: colors.text.primary,
   },
@@ -770,9 +770,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   continueText: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.white,
+    color: colors.text.primary,
   },
   detailsLink: {
     alignItems: 'center',
@@ -788,7 +788,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   milestonesPreviewText: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.base,
     color: colors.success.DEFAULT,
     fontWeight: typography.fontWeight.medium,
   },
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   milestoneName: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
     color: colors.text.primary,
   },
@@ -841,9 +841,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   milestoneCloseText: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.white,
+    color: colors.text.primary,
   },
 
   // Back button
@@ -852,7 +852,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   backButtonText: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.base,
     color: colors.accent.primary,
   },
 
@@ -873,7 +873,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
+    borderBottomColor: colors.border.light,
   },
   metricLabel: {
     fontSize: typography.fontSize.sm,
@@ -897,7 +897,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   detailedWordExpected: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
     color: colors.text.primary,
   },

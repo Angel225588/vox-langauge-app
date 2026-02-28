@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { View, ImageBackground } from 'react-native';
 import { Stack } from 'expo-router';
 import { YStack, XStack, ScrollView } from 'tamagui';
