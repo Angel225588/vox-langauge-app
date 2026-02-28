@@ -21,7 +21,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { getElevenLabsApiKey, ELEVENLABS_VOICES, getVoiceById } from '@/lib/voice/elevenLabsConfig';
 
 // =============================================================================
