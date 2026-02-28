@@ -59,9 +59,9 @@ const PZ = {
 // Waterfall: Vocabulary → Reading → Listening — each feeds from onboarding + previous stage
 const GRID_ITEMS = [
   { title: 'Vocabulary', sub: 'Word bank & review', icon: 'albums-outline' as const, color: PZ.green, route: '/vocabulary-dashboard', badge: '', requiresAuth: false },
-  { title: 'Reading', sub: 'AI passages', icon: 'book-outline' as const, color: PZ.purple, route: '/practice-reading', badge: '', requiresAuth: true },
+  { title: 'Reading', sub: 'Read aloud & feedback', icon: 'book-outline' as const, color: PZ.purple, route: '/reading-library', badge: '', requiresAuth: true },
   { title: 'Writing', sub: 'AI prompt', icon: 'create-outline' as const, color: PZ.gold, route: '/practice-writing', badge: '', requiresAuth: true },
-  { title: 'Listening', sub: '4-stage scaffolding', icon: 'headset-outline' as const, color: PZ.rose, route: '/practice-listening', badge: '', requiresAuth: true },
+  { title: 'Listening', sub: 'Dialogue exercises', icon: 'headset-outline' as const, color: PZ.rose, route: '/listening-library', badge: '', requiresAuth: true },
   { title: 'Library', sub: 'Scenario decks', icon: 'library-outline' as const, color: PZ.cyan, route: '/vox-library', badge: '', requiresAuth: true },
   { title: 'Flow', sub: 'Guided session', icon: 'water-outline' as const, color: PZ.cyan, route: '', badge: 'GUIDED', requiresAuth: true },
 ];
