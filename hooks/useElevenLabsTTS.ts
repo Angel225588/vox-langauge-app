@@ -141,6 +141,8 @@ export function useElevenLabsTTS(): UseElevenLabsTTSReturn {
   }, []);
 
   // Speak with full options
+  // IMPORTANT: The returned Promise resolves when the audio FINISHES playing,
+  // not when it starts. This is critical for sequential line-by-line playback.
   const speakWithOptions = useCallback(async (options: SpeakOptions): Promise<void> => {
     const { text, voiceId, rate = 1.0, onDone, onError } = options;
 
@@ -208,26 +210,30 @@ export function useElevenLabsTTS(): UseElevenLabsTTSReturn {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Create and play sound from temp file
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: tempFile },
-        { shouldPlay: true, rate },
-        (status) => {
-          if (status.isLoaded && status.didJustFinish) {
-            if (isMountedRef.current) {
-              setIsSpeaking(false);
+      // Create and play sound, waiting for playback to FINISH before resolving
+      await new Promise<void>((resolvePlayback, rejectPlayback) => {
+        Audio.Sound.createAsync(
+          { uri: tempFile },
+          { shouldPlay: true, rate },
+          (status) => {
+            if (status.isLoaded && status.didJustFinish) {
+              if (isMountedRef.current) {
+                setIsSpeaking(false);
+              }
+              onDone?.();
+              // Cleanup sound + temp file
+              if (soundRef.current) {
+                soundRef.current.unloadAsync().catch(() => {});
+                soundRef.current = null;
+              }
+              FileSystem.deleteAsync(tempFile, { idempotent: true }).catch(() => {});
+              resolvePlayback();
             }
-            onDone?.();
-            // Cleanup
-            sound.unloadAsync();
-            soundRef.current = null;
-            // Remove temp file
-            FileSystem.deleteAsync(tempFile, { idempotent: true }).catch(() => {});
           }
-        }
-      );
-
-      soundRef.current = sound;
+        ).then(({ sound }) => {
+          soundRef.current = sound;
+        }).catch(rejectPlayback);
+      });
 
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
