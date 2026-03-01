@@ -22,7 +22,7 @@ import Animated, {
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/designSystem';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { VoxIcon } from '@/components/ui/rewards';
 import { Icon } from '@/components/ui/Icon';
 import { CalibratorBanner } from '@/components/learning/CalibratorBanner';
@@ -37,6 +37,7 @@ import { getFeatureAccess, getVoiceUnlockMessage, type ProficiencyLevel } from '
 import { loadPreviewStairs } from '@/lib/services/previewStairs';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { SkillCarousel } from '@/components/home/SkillCarousel';
 // Flag emoji for each target language
 const LANG_FLAGS: Record<string, string> = {
   english: '\u{1F1EC}\u{1F1E7}',
@@ -319,6 +320,47 @@ export default function HomeScreen() {
     };
   }, [isLoading, stairsKey]);
 
+  // Build skills array from metrics, sorted by weakest first
+  const skillsForCarousel = useMemo(() => {
+    const snapshot = metrics.snapshot;
+    const byType = snapshot.byType;
+    
+    return [
+      {
+        type: 'speaking' as const,
+        score: snapshot.averages.articulation,
+        label: 'Speaking',
+        icon: 'mic-outline',
+        color: '#FF6B6B',
+        description: 'Improve your pronunciation and fluency',
+      },
+      {
+        type: 'listening' as const,
+        score: byType.conversation?.avg || 0,
+        label: 'Listening',
+        icon: 'headset-outline',
+        color: '#4ECDC4',
+        description: 'Understand native speakers better',
+      },
+      {
+        type: 'writing' as const,
+        score: byType.writing?.avg || 0,
+        label: 'Writing',
+        icon: 'pencil-outline',
+        color: '#95E1D3',
+        description: 'Perfect your written communication',
+      },
+      {
+        type: 'reading' as const,
+        score: byType.reading?.avg || 0,
+        label: 'Reading',
+        icon: 'book-outline',
+        color: '#FFD93D',
+        description: 'Build reading confidence and speed',
+      },
+    ].sort((a, b) => a.score - b.score); // Weakest skill first
+  }, [metrics.snapshot]);
+
   const isStairRevealed = useCallback(
     (index: number) => index < revealedCount,
     [revealedCount],
@@ -528,7 +570,20 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Staircase (Vertical) */}
+                    {/* Skill Carousel — Swipeable banners prioritized by weakest skill */}
+          {skillsForCarousel.length > 0 && !isLoading && (
+            <SkillCarousel
+              skills={skillsForCarousel}
+              onSkillPress={(skill: any) => {
+                // Navigate to practice screen for this skill
+                console.log('Practice skill:', skill.type);
+                // TODO: Route to appropriate practice screen based on skill.type
+                // router.push(`/practice/${skill.type}`);
+              }}
+            />
+          )}
+
+{/* Staircase (Vertical) */}
           {!isLoading && (
             <View
               style={{
