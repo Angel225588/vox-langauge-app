@@ -1,0 +1,2198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vox Writing System — Screen Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ========== VOX DESIGN TOKENS ========== */
+  :root {
+    /* Backgrounds */
+    --bg-primary: #0A0E1A;
+    --bg-card: #1A1F3A;
+    --bg-elevated: #222845;
+    --bg-input: #141829;
+
+    /* Text */
+    --text-primary: #F9FAFB;
+    --text-secondary: #D1D5DB;
+    --text-tertiary: #9CA3AF;
+    --text-disabled: #6B7280;
+
+    /* Brand Colors */
+    --primary: #0036FF;
+    --primary-light: #00A3FF;
+    --secondary: #06D6A0;
+    --secondary-light: #4ECDC4;
+    --success: #10B981;
+    --success-light: #34D399;
+    --warning: #F59E0B;
+    --warning-light: #FBBF24;
+    --error: #EF4444;
+    --error-light: #F87171;
+    --purple: #8B5CF6;
+    --purple-light: #A78BFA;
+
+    /* Borders */
+    --border-light: #374151;
+    --border-subtle: rgba(255,255,255,0.06);
+
+    /* Spacing */
+    --xs: 4px;
+    --sm: 8px;
+    --md: 16px;
+    --lg: 24px;
+    --xl: 32px;
+    --xxl: 48px;
+
+    /* Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 9999px;
+
+    /* Typography */
+    --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'DM Mono', monospace;
+
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
+    --glow-primary: 0 0 20px rgba(0,54,255,0.3);
+    --glow-success: 0 0 20px rgba(16,185,129,0.3);
+    --glow-purple: 0 0 20px rgba(139,92,246,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-sans);
+    background: #080B14;
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  /* ========== NAVIGATION BAR ========== */
+  .top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: var(--md) var(--lg);
+  }
+
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .nav-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: var(--md);
+  }
+
+  .nav-title span {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .nav-screens {
+    display: flex;
+    gap: var(--sm);
+    flex-wrap: wrap;
+  }
+
+  .nav-btn {
+    padding: 10px 20px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-light);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+  }
+
+  .nav-btn:hover {
+    border-color: var(--primary);
+    color: var(--text-primary);
+    background: rgba(0,54,255,0.08);
+  }
+
+  .nav-btn.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    border-color: transparent;
+    color: white;
+    font-weight: 600;
+    box-shadow: var(--glow-primary);
+  }
+
+  .nav-btn .num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .nav-btn.active .num {
+    background: rgba(255,255,255,0.25);
+  }
+
+  /* ========== FLOW INDICATOR ========== */
+  .flow-bar {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--md) var(--lg);
+    margin-top: 100px;
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+    font-size: 12px;
+    color: var(--text-disabled);
+    font-weight: 500;
+  }
+
+  .flow-step.current {
+    color: var(--primary-light);
+  }
+
+  .flow-step.done {
+    color: var(--success);
+  }
+
+  .flow-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-light);
+  }
+
+  .flow-step.current .flow-dot {
+    background: var(--primary);
+    box-shadow: 0 0 8px var(--primary);
+  }
+
+  .flow-step.done .flow-dot {
+    background: var(--success);
+  }
+
+  .flow-arrow {
+    color: var(--border-light);
+    font-size: 14px;
+    margin: 0 2px;
+  }
+
+  /* ========== PHONE FRAME ========== */
+  .screen-container {
+    display: flex;
+    justify-content: center;
+    padding: var(--lg) var(--md);
+    padding-bottom: var(--xxl);
+  }
+
+  .phone-frame {
+    width: 390px;
+    min-height: 844px;
+    background: var(--bg-primary);
+    border-radius: 44px;
+    border: 3px solid #2A2F4A;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  .phone-notch {
+    width: 126px;
+    height: 34px;
+    background: #000;
+    border-radius: 0 0 20px 20px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 10;
+  }
+
+  .phone-content {
+    padding: 0;
+    min-height: 780px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .phone-home-bar {
+    width: 134px;
+    height: 5px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+    margin: var(--sm) auto var(--md);
+  }
+
+  /* ========== SCREEN SECTIONS ========== */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ========== STATUS BAR ========== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--sm) var(--lg);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .status-bar-right {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  /* ========== SCREEN HEADER ========== */
+  .screen-header {
+    display: flex;
+    align-items: center;
+    padding: var(--sm) var(--md);
+    gap: var(--md);
+  }
+
+  .back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  .header-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .header-subtitle {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 400;
+  }
+
+  /* ========== PROGRESS BAR ========== */
+  .progress-bar-container {
+    padding: 0 var(--lg);
+    margin-bottom: var(--md);
+  }
+
+  .progress-track {
+    height: 4px;
+    background: var(--bg-elevated);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    transition: width 0.5s ease;
+  }
+
+  /* ========== SCREEN 1: TASK BRIEF ========== */
+  .brief-hero {
+    text-align: center;
+    padding: var(--xl) var(--lg) var(--lg);
+  }
+
+  .brief-emoji {
+    font-size: 56px;
+    margin-bottom: var(--md);
+    display: block;
+  }
+
+  .brief-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    background: rgba(0,54,255,0.12);
+    border: 1px solid rgba(0,54,255,0.2);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--md);
+  }
+
+  .brief-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+    margin-bottom: var(--sm);
+  }
+
+  .brief-scenario {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding: 0 var(--sm);
+  }
+
+  /* Difficulty Badge */
+  .difficulty-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: var(--md);
+  }
+
+  .difficulty-badge.beginner {
+    background: rgba(16,185,129,0.12);
+    border: 1px solid rgba(16,185,129,0.2);
+    color: var(--success-light);
+  }
+
+  .difficulty-badge.intermediate {
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.2);
+    color: var(--warning-light);
+  }
+
+  /* Goal Card */
+  .goal-card {
+    margin: var(--md) var(--lg);
+    padding: var(--md);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .goal-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .goal-text {
+    font-size: 15px;
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  /* Tips Section */
+  .tips-section {
+    margin: var(--sm) var(--lg);
+  }
+
+  .tips-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--md);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border: 1px solid var(--border-subtle);
+    border-bottom: none;
+    cursor: pointer;
+  }
+
+  .tips-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .tips-chevron {
+    color: var(--text-tertiary);
+    font-size: 14px;
+    transition: transform 0.2s;
+  }
+
+  .tips-body {
+    padding: 0 var(--md) var(--md);
+    background: var(--bg-card);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    border-top: none;
+  }
+
+  .tip-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sm);
+    padding: var(--sm) 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .tip-bullet {
+    color: var(--secondary);
+    font-size: 16px;
+    margin-top: 1px;
+  }
+
+  /* Key Phrases */
+  .phrases-section {
+    margin: var(--md) var(--lg);
+  }
+
+  .phrases-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--sm);
+  }
+
+  .phrases-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sm);
+  }
+
+  .phrase-chip {
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    background: rgba(6,214,160,0.08);
+    border: 1px solid rgba(6,214,160,0.15);
+    font-size: 13px;
+    color: var(--secondary-light);
+    font-weight: 500;
+    font-family: var(--font-mono);
+  }
+
+  /* CTA Button */
+  .bottom-action {
+    padding: var(--lg);
+    padding-bottom: var(--xl);
+    margin-top: auto;
+  }
+
+  .cta-button {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sm);
+    transition: all 0.2s;
+  }
+
+  .cta-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    box-shadow: var(--glow-primary);
+  }
+
+  .cta-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 30px rgba(0,54,255,0.4);
+  }
+
+  .cta-success {
+    background: linear-gradient(135deg, var(--success), var(--success-light));
+    box-shadow: var(--glow-success);
+  }
+
+  .cta-purple {
+    background: linear-gradient(135deg, var(--purple), var(--purple-light));
+    box-shadow: var(--glow-purple);
+  }
+
+  .cta-secondary {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    box-shadow: none;
+  }
+
+  .cta-disabled {
+    background: var(--bg-elevated);
+    color: var(--text-disabled);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* ========== SCREEN 2: WRITING EDITOR ========== */
+  .editor-task-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+    padding: var(--md) var(--lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .editor-task-emoji {
+    font-size: 20px;
+  }
+
+  .editor-task-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .editor-task-badge {
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .editor-area {
+    flex: 1;
+    padding: var(--lg);
+    min-height: 340px;
+  }
+
+  .editor-textarea {
+    width: 100%;
+    min-height: 300px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.7;
+    resize: none;
+    outline: none;
+  }
+
+  .editor-textarea::placeholder {
+    color: var(--text-disabled);
+  }
+
+  .editor-footer {
+    padding: var(--md) var(--lg);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .editor-stats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--md);
+  }
+
+  .word-count-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+
+  .word-count-pill .current {
+    color: var(--primary-light);
+  }
+
+  .word-count-pill .target {
+    color: var(--text-disabled);
+  }
+
+  .encouragement-text {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-style: italic;
+  }
+
+  .editor-progress {
+    height: 3px;
+    background: var(--bg-elevated);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: var(--md);
+  }
+
+  .editor-progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    transition: width 0.5s ease;
+  }
+
+  /* ========== SCREEN 3: ANALYZING ========== */
+  .analyzing-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 700px;
+    padding: var(--xl);
+    text-align: center;
+  }
+
+  .analyzing-spinner {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--bg-elevated);
+    border-top-color: var(--primary);
+    border-right-color: var(--primary-light);
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--xl);
+    position: relative;
+  }
+
+  .analyzing-spinner::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--secondary);
+    animation: spin 1.5s linear infinite reverse;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .analyzing-icon {
+    font-size: 32px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  }
+
+  .analyzing-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--sm);
+  }
+
+  .analyzing-subtitle {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    max-width: 280px;
+  }
+
+  .analyzing-steps {
+    margin-top: var(--xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--md);
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .analyzing-step {
+    display: flex;
+    align-items: center;
+    gap: var(--md);
+    font-size: 14px;
+    color: var(--text-tertiary);
+  }
+
+  .analyzing-step.done {
+    color: var(--success);
+  }
+
+  .analyzing-step.active {
+    color: var(--primary-light);
+  }
+
+  .step-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .step-icon.done {
+    background: rgba(16,185,129,0.15);
+    color: var(--success);
+  }
+
+  .step-icon.active {
+    background: rgba(0,54,255,0.15);
+    color: var(--primary-light);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .step-icon.pending {
+    background: var(--bg-elevated);
+    color: var(--text-disabled);
+  }
+
+  /* ========== SCREEN 4: ANALYSIS / FEEDBACK ========== */
+  .analysis-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--sm) var(--lg);
+  }
+
+  .analysis-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.2);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--warning-light);
+  }
+
+  /* Score Rings */
+  .scores-section {
+    padding: var(--lg);
+  }
+
+  .scores-grid {
+    display: flex;
+    justify-content: space-around;
+    gap: var(--md);
+  }
+
+  .score-ring-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sm);
+  }
+
+  .score-ring {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-ring svg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+
+  .score-ring circle {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+
+  .score-ring .track {
+    stroke: var(--bg-elevated);
+  }
+
+  .score-ring .fill-blue { stroke: var(--primary); }
+  .score-ring .fill-teal { stroke: var(--secondary); }
+  .score-ring .fill-purple { stroke: var(--purple); }
+
+  .score-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+  }
+
+  .score-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* Feedback Card */
+  .feedback-card {
+    margin: 0 var(--lg) var(--md);
+    padding: var(--md);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .feedback-card.success-tint {
+    border-color: rgba(16,185,129,0.2);
+    background: linear-gradient(135deg, rgba(16,185,129,0.05), var(--bg-card));
+  }
+
+  .feedback-header {
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+    margin-bottom: var(--sm);
+  }
+
+  .feedback-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .feedback-icon.success {
+    background: rgba(16,185,129,0.15);
+  }
+
+  .feedback-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .feedback-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* Strengths List */
+  .strengths-list {
+    margin: 0 var(--lg) var(--md);
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--sm);
+  }
+
+  .strength-item {
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+    padding: 10px var(--md);
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .strength-check {
+    color: var(--success);
+    font-size: 14px;
+  }
+
+  /* Corrections */
+  .corrections-section {
+    margin: 0 var(--lg) var(--md);
+  }
+
+  .corrections-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--sm);
+  }
+
+  .corrections-count {
+    font-size: 12px;
+    color: var(--text-disabled);
+    font-family: var(--font-mono);
+  }
+
+  .correction-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    margin-bottom: var(--sm);
+    overflow: hidden;
+  }
+
+  .correction-header {
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+    padding: var(--md);
+    cursor: pointer;
+  }
+
+  .correction-type-badge {
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-grammar {
+    background: rgba(239,68,68,0.15);
+    color: var(--error-light);
+  }
+
+  .badge-vocabulary {
+    background: rgba(0,54,255,0.15);
+    color: var(--primary-light);
+  }
+
+  .badge-style {
+    background: rgba(139,92,246,0.15);
+    color: var(--purple-light);
+  }
+
+  .badge-spelling {
+    background: rgba(245,158,11,0.15);
+    color: var(--warning-light);
+  }
+
+  .correction-preview {
+    flex: 1;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .correction-original {
+    color: var(--error-light);
+    text-decoration: line-through;
+    opacity: 0.8;
+  }
+
+  .correction-arrow {
+    color: var(--text-disabled);
+  }
+
+  .correction-fixed {
+    color: var(--success-light);
+    font-weight: 600;
+  }
+
+  .correction-expand {
+    color: var(--text-tertiary);
+    font-size: 14px;
+  }
+
+  .correction-body {
+    padding: 0 var(--md) var(--md);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .correction-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sm);
+    margin-bottom: var(--md);
+    padding-top: var(--md);
+  }
+
+  .comparison-block {
+    padding: var(--sm) var(--md);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+  }
+
+  .comparison-block.before {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.15);
+    color: var(--error-light);
+  }
+
+  .comparison-block.after {
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.15);
+    color: var(--success-light);
+  }
+
+  .comparison-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+    margin-bottom: 4px;
+  }
+
+  .explanation-box {
+    display: flex;
+    gap: var(--sm);
+    padding: var(--sm) var(--md);
+    background: rgba(245,158,11,0.06);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(245,158,11,0.1);
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .explanation-icon {
+    font-size: 14px;
+    color: var(--warning);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .correction-accept-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: var(--sm);
+    transition: all 0.2s;
+  }
+
+  .correction-accept-btn:hover {
+    border-color: var(--success);
+    color: var(--success);
+    background: rgba(16,185,129,0.06);
+  }
+
+  .correction-accept-btn.accepted {
+    border-color: var(--success);
+    color: var(--success);
+    background: rgba(16,185,129,0.1);
+  }
+
+  /* Corrected Text Toggle */
+  .corrected-text-section {
+    margin: 0 var(--lg) var(--md);
+  }
+
+  .corrected-text-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--md);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .corrected-text-body {
+    padding: var(--md);
+    background: var(--bg-card);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    border-top: none;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* Two-button row */
+  .button-row {
+    display: flex;
+    gap: var(--sm);
+    padding: 0 var(--lg) var(--xl);
+    margin-top: auto;
+  }
+
+  .button-row .cta-button {
+    flex: 1;
+  }
+
+  .button-row .cta-button.small {
+    flex: 0.4;
+    font-size: 14px;
+  }
+
+  /* ========== SCREEN 5: NOTES LIBRARY ========== */
+  .library-header {
+    padding: var(--lg);
+    padding-top: var(--sm);
+  }
+
+  .library-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--xs);
+  }
+
+  .library-subtitle {
+    font-size: 14px;
+    color: var(--text-tertiary);
+  }
+
+  /* Stats Strip */
+  .stats-strip {
+    display: flex;
+    gap: var(--sm);
+    padding: 0 var(--lg);
+    margin-bottom: var(--md);
+  }
+
+  .stat-card {
+    flex: 1;
+    padding: var(--md) var(--sm);
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  /* Filter Pills */
+  .filter-row {
+    display: flex;
+    gap: var(--sm);
+    padding: 0 var(--lg);
+    margin-bottom: var(--md);
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .filter-row::-webkit-scrollbar { display: none; }
+
+  .filter-pill {
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-light);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .filter-pill:hover {
+    border-color: var(--primary);
+    color: var(--text-primary);
+  }
+
+  .filter-pill.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    border-color: transparent;
+    color: white;
+    font-weight: 600;
+  }
+
+  /* Note Cards */
+  .notes-list {
+    padding: 0 var(--lg);
+  }
+
+  .note-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    padding: var(--md);
+    margin-bottom: var(--sm);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .note-card:hover {
+    border-color: rgba(0,54,255,0.2);
+    background: var(--bg-elevated);
+  }
+
+  .note-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--sm);
+  }
+
+  .note-category-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .tag-email {
+    background: rgba(0,54,255,0.12);
+    color: var(--primary-light);
+  }
+
+  .tag-travel {
+    background: rgba(6,214,160,0.12);
+    color: var(--secondary-light);
+  }
+
+  .tag-job {
+    background: rgba(139,92,246,0.12);
+    color: var(--purple-light);
+  }
+
+  .note-date {
+    font-size: 12px;
+    color: var(--text-disabled);
+    font-family: var(--font-mono);
+  }
+
+  .note-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .note-preview {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .note-bottom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--md);
+    padding-top: var(--sm);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .note-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--md);
+    font-size: 12px;
+    color: var(--text-disabled);
+  }
+
+  .note-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .note-score {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+
+  .score-high {
+    background: rgba(16,185,129,0.12);
+    color: var(--success-light);
+  }
+
+  .score-mid {
+    background: rgba(245,158,11,0.12);
+    color: var(--warning-light);
+  }
+
+  .note-action-btn {
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-light);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .note-action-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary-light);
+  }
+
+  /* FAB */
+  .fab {
+    position: absolute;
+    bottom: 90px;
+    right: var(--lg);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: var(--glow-primary), var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 50;
+  }
+
+  .fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 35px rgba(0,54,255,0.5), var(--shadow-lg);
+  }
+
+  /* Tab Bar */
+  .tab-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: var(--sm) 0;
+    background: rgba(26,31,58,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-subtle);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    color: var(--text-disabled);
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 12px;
+  }
+
+  .tab-item.active {
+    color: var(--primary-light);
+  }
+
+  .tab-icon {
+    font-size: 22px;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: var(--xxl) var(--lg);
+  }
+
+  .empty-icon {
+    font-size: 56px;
+    margin-bottom: var(--md);
+    display: block;
+  }
+
+  .empty-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--sm);
+  }
+
+  .empty-text {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  /* Decision info box */
+  .decision-panel {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--lg) var(--lg);
+  }
+
+  .decision-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--lg);
+  }
+
+  .decision-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--md);
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+  }
+
+  .decision-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--md);
+  }
+
+  .decision-item {
+    padding: var(--md);
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .decision-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-light);
+    margin-bottom: 6px;
+  }
+
+  .decision-item-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .decision-item .status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-top: var(--sm);
+  }
+
+  .status-built {
+    background: rgba(16,185,129,0.12);
+    color: var(--success-light);
+  }
+
+  .status-needs-work {
+    background: rgba(245,158,11,0.12);
+    color: var(--warning-light);
+  }
+
+  .status-ready {
+    background: rgba(0,54,255,0.12);
+    color: var(--primary-light);
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== TOP NAVIGATION ========== -->
+<div class="top-nav">
+  <div class="nav-inner">
+    <div class="nav-title">Vox Writing System — <span>Screen Review</span></div>
+    <div class="nav-screens">
+      <button class="nav-btn active" onclick="showScreen(1)">
+        <span class="num">1</span> Task Brief
+      </button>
+      <button class="nav-btn" onclick="showScreen(2)">
+        <span class="num">2</span> Writing Editor
+      </button>
+      <button class="nav-btn" onclick="showScreen(3)">
+        <span class="num">3</span> Analyzing
+      </button>
+      <button class="nav-btn" onclick="showScreen(4)">
+        <span class="num">4</span> Analysis & Feedback
+      </button>
+      <button class="nav-btn" onclick="showScreen(5)">
+        <span class="num">5</span> Notes Library
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== FLOW BAR ========== -->
+<div class="flow-bar" id="flowBar">
+  <div class="flow-step current" id="flow1"><span class="flow-dot"></span> Brief</div>
+  <span class="flow-arrow">›</span>
+  <div class="flow-step" id="flow2"><span class="flow-dot"></span> Write</div>
+  <span class="flow-arrow">›</span>
+  <div class="flow-step" id="flow3"><span class="flow-dot"></span> Analyze</div>
+  <span class="flow-arrow">›</span>
+  <div class="flow-step" id="flow4"><span class="flow-dot"></span> Feedback</div>
+  <span class="flow-arrow">›</span>
+  <div class="flow-step" id="flow5"><span class="flow-dot"></span> Library</div>
+</div>
+
+<!-- ========== SCREEN CONTAINER ========== -->
+<div class="screen-container">
+
+  <!-- ===== SCREEN 1: TASK BRIEF ===== -->
+  <div class="screen active" id="screen1">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar-right">
+            <span>&#9679;&#9679;&#9679;&#9679;</span>
+            <span>WiFi</span>
+            <span>100%</span>
+          </div>
+        </div>
+
+        <div class="screen-header">
+          <div class="back-btn">&#8249;</div>
+          <div>
+            <div class="header-title">Writing Practice</div>
+            <div class="header-subtitle">Step 1 of 4</div>
+          </div>
+        </div>
+
+        <div class="progress-bar-container">
+          <div class="progress-track">
+            <div class="progress-fill" style="width: 10%"></div>
+          </div>
+        </div>
+
+        <div class="brief-hero">
+          <span class="brief-emoji">&#x1F4E7;</span>
+          <div class="brief-category">&#x2709;&#xFE0F; Email</div>
+          <div class="brief-title">Request Time Off</div>
+          <div class="brief-scenario">Write a professional email to your manager requesting two days off next week for a family event.</div>
+          <div class="difficulty-badge beginner">&#x1F331; Beginner</div>
+        </div>
+
+        <div class="goal-card">
+          <div class="goal-label">&#127919; Learning Goal</div>
+          <div class="goal-text">Practice formal email structure, polite requests, and professional tone in the target language.</div>
+        </div>
+
+        <div class="phrases-section">
+          <div class="phrases-label">Key Phrases</div>
+          <div class="phrases-grid">
+            <div class="phrase-chip">Je vous écris pour...</div>
+            <div class="phrase-chip">Serait-il possible...</div>
+            <div class="phrase-chip">Cordialement</div>
+            <div class="phrase-chip">Je vous remercie</div>
+          </div>
+        </div>
+
+        <div class="tips-section">
+          <div class="tips-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="tips-header-left">&#x1F4A1; Tips</div>
+            <span class="tips-chevron">&#x25BC;</span>
+          </div>
+          <div class="tips-body">
+            <div class="tip-item">
+              <span class="tip-bullet">&#x25CF;</span>
+              Start with a formal greeting (Madame, Monsieur)
+            </div>
+            <div class="tip-item">
+              <span class="tip-bullet">&#x25CF;</span>
+              State your request clearly in the first paragraph
+            </div>
+            <div class="tip-item">
+              <span class="tip-bullet">&#x25CF;</span>
+              Use the conditional tense for polite requests
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-action">
+          <button class="cta-button cta-primary">&#x270F;&#xFE0F;&nbsp; Start Writing</button>
+        </div>
+
+        <div class="phone-home-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 2: WRITING EDITOR ===== -->
+  <div class="screen" id="screen2">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <div class="status-bar">
+          <span>9:44</span>
+          <div class="status-bar-right">
+            <span>&#9679;&#9679;&#9679;&#9679;</span>
+            <span>WiFi</span>
+            <span>98%</span>
+          </div>
+        </div>
+
+        <div class="screen-header">
+          <div class="back-btn">&#8249;</div>
+          <div>
+            <div class="header-title">Writing</div>
+            <div class="header-subtitle">Step 2 of 4</div>
+          </div>
+        </div>
+
+        <div class="progress-bar-container">
+          <div class="progress-track">
+            <div class="progress-fill" style="width: 35%"></div>
+          </div>
+        </div>
+
+        <div class="editor-task-bar">
+          <span class="editor-task-emoji">&#x1F4E7;</span>
+          <span class="editor-task-title">Request Time Off</span>
+          <span class="editor-task-badge difficulty-badge beginner" style="margin: 0;">&#x1F331; Beginner</span>
+        </div>
+
+        <div class="editor-area">
+          <textarea class="editor-textarea" placeholder="Start writing here...&#10;&#10;Tip: Use the key phrases from the brief to help structure your email.">Madame, Monsieur,
+
+Je vous écris pour vous demander deux jours de congé la semaine prochaine, le jeudi et le vendredi, pour un événement familial important.
+
+Serait-il possible d'organiser mon absence pendant ces dates ? Je m'assurerai de terminer tous mes projets en cours avant mon départ.</textarea>
+        </div>
+
+        <div class="editor-footer">
+          <div class="editor-stats">
+            <div class="word-count-pill">
+              <span class="current">42</span>
+              <span class="target">/ 50 words</span>
+            </div>
+            <span class="encouragement-text">Almost there! Just a bit more.</span>
+          </div>
+          <div class="editor-progress">
+            <div class="editor-progress-fill" style="width: 84%"></div>
+          </div>
+          <button class="cta-button cta-primary" style="padding: 14px; font-size: 15px;">Submit for Review&nbsp; &#x2728;</button>
+        </div>
+
+        <div class="phone-home-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 3: ANALYZING ===== -->
+  <div class="screen" id="screen3">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <div class="status-bar">
+          <span>9:47</span>
+          <div class="status-bar-right">
+            <span>&#9679;&#9679;&#9679;&#9679;</span>
+            <span>WiFi</span>
+            <span>97%</span>
+          </div>
+        </div>
+
+        <div class="analyzing-screen">
+          <div class="analyzing-spinner" style="position:relative;">
+            <span class="analyzing-icon">&#x1F4DD;</span>
+          </div>
+          <div class="analyzing-title">Analyzing your writing</div>
+          <div class="analyzing-subtitle">Our AI tutor is reviewing your grammar, vocabulary, and clarity.</div>
+
+          <div class="analyzing-steps">
+            <div class="analyzing-step done">
+              <div class="step-icon done">&#x2713;</div>
+              <span>Text received</span>
+            </div>
+            <div class="analyzing-step done">
+              <div class="step-icon done">&#x2713;</div>
+              <span>Grammar check</span>
+            </div>
+            <div class="analyzing-step active">
+              <div class="step-icon active">&#x25CF;</div>
+              <span>Vocabulary analysis</span>
+            </div>
+            <div class="analyzing-step">
+              <div class="step-icon pending">&#x25CB;</div>
+              <span>Generating feedback</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="phone-home-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 4: ANALYSIS & FEEDBACK ===== -->
+  <div class="screen" id="screen4">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content" style="overflow-y: auto; max-height: 810px;">
+
+        <div class="status-bar">
+          <span>9:48</span>
+          <div class="status-bar-right">
+            <span>&#9679;&#9679;&#9679;&#9679;</span>
+            <span>WiFi</span>
+            <span>96%</span>
+          </div>
+        </div>
+
+        <div class="screen-header">
+          <div class="back-btn">&#8249;</div>
+          <div style="flex:1">
+            <div class="header-title">Your Feedback</div>
+            <div class="header-subtitle">Step 4 of 4</div>
+          </div>
+          <div class="analysis-badge">&#x270F;&#xFE0F; 3 corrections</div>
+        </div>
+
+        <div class="progress-bar-container">
+          <div class="progress-track">
+            <div class="progress-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Score Rings -->
+        <div class="scores-section">
+          <div class="scores-grid">
+            <div class="score-ring-container">
+              <div class="score-ring">
+                <svg viewBox="0 0 76 76">
+                  <circle class="track" cx="38" cy="38" r="33" />
+                  <circle class="fill-blue" cx="38" cy="38" r="33"
+                    stroke-dasharray="207" stroke-dashoffset="35" />
+                </svg>
+                <span class="score-value">83</span>
+              </div>
+              <span class="score-label">Grammar</span>
+            </div>
+
+            <div class="score-ring-container">
+              <div class="score-ring">
+                <svg viewBox="0 0 76 76">
+                  <circle class="track" cx="38" cy="38" r="33" />
+                  <circle class="fill-teal" cx="38" cy="38" r="33"
+                    stroke-dasharray="207" stroke-dashoffset="25" />
+                </svg>
+                <span class="score-value">88</span>
+              </div>
+              <span class="score-label">Vocabulary</span>
+            </div>
+
+            <div class="score-ring-container">
+              <div class="score-ring">
+                <svg viewBox="0 0 76 76">
+                  <circle class="track" cx="38" cy="38" r="33" />
+                  <circle class="fill-purple" cx="38" cy="38" r="33"
+                    stroke-dasharray="207" stroke-dashoffset="21" />
+                </svg>
+                <span class="score-value">90</span>
+              </div>
+              <span class="score-label">Clarity</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overall Feedback -->
+        <div class="feedback-card success-tint">
+          <div class="feedback-header">
+            <div class="feedback-icon success">&#x2713;</div>
+            <div class="feedback-label">Overall Feedback</div>
+          </div>
+          <div class="feedback-text">Strong email structure with appropriate formal register. Your use of the conditional tense shows good command of polite requests. Focus on article-noun agreement for further improvement.</div>
+        </div>
+
+        <!-- Strengths -->
+        <div class="strengths-list">
+          <div class="section-label">Strengths</div>
+          <div class="strength-item">
+            <span class="strength-check">&#x2713;</span>
+            Excellent formal email structure
+          </div>
+          <div class="strength-item">
+            <span class="strength-check">&#x2713;</span>
+            Good use of conditional tense
+          </div>
+          <div class="strength-item">
+            <span class="strength-check">&#x2713;</span>
+            Clear and concise request
+          </div>
+        </div>
+
+        <!-- Corrections -->
+        <div class="corrections-section">
+          <div class="corrections-header">
+            <div class="section-label">Corrections</div>
+            <span class="corrections-count">1 / 3 reviewed</span>
+          </div>
+
+          <!-- Correction 1: expanded -->
+          <div class="correction-card">
+            <div class="correction-header">
+              <span class="correction-type-badge badge-grammar">Grammar</span>
+              <div class="correction-preview">
+                <span class="correction-original">pour un événement</span>
+                <span class="correction-arrow">&#x2192;</span>
+                <span class="correction-fixed">pour un événement</span>
+              </div>
+              <span class="correction-expand">&#x25B2;</span>
+            </div>
+            <div class="correction-body">
+              <div class="correction-comparison">
+                <div class="comparison-block before">
+                  <div class="comparison-label">Before</div>
+                  pour un événement familial important
+                </div>
+                <div class="comparison-block after">
+                  <div class="comparison-label">After</div>
+                  pour un événement familial important
+                </div>
+              </div>
+              <div class="explanation-box">
+                <span class="explanation-icon">&#x1F4A1;</span>
+                <span>The accent on "événement" must be acute (é), not grave (è). This is a common spelling pattern for words derived from Latin "eventus".</span>
+              </div>
+              <button class="correction-accept-btn accepted">&#x2713; Noted for your learning</button>
+            </div>
+          </div>
+
+          <!-- Correction 2: collapsed -->
+          <div class="correction-card">
+            <div class="correction-header">
+              <span class="correction-type-badge badge-vocabulary">Vocabulary</span>
+              <div class="correction-preview">
+                <span class="correction-original">mon départ</span>
+                <span class="correction-arrow">&#x2192;</span>
+                <span class="correction-fixed">mon absence</span>
+              </div>
+              <span class="correction-expand">&#x25BC;</span>
+            </div>
+          </div>
+
+          <!-- Correction 3: collapsed -->
+          <div class="correction-card">
+            <div class="correction-header">
+              <span class="correction-type-badge badge-style">Style</span>
+              <div class="correction-preview">
+                <span class="correction-original">Je m'assurerai</span>
+                <span class="correction-arrow">&#x2192;</span>
+                <span class="correction-fixed">Je veillerai</span>
+              </div>
+              <span class="correction-expand">&#x25BC;</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Corrected Text -->
+        <div class="corrected-text-section">
+          <div class="corrected-text-toggle">
+            <span>&#x1F4C4; View Corrected Text</span>
+            <span>&#x25BC;</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="button-row" style="padding-bottom: 24px;">
+          <button class="cta-button cta-secondary small">&#x1F399;&#xFE0F; Practice</button>
+          <button class="cta-button cta-success">&#x1F4BE; Save to Notes</button>
+        </div>
+
+        <div class="phone-home-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN 5: NOTES LIBRARY ===== -->
+  <div class="screen" id="screen5">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content" style="overflow-y: auto; max-height: 810px; padding-bottom: 70px;">
+
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar-right">
+            <span>&#9679;&#9679;&#9679;&#9679;</span>
+            <span>WiFi</span>
+            <span>100%</span>
+          </div>
+        </div>
+
+        <div class="library-header">
+          <div class="library-title">My Notes</div>
+          <div class="library-subtitle">Your writing practice collection</div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-strip">
+          <div class="stat-card">
+            <div class="stat-value">12</div>
+            <div class="stat-label">Notes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">4.2h</div>
+            <div class="stat-label">Practice</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">84</div>
+            <div class="stat-label">Avg Score</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-row">
+          <button class="filter-pill active">All</button>
+          <button class="filter-pill">&#x2709;&#xFE0F; Email</button>
+          <button class="filter-pill">&#x2708;&#xFE0F; Travel</button>
+          <button class="filter-pill">&#x1F4BC; Work</button>
+          <button class="filter-pill">&#x1F4AC; Social</button>
+        </div>
+
+        <!-- Note Cards -->
+        <div class="notes-list">
+          <div class="note-card">
+            <div class="note-top-row">
+              <span class="note-category-tag tag-email">&#x2709;&#xFE0F; Email</span>
+              <span class="note-date">Feb 28</span>
+            </div>
+            <div class="note-title">Request Time Off</div>
+            <div class="note-preview">Madame, Monsieur, je vous écris pour vous demander deux jours de congé la semaine prochaine...</div>
+            <div class="note-bottom-row">
+              <div class="note-meta">
+                <span class="note-meta-item">&#x1F4DD; 42 words</span>
+                <span class="note-meta-item">&#x23F1;&#xFE0F; 6 min</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="note-score score-high">87</span>
+                <button class="note-action-btn">View</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-card">
+            <div class="note-top-row">
+              <span class="note-category-tag tag-travel">&#x2708;&#xFE0F; Travel</span>
+              <span class="note-date">Feb 26</span>
+            </div>
+            <div class="note-title">Hotel Complaint</div>
+            <div class="note-preview">Bonjour, je souhaiterais vous faire part d'un problème concernant ma réservation...</div>
+            <div class="note-bottom-row">
+              <div class="note-meta">
+                <span class="note-meta-item">&#x1F4DD; 68 words</span>
+                <span class="note-meta-item">&#x23F1;&#xFE0F; 9 min</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="note-score score-mid">74</span>
+                <button class="note-action-btn">View</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-card">
+            <div class="note-top-row">
+              <span class="note-category-tag tag-job">&#x1F4BC; Work</span>
+              <span class="note-date">Feb 24</span>
+            </div>
+            <div class="note-title">Self Introduction</div>
+            <div class="note-preview">Je m'appelle Marie et je suis ingénieure en informatique avec cinq ans d'expérience...</div>
+            <div class="note-bottom-row">
+              <div class="note-meta">
+                <span class="note-meta-item">&#x1F4DD; 55 words</span>
+                <span class="note-meta-item">&#x23F1;&#xFE0F; 8 min</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="note-score score-high">91</span>
+                <button class="note-action-btn">View</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-card">
+            <div class="note-top-row">
+              <span class="note-category-tag tag-email">&#x2709;&#xFE0F; Email</span>
+              <span class="note-date">Feb 22</span>
+            </div>
+            <div class="note-title">Meeting Follow-Up</div>
+            <div class="note-preview">Suite à notre réunion d'hier, je vous envoie un résumé des points abordés...</div>
+            <div class="note-bottom-row">
+              <div class="note-meta">
+                <span class="note-meta-item">&#x1F4DD; 73 words</span>
+                <span class="note-meta-item">&#x23F1;&#xFE0F; 11 min</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="note-score score-high">85</span>
+                <button class="note-action-btn">View</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAB -->
+        <button class="fab">+</button>
+
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+          <div class="tab-item">
+            <span class="tab-icon">&#x1F3E0;</span>
+            <span>Home</span>
+          </div>
+          <div class="tab-item">
+            <span class="tab-icon">&#x1F3AF;</span>
+            <span>Practice</span>
+          </div>
+          <div class="tab-item active">
+            <span class="tab-icon">&#x1F4DD;</span>
+            <span>Notes</span>
+          </div>
+          <div class="tab-item">
+            <span class="tab-icon">&#x1F464;</span>
+            <span>Profile</span>
+          </div>
+        </div>
+
+        <div class="phone-home-bar"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========== DECISION PANEL ========== -->
+<div class="decision-panel" id="decisionPanel">
+  <div class="decision-card">
+    <div class="decision-title">&#x1F527; Implementation Status & Decisions Needed</div>
+    <div class="decision-grid">
+      <div class="decision-item">
+        <div class="decision-item-title">Screen 1: Task Brief</div>
+        <div class="decision-item-text">TaskBriefCard component exists. Needs: brand color alignment (was using old indigo, should be Electric Blue #0036FF), key phrases section, difficulty badge refinement.</div>
+        <span class="status status-needs-work">Needs Refinement</span>
+      </div>
+      <div class="decision-item">
+        <div class="decision-item-title">Screen 2: Writing Editor</div>
+        <div class="decision-item-text">WritingEditor component exists with milestone-based encouragement. Needs: task bar header with context, progress bar with word target, submit button glow effect.</div>
+        <span class="status status-needs-work">Needs Refinement</span>
+      </div>
+      <div class="decision-item">
+        <div class="decision-item-title">Screen 3: Analyzing</div>
+        <div class="decision-item-text">Loading state exists in WritingTaskFlow. Needs: step-by-step progress indicators (Grammar check, Vocabulary, Generating feedback), dual-ring spinner, calming professional tone.</div>
+        <span class="status status-needs-work">Needs Refinement</span>
+      </div>
+      <div class="decision-item">
+        <div class="decision-item-title">Screen 4: Analysis & Feedback</div>
+        <div class="decision-item-text">WritingAnalysisView + CorrectionCard components exist. Needs: score ring color alignment, correction card expand/collapse polish, "Practice" voice button wiring, brand gradient updates.</div>
+        <span class="status status-needs-work">Needs Refinement</span>
+      </div>
+      <div class="decision-item">
+        <div class="decision-item-title">Screen 5: Notes Library</div>
+        <div class="decision-item-text">notes-library.tsx exists with stats, filters, and note cards. Needs: FAB for new writing, score badges on cards, category tag colors, "View Feedback" replay wiring, brand alignment.</div>
+        <span class="status status-needs-work">Needs Refinement</span>
+      </div>
+      <div class="decision-item">
+        <div class="decision-item-title">Flow Integration</div>
+        <div class="decision-item-text">WritingTaskFlow orchestrates phases 1-4. Notes library is a separate tab/route. Need to wire: Practice tab entry point, stair session integration, lesson completion callback, notes auto-save.</div>
+        <span class="status status-ready">Ready to Wire</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showScreen(num) {
+  // Hide all screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  // Show selected
+  document.getElementById('screen' + num).classList.add('active');
+  document.querySelectorAll('.nav-btn')[num - 1].classList.add('active');
+
+  // Update flow bar
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('flow' + i);
+    el.className = 'flow-step';
+    if (i < num) el.className = 'flow-step done';
+    if (i === num) el.className = 'flow-step current';
+  }
+}
+</script>
+</body>
+</html>
