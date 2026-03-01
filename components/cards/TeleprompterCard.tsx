@@ -386,6 +386,26 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
 
         {/* Control Buttons Row */}
         <View style={styles.controlsRow}>
+          {/* Mode Toggle - Always Visible */}
+          <View style={styles.modeToggle}>
+            <TouchableOpacity
+              onPress={() => { setMode('practice'); Haptics.selectionAsync(); }}
+              style={[styles.modeButton, mode === 'practice' && styles.modeButtonActive]}
+            >
+              <Text style={[styles.modeText, mode === 'practice' && styles.modeTextActive]}>
+                Practice
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { setMode('record'); Haptics.selectionAsync(); }}
+              style={[styles.modeButton, mode === 'record' && styles.modeButtonActive]}
+            >
+              <Text style={[styles.modeText, mode === 'record' && styles.modeTextActive]}>
+                Record
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {!hasStarted ? (
             // Pre-start controls
             <>
@@ -424,26 +444,6 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
                   color={isTTSSpeaking ? colors.secondary.DEFAULT : colors.text.primary}
                 />
               </TouchableOpacity>
-
-              {/* Mode Toggle */}
-              <View style={styles.modeToggle}>
-                <TouchableOpacity
-                  onPress={() => { setMode('practice'); Haptics.selectionAsync(); }}
-                  style={[styles.modeButton, mode === 'practice' && styles.modeButtonActive]}
-                >
-                  <Text style={[styles.modeText, mode === 'practice' && styles.modeTextActive]}>
-                    Practice
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => { setMode('record'); Haptics.selectionAsync(); }}
-                  style={[styles.modeButton, mode === 'record' && styles.modeButtonActive]}
-                >
-                  <Text style={[styles.modeText, mode === 'record' && styles.modeTextActive]}>
-                    Record
-                  </Text>
-                </TouchableOpacity>
-              </View>
 
               {/* Start Button */}
               <TouchableOpacity
@@ -536,6 +536,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
             </>
           )}
         </View>
+
 
         {/* Recording indicator */}
         {hasStarted && mode === 'record' && isRecording && (
