@@ -7,6 +7,7 @@
  * - Speed slider (visible before AND during playback)
  * - Font size toggle (S/M/L)
  * - Practice and Record modes
+ * - Listen button (ElevenLabs TTS) - hear text read aloud with auto-cleanup on finish/back
  */
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -33,6 +34,7 @@ import { colors, spacing, borderRadius, typography } from '@/constants/designSys
 import { TypeBadge } from '@/components/ui/TypeBadge';
 import { useAudioRecording, type Passage } from '@/lib/reading';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -76,6 +78,24 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     stopRecording,
     formatDuration,
   } = useAudioRecording();
+
+  // TTS for listen mode
+  const { speakSequence, stop: stopTTS, isSpeaking: isTTSSpeaking } = useElevenLabsTTS();
+
+  const handleListenToggle = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (isTTSSpeaking) {
+      await stopTTS();
+    } else {
+      const paragraphs = passage.text.split('\n\n').filter(p => p.trim());
+      const items = paragraphs.map(p => ({ text: p.trim() }));
+      try {
+        await speakSequence(items);
+      } catch {
+        // TTS error — handled by hook
+      }
+    }
+  }, [isTTSSpeaking, stopTTS, speakSequence, passage.text]);
 
   // State
   const [mode, setMode] = useState<TeleprompterMode>('practice');
@@ -235,6 +255,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
   const handleFinish = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsPlaying(false);
+    await stopTTS();
 
     let result = null;
     if (mode === 'record' && isRecording) {
@@ -255,6 +276,7 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
       stopRecording();
     }
     stopSmoothScroll();
+    stopTTS();
     onBack?.();
   };
 
@@ -390,6 +412,19 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
                 </View>
               </TouchableOpacity>
 
+              {/* Listen Button (ElevenLabs TTS) */}
+              <TouchableOpacity
+                onPress={handleListenToggle}
+                style={[styles.controlButton, isTTSSpeaking && styles.listenButtonActive]}
+                accessibilityLabel={isTTSSpeaking ? 'Stop listening' : 'Listen to text'}
+              >
+                <Ionicons
+                  name={isTTSSpeaking ? 'volume-high' : 'volume-medium-outline'}
+                  size={22}
+                  color={isTTSSpeaking ? colors.secondary.DEFAULT : colors.text.primary}
+                />
+              </TouchableOpacity>
+
               {/* Mode Toggle */}
               <View style={styles.modeToggle}>
                 <TouchableOpacity
@@ -450,6 +485,19 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
                     {fontSizeOption === 'small' ? 'S' : fontSizeOption === 'medium' ? 'M' : 'L'}
                   </Text>
                 </View>
+              </TouchableOpacity>
+
+              {/* Listen Button (ElevenLabs TTS) */}
+              <TouchableOpacity
+                onPress={handleListenToggle}
+                style={[styles.controlButton, isTTSSpeaking && styles.listenButtonActive]}
+                accessibilityLabel={isTTSSpeaking ? 'Stop listening' : 'Listen to text'}
+              >
+                <Ionicons
+                  name={isTTSSpeaking ? 'volume-high' : 'volume-medium-outline'}
+                  size={22}
+                  color={isTTSSpeaking ? colors.secondary.DEFAULT : colors.text.primary}
+                />
               </TouchableOpacity>
 
               {/* Play/Pause - Larger center button */}
@@ -727,6 +775,13 @@ const styles = StyleSheet.create({
   },
   playButton: {
     backgroundColor: colors.primary.DEFAULT,
+  },
+
+  // Listen button active state
+  listenButtonActive: {
+    backgroundColor: colors.secondary.DEFAULT + '25',
+    borderWidth: 1,
+    borderColor: colors.secondary.DEFAULT + '50',
   },
 
   // Stop button small
