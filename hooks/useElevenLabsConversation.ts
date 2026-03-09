@@ -64,6 +64,8 @@ export interface UseElevenLabsConversationProps {
   agentId?: string;
   /** Selected voice configuration */
   voice?: ElevenLabsVoiceConfig;
+  /** User's target language code (e.g. 'fr'). Used as authority even if voice is undefined. */
+  targetLanguage?: string;
   /** Scenario ID for context */
   scenario?: string;
   /** Scenario description for AI context */
@@ -72,6 +74,8 @@ export interface UseElevenLabsConversationProps {
   userProficiency?: ProficiencyLevel;
   /** Emotion instruction for the AI */
   emotionInstruction?: string;
+  /** Key vocabulary words to weave into conversation */
+  keyVocabulary?: string[];
   /** Callback when session ends */
   onSessionEnd?: (session: ConversationSession) => void;
   /** Callback on error */
@@ -159,10 +163,12 @@ export function useElevenLabsConversation(
   const {
     agentId = getElevenLabsAgentId(),
     voice,
+    targetLanguage,
     scenario = 'casual_chat',
     scenarioDescription,
     userProficiency = 'intermediate',
     emotionInstruction,
+    keyVocabulary,
     onSessionEnd,
     onError,
     slowSpeechMode = 'normal',
@@ -258,22 +264,27 @@ export function useElevenLabsConversation(
   // Build Configuration
   // ==========================================================================
 
+  // Resolve language: voice config → explicit targetLanguage → fallback
+  const resolvedLanguage = voice?.language || targetLanguage || 'en';
+
   const systemPrompt = buildSystemPrompt({
     voiceName: voice?.name || 'AI Tutor',
     accent: voice?.accent ? getAccentDisplayName(voice.accent) : 'native',
-    language: voice?.language || 'the target language',
+    language: resolvedLanguage,
     proficiency: userProficiency,
     scenario,
     scenarioDescription,
     emotionInstruction,
     targetDurationSeconds: targetDuration,
+    keyVocabulary,
   });
 
-  const firstMessage = voice ? getFirstMessage({
-    voiceName: voice.name,
+  // Always generate first message in the target language (even without voice config)
+  const firstMessage = getFirstMessage({
+    voiceName: voice?.name || 'AI Tutor',
     scenario,
-    language: voice.language,
-  }) : undefined;
+    language: resolvedLanguage as any,
+  });
 
   // ==========================================================================
   // ElevenLabs SDK Hook with Callbacks
@@ -438,9 +449,9 @@ export function useElevenLabsConversation(
 
       console.log('[ElevenLabs] Starting session with agent:', agentId);
 
-      // Build overrides based on granular options
-      // Note: Some overrides require enabling in the ElevenLabs agent dashboard
-      const shouldUseOverrides = voice && !disableOverrides;
+      // Build overrides — ALWAYS send prompt and language to enforce target language.
+      // Voice/TTS overrides only apply when voice config is available.
+      const shouldUseOverrides = !disableOverrides;
 
       // Build agent overrides conditionally
       const agentOverrides: Record<string, unknown> = {};
@@ -450,8 +461,8 @@ export function useElevenLabsConversation(
       if (enableFirstMessage && firstMessage) {
         agentOverrides.firstMessage = firstMessage;
       }
-      if (enableLanguage && voice?.language) {
-        agentOverrides.language = voice.language;
+      if (enableLanguage && resolvedLanguage) {
+        agentOverrides.language = resolvedLanguage;
       }
 
       // Build TTS overrides conditionally
@@ -487,7 +498,7 @@ export function useElevenLabsConversation(
           enableVoice,
           agentPromptLength: enablePrompt ? systemPrompt?.length : 'skipped',
           firstMessageLength: enableFirstMessage ? firstMessage?.length : 'skipped',
-          language: enableLanguage ? voice?.language : 'skipped',
+          language: enableLanguage ? resolvedLanguage : 'skipped',
           voiceId: enableVoice ? voice?.elevenLabsVoiceId : 'skipped',
           slowSpeechMode: slowSpeechMode !== 'normal' ? slowSpeechMode : 'normal (1.0x)',
         }, null, 2));
@@ -522,7 +533,7 @@ export function useElevenLabsConversation(
       onError?.(error);
       throw error;
     }
-  }, [agentId, sdkStartSession, voice, systemPrompt, firstMessage, userProficiency, slowSpeechMode, onError, disableOverrides, enablePrompt, enableFirstMessage, enableLanguage, enableVoice]);
+  }, [agentId, sdkStartSession, voice, resolvedLanguage, systemPrompt, firstMessage, userProficiency, slowSpeechMode, onError, disableOverrides, enablePrompt, enableFirstMessage, enableLanguage, enableVoice]);
 
   /**
    * End the current conversation session (user-initiated)

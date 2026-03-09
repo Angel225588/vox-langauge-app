@@ -1,17 +1,13 @@
 /**
- * Pre-Session Screen (Mission Briefing)
+ * Mission Briefing Screen — Premium Pre-Call Experience
  *
- * Redesigned for clarity and memorability.
- * Key design principles:
- * 1. Hero section: Large character + who you're talking to
- * 2. Single clear goal: What you need to accomplish
- * 3. Quick tips: What to expect (collapsed by default)
- * 4. Big action: Start the call
- *
- * The user should be able to glance at this and immediately know:
- * - WHO they're talking to
- * - WHAT they need to do
- * - That the AI will guide them
+ * Revolut-inspired clean design with glassmorphic surfaces.
+ * Layout:
+ *   1. Floating back + meta badges (top)
+ *   2. Hero: gradient avatar ring + name + role
+ *   3. Scenario card: title + goal + collapsible objectives
+ *   4. Reassurance pill
+ *   5. Fixed footer: vocab preview + start call CTA
  */
 
 import React, { useState, useEffect } from 'react';
@@ -26,7 +22,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   FadeIn,
   FadeInDown,
-  FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -46,26 +41,29 @@ import { BackButton } from '@/components/ui/BackButton';
 // =============================================================================
 
 export interface MissionBriefingScreenProps {
-  // Scenario
   title: string;
   description?: string;
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   duration?: string;
-
-  // Roles
   yourRole: string;
   theirRole: string;
   characterEmoji?: string;
   characterName?: string;
-
-  // Mission objectives (shown in collapsible section)
   objectives: string[];
-
-  // Actions
   onStartCall: () => void;
   onPreviewVocabulary?: () => void;
   onBack: () => void;
 }
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const DIFFICULTY_CONFIG = {
+  beginner: { label: 'Beginner', color: colors.success.DEFAULT, icon: 'leaf-outline' as const },
+  intermediate: { label: 'Intermediate', color: colors.warning.DEFAULT, icon: 'flame-outline' as const },
+  advanced: { label: 'Advanced', color: colors.error.DEFAULT, icon: 'diamond-outline' as const },
+};
 
 // =============================================================================
 // Component
@@ -86,36 +84,45 @@ export const MissionBriefingScreen: React.FC<MissionBriefingScreenProps> = ({
   onBack,
 }) => {
   const insets = useSafeAreaInsets();
-  const [showGoals, setShowGoals] = useState(false);
+  const [showObjectives, setShowObjectives] = useState(false);
 
-  // Pulse animation for start button
-  const buttonScale = useSharedValue(1);
-  const avatarScale = useSharedValue(0.8);
-  const avatarOpacity = useSharedValue(0);
+  // Animations
+  const ringRotation = useSharedValue(0);
+  const pulseScale = useSharedValue(1);
+  const avatarScale = useSharedValue(0.6);
 
   useEffect(() => {
-    // Avatar entrance animation
-    avatarScale.value = withSpring(1, { damping: 12, stiffness: 100 });
-    avatarOpacity.value = withTiming(1, { duration: 400 });
+    // Avatar spring in
+    avatarScale.value = withSpring(1, { damping: 14, stiffness: 90 });
 
-    // Button pulse animation
-    buttonScale.value = withRepeat(
+    // Subtle ring rotation
+    ringRotation.value = withRepeat(
+      withTiming(360, { duration: 12000, easing: Easing.linear }),
+      -1,
+      false
+    );
+
+    // CTA pulse
+    pulseScale.value = withRepeat(
       withSequence(
-        withTiming(1.02, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+        withTiming(1.03, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
       false
     );
   }, []);
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: buttonScale.value }],
+  const avatarAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: avatarScale.value }],
   }));
 
-  const avatarStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: avatarScale.value }],
-    opacity: avatarOpacity.value,
+  const ringAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${ringRotation.value}deg` }],
+  }));
+
+  const ctaAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
   }));
 
   const handleStartCall = async () => {
@@ -128,181 +135,187 @@ export const MissionBriefingScreen: React.FC<MissionBriefingScreenProps> = ({
     onPreviewVocabulary?.();
   };
 
-  const toggleGoals = async () => {
+  const toggleObjectives = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShowGoals(!showGoals);
+    setShowObjectives(!showObjectives);
   };
 
-  const getDifficultyColor = () => {
-    switch (difficulty) {
-      case 'beginner':
-        return colors.success.DEFAULT;
-      case 'intermediate':
-        return colors.warning.DEFAULT;
-      case 'advanced':
-        return colors.error.DEFAULT;
-      default:
-        return colors.text.tertiary;
-    }
-  };
-
-  const difficultyColor = getDifficultyColor();
-  const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
-
-  // Get the primary goal (first objective or title)
+  const diffConfig = DIFFICULTY_CONFIG[difficulty] || DIFFICULTY_CONFIG.beginner;
   const primaryGoal = objectives[0] || title;
+  const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Header - Minimal */}
+      {/* ── Header ─────────────────────────────────────────────── */}
       <Animated.View
         entering={FadeIn.duration(300)}
-        style={[styles.header, { paddingTop: insets.top + spacing.md }]}
+        style={[styles.header, { paddingTop: insets.top + spacing.sm }]}
       >
         <BackButton onPress={onBack} variant="default" />
-        <View style={styles.headerCenter}>
-          <View style={styles.metaBadges}>
-            <View style={[styles.difficultyBadge, { backgroundColor: difficultyColor + '25' }]}>
-              <Text style={[styles.badgeText, { color: difficultyColor }]}>
-                {difficulty}
-              </Text>
-            </View>
-            <View style={styles.durationBadge}>
-              <Ionicons name="time-outline" size={12} color={colors.text.tertiary} />
-              <Text style={styles.badgeText}>{duration}</Text>
-            </View>
+        <View style={styles.headerBadges}>
+          <View style={[styles.badge, { backgroundColor: diffConfig.color + '18' }]}>
+            <Ionicons name={diffConfig.icon} size={12} color={diffConfig.color} />
+            <Text style={[styles.badgeText, { color: diffConfig.color }]}>
+              {diffConfig.label}
+            </Text>
+          </View>
+          <View style={styles.badge}>
+            <Ionicons name="time-outline" size={12} color={colors.text.tertiary} />
+            <Text style={styles.badgeText}>{duration}</Text>
           </View>
         </View>
-        <View style={styles.headerRight} />
+        <View style={{ width: 40 }} />
       </Animated.View>
 
-      {/* Main Content - Vertically Centered */}
-      <View style={styles.mainContent}>
-        {/* Hero Character Section */}
-        <Animated.View style={[styles.heroSection, avatarStyle]}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatarRing}>
-              <View style={styles.avatarInner}>
-                <Ionicons name={characterEmoji as any} size={40} color={colors.text.primary} />
-              </View>
+      {/* ── Scrollable Content ──────────────────────────────────── */}
+      <View style={styles.content}>
+
+        {/* Hero: Avatar + Identity */}
+        <Animated.View style={[styles.heroSection, avatarAnimStyle]}>
+          {/* Gradient Ring */}
+          <View style={styles.avatarWrapper}>
+            <Animated.View style={[styles.gradientRing, ringAnimStyle]}>
+              <LinearGradient
+                colors={[colors.primary.DEFAULT, colors.accent.blue, colors.primary.light]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientRingInner}
+              />
+            </Animated.View>
+            <View style={styles.avatarCircle}>
+              <Ionicons name={characterEmoji as any} size={36} color={colors.text.primary} />
             </View>
           </View>
 
-          {/* Character Info */}
-          <Animated.View
-            entering={FadeInDown.delay(200).duration(400)}
-            style={styles.characterInfo}
-          >
-            <Text style={styles.talkingToLabel}>You're talking to</Text>
-            <Text style={styles.characterRole}>{theirRole}</Text>
+          {/* Identity */}
+          <View style={styles.identityBlock}>
             {characterName && (
               <Text style={styles.characterName}>{characterName}</Text>
             )}
-          </Animated.View>
-        </Animated.View>
+            <Text style={styles.roleLabel}>{theirRole}</Text>
+          </View>
 
-        {/* Single Clear Goal */}
-        <Animated.View
-          entering={FadeInUp.delay(300).duration(400)}
-          style={styles.goalSection}
-        >
-          <View style={styles.goalCard}>
-            <View style={styles.goalHeader}>
-              <Ionicons name="flag" size={18} color={colors.primary.DEFAULT} />
-              <Text style={styles.goalLabel}>Your Goal</Text>
+          {/* Role Tags */}
+          <View style={styles.roleTags}>
+            <View style={styles.roleTag}>
+              <View style={[styles.roleIndicator, { backgroundColor: colors.primary.DEFAULT }]} />
+              <Text style={styles.roleTagText}>You — {yourRole}</Text>
             </View>
-            <Text style={styles.goalText}>{primaryGoal}</Text>
+            <View style={styles.roleTag}>
+              <View style={[styles.roleIndicator, { backgroundColor: colors.secondary.DEFAULT }]} />
+              <Text style={styles.roleTagText}>Them — {theirRole}</Text>
+            </View>
           </View>
         </Animated.View>
 
-        {/* Collapsible Goals Section */}
-        {objectives.length > 1 && (
-          <Animated.View
-            entering={FadeInUp.delay(400).duration(400)}
-            style={styles.goalsToggleSection}
-          >
-            <TouchableOpacity
-              onPress={toggleGoals}
-              activeOpacity={0.7}
-              style={styles.goalsToggle}
-            >
-              <Text style={styles.goalsToggleText}>
-                {showGoals ? 'Hide details' : 'See all goals'}
-              </Text>
-              <Ionicons
-                name={showGoals ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color={colors.text.tertiary}
-              />
-            </TouchableOpacity>
-
-            {showGoals && (
-              <Animated.View
-                entering={FadeInDown.duration(300)}
-                style={styles.goalsList}
-              >
-                {objectives.slice(1).map((objective, index) => (
-                  <View key={index} style={styles.goalItem}>
-                    <View style={styles.goalBullet} />
-                    <Text style={styles.goalItemText}>{objective}</Text>
-                  </View>
-                ))}
-              </Animated.View>
+        {/* Scenario Card */}
+        <Animated.View entering={FadeInDown.delay(250).duration(400)}>
+          <View style={styles.scenarioCard}>
+            {/* Scenario Title */}
+            <Text style={styles.scenarioTitle}>{title}</Text>
+            {description && (
+              <Text style={styles.scenarioDescription}>{description}</Text>
             )}
-          </Animated.View>
-        )}
 
-        {/* Reassurance Message */}
+            {/* Divider */}
+            <View style={styles.divider} />
+
+            {/* Primary Goal */}
+            <View style={styles.goalRow}>
+              <View style={styles.goalIconCircle}>
+                <Ionicons name="flag" size={14} color={colors.primary.DEFAULT} />
+              </View>
+              <View style={styles.goalContent}>
+                <Text style={styles.goalLabel}>YOUR GOAL</Text>
+                <Text style={styles.goalText}>{primaryGoal}</Text>
+              </View>
+            </View>
+
+            {/* Collapsible Objectives */}
+            {objectives.length > 1 && (
+              <>
+                <TouchableOpacity
+                  onPress={toggleObjectives}
+                  activeOpacity={0.7}
+                  style={styles.objectivesToggle}
+                >
+                  <Text style={styles.objectivesToggleText}>
+                    {showObjectives ? 'Hide objectives' : `+ ${objectives.length - 1} more objective${objectives.length > 2 ? 's' : ''}`}
+                  </Text>
+                  <Ionicons
+                    name={showObjectives ? 'chevron-up' : 'chevron-down'}
+                    size={14}
+                    color={colors.text.tertiary}
+                  />
+                </TouchableOpacity>
+
+                {showObjectives && (
+                  <Animated.View
+                    entering={FadeInDown.duration(250)}
+                    style={styles.objectivesList}
+                  >
+                    {objectives.slice(1).map((obj, i) => (
+                      <View key={i} style={styles.objectiveItem}>
+                        <View style={styles.objectiveDot} />
+                        <Text style={styles.objectiveText}>{obj}</Text>
+                      </View>
+                    ))}
+                  </Animated.View>
+                )}
+              </>
+            )}
+          </View>
+        </Animated.View>
+
+        {/* Reassurance Pill */}
         <Animated.View
-          entering={FadeInUp.delay(500).duration(400)}
-          style={styles.reassuranceSection}
+          entering={FadeInDown.delay(400).duration(400)}
+          style={styles.reassurancePill}
         >
-          <Ionicons name="sparkles" size={16} color={colors.primary.light} />
+          <Ionicons name="sparkles" size={14} color={colors.primary.light} />
           <Text style={styles.reassuranceText}>
-            Don't worry — the AI will guide you through the conversation
+            The AI will guide you — just speak naturally
           </Text>
         </Animated.View>
       </View>
 
-      {/* Fixed Bottom Buttons */}
+      {/* ── Fixed Footer ───────────────────────────────────────── */}
       <Animated.View
-        entering={FadeInUp.delay(600).duration(400)}
-        style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}
+        entering={FadeIn.delay(500).duration(400)}
+        style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}
       >
         <LinearGradient
           colors={['transparent', colors.background.primary]}
-          style={styles.footerGradient}
+          style={styles.footerFade}
           pointerEvents="none"
         />
 
-        {/* Preview Vocabulary Button */}
         {onPreviewVocabulary && (
           <TouchableOpacity
             onPress={handlePreviewVocabulary}
             activeOpacity={0.8}
-            style={styles.secondaryButton}
+            style={styles.vocabButton}
           >
             <Ionicons name="book-outline" size={18} color={colors.text.secondary} />
-            <Text style={styles.secondaryButtonText}>Preview Vocabulary</Text>
+            <Text style={styles.vocabButtonText}>Preview Vocabulary</Text>
           </TouchableOpacity>
         )}
 
-        {/* Start Call Button */}
         <AnimatedTouchable
           onPress={handleStartCall}
           activeOpacity={0.9}
-          style={[styles.startButton, pulseStyle]}
+          style={[styles.ctaButton, ctaAnimStyle]}
         >
           <LinearGradient
             colors={colors.gradients.primary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.startButtonGradient}
+            style={styles.ctaGradient}
           >
-            <Ionicons name="call" size={22} color={colors.text.primary} />
-            <Text style={styles.startButtonText}>Start Call</Text>
+            <Ionicons name="call" size={20} color="#FFFFFF" />
+            <Text style={styles.ctaText}>Start Conversation</Text>
           </LinearGradient>
         </AnimatedTouchable>
       </Animated.View>
@@ -314,255 +327,297 @@ export const MissionBriefingScreen: React.FC<MissionBriefingScreenProps> = ({
 // Styles
 // =============================================================================
 
+const AVATAR_SIZE = 100;
+const RING_SIZE = AVATAR_SIZE + 16;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
   },
 
-  // Header - Minimal
+  // ── Header ──────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
   },
-  headerCenter: {
+  headerBadges: {
     flex: 1,
-    alignItems: 'center',
-  },
-  headerRight: {
-    width: 40,
-  },
-  metaBadges: {
     flexDirection: 'row',
+    justifyContent: 'center',
     gap: spacing.sm,
   },
-  difficultyBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  durationBadge: {
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
   badgeText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold as any,
+    fontSize: 11,
+    fontWeight: '600',
     color: colors.text.tertiary,
     textTransform: 'capitalize',
   },
 
-  // Main Content
-  mainContent: {
+  // ── Content ─────────────────────────────
+  content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
     justifyContent: 'center',
-    paddingBottom: 160, // Space for footer
+    paddingBottom: 170,
   },
 
-  // Hero Section
+  // ── Hero ────────────────────────────────
   heroSection: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.xl + spacing.sm,
   },
-  avatarContainer: {
-    marginBottom: spacing.lg,
+  avatarWrapper: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
   },
-  avatarRing: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.primary.DEFAULT + '15',
+  gradientRing: {
+    position: 'absolute',
+    width: RING_SIZE,
+    height: RING_SIZE,
+    borderRadius: RING_SIZE / 2,
+    padding: 2,
+  },
+  gradientRingInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: RING_SIZE / 2,
+    opacity: 0.6,
+  },
+  avatarCircle: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: colors.background.elevated,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.primary.DEFAULT + '40',
-  },
-  avatarInner: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  avatarEmoji: {
-    fontSize: 48,
+    borderColor: colors.background.primary,
   },
 
-  // Character Info
-  characterInfo: {
+  // ── Identity ────────────────────────────
+  identityBlock: {
     alignItems: 'center',
-  },
-  talkingToLabel: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
-    marginBottom: spacing.xs,
-  },
-  characterRole: {
-    fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold as any,
-    color: colors.text.primary,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.md,
   },
   characterName: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: '700',
+    color: colors.text.primary,
+    letterSpacing: -0.3,
+    marginBottom: 2,
+  },
+  roleLabel: {
     fontSize: typography.fontSize.base,
+    fontWeight: '500',
     color: colors.text.secondary,
   },
 
-  // Goal Section
-  goalSection: {
-    marginBottom: spacing.lg,
+  // ── Role Tags ───────────────────────────
+  roleTags: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
-  goalCard: {
+  roleTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  roleIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  roleTagText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.text.tertiary,
+  },
+
+  // ── Scenario Card ───────────────────────
+  scenarioCard: {
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.primary.DEFAULT + '30',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    marginBottom: spacing.md,
   },
-  goalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  goalLabel: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold as any,
-    color: colors.primary.light,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  goalText: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.medium as any,
+  scenarioTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: '700',
     color: colors.text.primary,
-    lineHeight: typography.fontSize.lg * 1.4,
+    letterSpacing: -0.2,
+    marginBottom: spacing.xs,
   },
-
-  // Collapsible Goals
-  goalsToggleSection: {
-    marginBottom: spacing.lg,
-  },
-  goalsToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-  },
-  goalsToggleText: {
+  scenarioDescription: {
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
+    lineHeight: typography.fontSize.sm * 1.5,
   },
-  goalsList: {
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginTop: spacing.sm,
-    gap: spacing.md,
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginVertical: spacing.md,
   },
-  goalItem: {
+
+  // ── Goal ────────────────────────────────
+  goalRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.md,
   },
-  goalBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary.DEFAULT,
-    marginTop: 7,
+  goalIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary.DEFAULT + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
   },
-  goalItemText: {
+  goalContent: {
     flex: 1,
+  },
+  goalLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary.light,
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  goalText: {
     fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
-    lineHeight: typography.fontSize.base * 1.4,
+    fontWeight: '500',
+    color: colors.text.primary,
+    lineHeight: typography.fontSize.base * 1.45,
   },
 
-  // Reassurance
-  reassuranceSection: {
+  // ── Objectives ──────────────────────────
+  objectivesToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  objectivesToggleText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    fontWeight: '500',
+  },
+  objectivesList: {
+    marginTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  objectiveItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  objectiveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: colors.primary.DEFAULT + '80',
+    marginTop: 7,
+  },
+  objectiveText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    lineHeight: typography.fontSize.sm * 1.45,
+  },
+
+  // ── Reassurance ─────────────────────────
+  reassurancePill: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignSelf: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   reassuranceText: {
-    fontSize: typography.fontSize.sm,
+    fontSize: typography.fontSize.xs,
     color: colors.text.tertiary,
-    textAlign: 'center',
-    fontStyle: 'italic',
   },
 
-  // Footer
+  // ── Footer ──────────────────────────────
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  footerGradient: {
+  footerFade: {
     position: 'absolute',
-    top: -80,
+    top: -60,
     left: 0,
     right: 0,
-    height: 100,
+    height: 80,
   },
-
-  // Secondary Button
-  secondaryButton: {
+  vocabButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
+    paddingVertical: 14,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    backgroundColor: 'transparent',
-    paddingVertical: spacing.lg,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
-  secondaryButtonText: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.medium as any,
+  vocabButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
     color: colors.text.secondary,
   },
-
-  // Start Button
-  startButton: {
+  ctaButton: {
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
     shadowColor: colors.glow.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
     elevation: 8,
   },
-  startButtonGradient: {
+  ctaGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: 16,
     gap: spacing.sm,
   },
-  startButtonText: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold as any,
-    color: colors.text.primary,
+  ctaText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
 });
 

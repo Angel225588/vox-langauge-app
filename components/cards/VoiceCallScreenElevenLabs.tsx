@@ -71,6 +71,8 @@ export interface VoiceCallScreenElevenLabsProps {
   character?: CharacterVoice;
   /** Voice configuration */
   voice?: ElevenLabsVoiceConfig;
+  /** User's target language code (authoritative — used even if voice is undefined) */
+  targetLanguage?: string;
   /** User's proficiency level */
   proficiency?: ProficiencyLevel;
   /** Target session duration in seconds (from onboarding practice time) */
@@ -457,6 +459,7 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
   scenario,
   character,
   voice,
+  targetLanguage,
   proficiency = 'intermediate',
   targetDuration,
   onComplete,
@@ -500,18 +503,18 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
     finalizePartialSession,
   } = useElevenLabsConversation({
     voice,
+    targetLanguage,
     scenario: scenario.id,
     scenarioDescription: richScenarioDescription,
     userProficiency: proficiency,
     targetDuration,
-    // All overrides enabled now that voice IDs are configured correctly
-    // NOTE: Requires TTS Voice Override enabled in ElevenLabs agent Security tab
+    keyVocabulary: scenario.keyVocabulary,
     disableOverrides: false,
     overrideOptions: {
-      enablePrompt: true, // Use custom scenario-based prompt with pronunciation correction
-      enableFirstMessage: true, // Use custom greeting in target language
-      enableLanguage: true, // Set agent language for STT
-      enableVoice: true, // Use custom voice from user's Voice Library
+      enablePrompt: true,
+      enableFirstMessage: true,
+      enableLanguage: true,
+      enableVoice: true,
     },
     onError: (err) => {
       console.error('[VoiceCall] Error:', err);

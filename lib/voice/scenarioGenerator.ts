@@ -79,7 +79,8 @@ interface EnrichmentResponse {
 // =============================================================================
 
 const CACHE_PREFIX = 'vox-voice-scenarios-';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (staircase/onboarding)
+const PRACTICE_CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours (practice tab — refreshes more often)
 
 function getCacheKey(parts: string[]): string {
   const joined = parts.filter(Boolean).sort().join('|').toLowerCase();
@@ -92,7 +93,7 @@ function getCacheKey(parts: string[]): string {
   return `${CACHE_PREFIX}${Math.abs(hash).toString(36)}`;
 }
 
-async function getCachedScenarios(key: string): Promise<VoiceScenario[] | null> {
+async function getCachedScenarios(key: string, ttl: number = CACHE_TTL_MS): Promise<VoiceScenario[] | null> {
   try {
     const raw = await AsyncStorage.getItem(key);
     if (!raw) return null;
@@ -100,7 +101,7 @@ async function getCachedScenarios(key: string): Promise<VoiceScenario[] | null> 
     const cached = JSON.parse(raw);
     if (!cached.timestamp || !cached.scenarios) return null;
 
-    if (Date.now() - cached.timestamp > CACHE_TTL_MS) {
+    if (Date.now() - cached.timestamp > ttl) {
       await AsyncStorage.removeItem(key);
       return null;
     }
@@ -266,7 +267,8 @@ START: "[opening line in target language]"
       userRole: s.userRole,
       objectives: s.objectives || [],
       systemPromptTemplate: s.systemPromptTemplate,
-      language: (s.language || langCode) as any,
+      // Force language to our known code — Gemini may return "french" instead of "fr"
+      language: (LANG_NAME_TO_CODE[s.language?.toLowerCase()] || s.language || langCode) as any,
       difficulty: (s.difficulty || difficulty) as VoiceScenario['difficulty'],
       category: s.category as VoiceScenario['category'],
       suggestedPhrases: s.suggestedPhrases || [],
@@ -508,6 +510,8 @@ START: "[opening line in target language]"
       userRole: s.userRole,
       objectives: s.objectives || [],
       systemPromptTemplate: s.systemPromptTemplate,
+      // Force language from staircase params (Gemini response may differ)
+      language: (LANG_NAME_TO_CODE[params.target_language?.toLowerCase()] || params.target_language) as any,
       keyVocabulary: s.keyVocabulary || [],
       suggestedPhrases: s.suggestedPhrases || [],
       suggestedDuration: s.suggestedDuration || 180,
@@ -524,6 +528,248 @@ START: "[opening line in target language]"
 }
 
 // =============================================================================
+// Practice Tab Scenarios (Independent from Staircase)
+// =============================================================================
+
+export interface PracticeScenarioInput {
+  /** User ID for fetching history */
+  userId: string;
+  /** Target language code */
+  targetLanguage: string;
+  /** User's proficiency level */
+  proficiencyLevel: string;
+  /** User's profession from onboarding */
+  profession: string;
+  /** User's goal/motivation from onboarding */
+  goal: string;
+  /** Selected practice scenarios from onboarding */
+  scenarios: string[];
+  /** Number of scenarios to generate */
+  count?: number;
+}
+
+interface FeedbackSummary {
+  weakestKpi: string;
+  weakestScore: number;
+  recentScenarios: string[];
+  avgScores: { articulation: number; fluency: number; communication: number; scenario: number };
+  totalSessions: number;
+}
+
+/**
+ * Build a feedback summary from the user's voice conversation history.
+ * Reads from Supabase conversation_sessions to identify:
+ * - Weakest KPI (articulation/fluency/communication/scenario)
+ * - Recently practiced scenario IDs (to avoid repeats)
+ * - Average scores for context
+ */
+async function buildFeedbackSummary(userId: string): Promise<FeedbackSummary> {
+  const { getVoiceScores } = await import('@/lib/db/competencyMetrics');
+
+  const scores = await getVoiceScores(userId);
+
+  if (scores.length === 0) {
+    return {
+      weakestKpi: 'general',
+      weakestScore: 0,
+      recentScenarios: [],
+      avgScores: { articulation: 0, fluency: 0, communication: 0, scenario: 0 },
+      totalSessions: 0,
+    };
+  }
+
+  // Calculate averages
+  const avg = {
+    articulation: Math.round(scores.reduce((s, sc) => s + sc.articulation, 0) / scores.length),
+    fluency: Math.round(scores.reduce((s, sc) => s + sc.fluency, 0) / scores.length),
+    communication: Math.round(scores.reduce((s, sc) => s + sc.communication, 0) / scores.length),
+    scenario: Math.round(scores.reduce((s, sc) => s + sc.scenario, 0) / scores.length),
+  };
+
+  // Find weakest KPI
+  const kpis = [
+    { name: 'articulation', score: avg.articulation },
+    { name: 'fluency', score: avg.fluency },
+    { name: 'communication', score: avg.communication },
+    { name: 'scenario', score: avg.scenario },
+  ];
+  const weakest = kpis.reduce((min, k) => k.score < min.score ? k : min, kpis[0]);
+
+  // Get recently practiced scenario IDs (from conversations table)
+  let recentScenarios: string[] = [];
+  try {
+    const { supabase } = await import('@/lib/db/supabase');
+    const { data } = await supabase
+      .from('conversation_sessions')
+      .select('scenario')
+      .eq('user_id', userId)
+      .order('started_at', { ascending: false })
+      .limit(10);
+    if (data) {
+      recentScenarios = data.map((d: any) => d.scenario).filter(Boolean);
+    }
+  } catch {
+    // Non-critical — proceed without recent scenarios
+  }
+
+  return {
+    weakestKpi: weakest.name,
+    weakestScore: weakest.score,
+    recentScenarios,
+    avgScores: avg,
+    totalSessions: scores.length,
+  };
+}
+
+/**
+ * Generate practice tab scenarios driven by onboarding + feedback history.
+ *
+ * This is the INDEPENDENT practice zone generator (not tied to staircase).
+ * It creates scenarios that:
+ * 1. Target the user's weakest KPIs
+ * 2. Match their profession and goals
+ * 3. Avoid recently practiced scenarios
+ * 4. Are appropriate for their proficiency level
+ *
+ * Cache TTL: 4 hours (shorter than staircase, refreshes more often)
+ */
+export async function generatePracticeScenarios(
+  input: PracticeScenarioInput
+): Promise<VoiceScenario[]> {
+  const count = input.count || 4;
+
+  // Build feedback context
+  const feedback = await buildFeedbackSummary(input.userId);
+
+  const cacheKey = getCacheKey([
+    'practice',
+    input.targetLanguage,
+    input.proficiencyLevel,
+    input.profession,
+    feedback.weakestKpi,
+    String(feedback.totalSessions),
+  ]);
+
+  const cached = await getCachedScenarios(cacheKey, PRACTICE_CACHE_TTL_MS);
+  if (cached) {
+    console.log('[ScenarioGenerator] Using cached practice scenarios');
+    return cached;
+  }
+
+  const languageGuidance = PROFICIENCY_LANGUAGE_GUIDANCE[input.proficiencyLevel] || PROFICIENCY_LANGUAGE_GUIDANCE.intermediate;
+  const difficulty = PROFICIENCY_TO_DIFFICULTY[input.proficiencyLevel] || 'intermediate';
+  const langCode = LANG_NAME_TO_CODE[input.targetLanguage] || input.targetLanguage;
+
+  // Build weakness focus instruction
+  const weaknessFocus = feedback.totalSessions > 0
+    ? `\n## WEAKNESS FOCUS — CRITICAL
+The learner's weakest area is ${feedback.weakestKpi} (score: ${feedback.weakestScore}/100).
+Average scores: Articulation ${feedback.avgScores.articulation}, Fluency ${feedback.avgScores.fluency}, Communication ${feedback.avgScores.communication}, Scenario ${feedback.avgScores.scenario}.
+${feedback.weakestKpi === 'articulation' ? 'Design scenarios that require precise pronunciation — ordering specific items, spelling names, giving addresses.' : ''}${feedback.weakestKpi === 'fluency' ? 'Design scenarios with back-and-forth exchanges — debates, negotiations, storytelling — that require sustained speech without long pauses.' : ''}${feedback.weakestKpi === 'communication' ? 'Design scenarios that require expressing complex ideas — explaining problems, giving opinions, describing situations in detail.' : ''}${feedback.weakestKpi === 'scenario' ? 'Design scenarios with clear real-world tasks — the user must accomplish a specific goal (book something, resolve an issue, make a deal).' : ''}`
+    : '';
+
+  // Build avoid-repeat instruction
+  const avoidRepeat = feedback.recentScenarios.length > 0
+    ? `\n## AVOID THESE RECENTLY PRACTICED SCENARIOS
+The user has recently practiced: ${feedback.recentScenarios.slice(0, 5).join(', ')}.
+Generate DIFFERENT scenarios — new settings, new characters, new objectives.`
+    : '';
+
+  const prompt = `You are a conversation scenario designer for a professional language learning app.
+Generate ${count} voice conversation scenarios for the PRACTICE TAB — a free-form practice zone.
+
+## Learner Profile
+- Target Language: ${sanitizePromptInput(input.targetLanguage)}
+- Proficiency: ${sanitizePromptInput(input.proficiencyLevel)}
+- Goal: ${sanitizePromptInput(input.goal)}
+- Profession: ${sanitizePromptInput(input.profession)}
+- Practice Interests: ${input.scenarios.map(s => sanitizePromptInput(s)).join(', ')}
+- Total voice sessions completed: ${feedback.totalSessions}
+${weaknessFocus}${avoidRepeat}
+
+## Requirements
+- Create ${count} DISTINCT realistic scenarios relevant to this professional
+- Each scenario must target a different real-world situation
+- Language guidance for AI responses: ${languageGuidance}
+- Include 4-6 key vocabulary words at ${sanitizePromptInput(input.proficiencyLevel)} level (NOT basic words — challenge them)
+- Include 3-5 suggested phrases in ${sanitizePromptInput(input.targetLanguage)}
+- Each scenario should be completable in 3-5 minutes
+- Mix categories: at least 1 professional, 1 social, and the rest based on their interests
+
+## systemPromptTemplate Format
+Each systemPromptTemplate MUST follow this structure:
+
+You are [Name], a [role] at [location].
+
+PERSONALITY: [2-3 traits]
+LANGUAGE: [specific language level instructions]
+BEHAVIOR:
+- [rule 1]
+- [rule 2]
+- [rule 3]
+
+START: "[opening line in target language]"
+
+## Response Format (JSON only, no markdown)
+{
+  "scenarios": [
+    {
+      "id": "practice_unique_id",
+      "title": "Short descriptive title",
+      "description": "1-2 sentence description",
+      "context": "Physical setting and situation details",
+      "aiRole": "The AI character's role",
+      "userRole": "The user's role",
+      "objectives": ["objective 1", "objective 2", "objective 3"],
+      "systemPromptTemplate": "Full system prompt following format above",
+      "language": "${langCode}",
+      "difficulty": "${difficulty}",
+      "category": "travel|food|shopping|social|professional|emergency",
+      "suggestedPhrases": ["phrase 1", "phrase 2", "phrase 3"],
+      "keyVocabulary": ["word1", "word2", "word3", "word4"],
+      "suggestedDuration": 240
+    }
+  ]
+}`;
+
+  try {
+    const result = await generateJSON<GeneratedScenarioResponse>(prompt);
+
+    if (!result?.scenarios?.length) {
+      console.warn('[ScenarioGenerator] Empty practice response from Gemini');
+      return getDefaultScenarios(langCode, count);
+    }
+
+    const scenarios: VoiceScenario[] = result.scenarios.map((s, i) => ({
+      id: s.id || `practice_${Date.now()}_${i}`,
+      title: s.title,
+      description: s.description,
+      context: s.context,
+      aiRole: s.aiRole,
+      userRole: s.userRole,
+      objectives: s.objectives || [],
+      systemPromptTemplate: s.systemPromptTemplate,
+      // Force language to known ISO code — Gemini may return full name
+      language: (LANG_NAME_TO_CODE[s.language?.toLowerCase()] || s.language || langCode) as any,
+      difficulty: (s.difficulty || difficulty) as VoiceScenario['difficulty'],
+      category: s.category as VoiceScenario['category'],
+      suggestedPhrases: s.suggestedPhrases || [],
+      keyVocabulary: s.keyVocabulary || [],
+      suggestedDuration: s.suggestedDuration || 240,
+    }));
+
+    // Use 4h TTL for practice scenarios
+    await setCachedScenarios(cacheKey, scenarios);
+    console.log('[ScenarioGenerator] Generated', scenarios.length, 'practice scenarios (weakness:', feedback.weakestKpi, ')');
+
+    return scenarios;
+  } catch (error) {
+    console.error('[ScenarioGenerator] Practice generation failed:', error);
+    return getDefaultScenarios(langCode, count);
+  }
+}
+
+// =============================================================================
 // Default Scenarios (Fallback — Tier 4)
 // =============================================================================
 
@@ -531,9 +777,13 @@ START: "[opening line in target language]"
  * Pre-built scenarios when AI generation is unavailable.
  */
 function getDefaultScenarios(language: string, count: number): VoiceScenario[] {
+  // Normalize language to ISO code
+  const langCode = LANG_NAME_TO_CODE[language?.toLowerCase()] || language || 'en';
+
   const defaults: VoiceScenario[] = [
     {
       id: 'default_cafe',
+      language: langCode as any,
       title: 'Ordering at a Cafe',
       description: 'Practice ordering food and drinks at a cafe.',
       context: 'You are at a local cafe and want to order something to drink and eat.',
@@ -549,6 +799,7 @@ function getDefaultScenarios(language: string, count: number): VoiceScenario[] {
     },
     {
       id: 'default_directions',
+      language: langCode as any,
       title: 'Asking for Directions',
       description: 'Practice asking and understanding directions.',
       context: 'You are lost in a new city and need to find a specific location.',
@@ -564,6 +815,7 @@ function getDefaultScenarios(language: string, count: number): VoiceScenario[] {
     },
     {
       id: 'default_meeting',
+      language: langCode as any,
       title: 'Business Meeting Introduction',
       description: 'Practice introducing yourself in a professional setting.',
       context: 'You are meeting a new colleague at your company for the first time.',
@@ -579,6 +831,7 @@ function getDefaultScenarios(language: string, count: number): VoiceScenario[] {
     },
     {
       id: 'default_shopping',
+      language: langCode as any,
       title: 'Shopping for Clothes',
       description: 'Practice shopping interactions.',
       context: 'You are at a clothing store looking for a specific item.',
@@ -594,6 +847,7 @@ function getDefaultScenarios(language: string, count: number): VoiceScenario[] {
     },
     {
       id: 'default_casual',
+      language: langCode as any,
       title: 'Casual Conversation',
       description: 'Practice everyday small talk.',
       context: 'You are chatting with someone at a social event.',

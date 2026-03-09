@@ -20,6 +20,7 @@ import {
   StyleSheet,
   Alert,
   Pressable,
+  Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -164,8 +165,7 @@ export default function VoiceConversationScreen() {
     min_practice_time: v3Store.schedule_time || v2Data.min_practice_time || null,
     max_practice_time: v2Data.max_practice_time || null,
   };
-  const [selectedAccent, setSelectedAccent] = useState<AccentType>(getDefaultAccent(targetLanguage));
-  const [showAccentSelector, setShowAccentSelector] = useState(false);
+  const selectedAccent = getDefaultAccent(targetLanguage);
 
   // Track the Supabase session ID for feedback persistence (Fix 4)
   const [supabaseSessionId, setSupabaseSessionId] = useState<string | null>(null);
@@ -179,6 +179,9 @@ export default function VoiceConversationScreen() {
 
   // AI-generated scenarios from onboarding data (Tier 3)
   const [generatedScenarios, setGeneratedScenarios] = useState<VoiceScenario[]>([]);
+
+  // Vocabulary preview modal
+  const [showVocabPreview, setShowVocabPreview] = useState(false);
 
   // Extended to include full transcript for saving
   const [lastConversation, setLastConversation] = useState<{
@@ -257,25 +260,44 @@ export default function VoiceConversationScreen() {
           }
         }
 
-        // Tier 3: No stair scenarios — generate from onboarding data
+        // Tier 3: No stair scenarios — generate from onboarding + feedback
         if (hasV3Data && v3Store.profession) {
           try {
-            const generated = await generateScenariosFromOnboarding({
-              first_name: v3Store.first_name || '',
-              target_language: v3Store.target_language || 'spanish',
-              native_language: v3Store.native_language || 'english',
-              proficiency_level: v3Store.proficiency_level || 'conversational',
-              goal: v3Store.goal || '',
-              profession: v3Store.profession || '',
-              scenarios: v3Store.scenarios || [],
-            });
+            let generated: VoiceScenario[] = [];
+
+            // For authenticated users: use feedback-driven practice generator
+            if (user?.id) {
+              const { generatePracticeScenarios } = await import('@/lib/voice/scenarioGenerator');
+              generated = await generatePracticeScenarios({
+                userId: user.id,
+                targetLanguage: v3Store.target_language || 'spanish',
+                proficiencyLevel: v3Store.proficiency_level || 'conversational',
+                profession: v3Store.profession || '',
+                goal: v3Store.goal || '',
+                scenarios: v3Store.scenarios || [],
+                count: 4,
+              });
+            }
+
+            // Fallback for unauthenticated: onboarding-only generator
+            if (generated.length === 0) {
+              generated = await generateScenariosFromOnboarding({
+                first_name: v3Store.first_name || '',
+                target_language: v3Store.target_language || 'spanish',
+                native_language: v3Store.native_language || 'english',
+                proficiency_level: v3Store.proficiency_level || 'conversational',
+                goal: v3Store.goal || '',
+                profession: v3Store.profession || '',
+                scenarios: v3Store.scenarios || [],
+              });
+            }
 
             if (!cancelled && generated.length > 0) {
               setGeneratedScenarios(generated);
-              console.log('[VoiceConversation] Generated onboarding scenarios:', generated.length);
+              console.log('[VoiceConversation] Generated practice scenarios:', generated.length);
             }
           } catch (err) {
-            console.warn('[VoiceConversation] Onboarding generation failed (non-fatal):', err);
+            console.warn('[VoiceConversation] Practice scenario generation failed (non-fatal):', err);
           }
         }
         // Tier 4: Hardcoded library is always the base (handled by personalizedScenarios memo)
@@ -748,24 +770,122 @@ export default function VoiceConversationScreen() {
     const objectives = getObjectives();
 
     const handlePreviewVocabulary = () => {
-      // TODO: Navigate to vocabulary preview page
-      console.log('Preview vocabulary for scenario:', selectedScenario.id);
+      setShowVocabPreview(true);
     };
 
+    const vocabWords = selectedScenario.keyVocabulary || [];
+    const phrases = selectedScenario.suggestedPhrases || [];
+
     return (
-      <MissionBriefingScreen
-        title={selectedScenario.title}
-        description={selectedScenario.description}
-        difficulty={selectedScenario.difficulty as 'beginner' | 'intermediate' | 'advanced'}
-        duration={`~${Math.round(targetDurationSeconds / 60)} min`}
-        yourRole={roles.yourRole}
-        theirRole={roles.theirRole}
-        characterEmoji={roles.characterIcon}
-        objectives={objectives}
-        onStartCall={handleStartCall}
-        onPreviewVocabulary={handlePreviewVocabulary}
-        onBack={handleGoalBack}
-      />
+      <>
+        <MissionBriefingScreen
+          title={selectedScenario.title}
+          description={selectedScenario.description}
+          difficulty={selectedScenario.difficulty as 'beginner' | 'intermediate' | 'advanced'}
+          duration={`~${Math.round(targetDurationSeconds / 60)} min`}
+          yourRole={roles.yourRole}
+          theirRole={roles.theirRole}
+          characterEmoji={roles.characterIcon}
+          objectives={objectives}
+          onStartCall={handleStartCall}
+          onPreviewVocabulary={vocabWords.length > 0 || phrases.length > 0 ? handlePreviewVocabulary : undefined}
+          onBack={handleGoalBack}
+        />
+
+        {/* Vocabulary Preview Modal */}
+        <Modal
+          visible={showVocabPreview}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowVocabPreview(false)}
+        >
+          <SafeAreaView style={vocabStyles.container} edges={['top', 'bottom']}>
+            {/* Header */}
+            <View style={vocabStyles.header}>
+              <Text style={vocabStyles.title}>Vocabulary Preview</Text>
+              <TouchableOpacity
+                onPress={() => setShowVocabPreview(false)}
+                style={vocabStyles.closeButton}
+              >
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={vocabStyles.subtitle}>
+              Words and phrases you'll practice in this conversation
+            </Text>
+
+            <ScrollView
+              style={vocabStyles.scrollContainer}
+              contentContainerStyle={vocabStyles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Key Vocabulary */}
+              {vocabWords.length > 0 && (
+                <View style={vocabStyles.section}>
+                  <View style={vocabStyles.sectionHeader}>
+                    <Ionicons name="book-outline" size={18} color={colors.primary.DEFAULT} />
+                    <Text style={vocabStyles.sectionTitle}>Key Words</Text>
+                  </View>
+                  <View style={vocabStyles.wordGrid}>
+                    {vocabWords.map((word, index) => (
+                      <Animated.View
+                        key={word}
+                        entering={FadeInDown.delay(index * 40).duration(250)}
+                      >
+                        <View style={vocabStyles.wordChip}>
+                          <Text style={vocabStyles.wordText}>{word}</Text>
+                        </View>
+                      </Animated.View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Suggested Phrases */}
+              {phrases.length > 0 && (
+                <View style={vocabStyles.section}>
+                  <View style={vocabStyles.sectionHeader}>
+                    <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.secondary.DEFAULT} />
+                    <Text style={vocabStyles.sectionTitle}>Useful Phrases</Text>
+                  </View>
+                  {phrases.map((phrase, index) => (
+                    <Animated.View
+                      key={phrase}
+                      entering={FadeInDown.delay((vocabWords.length + index) * 40).duration(250)}
+                    >
+                      <View style={vocabStyles.phraseCard}>
+                        <Text style={vocabStyles.phraseText}>{phrase}</Text>
+                      </View>
+                    </Animated.View>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Actions */}
+            <View style={vocabStyles.ctaBar}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowVocabPreview(false);
+                  handleStartCall();
+                }}
+                activeOpacity={0.8}
+                style={vocabStyles.ctaButton}
+              >
+                <Text style={vocabStyles.ctaText}>Start the call</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowVocabPreview(false)}
+                activeOpacity={0.8}
+                style={vocabStyles.secondaryButton}
+              >
+                <Text style={vocabStyles.secondaryText}>Back to briefing</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </Modal>
+      </>
     );
   }
 
@@ -785,14 +905,17 @@ export default function VoiceConversationScreen() {
     };
     const userProficiency = proficiencyMap[onboardingData.proficiency_level || 'intermediate'] || 'intermediate';
 
-    // Get the appropriate ElevenLabs voice for the scenario language
-    const scenarioLanguage = selectedScenario.language as SupportedLanguage;
+    // Normalize scenario language → always use the user's targetLanguage as truth.
+    // Gemini might return "french" instead of "fr", or the scenario might have
+    // a mismatched language field. The user's onboarding language is the authority.
+    const scenarioLanguage = targetLanguage;
     const voiceConfig = getDefaultVoiceForLanguage(scenarioLanguage);
 
     console.log('[VoiceConversation] Using voice:', {
       voiceConfig: voiceConfig?.name,
       voiceId: voiceConfig?.elevenLabsVoiceId,
-      language: scenarioLanguage,
+      scenarioLang: selectedScenario.language,
+      resolvedLang: scenarioLanguage,
     });
 
     return (
@@ -800,6 +923,7 @@ export default function VoiceConversationScreen() {
         scenario={selectedScenario}
         character={character}
         voice={voiceConfig}
+        targetLanguage={scenarioLanguage}
         proficiency={userProficiency}
         targetDuration={targetDurationSeconds}
         onComplete={handleConversationComplete}
@@ -830,65 +954,7 @@ export default function VoiceConversationScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Accent Selector - Premium Style */}
-      <Animated.View entering={FadeIn.delay(100)} style={styles.accentContainer}>
-        <TouchableOpacity
-          style={styles.accentButton}
-          onPress={() => setShowAccentSelector(!showAccentSelector)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.accentButtonLeft}>
-            <Text style={styles.accentFlag}>
-              {availableAccents.find(a => a.id === selectedAccent)?.flag || '🌍'}
-            </Text>
-            <View>
-              <Text style={styles.accentLabel}>Accent</Text>
-              <Text style={styles.accentButtonText}>
-                {availableAccents.find(a => a.id === selectedAccent)?.name || 'Select'}
-              </Text>
-            </View>
-          </View>
-          <Ionicons
-            name={showAccentSelector ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color={colors.text.tertiary}
-          />
-        </TouchableOpacity>
-
-        {/* Accent Dropdown */}
-        {showAccentSelector && (
-          <Animated.View entering={FadeInUp.duration(200)} style={styles.accentDropdown}>
-            {availableAccents.map((accent, index) => (
-              <Pressable
-                key={accent.id}
-                style={({ pressed }) => [
-                  styles.accentOption,
-                  selectedAccent === accent.id && styles.accentOptionActive,
-                  pressed && styles.accentOptionPressed,
-                  index === availableAccents.length - 1 && styles.accentOptionLast,
-                ]}
-                onPress={() => {
-                  setSelectedAccent(accent.id);
-                  setShowAccentSelector(false);
-                }}
-              >
-                <Text style={styles.accentFlag}>{accent.flag}</Text>
-                <Text style={[
-                  styles.accentOptionText,
-                  selectedAccent === accent.id && styles.accentOptionTextActive,
-                ]}>
-                  {accent.name}
-                </Text>
-                {selectedAccent === accent.id && (
-                  <Ionicons name="checkmark-circle" size={20} color={colors.primary.DEFAULT} />
-                )}
-              </Pressable>
-            ))}
-          </Animated.View>
-        )}
-      </Animated.View>
-
-      {/* Difficulty Filter - Pill Style */}
+      {/* Difficulty Filter with Flag */}
       <View style={styles.filterContainer}>
         <ScrollView
           horizontal
@@ -896,26 +962,32 @@ export default function VoiceConversationScreen() {
           contentContainerStyle={styles.filterScroll}
         >
           {(['all', 'beginner', 'intermediate', 'advanced'] as DifficultyFilter[]).map(
-            (difficulty) => (
-              <Pressable
-                key={difficulty}
-                style={({ pressed }) => [
-                  styles.filterChip,
-                  difficultyFilter === difficulty && styles.filterChipActive,
-                  pressed && { opacity: 0.7 },
-                ]}
-                onPress={() => setDifficultyFilter(difficulty)}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    difficultyFilter === difficulty && styles.filterChipTextActive,
+            (difficulty) => {
+              const flag = availableAccents.find(a => a.id === selectedAccent)?.flag || '🌍';
+              return (
+                <Pressable
+                  key={difficulty}
+                  style={({ pressed }) => [
+                    styles.filterChip,
+                    difficultyFilter === difficulty && styles.filterChipActive,
+                    pressed && { opacity: 0.7 },
                   ]}
+                  onPress={() => setDifficultyFilter(difficulty)}
                 >
-                  {difficulty === 'all' ? 'All Levels' : difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-                </Text>
-              </Pressable>
-            )
+                  {difficulty === 'all' && (
+                    <Text style={styles.filterFlag}>{flag}</Text>
+                  )}
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      difficultyFilter === difficulty && styles.filterChipTextActive,
+                    ]}
+                  >
+                    {difficulty === 'all' ? 'All Levels' : difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+                  </Text>
+                </Pressable>
+              );
+            }
           )}
         </ScrollView>
       </View>
@@ -1050,77 +1122,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Accent Selector - Premium Style
-  accentContainer: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  accentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.background.card,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  accentButtonLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  accentFlag: {
-    fontSize: 24,
-  },
-  accentLabel: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.tertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  accentButtonText: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.primary,
-  },
-  accentDropdown: {
-    marginTop: spacing.sm,
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    overflow: 'hidden',
-  },
-  accentOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  accentOptionLast: {
-    borderBottomWidth: 0,
-  },
-  accentOptionActive: {
-    backgroundColor: 'rgba(0, 54, 255, 0.1)',
-  },
-  accentOptionPressed: {
-    backgroundColor: 'rgba(0, 54, 255, 0.05)',
-  },
-  accentOptionText: {
-    flex: 1,
-    fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
-  },
-  accentOptionTextActive: {
-    color: colors.primary.DEFAULT,
-    fontWeight: typography.fontWeight.semibold,
-  },
-
   // Difficulty Filter
   filterContainer: {
     paddingVertical: spacing.md,
@@ -1130,12 +1131,18 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
     backgroundColor: colors.background.card,
     borderWidth: 1,
     borderColor: colors.border.light,
+  },
+  filterFlag: {
+    fontSize: 14,
   },
   filterChipActive: {
     backgroundColor: colors.primary.DEFAULT,
@@ -1280,5 +1287,112 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 54, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+});
+
+// Vocabulary Preview Modal Styles
+const vocabStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+    paddingHorizontal: spacing.lg,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  title: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.background.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subtitle: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    marginBottom: spacing.lg,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    gap: spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  section: {
+    gap: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  wordGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  wordChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.card,
+    borderWidth: 1,
+    borderColor: colors.primary.DEFAULT + '30',
+  },
+  wordText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+  },
+  phraseCard: {
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.card,
+    borderWidth: 1,
+    borderColor: colors.secondary.DEFAULT + '20',
+  },
+  phraseText: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    lineHeight: 22,
+  },
+  ctaBar: {
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  ctaButton: {
+    backgroundColor: colors.primary.DEFAULT,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+  },
+  ctaText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+    color: '#FFFFFF',
+  },
+  secondaryButton: {
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  secondaryText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
   },
 });
