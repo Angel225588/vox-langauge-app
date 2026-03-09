@@ -1,10 +1,8 @@
 /**
- * Reading Goal Screen — Briefing Before Teleprompter
+ * Reading Goal Screen — Banner Image + Briefing
  *
- * Shows what the user is about to do:
- * - Lecture title and metadata
- * - What they'll practice (read aloud, pronunciation feedback)
- * - Start button → Teleprompter
+ * Uses the same lecture image as a full-width banner with overlay title.
+ * Glassmorphic steps card below explains what the user will do.
  *
  * Flow: Reading Library → Reading Goal → Teleprompter → Results
  */
@@ -15,11 +13,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -27,29 +27,49 @@ import * as Haptics from 'expo-haptics';
 const C = {
   bg: '#080B14',
   card: 'rgba(255,255,255,0.06)',
-  border: 'rgba(255,255,255,0.10)',
+  border: 'rgba(255,255,255,0.08)',
   blue: '#0036FF',
   blueLight: '#3D6BFF',
   text: '#F9FAFB',
   sub: '#9CA3AF',
   dim: 'rgba(255,255,255,0.25)',
+  success: '#10B981',
+};
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BANNER_HEIGHT = 220;
+
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=800&q=80';
+
+// ─── Difficulty config ──────────────────────────────
+const DIFFICULTY_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
+  beginner: { label: 'Beginner', icon: 'leaf-outline', color: '#10B981' },
+  intermediate: { label: 'Intermediate', icon: 'flame-outline', color: '#F59E0B' },
+  advanced: { label: 'Advanced', icon: 'diamond-outline', color: '#EF4444' },
 };
 
 export default function ReadingGoalScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     lectureId: string;
     title: string;
+    subtitle: string;
     wordCount: string;
     questionCount: string;
     category: string;
     difficulty: string;
+    language: string;
+    imageUrl: string;
   }>();
 
   const title = params.title || 'Reading Practice';
+  const subtitle = params.subtitle || '';
   const wordCount = params.wordCount || '150';
   const category = params.category || 'General';
   const difficulty = params.difficulty || 'beginner';
+  const imageUrl = params.imageUrl || FALLBACK_IMAGE;
+  const diff = DIFFICULTY_CONFIG[difficulty] || DIFFICULTY_CONFIG.beginner;
 
   const handleStart = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -61,6 +81,7 @@ export default function ReadingGoalScreen() {
         category: params.category,
         difficulty: params.difficulty,
         wordCount: params.wordCount,
+        language: params.language || 'english',
         returnTo: 'reading-library',
       },
     });
@@ -84,50 +105,85 @@ export default function ReadingGoalScreen() {
     {
       icon: 'analytics-outline' as const,
       title: 'Get feedback',
-      desc: 'Pronunciation, fluency, and articulation scores',
+      desc: 'Pronunciation, fluency & articulation scores',
     },
   ];
 
   return (
-    <SafeAreaView style={s.container} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={handleBack} hitSlop={12}>
-          <Ionicons name="arrow-back" size={22} color={C.text} />
+    <View style={s.container}>
+      {/* Banner Image with Overlay */}
+      <View style={s.bannerContainer}>
+        <Image
+          source={{ uri: imageUrl }}
+          style={s.bannerImage}
+          resizeMode="cover"
+        />
+
+        {/* Gradient overlays */}
+        <LinearGradient
+          colors={['rgba(8,11,20,0.6)', 'transparent']}
+          style={s.bannerGradientTop}
+        />
+        <LinearGradient
+          colors={['transparent', C.bg]}
+          style={s.bannerGradientBottom}
+        />
+
+        {/* Back button */}
+        <TouchableOpacity
+          onPress={handleBack}
+          hitSlop={12}
+          style={[s.backBtn, { top: insets.top + 8 }]}
+        >
+          <View style={s.backBtnCircle}>
+            <Ionicons name="arrow-back" size={20} color={C.text} />
+          </View>
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Reading Goal</Text>
-        <View style={{ width: 22 }} />
+
+        {/* Category pill on banner */}
+        <Animated.View
+          entering={FadeIn.duration(400).delay(200)}
+          style={s.bannerCategory}
+        >
+          <Text style={s.bannerCategoryText}>{category}</Text>
+        </Animated.View>
+
+        {/* Title overlay at bottom of banner */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(100)}
+          style={s.bannerTitleContainer}
+        >
+          <Text style={s.bannerTitle}>{title}</Text>
+          {subtitle ? (
+            <Text style={s.bannerSubtitle}>{subtitle}</Text>
+          ) : null}
+        </Animated.View>
       </View>
 
+      {/* Body */}
       <View style={s.body}>
-        {/* Lecture info */}
+        {/* Meta pills */}
         <Animated.View
-          entering={FadeInDown.duration(400).delay(100)}
-          style={s.heroSection}
+          entering={FadeInDown.duration(400).delay(200)}
+          style={s.metaRow}
         >
-          <View style={s.iconCircle}>
-            <Ionicons name="book" size={32} color={C.blueLight} />
+          <View style={s.metaPill}>
+            <Ionicons name="document-text-outline" size={13} color={C.sub} />
+            <Text style={s.metaText}>{wordCount} words</Text>
           </View>
-          <Text style={s.title}>{title}</Text>
-          <View style={s.metaRow}>
-            <View style={s.metaPill}>
-              <Ionicons name="document-text-outline" size={12} color={C.sub} />
-              <Text style={s.metaText}>{wordCount} words</Text>
-            </View>
-            <View style={s.metaPill}>
-              <Ionicons name="fitness-outline" size={12} color={C.sub} />
-              <Text style={s.metaText}>{difficulty}</Text>
-            </View>
-            <View style={s.metaPill}>
-              <Ionicons name="pricetag-outline" size={12} color={C.sub} />
-              <Text style={s.metaText}>{category}</Text>
-            </View>
+          <View style={[s.metaPill, { borderColor: diff.color + '30' }]}>
+            <Ionicons name={diff.icon as any} size={13} color={diff.color} />
+            <Text style={[s.metaText, { color: diff.color }]}>{diff.label}</Text>
+          </View>
+          <View style={s.metaPill}>
+            <Ionicons name="mic-outline" size={13} color={C.blueLight} />
+            <Text style={[s.metaText, { color: C.blueLight }]}>Read aloud</Text>
           </View>
         </Animated.View>
 
-        {/* What you'll do */}
+        {/* Steps card */}
         <Animated.View
-          entering={FadeInDown.duration(400).delay(250)}
+          entering={FadeInDown.duration(400).delay(350)}
           style={s.stepsCard}
         >
           <Text style={s.stepsTitle}>What you'll do</Text>
@@ -136,8 +192,8 @@ export default function ReadingGoalScreen() {
               <View style={s.stepNumber}>
                 <Text style={s.stepNumberText}>{i + 1}</Text>
               </View>
-              <View style={s.stepIcon}>
-                <Ionicons name={step.icon} size={18} color={C.blueLight} />
+              <View style={s.stepIconBox}>
+                <Ionicons name={step.icon} size={16} color={C.blueLight} />
               </View>
               <View style={s.stepContent}>
                 <Text style={s.stepTitle}>{step.title}</Text>
@@ -151,7 +207,10 @@ export default function ReadingGoalScreen() {
         <View style={{ flex: 1 }} />
 
         {/* CTA */}
-        <Animated.View entering={FadeInDown.duration(400).delay(400)}>
+        <Animated.View
+          entering={FadeInDown.duration(400).delay(500)}
+          style={{ paddingBottom: insets.bottom + 8 }}
+        >
           <TouchableOpacity onPress={handleStart} activeOpacity={0.85}>
             <LinearGradient
               colors={[C.blue, C.blueLight]}
@@ -165,7 +224,7 @@ export default function ReadingGoalScreen() {
           </TouchableOpacity>
         </Animated.View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -175,61 +234,106 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: C.bg,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  body: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
 
-  // Hero
-  heroSection: {
-    alignItems: 'center',
-    marginBottom: 28,
-    marginTop: 12,
+  // Banner
+  bannerContainer: {
+    width: SCREEN_WIDTH,
+    height: BANNER_HEIGHT,
+    position: 'relative',
   },
-  iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(0, 54, 255, 0.10)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(0, 54, 255, 0.20)',
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  bannerGradientTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+  },
+  bannerGradientBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+  },
+  backBtn: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 10,
+  },
+  backBtnCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
   },
-  title: {
-    fontSize: 22,
+  bannerCategory: {
+    position: 'absolute',
+    top: 80,
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  bannerCategoryText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  bannerTitleContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 20,
+    right: 20,
+  },
+  bannerTitle: {
+    fontSize: 24,
     fontWeight: '800',
     color: C.text,
-    textAlign: 'center',
-    marginBottom: 12,
     letterSpacing: -0.3,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
+  bannerSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 4,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+
+  // Body
+  body: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+
+  // Meta pills
   metaRow: {
     flexDirection: 'row',
     gap: 8,
+    marginBottom: 20,
   },
   metaPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: C.card,
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: C.border,
   },
@@ -237,10 +341,9 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: C.sub,
-    textTransform: 'capitalize',
   },
 
-  // Steps
+  // Steps card (glassmorphic)
   stepsCard: {
     backgroundColor: C.card,
     borderRadius: 16,
@@ -273,9 +376,9 @@ const s = StyleSheet.create({
     fontWeight: '800',
     color: C.blueLight,
   },
-  stepIcon: {
-    width: 36,
-    height: 36,
+  stepIconBox: {
+    width: 34,
+    height: 34,
     borderRadius: 10,
     backgroundColor: 'rgba(0, 54, 255, 0.08)',
     alignItems: 'center',
@@ -302,7 +405,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    borderRadius: 16,
+    borderRadius: 14,
     paddingVertical: 16,
   },
   ctaText: {

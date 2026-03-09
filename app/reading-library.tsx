@@ -1,9 +1,8 @@
 /**
- * Reading Library — 2x2 Lecture Grid
+ * Reading Library — 2x2 Thumbnail Grid
  *
- * Entry point for reading practice from the Practice tab.
- * Shows available lectures as cards in a 2-column grid.
- * Completed lectures unlock new ones.
+ * YouTube thumbnail-style cards with Unsplash images.
+ * Personalized to onboarding profile and recommendations.
  *
  * Flow: Practice Tab → Reading Library → Reading Goal → Teleprompter → Results
  */
@@ -16,67 +15,172 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
+import { generateLibraryRecommendations, LibraryLecture } from '@/lib/ai/libraryGenerator';
 
 // ─── Palette ────────────────────────────────────────
 const C = {
   bg: '#080B14',
   card: 'rgba(255,255,255,0.06)',
-  border: 'rgba(255,255,255,0.10)',
+  border: 'rgba(255,255,255,0.08)',
   blue: '#0036FF',
   blueLight: '#3D6BFF',
   text: '#F9FAFB',
   sub: '#9CA3AF',
   dim: 'rgba(255,255,255,0.15)',
+  success: '#10B981',
+  overlay: 'rgba(0,0,0,0.55)',
 };
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_GAP = 12;
-const CARD_SIZE = (SCREEN_WIDTH - 40 - CARD_GAP) / 2;
+const CARD_WIDTH = (SCREEN_WIDTH - 40 - CARD_GAP) / 2;
+const CARD_IMAGE_HEIGHT = CARD_WIDTH * 0.7; // 16:11-ish ratio like YouTube
 
 // ─── Types ──────────────────────────────────────────
 interface Lecture {
   id: string;
   title: string;
+  subtitle?: string;
   wordCount: number;
   questionCount: number;
   category: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   hasTeleprompter: boolean;
+  imageUrl?: string;
+  reason?: string;
 }
 
-// ─── Default Lectures ───────────────────────────────
+// ─── Difficulty config ──────────────────────────────
+const DIFFICULTY_CONFIG = {
+  beginner: { label: 'Beginner', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)' },
+  intermediate: { label: 'Intermediate', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)' },
+  advanced: { label: 'Advanced', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)' },
+};
+
+// ─── Default Lectures (shown while AI loads) ────────
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=800&q=80';
+
 const DEFAULT_LECTURES: Lecture[] = [
   {
     id: 'reading-1',
     title: 'The New Office',
+    subtitle: 'Professional vocabulary',
     wordCount: 150,
     questionCount: 3,
     category: 'Work',
     difficulty: 'beginner',
     hasTeleprompter: true,
+    imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&q=80',
   },
   {
     id: 'reading-2',
     title: 'First Day Abroad',
+    subtitle: 'Travel essentials',
     wordCount: 200,
     questionCount: 4,
     category: 'Travel',
     difficulty: 'beginner',
     hasTeleprompter: true,
+    imageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80',
   },
 ];
 
 const CACHE_KEY = 'vox_reading_library_completed';
+
+// ═════════════════════════════════════════════════════
+// THUMBNAIL CARD
+// ═════════════════════════════════════════════════════
+
+function ThumbnailCard({
+  lecture,
+  isCompleted,
+  onPress,
+  index,
+}: {
+  lecture: Lecture;
+  isCompleted: boolean;
+  onPress: () => void;
+  index: number;
+}) {
+  const diff = DIFFICULTY_CONFIG[lecture.difficulty] || DIFFICULTY_CONFIG.beginner;
+
+  return (
+    <Animated.View entering={FadeInDown.duration(400).delay(200 + index * 120)}>
+      <TouchableOpacity
+        style={s.card}
+        onPress={onPress}
+        activeOpacity={0.85}
+        accessibilityLabel={`${lecture.title}, ${lecture.category}, ${lecture.wordCount} words`}
+      >
+        {/* Image */}
+        <View style={s.imageContainer}>
+          <Image
+            source={{ uri: lecture.imageUrl || FALLBACK_IMAGE }}
+            style={s.image}
+            resizeMode="cover"
+          />
+
+          {/* Gradient overlay at bottom of image */}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.75)']}
+            style={s.imageGradient}
+          />
+
+          {/* Category pill on image */}
+          <View style={s.categoryPill}>
+            <Text style={s.categoryText}>{lecture.category}</Text>
+          </View>
+
+          {/* Completed check */}
+          {isCompleted && (
+            <View style={s.completedBadge}>
+              <Ionicons name="checkmark-circle" size={18} color={C.success} />
+            </View>
+          )}
+
+          {/* Duration / word count on image bottom-right */}
+          <View style={s.durationBadge}>
+            <Ionicons name="time-outline" size={10} color="rgba(255,255,255,0.9)" />
+            <Text style={s.durationText}>
+              {Math.ceil(lecture.wordCount / 130)} min
+            </Text>
+          </View>
+        </View>
+
+        {/* Text content below image */}
+        <View style={s.cardContent}>
+          <Text style={s.cardTitle} numberOfLines={2}>
+            {lecture.title}
+          </Text>
+
+          <View style={s.cardFooter}>
+            {/* Difficulty */}
+            <View style={[s.diffBadge, { backgroundColor: diff.bg }]}>
+              <Text style={[s.diffText, { color: diff.color }]}>{diff.label}</Text>
+            </View>
+
+            {/* Mic icon */}
+            <View style={s.micDot}>
+              <Ionicons name="mic" size={10} color={C.blueLight} />
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
 
 // ═════════════════════════════════════════════════════
 // COMPONENT
@@ -87,6 +191,8 @@ export default function ReadingLibraryScreen() {
   const { user } = useAuth();
   const v3Store = useOnboardingV3();
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [lectures, setLectures] = useState<Lecture[]>(DEFAULT_LECTURES);
+  const [loading, setLoading] = useState(false);
 
   // Load completed lectures
   useEffect(() => {
@@ -97,6 +203,35 @@ export default function ReadingLibraryScreen() {
       .catch(() => {});
   }, []);
 
+  // Load AI-personalized lectures (language-aware)
+  const targetLang = v3Store.target_language || 'english';
+  useEffect(() => {
+    const userId = user?.id;
+    if (!userId) return;
+
+    setLoading(true);
+    generateLibraryRecommendations(userId, false, targetLang)
+      .then((aiLectures) => {
+        if (aiLectures.length > 0) {
+          const mapped: Lecture[] = aiLectures.slice(0, 4).map((l) => ({
+            id: l.id,
+            title: l.title,
+            subtitle: l.subtitle,
+            wordCount: l.wordCount,
+            questionCount: 3,
+            category: l.category,
+            difficulty: l.difficulty,
+            hasTeleprompter: true,
+            imageUrl: l.imageUrl,
+            reason: l.reason,
+          }));
+          setLectures(mapped);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [user?.id, targetLang]);
+
   const handleLecturePress = useCallback(
     (lecture: Lecture) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -105,14 +240,17 @@ export default function ReadingLibraryScreen() {
         params: {
           lectureId: lecture.id,
           title: lecture.title,
+          subtitle: lecture.subtitle || '',
           wordCount: String(lecture.wordCount),
           questionCount: String(lecture.questionCount),
           category: lecture.category,
           difficulty: lecture.difficulty,
+          language: targetLang,
+          imageUrl: lecture.imageUrl || '',
         },
       });
     },
-    [router],
+    [router, targetLang],
   );
 
   const handleRandomExercise = useCallback(() => {
@@ -124,9 +262,7 @@ export default function ReadingLibraryScreen() {
     router.back();
   }, [router]);
 
-  // Build grid: available lectures + empty slots
   const totalSlots = 4;
-  const lectures = DEFAULT_LECTURES;
   const emptySlots = Math.max(0, totalSlots - lectures.length);
 
   return (
@@ -136,7 +272,7 @@ export default function ReadingLibraryScreen() {
         <TouchableOpacity onPress={handleBack} hitSlop={12}>
           <Ionicons name="arrow-back" size={22} color={C.text} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Reading Practice</Text>
+        <Text style={s.headerTitle}>Reading</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -145,85 +281,48 @@ export default function ReadingLibraryScreen() {
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Subtitle */}
-        <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-          <Text style={s.subtitle}>
-            Read aloud and get pronunciation feedback
+        {/* Hero section */}
+        <Animated.View entering={FadeIn.duration(500).delay(50)}>
+          <Text style={s.heroTitle}>Your Readings</Text>
+          <Text style={s.heroSub}>
+            {loading
+              ? 'Finding personalized articles...'
+              : 'Curated for your level and goals'}
           </Text>
         </Animated.View>
 
-        {/* 2x2 Grid */}
+        {/* Loading indicator */}
+        {loading && (
+          <View style={s.loadingRow}>
+            <ActivityIndicator size="small" color={C.blueLight} />
+          </View>
+        )}
+
+        {/* 2x2 Thumbnail Grid */}
         <View style={s.grid}>
-          {lectures.map((lecture, index) => {
-            const isCompleted = completedIds.has(lecture.id);
-            return (
-              <Animated.View
-                key={lecture.id}
-                entering={FadeInDown.duration(400).delay(200 + index * 100)}
-              >
-                <TouchableOpacity
-                  style={s.card}
-                  onPress={() => handleLecturePress(lecture)}
-                  activeOpacity={0.8}
-                >
-                  {/* Book illustration */}
-                  <View style={s.bookIllustration}>
-                    <View style={s.bookSpine} />
-                    <View style={s.bookPage}>
-                      <View style={s.textLine} />
-                      <View style={[s.textLine, { width: '80%' }]} />
-                      <View style={[s.textLine, { width: '60%' }]} />
-                      <View style={s.textLine} />
-                      <View style={[s.textLine, { width: '70%' }]} />
-                    </View>
-                  </View>
-
-                  {/* Badge */}
-                  {!isCompleted && (
-                    <View style={s.badge}>
-                      <Text style={s.badgeText}>NEW</Text>
-                    </View>
-                  )}
-                  {isCompleted && (
-                    <View style={[s.badge, s.badgeCompleted]}>
-                      <Ionicons name="checkmark" size={10} color="#10B981" />
-                    </View>
-                  )}
-
-                  {/* Info */}
-                  <Text style={s.cardTitle} numberOfLines={1}>
-                    {lecture.title}
-                  </Text>
-                  <View style={s.cardMeta}>
-                    <Text style={s.cardMetaText}>
-                      {lecture.wordCount} words
-                    </Text>
-                    <Text style={s.cardMetaDot}>·</Text>
-                    <Text style={s.cardMetaText}>
-                      {lecture.questionCount} questions
-                    </Text>
-                  </View>
-
-                  {/* Mic indicator */}
-                  {lecture.hasTeleprompter && (
-                    <View style={s.micBadge}>
-                      <Ionicons name="mic" size={10} color={C.blueLight} />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </Animated.View>
-            );
-          })}
+          {lectures.map((lecture, index) => (
+            <ThumbnailCard
+              key={lecture.id}
+              lecture={lecture}
+              isCompleted={completedIds.has(lecture.id)}
+              onPress={() => handleLecturePress(lecture)}
+              index={index}
+            />
+          ))}
 
           {/* Empty slots */}
           {Array.from({ length: emptySlots }).map((_, i) => (
             <Animated.View
               key={`empty-${i}`}
-              entering={FadeInDown.duration(400).delay(400 + i * 100)}
+              entering={FadeInDown.duration(400).delay(500 + i * 100)}
             >
               <View style={s.emptyCard}>
-                <Ionicons name="lock-closed" size={24} color={C.dim} />
-                <Text style={s.emptyText}>Complete a lecture{'\n'}to unlock</Text>
+                <View style={s.emptyImagePlaceholder}>
+                  <Ionicons name="lock-closed" size={20} color={C.dim} />
+                </View>
+                <View style={s.cardContent}>
+                  <Text style={s.emptyText}>Complete a reading{'\n'}to unlock more</Text>
+                </View>
               </View>
             </Animated.View>
           ))}
@@ -239,7 +338,8 @@ export default function ReadingLibraryScreen() {
             end={{ x: 1, y: 0 }}
             style={s.ctaBtn}
           >
-            <Text style={s.ctaText}>Start Random Exercise</Text>
+            <Ionicons name="shuffle" size={18} color="#FFFFFF" />
+            <Text style={s.ctaText}>Quick Exercise</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -272,11 +372,26 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  subtitle: {
+
+  // Hero
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: C.text,
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  heroSub: {
     fontSize: 14,
     fontWeight: '500',
     color: C.sub,
     marginBottom: 20,
+  },
+
+  // Loading
+  loadingRow: {
+    alignItems: 'center',
+    marginBottom: 16,
   },
 
   // Grid
@@ -286,99 +401,113 @@ const s = StyleSheet.create({
     gap: CARD_GAP,
   },
 
-  // Lecture card
+  // Thumbnail card
   card: {
-    width: CARD_SIZE,
-    aspectRatio: 0.85,
+    width: CARD_WIDTH,
     backgroundColor: C.card,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: C.border,
-    padding: 14,
-    justifyContent: 'space-between',
+    overflow: 'hidden',
   },
 
-  // Book illustration
-  bookIllustration: {
-    flexDirection: 'row',
-    height: 64,
-    marginBottom: 8,
-  },
-  bookSpine: {
-    width: 6,
-    height: '100%',
-    backgroundColor: C.blueLight,
-    borderRadius: 2,
-    marginRight: 6,
-  },
-  bookPage: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 4,
-    padding: 8,
-    gap: 4,
-    justifyContent: 'center',
-  },
-  textLine: {
-    height: 3,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 1.5,
+  // Image section
+  imageContainer: {
     width: '100%',
+    height: CARD_IMAGE_HEIGHT,
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  imageGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
   },
 
-  // Badges
-  badge: {
+  // Category pill (top-left on image)
+  categoryPill: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(0, 54, 255, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 54, 255, 0.30)',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  categoryText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // Completed badge (top-right on image)
+  completedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+
+  // Duration (bottom-right on image)
+  durationBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  badgeText: {
+  durationText: {
     fontSize: 9,
-    fontWeight: '800',
-    color: C.blueLight,
-    letterSpacing: 0.5,
-  },
-  badgeCompleted: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderColor: 'rgba(16, 185, 129, 0.30)',
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.9)',
   },
 
-  // Card info
+  // Text content below image
+  cardContent: {
+    padding: 10,
+    gap: 8,
+  },
   cardTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: C.text,
-    marginBottom: 4,
+    lineHeight: 17,
   },
-  cardMeta: {
+  cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-  },
-  cardMetaText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: C.sub,
-  },
-  cardMetaDot: {
-    fontSize: 11,
-    color: C.sub,
+    justifyContent: 'space-between',
   },
 
-  // Mic badge
-  micBadge: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+  // Difficulty badge
+  diffBadge: {
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  diffText: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+
+  // Mic dot
+  micDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: 'rgba(0, 54, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -386,15 +515,19 @@ const s = StyleSheet.create({
 
   // Empty card
   emptyCard: {
-    width: CARD_SIZE,
-    aspectRatio: 0.85,
-    borderRadius: 16,
-    borderWidth: 2,
+    width: CARD_WIDTH,
+    borderRadius: 14,
+    borderWidth: 1.5,
     borderColor: C.dim,
     borderStyle: 'dashed',
+    overflow: 'hidden',
+  },
+  emptyImagePlaceholder: {
+    width: '100%',
+    height: CARD_IMAGE_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.02)',
   },
   emptyText: {
     fontSize: 11,
@@ -415,11 +548,11 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingVertical: 15,
   },
   ctaText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
   },

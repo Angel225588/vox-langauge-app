@@ -280,11 +280,14 @@ function getProfileFromOnboarding(): VocabAndProfile['profile'] | null {
  */
 export async function generateReadingContent(
   userId: string,
-  stairStepId?: string
+  stairStepId?: string,
+  languageOverride?: string
 ): Promise<ReadingPassage | null> {
   try {
     const data = await getVocabAndProfile(userId, stairStepId);
     if (!data || data.vocabWords.length === 0) return null;
+    // Use override if provided (from screen route params)
+    if (languageOverride) data.profile.target_language = languageOverride;
 
     const prompt = `Generate a reading passage for a language learner.
 
@@ -338,11 +341,13 @@ ${data.grammarPoints?.length ? `## Grammar to Practice:\n${data.grammarPoints.jo
  */
 export async function generateWritingContent(
   userId: string,
-  stairStepId?: string
+  stairStepId?: string,
+  languageOverride?: string
 ): Promise<WritingPrompt | null> {
   try {
     const data = await getVocabAndProfile(userId, stairStepId);
     if (!data || data.vocabWords.length === 0) return null;
+    if (languageOverride) data.profile.target_language = languageOverride;
 
     const prompt = `Generate a writing exercise for a language learner.
 
@@ -390,11 +395,13 @@ ${data.vocabWords.join(', ')}
  */
 export async function generateListeningContent(
   userId: string,
-  stairStepId?: string
+  stairStepId?: string,
+  languageOverride?: string
 ): Promise<ListeningExercise | null> {
   try {
     const data = await getVocabAndProfile(userId, stairStepId);
     if (!data || data.vocabWithTranslations.length === 0) return null;
+    if (languageOverride) data.profile.target_language = languageOverride;
 
     const prompt = `Generate a listening comprehension exercise for a language learner.
 

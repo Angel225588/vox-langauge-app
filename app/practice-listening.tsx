@@ -378,7 +378,7 @@ export default function PracticeListeningScreen() {
         return;
       }
 
-      const exercise = await generateListeningContent(user.id);
+      const exercise = await generateListeningContent(user.id, undefined, v3Store.target_language);
       if (!exercise) {
         setError('Could not generate listening exercise. Check your learning path.');
         return;

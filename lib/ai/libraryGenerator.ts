@@ -12,6 +12,8 @@ import { generateJSON } from '@/lib/ai/gemini';
 import { sanitizePromptInput } from '@/lib/ai/sanitize';
 import { getStaircaseParams, getStairContent } from '@/lib/db/learningPaths';
 import { getCurrentStairStepId } from '@/lib/ai/practiceGenerator';
+import { getWordsByPriority, getWordCount } from '@/lib/word-bank/storage';
+import { getScoreHistory } from '@/lib/db/competencyMetrics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // =============================================================================
@@ -44,6 +46,19 @@ interface LibraryCache {
 const CACHE_KEY = 'vox_library_recommendations';
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const PASSAGE_CACHE_PREFIX = 'vox_library_passage_';
+
+/** Map full language names to ISO codes for cache consistency */
+const LANG_NAME_TO_CODE: Record<string, string> = {
+  english: 'en', french: 'fr', spanish: 'es',
+  german: 'de', italian: 'it', portuguese: 'pt',
+  japanese: 'ja', chinese: 'zh', korean: 'ko',
+};
+
+function normalizeLangCode(lang?: string): string {
+  if (!lang) return 'en';
+  const lower = lang.toLowerCase();
+  return LANG_NAME_TO_CODE[lower] || lower;
+}
 
 /** Curated Unsplash images per category for visual quality */
 const CATEGORY_IMAGES: Record<string, string[]> = {
@@ -90,9 +105,10 @@ const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1457369804613-52c61a46
 // Cache
 // =============================================================================
 
-async function getCachedLibrary(userId: string): Promise<LibraryCache | null> {
+async function getCachedLibrary(userId: string, language?: string): Promise<LibraryCache | null> {
   try {
-    const raw = await AsyncStorage.getItem(`${CACHE_KEY}_${userId}`);
+    const langKey = normalizeLangCode(language);
+    const raw = await AsyncStorage.getItem(`${CACHE_KEY}_${userId}_${langKey}`);
     if (!raw) return null;
     const cached: LibraryCache = JSON.parse(raw);
     if (Date.now() - new Date(cached.generatedAt).getTime() > CACHE_TTL_MS) {
@@ -104,9 +120,10 @@ async function getCachedLibrary(userId: string): Promise<LibraryCache | null> {
   }
 }
 
-async function setCachedLibrary(userId: string, cache: LibraryCache): Promise<void> {
+async function setCachedLibrary(userId: string, cache: LibraryCache, language?: string): Promise<void> {
   try {
-    await AsyncStorage.setItem(`${CACHE_KEY}_${userId}`, JSON.stringify(cache));
+    const langKey = normalizeLangCode(language);
+    await AsyncStorage.setItem(`${CACHE_KEY}_${userId}_${langKey}`, JSON.stringify(cache));
   } catch {
     // Non-critical
   }
@@ -134,6 +151,61 @@ function getImageForCategory(category: string, index: number): string {
 }
 
 // =============================================================================
+// Learner Context (word bank + performance history)
+// =============================================================================
+
+/**
+ * Build enriched learner context from word bank and recent performance.
+ * Used to personalize both recommendations and passage generation.
+ */
+async function getLearnerContext(userId: string): Promise<{
+  weakWords: string;
+  performanceSummary: string;
+}> {
+  let weakWords = '';
+  let performanceSummary = '';
+
+  try {
+    // Word bank: high-priority (weakest) words the user struggles with
+    const wordCount = await getWordCount();
+    if (wordCount >= 5) {
+      const priorityWords = await getWordsByPriority(15);
+      const weakList = priorityWords
+        .filter(w => w.masteryScore < 70) // focus on unmastered words
+        .map(w => w.word)
+        .slice(0, 10);
+      if (weakList.length > 0) {
+        weakWords = weakList.join(', ');
+      }
+    }
+  } catch {
+    // Word bank not available — continue without
+  }
+
+  try {
+    // Performance: last 14 days of reading scores
+    const scores = await getScoreHistory(userId, 14);
+    const readingScores = scores.filter(s => s.type === 'reading');
+    if (readingScores.length > 0) {
+      const avgArticulation = Math.round(
+        readingScores.reduce((sum, s) => sum + s.articulation, 0) / readingScores.length
+      );
+      const avgFluency = Math.round(
+        readingScores.reduce((sum, s) => sum + s.fluency, 0) / readingScores.length
+      );
+      const avgOverall = Math.round(
+        readingScores.reduce((sum, s) => sum + s.overallScore, 0) / readingScores.length
+      );
+      performanceSummary = `Articulation: ${avgArticulation}/100, Fluency: ${avgFluency}/100, Overall: ${avgOverall}/100 (${readingScores.length} sessions in 14 days)`;
+    }
+  } catch {
+    // No scores yet — continue without
+  }
+
+  return { weakWords, performanceSummary };
+}
+
+// =============================================================================
 // Generation
 // =============================================================================
 
@@ -143,18 +215,20 @@ function getImageForCategory(category: string, index: number): string {
  */
 export async function generateLibraryRecommendations(
   userId: string,
-  forceRefresh: boolean = false
+  forceRefresh: boolean = false,
+  language?: string
 ): Promise<LibraryLecture[]> {
-  // Check cache
+  // Check cache (language-aware)
   if (!forceRefresh) {
-    const cached = await getCachedLibrary(userId);
+    const cached = await getCachedLibrary(userId, language);
     if (cached) return cached.lectures;
   }
 
   try {
-    const [params, stairStepId] = await Promise.all([
+    const [params, stairStepId, learnerCtx] = await Promise.all([
       getStaircaseParams(userId),
       getCurrentStairStepId(userId),
+      getLearnerContext(userId),
     ]);
 
     if (!params) return [];
@@ -180,6 +254,8 @@ export async function generateLibraryRecommendations(
 - Level: ${sanitizePromptInput(params.proficiency_level)}
 - Motivation: ${sanitizePromptInput(params.motivation)}${params.motivation_custom ? ` (${sanitizePromptInput(params.motivation_custom)})` : ''}
 ${vocabContext ? `- Current Vocabulary: ${sanitizePromptInput(vocabContext)}` : ''}
+${learnerCtx.weakWords ? `- Words to reinforce (user struggles with these): ${sanitizePromptInput(learnerCtx.weakWords)}` : ''}
+${learnerCtx.performanceSummary ? `- Recent Reading Performance: ${sanitizePromptInput(learnerCtx.performanceSummary)}` : ''}
 
 ## Requirements
 - Generate 8 lectures that are MOST useful for this learner's goals and level
@@ -219,12 +295,12 @@ ${vocabContext ? `- Current Vocabulary: ${sanitizePromptInput(vocabContext)}` : 
       imageUrl: getImageForCategory(lecture.category, i),
     }));
 
-    // Cache
+    // Cache (language-aware)
     await setCachedLibrary(userId, {
       lectures,
       generatedAt: new Date().toISOString(),
       userId,
-    });
+    }, language || params.target_language);
 
     return lectures;
   } catch (error) {
@@ -255,11 +331,14 @@ export async function generateLecturePassage(
     category: string;
     difficulty: string;
     wordCount: number;
+    language?: string;
   }
 ): Promise<string | null> {
-  // Check passage cache
+  // Check passage cache (language-aware)
+  const langKey = normalizeLangCode(metadata.language);
+  const cacheId = `${PASSAGE_CACHE_PREFIX}${lectureId}_${langKey}`;
   try {
-    const raw = await AsyncStorage.getItem(`${PASSAGE_CACHE_PREFIX}${lectureId}`);
+    const raw = await AsyncStorage.getItem(cacheId);
     if (raw) {
       const cached: CachedPassage = JSON.parse(raw);
       return cached.text;
@@ -269,12 +348,19 @@ export async function generateLecturePassage(
   }
 
   try {
-    const params = await getStaircaseParams(userId);
-    if (!params) return null;
+    const [params, stairStepId, learnerCtx] = await Promise.all([
+      getStaircaseParams(userId),
+      getCurrentStairStepId(userId),
+      getLearnerContext(userId),
+    ]);
+
+    // Use passed language as authority, staircase params as enrichment
+    const targetLang = metadata.language || params?.target_language || 'english';
+    const nativeLang = params?.native_language || 'english';
+    const level = params?.proficiency_level || metadata.difficulty;
 
     // Get current vocabulary for integration
     let vocabContext = '';
-    const stairStepId = await getCurrentStairStepId(userId);
     if (stairStepId) {
       const content = await getStairContent(stairStepId);
       if (content?.vocabulary) {
@@ -293,31 +379,37 @@ export async function generateLecturePassage(
 - Category: ${sanitizePromptInput(metadata.category)}
 - Difficulty: ${sanitizePromptInput(metadata.difficulty)}
 - Target word count: ${metadata.wordCount}
-- Target Language: ${sanitizePromptInput(params.target_language)}
-- Native Language: ${sanitizePromptInput(params.native_language)}
-- Level: ${sanitizePromptInput(params.proficiency_level)}
+- Target Language: ${sanitizePromptInput(targetLang)}
+- Native Language: ${sanitizePromptInput(nativeLang)}
+- Level: ${sanitizePromptInput(level)}
 ${vocabContext ? `- Vocabulary to naturally include: ${sanitizePromptInput(vocabContext)}` : ''}
+${learnerCtx.weakWords ? `- PRIORITY: Naturally weave in these words the user needs to practice: ${sanitizePromptInput(learnerCtx.weakWords)}` : ''}
+${learnerCtx.performanceSummary ? `- Learner's recent reading scores: ${sanitizePromptInput(learnerCtx.performanceSummary)}. Adjust complexity accordingly.` : ''}
 
 ## Requirements
-- Write the passage ENTIRELY in the target language (${params.target_language})
+- Write the passage ENTIRELY in the target language (${targetLang}). NOT in ${nativeLang} or English.
+- Write fluent, natural ${targetLang} that flows smoothly when read aloud
+- Sentences should connect naturally with proper transitions and cohesion
 - Make it engaging and relevant to the category/title
 - Use natural, realistic language appropriate for the difficulty level
 - Include dialogue where appropriate
-- Structure with clear paragraphs
+- Structure with clear paragraphs (separate with double newlines)
 - Aim for exactly ${metadata.wordCount} words
 
-## Response Format (JSON only)
+## Response Format
+Return ONLY valid JSON. Use \\n for paragraph breaks inside the passage string.
+IMPORTANT: Escape any quotation marks inside the passage with backslash (\\").
 {
-  "passage": "The full passage text in target language..."
+  "passage": "First paragraph in ${targetLang}.\\n\\nSecond paragraph..."
 }`;
 
     const result = await generateJSON<{ passage: string }>(prompt);
     if (!result?.passage) return null;
 
-    // Cache the passage
+    // Cache the passage (language-aware key)
     try {
       await AsyncStorage.setItem(
-        `${PASSAGE_CACHE_PREFIX}${lectureId}`,
+        cacheId,
         JSON.stringify({ text: result.passage, generatedAt: new Date().toISOString() })
       );
     } catch {

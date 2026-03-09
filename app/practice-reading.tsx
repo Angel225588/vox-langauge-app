@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
+import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { generateReadingContent, type ReadingPassage } from '@/lib/ai/practiceGenerator';
 import type { ReadingContent } from '@/lib/lesson/discoveryGenerator';
 import { savePracticeScore } from '@/lib/db/competencyMetrics';
@@ -103,7 +104,8 @@ export default function PracticeReadingScreen() {
         return;
       }
 
-      const content = await generateReadingContent(user.id);
+      const targetLang = useOnboardingV3.getState().target_language;
+      const content = await generateReadingContent(user.id, undefined, targetLang);
       if (!content) {
         setError('Could not generate reading content. Check your learning path.');
         return;

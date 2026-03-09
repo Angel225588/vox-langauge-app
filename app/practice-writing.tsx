@@ -115,7 +115,8 @@ export default function PracticeWritingScreen() {
         return;
       }
 
-      const content = await generateWritingContent(user.id);
+      const targetLang = useOnboardingV3.getState().target_language;
+      const content = await generateWritingContent(user.id, undefined, targetLang);
       if (!content) {
         setError('Could not generate writing prompt. Check your learning path.');
         return;
