@@ -22,6 +22,8 @@ export { TypingCard } from './TypingCard';
 export { SpeakingCard } from './SpeakingCard';
 export { AudioQuizCard } from './AudioQuizCard';
 export { VocabularyCardFlow } from './VocabularyCardFlow';
+export { VocabularyBatchFlow } from './VocabularyBatchFlow';
+export type { BatchPhase, BatchFlowResult } from './VocabularyBatchFlow';
 export { VocabularyPracticeScreen } from './VocabularyPracticeScreen';
 
 // Hooks
