@@ -28,7 +28,7 @@ import {
   reorderActivities,
   getKeepGoingActivities,
 } from '@/lib/lesson/activityOrderer';
-import type { ActivityTemplate, LevelGroup } from '@/lib/lesson/lessonTemplates';
+import type { ActivityTemplate, LevelGroup, ActivityType } from '@/lib/lesson/lessonTemplates';
 import * as competencyMetrics from '@/lib/db/competencyMetrics';
 import * as competencyEngine from '@/lib/metrics/competencyEngine';
 
@@ -68,7 +68,7 @@ describe('ActivityOrderer', () => {
       const order = await getWeaknessOrder('user-123');
 
       expect(order[0]).toBe('listening');
-      expect(order.indexOf('conversation')).toBeLessThan(order.indexOf('writing'));
+      expect(order.indexOf('voice_call')).toBeLessThan(order.indexOf('writing'));
       expect(order.indexOf('writing')).toBeLessThan(order.indexOf('reading'));
     });
 
@@ -140,7 +140,7 @@ describe('ActivityOrderer', () => {
     ];
 
     it('keeps discovery lessons unchanged (static order)', () => {
-      const weaknessOrder = ['reading', 'listening', 'writing', 'vocabulary'];
+      const weaknessOrder: ActivityType[] = ['reading', 'listening', 'writing', 'vocabulary'];
 
       const reordered = reorderActivities(
         mockActivities,
@@ -153,7 +153,7 @@ describe('ActivityOrderer', () => {
     });
 
     it('reorders non-discovery lessons by weakness for intermediate/advanced', () => {
-      const weaknessOrder = ['reading', 'listening', 'writing', 'vocabulary'];
+      const weaknessOrder: ActivityType[] = ['reading', 'listening', 'writing', 'vocabulary'];
 
       const reordered = reorderActivities(
         mockActivities,
@@ -168,7 +168,7 @@ describe('ActivityOrderer', () => {
     });
 
     it('keeps vocabulary first for beginners, reorders rest', () => {
-      const weaknessOrder = ['reading', 'listening', 'writing', 'vocabulary'];
+      const weaknessOrder: ActivityType[] = ['reading', 'listening', 'writing', 'vocabulary'];
 
       const reordered = reorderActivities(
         mockActivities,
@@ -192,7 +192,7 @@ describe('ActivityOrderer', () => {
     });
 
     it('preserves activity metadata during reordering', () => {
-      const weaknessOrder = ['reading', 'listening', 'writing', 'vocabulary'];
+      const weaknessOrder: ActivityType[] = ['reading', 'listening', 'writing', 'vocabulary'];
 
       const reordered = reorderActivities(
         mockActivities,
@@ -217,8 +217,8 @@ describe('ActivityOrderer', () => {
 
   describe('getKeepGoingActivities', () => {
     it('returns new activity types not yet completed', () => {
-      const completedTypes = ['vocabulary', 'listening'];
-      const weaknessOrder = ['reading', 'writing', 'voice_call'];
+      const completedTypes: ActivityType[] = ['vocabulary', 'listening'];
+      const weaknessOrder: ActivityType[] = ['reading', 'writing', 'voice_call'];
 
       const keepGoing = getKeepGoingActivities(
         completedTypes,
@@ -236,8 +236,8 @@ describe('ActivityOrderer', () => {
     });
 
     it('cycles back to weakest types when all exhausted', () => {
-      const completedTypes = ['vocabulary', 'listening', 'reading', 'writing', 'voice_call'];
-      const weaknessOrder = ['reading', 'voice_call', 'vocabulary'];
+      const completedTypes: ActivityType[] = ['vocabulary', 'listening', 'reading', 'writing', 'voice_call'];
+      const weaknessOrder: ActivityType[] = ['reading', 'voice_call', 'vocabulary'];
 
       const keepGoing = getKeepGoingActivities(
         completedTypes,
@@ -253,8 +253,8 @@ describe('ActivityOrderer', () => {
     });
 
     it('respects level group for activity configs', () => {
-      const completedTypes = [];
-      const weaknessOrder = ['reading', 'writing', 'listening'];
+      const completedTypes: ActivityType[] = [];
+      const weaknessOrder: ActivityType[] = ['reading', 'writing', 'listening'];
 
       const beginnerKeepGoing = getKeepGoingActivities(
         completedTypes,
@@ -283,8 +283,8 @@ describe('ActivityOrderer', () => {
     });
 
     it('returns requested count of activities', () => {
-      const completedTypes = [];
-      const weaknessOrder = ['listening', 'reading', 'writing', 'voice_call', 'vocabulary'];
+      const completedTypes: ActivityType[] = [];
+      const weaknessOrder: ActivityType[] = ['listening', 'reading', 'writing', 'voice_call', 'vocabulary'];
 
       const keepGoing2 = getKeepGoingActivities(
         completedTypes,
@@ -305,8 +305,8 @@ describe('ActivityOrderer', () => {
     });
 
     it('uses default order if weakness order empty', () => {
-      const completedTypes = [];
-      const weaknessOrder = [];
+      const completedTypes: ActivityType[] = [];
+      const weaknessOrder: ActivityType[] = [];
 
       const keepGoing = getKeepGoingActivities(
         completedTypes,
@@ -344,7 +344,7 @@ describe('ActivityOrderer', () => {
         },
       ];
 
-      const weaknessOrder = ['listening', 'vocabulary'];
+      const weaknessOrder: ActivityType[] = ['listening', 'vocabulary'];
 
       const discoveryReordered = reorderActivities(
         activities,
@@ -384,7 +384,7 @@ describe('ActivityOrderer', () => {
         },
       ];
 
-      const weaknessOrder = ['listening', 'vocabulary'];
+      const weaknessOrder: ActivityType[] = ['listening', 'vocabulary'];
 
       const beginnerReordered = reorderActivities(
         activities,
@@ -437,7 +437,7 @@ describe('ActivityOrderer', () => {
         },
       ];
 
-      const weaknessOrder = ['listening', 'reading'];
+      const weaknessOrder: ActivityType[] = ['listening', 'reading'];
 
       const reordered = reorderActivities(
         activities,
@@ -450,8 +450,8 @@ describe('ActivityOrderer', () => {
     });
 
     it('handles activity request beyond available types', () => {
-      const completedTypes = ['reading'];
-      const weaknessOrder = ['writing', 'listening', 'voice_call', 'reading', 'vocabulary'];
+      const completedTypes: ActivityType[] = ['reading'];
+      const weaknessOrder: ActivityType[] = ['writing', 'listening', 'voice_call', 'reading', 'vocabulary'];
 
       const keepGoing = getKeepGoingActivities(
         completedTypes,
