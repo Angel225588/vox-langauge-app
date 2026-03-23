@@ -330,9 +330,9 @@ export default function HomeScreen() {
       return;
     }
 
-    // Navigate to lesson flow for this stair
-    console.log('Starting stair:', stairId);
-    router.push(`/lesson/${stairId}`);
+    // Navigate to the guided stair session (7-step flow)
+    console.log('Starting stair session:', stairId);
+    router.push(`/stair-session/${stairId}`);
   };
 
   // Determine calibrator status based on stairs completion

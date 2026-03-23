@@ -66,7 +66,6 @@ interface ProgressStep {
 const INITIAL_STEPS: ProgressStep[] = [
   { label: 'Loading your vocabulary', status: 'pending' },
   { label: 'Building your learning path', status: 'pending' },
-  { label: 'Preparing your first activity', status: 'pending' },
 ];
 
 // ─── Inspirational phrases ──────────────────────────
@@ -229,7 +228,8 @@ export default function CreatingPathRoute() {
     if (hasNavigated.current) return;
     hasNavigated.current = true;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.replace('/lesson-session');
+    // Go to home — staircase is ready, user taps first stair to begin
+    router.replace('/(tabs)/home');
     setTimeout(() => v3Store.reset(), 200);
   }, []);
 
@@ -348,30 +348,7 @@ export default function CreatingPathRoute() {
         console.log(`[CreatingPath] Language recommendation: ${rec.reason} → ${rec.language}`);
       }
 
-      // ── Step 3: Prepare First Activity (only 1st, not all) ──
-      const step3Start = Date.now();
-      updateStep(2, 'in_progress');
-      try {
-        const stairs = await loadPreviewStairs();
-        const firstStair = stairs?.find(s => s.order === 1);
-        if (firstStair) {
-          const plan = await generateLessonPlan(
-            firstStair,
-            v3Data.proficiency_level || 'starting_fresh',
-            true, // isFirstLesson
-          );
-          // Store the lesson plan (required for lesson-session)
-          await storeActiveLessonPlan(plan);
-          // Generate ONLY the first activity content (fast!)
-          // Remaining activities are generated in background by lesson-session
-          await generateFirstActivityContent(plan, 'anonymous');
-        }
-        updateStep(2, 'done');
-      } catch (err) {
-        console.warn('[CreatingPath] First activity error (non-blocking):', err);
-        updateStep(2, 'error');
-      }
-      await ensureMinVisible(step3Start);
+      // ── Navigate: staircase is ready, go to home ──
 
       // Fire-and-forget: personalize path for authenticated users
       personalizePathInBackground(v3Data);

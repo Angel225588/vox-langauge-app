@@ -75,14 +75,14 @@ export default function StairSessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const userId = user?.id;
+  const userId = user?.id || 'anonymous';
   const session = useStairSession(id, userId);
 
   useEffect(() => {
-    if (id && userId) {
+    if (id) {
       session.startSession();
     }
-  }, [id, userId]);
+  }, [id]);
 
   const handleExit = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -126,15 +126,14 @@ export default function StairSessionScreen() {
     );
   }
 
+  // Content still loading (fallback will fill it)
   if (!session.content) {
     return (
       <SafeAreaView style={S.container}>
         <LinearGradient colors={[colors.background.primary, colors.background.secondary]} style={S.gradient}>
           <View style={S.centerContainer}>
-            <Text style={S.loadingText}>Sign in to start</Text>
-            <TouchableOpacity onPress={handleExit} style={{ marginTop: spacing.lg }}>
-              <Text style={S.linkText}>Go Back</Text>
-            </TouchableOpacity>
+            <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+            <Text style={S.loadingText}>Loading session...</Text>
           </View>
         </LinearGradient>
       </SafeAreaView>

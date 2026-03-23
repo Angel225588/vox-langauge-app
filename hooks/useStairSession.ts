@@ -121,15 +121,15 @@ export function useStairSession(
    * Initialize the session by loading content.
    */
   const startSession = useCallback(async () => {
-    if (!stepId || !userId) {
-      setState((s) => ({ ...s, error: 'Missing step ID or user ID' }));
+    if (!stepId) {
+      setState((s) => ({ ...s, error: 'Missing step ID' }));
       return;
     }
 
     setState((s) => ({ ...s, isLoading: true, error: null, startedAt: Date.now() }));
 
     try {
-      const content = await loadSessionContent(stepId, userId);
+      const content = await loadSessionContent(stepId, userId || 'anonymous');
       setState((s) => ({
         ...s,
         content,
