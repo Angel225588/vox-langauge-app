@@ -20,10 +20,18 @@ import type { VocabularyItem } from './vocabulary';
 
 /**
  * Steps in the stair session flow, in order.
+ *
+ * Flow: Briefing → Vocabulary → Listening → Conversation → Reading → Writing → Summary
+ *
+ * Listening comes BEFORE Conversation intentionally:
+ * - User hears a scenario-relevant story/dialogue first (context + motivation)
+ * - Then enters the AI conversation with vocabulary + context already loaded
+ * - This is the "sell the pen" model: hear how someone did it, then try it yourself
  */
 export type SessionStep =
   | 'briefing'
   | 'vocabulary'
+  | 'listening'
   | 'conversation'
   | 'reading'
   | 'writing'
@@ -32,6 +40,7 @@ export type SessionStep =
 export const SESSION_STEP_ORDER: SessionStep[] = [
   'briefing',
   'vocabulary',
+  'listening',
   'conversation',
   'reading',
   'writing',
@@ -50,10 +59,11 @@ export interface StepInfo {
 
 export const STEP_INFO: StepInfo[] = [
   { step: 'briefing', label: 'Mission', icon: 'target', estimatedMinutes: 1 },
-  { step: 'vocabulary', label: 'Vocabulary', icon: 'book-open', estimatedMinutes: 3 },
+  { step: 'vocabulary', label: 'Vocabulary', icon: 'book-open', estimatedMinutes: 2 },
+  { step: 'listening', label: 'Listening', icon: 'headphones', estimatedMinutes: 3 },
   { step: 'conversation', label: 'Conversation', icon: 'phone', estimatedMinutes: 7 },
   { step: 'reading', label: 'Reading', icon: 'file-text', estimatedMinutes: 4 },
-  { step: 'writing', label: 'Writing', icon: 'edit-3', estimatedMinutes: 4 },
+  { step: 'writing', label: 'Writing', icon: 'edit-3', estimatedMinutes: 3 },
   { step: 'summary', label: 'Results', icon: 'bar-chart-2', estimatedMinutes: 1 },
 ];
 
@@ -71,6 +81,9 @@ export interface StairSessionContent {
 
   /** Vocabulary for pre-call review (hybrid: DB + AI-created) */
   vocabulary: SessionVocabItem[];
+
+  /** Listening content — scenario story/dialogue played BEFORE conversation */
+  listening: SessionListeningContent;
 
   /** Reading passage (AI-generated using scenario vocabulary) */
   reading: SessionReadingContent;
@@ -131,6 +144,56 @@ export interface SessionReadingContent {
   questions: ComprehensionQuestion[];
   /** Words from the passage that can be tapped to learn */
   tappable_words: TappableWord[];
+}
+
+/**
+ * Listening content — a scenario-relevant story or dialogue.
+ *
+ * This is the "sell the pen" model:
+ * - User hears a compelling story related to the scenario
+ * - Story uses the vocabulary they just learned
+ * - Motivates them before the conversation step
+ * - Can be a monologue (storytelling) or dialogue (two speakers)
+ *
+ * Examples:
+ * - Scenario "selling a pen" → Story about someone who sold a pen for $1000
+ * - Scenario "job interview" → A successful interview story
+ * - Scenario "ordering food" → A local sharing their favorite restaurant
+ */
+export interface SessionListeningContent {
+  /** Title shown to user */
+  title: string;
+  /** Brief description of what they'll hear */
+  description: string;
+  /** 'story' = single narrator, 'dialogue' = two speakers */
+  type: 'story' | 'dialogue';
+  /** The lines to be spoken by ElevenLabs TTS */
+  lines: ListeningLine[];
+  /** Comprehension questions after listening */
+  questions: ListeningQuestion[];
+  /** Key vocabulary from the story (highlights words they just learned) */
+  vocabulary_spotlight: string[];
+  /** Daily life tip — how to use this in their routine */
+  daily_tip: string;
+}
+
+/** A single line of the listening content */
+export interface ListeningLine {
+  /** Speaker identifier: 'narrator', 'A', 'B' */
+  speaker: string;
+  /** Speaker display name (e.g., 'Sarah', 'The salesman') */
+  speaker_name: string;
+  /** The text to be spoken */
+  text: string;
+  /** Translation in user's native language */
+  translation: string;
+}
+
+/** Comprehension question for listening */
+export interface ListeningQuestion {
+  question: string;
+  options: string[];
+  correct_index: number;
 }
 
 /**
@@ -197,6 +260,7 @@ export interface StairSessionState {
  */
 export interface SessionStepResults {
   vocabulary?: VocabularyStepResult;
+  listening?: ListeningStepResult;
   conversation?: ConversationStepResult;
   reading?: ReadingStepResult;
   writing?: WritingStepResult;
@@ -206,6 +270,19 @@ export interface VocabularyStepResult {
   words_reviewed: number;
   words_known: number;
   words_to_practice: number;
+  time_seconds: number;
+}
+
+export interface ListeningStepResult {
+  /** How many questions they answered */
+  questions_total: number;
+  /** How many they got right */
+  questions_correct: number;
+  /** Comprehension score 0-100 */
+  comprehension_score: number;
+  /** Did they listen to the full content */
+  listened_fully: boolean;
+  /** Time spent in seconds */
   time_seconds: number;
 }
 
@@ -246,6 +323,8 @@ export interface SessionSummary {
   vocab_reviewed: number;
   /** Words added to personal vocabulary */
   vocab_added: number;
+  /** Listening comprehension */
+  listening_score: number;
   /** Conversation performance */
   conversation_score: number;
   /** Reading comprehension */

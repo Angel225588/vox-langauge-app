@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vox — Listening Practice v2</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #060912;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    color: #F9FAFB;
+    padding: 40px 20px 80px;
+    min-height: 100vh;
+  }
+
+  /* ═══ PAGE HEADER ═══ */
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .page-header h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #06D6A0, #4ECDC4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    font-size: 15px;
+    color: #9CA3AF;
+    font-weight: 500;
+  }
+
+  /* ═══ SCREEN LAYOUT ═══ */
+  .screens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 48px;
+    justify-content: center;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .phone-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .phone-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #06D6A0;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .phone-sublabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
+    margin-top: 2px;
+  }
+  .phone-frame {
+    width: 375px;
+    height: 812px;
+    background: #0A0E1A;
+    border-radius: 44px;
+    border: 3px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 20px 60px rgba(0,0,0,0.5),
+      0 0 80px rgba(6,214,160,0.06);
+  }
+  .phone-frame::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 126px; height: 34px;
+    background: #000;
+    border-radius: 0 0 20px 20px;
+    z-index: 100;
+  }
+  .phone-frame::after {
+    content: '';
+    position: absolute;
+    bottom: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 134px; height: 5px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+    z-index: 100;
+  }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 56px 20px 28px;
+    overflow-y: auto;
+  }
+
+  /* ═══ SHARED ═══ */
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9CA3AF;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    cursor: pointer;
+  }
+
+  .stage-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .stage-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .stage-dot {
+    width: 8px; height: 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.12);
+  }
+  .stage-dot.completed { background: #06D6A0; }
+  .stage-dot.active {
+    width: 24px;
+    background: linear-gradient(135deg, #06D6A0, #4ECDC4);
+    border-radius: 4px;
+  }
+  .stage-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #9CA3AF;
+  }
+  .stage-label span { color: #06D6A0; font-weight: 700; }
+
+  /* Audio Buttons */
+  .audio-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .audio-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 16px;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s;
+  }
+  .audio-btn:hover { transform: scale(0.97); }
+  .audio-btn.play {
+    background: linear-gradient(135deg, #06D6A0, #4ECDC4);
+    color: #fff;
+    flex: 1.3;
+  }
+  .audio-btn.slow {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: #D1D5DB;
+    flex: 0.7;
+  }
+
+  /* CTA */
+  .cta-bar { padding-top: 8px; flex-shrink: 0; }
+  .cta-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.15s;
+  }
+  .cta-btn:hover { transform: scale(0.98); }
+  .cta-btn.teal { background: linear-gradient(135deg, #06D6A0, #4ECDC4); }
+  .cta-btn.glass {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #D1D5DB;
+  }
+
+  /* Section divider */
+  .section-divider {
+    width: 100%;
+    max-width: 1600px;
+    margin: 16px auto 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .section-divider::before,
+  .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+  }
+  .section-divider .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    white-space: nowrap;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /* SCREEN 1: VOCABULARY PRE-SCREEN            */
+  /* ═══════════════════════════════════════════ */
+
+  .vocab-pre-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .vocab-pre-header h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #F9FAFB;
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+  }
+  .vocab-pre-header p {
+    font-size: 14px;
+    font-weight: 500;
+    color: #9CA3AF;
+    line-height: 1.4;
+  }
+
+  .vocab-pre-grid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+  }
+
+  .vocab-pre-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .vocab-pre-card:hover {
+    background: rgba(255,255,255,0.07);
+  }
+  .vocab-pre-card.selected {
+    background: rgba(6,214,160,0.08);
+    border-color: rgba(6,214,160,0.30);
+  }
+
+  .vpc-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .vpc-word {
+    font-size: 17px;
+    font-weight: 700;
+    color: #F9FAFB;
+  }
+  .vpc-phonetic {
+    font-size: 12px;
+    font-weight: 500;
+    color: #06D6A0;
+  }
+  .vpc-translation {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
+    margin-top: 1px;
+  }
+
+  .vpc-check {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    border: 2px solid rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .vocab-pre-card.selected .vpc-check {
+    background: #06D6A0;
+    border-color: #06D6A0;
+  }
+
+  .vocab-counter {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #9CA3AF;
+    margin-bottom: 12px;
+  }
+  .vocab-counter span {
+    color: #06D6A0;
+    font-weight: 700;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /* SCREEN 2: PURE AUDIO (no text)             */
+  /* ═══════════════════════════════════════════ */
+
+  .audio-visual-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+  }
+
+  /* Pulsing waveform ring */
+  .wave-container {
+    width: 200px;
+    height: 200px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wave-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid rgba(6,214,160,0.15);
+    animation: pulse-ring 3s ease-in-out infinite;
+  }
+  .wave-ring:nth-child(1) { width: 100%; height: 100%; animation-delay: 0s; }
+  .wave-ring:nth-child(2) { width: 80%; height: 80%; animation-delay: 0.4s; }
+  .wave-ring:nth-child(3) { width: 60%; height: 60%; animation-delay: 0.8s; }
+  .wave-ring:nth-child(4) { width: 40%; height: 40%; animation-delay: 1.2s; }
+
+  @keyframes pulse-ring {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.08); }
+  }
+
+  .wave-center-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 36px;
+    background: linear-gradient(135deg, #06D6A0, #4ECDC4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 40px rgba(6,214,160,0.25);
+    z-index: 2;
+  }
+
+  .audio-status {
+    font-size: 15px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-align: center;
+  }
+  .audio-status.playing {
+    color: #06D6A0;
+  }
+
+  /* Waveform bars */
+  .waveform-bars {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 40px;
+  }
+  .waveform-bars .bar {
+    width: 3px;
+    border-radius: 2px;
+    background: #06D6A0;
+    animation: wave-bar 1.2s ease-in-out infinite;
+  }
+  .waveform-bars .bar:nth-child(1) { height: 12px; animation-delay: 0.0s; }
+  .waveform-bars .bar:nth-child(2) { height: 24px; animation-delay: 0.1s; }
+  .waveform-bars .bar:nth-child(3) { height: 36px; animation-delay: 0.2s; }
+  .waveform-bars .bar:nth-child(4) { height: 20px; animation-delay: 0.3s; }
+  .waveform-bars .bar:nth-child(5) { height: 32px; animation-delay: 0.15s; }
+  .waveform-bars .bar:nth-child(6) { height: 16px; animation-delay: 0.25s; }
+  .waveform-bars .bar:nth-child(7) { height: 28px; animation-delay: 0.05s; }
+  .waveform-bars .bar:nth-child(8) { height: 10px; animation-delay: 0.35s; }
+  .waveform-bars .bar:nth-child(9) { height: 22px; animation-delay: 0.20s; }
+  .waveform-bars .bar:nth-child(10) { height: 30px; animation-delay: 0.10s; }
+  .waveform-bars .bar:nth-child(11) { height: 14px; animation-delay: 0.30s; }
+  .waveform-bars .bar:nth-child(12) { height: 26px; animation-delay: 0.08s; }
+
+  @keyframes wave-bar {
+    0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
+    50% { transform: scaleY(1); opacity: 1; }
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /* SCREEN 3: QUIZ                             */
+  /* ═══════════════════════════════════════════ */
+
+  .quiz-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 8px;
+  }
+  .quiz-counter {
+    font-size: 14px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .quiz-counter span { color: #06D6A0; font-weight: 800; }
+  .quiz-question {
+    font-size: 20px;
+    font-weight: 800;
+    color: #F9FAFB;
+    line-height: 1.35;
+    margin-bottom: 24px;
+    letter-spacing: -0.3px;
+  }
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+  .quiz-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .quiz-option:hover { background: rgba(255,255,255,0.08); }
+  .quiz-option .letter {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #9CA3AF; flex-shrink: 0;
+  }
+  .quiz-option .text {
+    font-size: 16px; font-weight: 600; color: #F9FAFB; flex: 1;
+  }
+  .quiz-option .icon {
+    width: 28px; height: 28px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 14px; font-weight: 800;
+  }
+  .quiz-option.correct {
+    background: rgba(16,185,129,0.10);
+    border-color: rgba(16,185,129,0.30);
+  }
+  .quiz-option.correct .letter { background: rgba(16,185,129,0.20); color: #10B981; }
+  .quiz-option.correct .text { color: #34D399; }
+  .quiz-option.correct .icon { background: #10B981; color: #fff; }
+  .quiz-option.wrong {
+    background: rgba(239,68,68,0.08);
+    border-color: rgba(239,68,68,0.25);
+  }
+  .quiz-option.wrong .letter { background: rgba(239,68,68,0.20); color: #EF4444; }
+  .quiz-option.wrong .text { color: #F87171; }
+  .quiz-option.wrong .icon { background: #EF4444; color: #fff; }
+  .quiz-option.selected {
+    background: rgba(6,214,160,0.08);
+    border-color: rgba(6,214,160,0.25);
+  }
+  .quiz-option.selected .letter { background: rgba(6,214,160,0.20); color: #06D6A0; }
+
+  .quiz-progress {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 20px;
+  }
+  .quiz-progress .dot {
+    width: 8px; height: 8px; border-radius: 4px;
+    background: rgba(255,255,255,0.12);
+  }
+  .quiz-progress .dot.active { background: #06D6A0; width: 16px; }
+  .quiz-progress .dot.done-correct { background: #10B981; }
+  .quiz-progress .dot.done-wrong { background: #EF4444; }
+
+  /* ═══════════════════════════════════════════ */
+  /* SCREEN 4: LYRICS-STYLE SUBTITLES           */
+  /* Spotify-inspired auto-highlight + inline    */
+  /* ═══════════════════════════════════════════ */
+
+  .lyrics-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow-y: auto;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+
+  .lyrics-line {
+    padding: 10px 0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .lyrics-line .target {
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.25);
+    line-height: 1.35;
+    transition: all 0.4s ease;
+  }
+  .lyrics-line .native {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.0);
+    line-height: 1.3;
+    margin-top: 3px;
+    transition: all 0.4s ease;
+  }
+
+  /* Active (currently being read) */
+  .lyrics-line.active .target {
+    color: #F9FAFB;
+    font-size: 20px;
+  }
+  .lyrics-line.active .native {
+    color: rgba(6,214,160,0.60);
+  }
+
+  /* Past (already read) */
+  .lyrics-line.past .target {
+    color: rgba(255,255,255,0.40);
+  }
+  .lyrics-line.past .native {
+    color: rgba(6,214,160,0.30);
+  }
+
+  /* Future (not yet read) */
+  .lyrics-line.future .target {
+    color: rgba(255,255,255,0.18);
+  }
+
+  /* Speaker tag */
+  .lyrics-speaker {
+    font-size: 10px;
+    font-weight: 700;
+    color: #06D6A0;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 2px;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+  }
+  .lyrics-line.active .lyrics-speaker { opacity: 1; }
+  .lyrics-line.past .lyrics-speaker { opacity: 0.4; }
+
+  /* Translation toggle */
+  .translation-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
+  }
+  .toggle-track {
+    width: 42px;
+    height: 24px;
+    border-radius: 12px;
+    background: rgba(6,214,160,0.25);
+    position: relative;
+    cursor: pointer;
+  }
+  .toggle-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    background: #06D6A0;
+    position: absolute;
+    top: 3px;
+    left: 21px;
+    transition: left 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .toggle-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #9CA3AF;
+  }
+  .toggle-label span { color: #06D6A0; }
+
+  /* Audio progress bar */
+  .audio-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+  .audio-progress .time {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6B7280;
+    font-variant-numeric: tabular-nums;
+    min-width: 32px;
+  }
+  .audio-progress .track {
+    flex: 1;
+    height: 3px;
+    background: rgba(255,255,255,0.10);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .audio-progress .fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 45%;
+    background: linear-gradient(90deg, #06D6A0, #4ECDC4);
+    border-radius: 2px;
+  }
+  .audio-progress .knob {
+    position: absolute;
+    top: -4px;
+    left: 45%;
+    transform: translateX(-50%);
+    width: 11px; height: 11px;
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: 0 0 8px rgba(6,214,160,0.4);
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /* SCREEN 7: RESULTS                          */
+  /* ═══════════════════════════════════════════ */
+
+  .results-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 16px;
+  }
+  .results-title {
+    font-size: 24px; font-weight: 800; color: #F9FAFB;
+    margin-bottom: 8px; letter-spacing: -0.3px;
+  }
+  .results-subtitle {
+    font-size: 14px; font-weight: 500; color: #9CA3AF;
+    margin-bottom: 28px;
+  }
+  .scores-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .score-circle {
+    width: 110px; height: 110px;
+    border-radius: 55px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .score-circle.before {
+    border: 3px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.03);
+  }
+  .score-circle.after {
+    border: 3px solid #06D6A0;
+    background: rgba(6,214,160,0.06);
+    box-shadow: 0 0 30px rgba(6,214,160,0.15);
+  }
+  .score-number {
+    font-size: 36px; font-weight: 800; letter-spacing: -1px;
+  }
+  .score-circle.before .score-number { color: #9CA3AF; }
+  .score-circle.after .score-number { color: #06D6A0; }
+  .score-denom { font-size: 13px; font-weight: 600; color: #6B7280; margin-top: -2px; }
+  .score-type {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;
+  }
+  .score-circle.before .score-type { color: #6B7280; }
+  .score-circle.after .score-type { color: #06D6A0; }
+
+  .delta-badge {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(6,214,160,0.15);
+    border: 1.5px solid rgba(6,214,160,0.30);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 16px; font-weight: 800; color: #06D6A0;
+    z-index: 2; white-space: nowrap;
+  }
+
+  .results-message { text-align: center; margin-bottom: 20px; padding: 0 16px; }
+  .results-message .main { font-size: 18px; font-weight: 700; color: #F9FAFB; margin-bottom: 4px; }
+  .results-message .sub { font-size: 13px; font-weight: 500; color: #9CA3AF; line-height: 1.4; }
+
+  .points-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(6,214,160,0.08);
+    border: 1px solid rgba(6,214,160,0.20);
+    border-radius: 24px;
+    padding: 8px 18px;
+    margin-bottom: 32px;
+  }
+  .points-badge .pts { font-size: 15px; font-weight: 700; color: #06D6A0; }
+
+  .results-buttons {
+    width: 100%;
+    display: flex; flex-direction: column; gap: 10px;
+    margin-top: auto;
+  }
+
+  /* ═══ NOTES CALLOUT ═══ */
+  .design-note {
+    background: rgba(245,158,11,0.06);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    max-width: 375px;
+  }
+  .design-note .dn-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #F59E0B;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+  }
+  .design-note .dn-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: #9CA3AF;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Listening Practice v2 — Redesign</h1>
+  <p>Vocabulary Pre-Screen &middot; Pure Audio &middot; Spotify-Style Lyrics &middot; 7 Screens</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 1: VOCABULARY PRE-SCREEN (NEW)                  -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section-divider"><span class="label">Pre-Listen — Vocabulary Checkpoint</span></div>
+
+<div class="screens">
+<div class="phone-wrap">
+  <div class="phone-label">Screen 1</div>
+  <div class="phone-sublabel">Vocabulary Pre-Screen</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="vocab-pre-header">
+        <h2>Words You'll Hear</h2>
+        <p>Select the words you already know.<br>Unknown words will be added to your word bank.</p>
+      </div>
+
+      <div class="vocab-counter"><span>3</span> of 8 selected</div>
+
+      <div class="vocab-pre-grid">
+        <div class="vocab-pre-card selected">
+          <div class="vpc-left">
+            <div class="vpc-word">Buenos dias</div>
+            <div class="vpc-phonetic">/bwe.nos di.as/</div>
+            <div class="vpc-translation">Good morning</div>
+          </div>
+          <div class="vpc-check">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+        </div>
+
+        <div class="vocab-pre-card">
+          <div class="vpc-left">
+            <div class="vpc-word">Reserva</div>
+            <div class="vpc-phonetic">/re.ser.ba/</div>
+            <div class="vpc-translation">Reservation</div>
+          </div>
+          <div class="vpc-check"></div>
+        </div>
+
+        <div class="vocab-pre-card selected">
+          <div class="vpc-left">
+            <div class="vpc-word">Mesa</div>
+            <div class="vpc-phonetic">/me.sa/</div>
+            <div class="vpc-translation">Table</div>
+          </div>
+          <div class="vpc-check">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+        </div>
+
+        <div class="vocab-pre-card">
+          <div class="vpc-left">
+            <div class="vpc-word">Personas</div>
+            <div class="vpc-phonetic">/per.so.nas/</div>
+            <div class="vpc-translation">People</div>
+          </div>
+          <div class="vpc-check"></div>
+        </div>
+
+        <div class="vocab-pre-card selected">
+          <div class="vpc-left">
+            <div class="vpc-word">Por favor</div>
+            <div class="vpc-phonetic">/por fa.bor/</div>
+            <div class="vpc-translation">Please</div>
+          </div>
+          <div class="vpc-check">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+        </div>
+
+        <div class="vocab-pre-card">
+          <div class="vpc-left">
+            <div class="vpc-word">Ventana</div>
+            <div class="vpc-phonetic">/ben.ta.na/</div>
+            <div class="vpc-translation">Window</div>
+          </div>
+          <div class="vpc-check"></div>
+        </div>
+
+        <div class="vocab-pre-card">
+          <div class="vpc-left">
+            <div class="vpc-word">Gracias</div>
+            <div class="vpc-phonetic">/gra.θjas/</div>
+            <div class="vpc-translation">Thank you</div>
+          </div>
+          <div class="vpc-check"></div>
+        </div>
+
+        <div class="vocab-pre-card">
+          <div class="vpc-left">
+            <div class="vpc-word">Momento</div>
+            <div class="vpc-phonetic">/mo.men.to/</div>
+            <div class="vpc-translation">Moment</div>
+          </div>
+          <div class="vpc-check"></div>
+        </div>
+      </div>
+
+      <div class="cta-bar">
+        <button class="cta-btn teal">
+          Start Listening
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="design-note">
+    <div class="dn-title">Data Flow</div>
+    <div class="dn-text">
+      Selected = "I know this" → marked as learned in FSRS (word bank).<br>
+      Unselected = "New to me" → added to word bank as new cards for future review.<br>
+      This personalizes the discovery lesson and all future content.
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 2: PURE AUDIO (no text, just sound)             -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section-divider"><span class="label">Stage 1 — Pure Listening</span></div>
+
+<div class="screens">
+<div class="phone-wrap">
+  <div class="phone-label">Screen 2</div>
+  <div class="phone-sublabel">Stage 1 — Pure Audio</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot active"></div>
+          <div class="stage-dot"></div>
+          <div class="stage-dot"></div>
+          <div class="stage-dot"></div>
+        </div>
+        <div class="stage-label"><span>Stage 1:</span> Listen</div>
+      </div>
+
+      <!-- Big Audio Buttons -->
+      <div class="audio-controls">
+        <button class="audio-btn play">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          Playing...
+        </button>
+        <button class="audio-btn slow">
+          <span style="font-size:20px">🐢</span>
+          Slow
+        </button>
+      </div>
+
+      <!-- Pure visual — no text, just waveform -->
+      <div class="audio-visual-area">
+        <div class="wave-container">
+          <div class="wave-ring"></div>
+          <div class="wave-ring"></div>
+          <div class="wave-ring"></div>
+          <div class="wave-ring"></div>
+          <div class="wave-center-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+
+        <div class="waveform-bars">
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+
+        <div class="audio-status playing">Listening to the dialogue...</div>
+      </div>
+
+      <div class="cta-bar">
+        <button class="cta-btn teal">
+          Answer Questions
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="design-note">
+    <div class="dn-title">True Listening</div>
+    <div class="dn-text">
+      No text, no subtitles, no vocabulary cards. Just sound.<br>
+      The pulsing waveform gives visual feedback that audio is playing without revealing any words. Pure ear training.
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCREEN 3: Quiz (Before) ─── -->
+<div class="phone-wrap">
+  <div class="phone-label">Screen 3</div>
+  <div class="phone-sublabel">Stage 1 — Quiz (Before)</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot active"></div>
+          <div class="stage-dot"></div>
+          <div class="stage-dot"></div>
+          <div class="stage-dot"></div>
+        </div>
+        <div class="stage-label"><span>Stage 1:</span> Comprehension Check</div>
+      </div>
+
+      <div class="quiz-section">
+        <div class="quiz-counter">Question <span>1</span> of 3</div>
+        <div class="quiz-question">What did the speaker ask for at the restaurant?</div>
+
+        <div class="quiz-options">
+          <div class="quiz-option selected">
+            <div class="letter">A</div>
+            <div class="text">A table for two by the window</div>
+          </div>
+          <div class="quiz-option">
+            <div class="letter">B</div>
+            <div class="text">The menu in English</div>
+          </div>
+          <div class="quiz-option">
+            <div class="letter">C</div>
+            <div class="text">A reservation for tomorrow</div>
+          </div>
+          <div class="quiz-option">
+            <div class="letter">D</div>
+            <div class="text">Directions to the hotel</div>
+          </div>
+        </div>
+
+        <div class="quiz-progress">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 4: LYRICS-STYLE SUBTITLES (Spotify-inspired)    -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section-divider"><span class="label">Stage 2 — Read Along (Lyrics Style)</span></div>
+
+<div class="screens">
+<div class="phone-wrap">
+  <div class="phone-label">Screen 4</div>
+  <div class="phone-sublabel">Stage 2 — Lyrics + Inline Translation</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot active"></div>
+          <div class="stage-dot"></div>
+          <div class="stage-dot"></div>
+        </div>
+        <div class="stage-label"><span>Stage 2:</span> Read Along</div>
+      </div>
+
+      <!-- Compact audio controls -->
+      <div class="audio-controls">
+        <button class="audio-btn play" style="padding: 14px 16px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          Playing...
+        </button>
+        <button class="audio-btn slow" style="padding: 14px 16px;">
+          <span style="font-size:18px">🐢</span>
+        </button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="audio-progress">
+        <span class="time">0:14</span>
+        <div class="track">
+          <div class="fill"></div>
+          <div class="knob"></div>
+        </div>
+        <span class="time">0:31</span>
+      </div>
+
+      <!-- Translation toggle -->
+      <div class="translation-toggle">
+        <span class="toggle-label">Translation <span>ON</span></span>
+        <div class="toggle-track">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+
+      <!-- Lyrics-style dialogue -->
+      <div class="lyrics-section">
+        <div class="lyrics-line past">
+          <div class="lyrics-speaker">Host</div>
+          <div class="target">Buenos dias, bienvenido al restaurante. ¿Tiene una reserva?</div>
+          <div class="native">Good morning, welcome to the restaurant. Do you have a reservation?</div>
+        </div>
+
+        <div class="lyrics-line past">
+          <div class="lyrics-speaker">Guest</div>
+          <div class="target">Buenos dias. No tengo reserva, pero somos dos personas.</div>
+          <div class="native">Good morning. I don't have a reservation, but there are two of us.</div>
+        </div>
+
+        <div class="lyrics-line active">
+          <div class="lyrics-speaker">Guest</div>
+          <div class="target">¿Tiene una mesa disponible?</div>
+          <div class="native">Do you have a table available?</div>
+        </div>
+
+        <div class="lyrics-line future">
+          <div class="lyrics-speaker">Host</div>
+          <div class="target">Si, por supuesto. ¿Prefiere una mesa cerca de la ventana?</div>
+          <div class="native"></div>
+        </div>
+
+        <div class="lyrics-line future">
+          <div class="lyrics-speaker">Guest</div>
+          <div class="target">Si, por favor. Eso seria perfecto. Gracias.</div>
+          <div class="native"></div>
+        </div>
+
+        <div class="lyrics-line future">
+          <div class="lyrics-speaker">Host</div>
+          <div class="target">Muy bien. Un momento, por favor. Les preparo la mesa.</div>
+          <div class="native"></div>
+        </div>
+      </div>
+
+      <div class="cta-bar">
+        <button class="cta-btn teal">
+          Next Stage
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="design-note">
+    <div class="dn-title">Spotify-Style Lyrics</div>
+    <div class="dn-text">
+      Active line = bright white + larger. Past lines = dimmed. Future = very faint.<br>
+      Inline translation (teal, smaller) appears below each line when toggle is ON.<br>
+      Auto-scrolls to active line. Toggle lets user control translation visibility.<br>
+      <strong>This replaces both Stage 2 and Stage 3</strong> — one screen, optional translation.
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 5: STAGE 4 — PROVE IT (Pure Audio Again)        -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section-divider"><span class="label">Stage 3 — Prove It</span></div>
+
+<div class="screens">
+<div class="phone-wrap">
+  <div class="phone-label">Screen 5</div>
+  <div class="phone-sublabel">Stage 3 — Prove It (Pure Audio)</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot active"></div>
+          <div class="stage-dot"></div>
+        </div>
+        <div class="stage-label"><span>Stage 3:</span> Prove It</div>
+      </div>
+
+      <div class="audio-controls">
+        <button class="audio-btn play">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          Play Dialogue
+        </button>
+        <button class="audio-btn slow">
+          <span style="font-size:20px">🐢</span>
+          Slow
+        </button>
+      </div>
+
+      <div class="audio-visual-area">
+        <div class="wave-container">
+          <div class="wave-ring"></div>
+          <div class="wave-ring"></div>
+          <div class="wave-ring"></div>
+          <div class="wave-ring"></div>
+          <div class="wave-center-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3" fill="white"/><circle cx="18" cy="16" r="3" fill="white"/></svg>
+          </div>
+        </div>
+
+        <div class="audio-status">
+          You've seen the words and translation.<br>
+          <span style="color:#06D6A0; font-weight:700;">Now understand it naturally.</span>
+        </div>
+      </div>
+
+      <div class="cta-bar">
+        <button class="cta-btn teal">
+          Answer Questions
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCREEN 6: Quiz (After — Reveal Mode) ─── -->
+<div class="phone-wrap">
+  <div class="phone-label">Screen 6</div>
+  <div class="phone-sublabel">Stage 4 — Quiz (After, Reveal)</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot active"></div>
+        </div>
+        <div class="stage-label"><span>Stage 4:</span> Final Check</div>
+      </div>
+
+      <div class="quiz-section">
+        <div class="quiz-counter">Question <span>2</span> of 3</div>
+        <div class="quiz-question">Where did the guest prefer to sit?</div>
+
+        <div class="quiz-options">
+          <div class="quiz-option">
+            <div class="letter">A</div>
+            <div class="text">Near the bar</div>
+          </div>
+          <div class="quiz-option wrong">
+            <div class="letter">B</div>
+            <div class="text">On the terrace outside</div>
+            <div class="icon">✗</div>
+          </div>
+          <div class="quiz-option correct">
+            <div class="letter">C</div>
+            <div class="text">Near the window</div>
+            <div class="icon">✓</div>
+          </div>
+          <div class="quiz-option">
+            <div class="letter">D</div>
+            <div class="text">In a private room</div>
+          </div>
+        </div>
+
+        <div class="quiz-progress">
+          <div class="dot done-correct"></div>
+          <div class="dot active"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 7: RESULTS                                      -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section-divider"><span class="label">Results</span></div>
+
+<div class="screens">
+<div class="phone-wrap">
+  <div class="phone-label">Screen 7</div>
+  <div class="phone-sublabel">Results — Before vs After</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="results-section">
+        <div class="results-title">Your Progress</div>
+        <div class="results-subtitle">Before and after comparison</div>
+
+        <div class="scores-row">
+          <div class="score-circle before">
+            <div class="score-number">1</div>
+            <div class="score-denom">of 3</div>
+            <div class="score-type">Before</div>
+          </div>
+          <div class="delta-badge">+2</div>
+          <div class="score-circle after">
+            <div class="score-number">3</div>
+            <div class="score-denom">of 3</div>
+            <div class="score-type">After</div>
+          </div>
+        </div>
+
+        <div class="results-message">
+          <div class="main">Impressive growth!</div>
+          <div class="sub">You improved by 2 questions after studying the dialogue and translation.</div>
+        </div>
+
+        <div class="points-badge">
+          <span style="font-size:16px">⭐</span>
+          <span class="pts">+17 pts</span>
+        </div>
+
+        <div class="results-buttons">
+          <button class="cta-btn teal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            New Exercise
+          </button>
+          <button class="cta-btn glass">
+            Continue Lesson
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ FLOW SUMMARY ═══ -->
+<div style="max-width:800px; margin: 64px auto 0; padding: 32px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px;">
+  <h3 style="font-size:18px; font-weight:800; color:#06D6A0; margin-bottom:16px; text-align:center;">Revised Flow (v2)</h3>
+  <div style="font-size:14px; color:#D1D5DB; line-height:2; text-align:center; font-weight:500;">
+    <span style="color:#F59E0B;">①</span> <strong>Vocabulary Pre-Screen</strong> — select known words → word bank<br>
+    <span style="color:#06D6A0;">②</span> <strong>Pure Audio</strong> — no text, waveform visual, just listen<br>
+    <span style="color:#06D6A0;">③</span> <strong>Quiz (Before)</strong> — comprehension check, no reveal<br>
+    <span style="color:#3D6BFF;">④</span> <strong>Lyrics + Inline Translation</strong> — Spotify-style, auto-highlight, toggle translation<br>
+    <span style="color:#06D6A0;">⑤</span> <strong>Pure Audio (Prove It)</strong> — listen again, should understand now<br>
+    <span style="color:#06D6A0;">⑥</span> <strong>Quiz (After)</strong> — same questions shuffled, reveal mode<br>
+    <span style="color:#06D6A0;">⑦</span> <strong>Results</strong> — before/after comparison, points earned
+  </div>
+  <div style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06); text-align:center;">
+    <span style="font-size:12px; color:#6B7280; font-weight:500;">
+      Stages 2+3 merged into one Lyrics screen with translation toggle.<br>
+      Stage count reduced from 4 → 3 dots (Listen → Read Along → Prove It + Quiz).
+    </span>
+  </div>
+</div>
+
+<div style="text-align:center; margin-top:64px; padding-bottom:40px;">
+  <p style="font-size:12px; color:#6B7280; font-weight:500;">Vox Language App &middot; Listening Practice v2 &middot; Redesign Mockups</p>
+</div>
+
+</body>
+</html>

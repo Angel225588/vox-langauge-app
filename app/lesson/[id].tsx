@@ -171,15 +171,21 @@ export default function LessonScreen() {
 
       setStair(foundStair);
 
-      // Generate lesson plan
+      // Generate lesson plan (async — reorders by weakness)
       const isFirstLesson = foundStair.order === 1;
-      const plan = generateLessonPlan(foundStair, proficiency_level, isFirstLesson);
+      const plan = await generateLessonPlan(
+        foundStair,
+        proficiency_level,
+        isFirstLesson,
+        undefined,
+        user?.id,
+      );
       setLessonPlan(plan);
       setIsLoading(false);
     }
 
     load();
-  }, [id, pathStairs, proficiency_level]);
+  }, [id, pathStairs, proficiency_level, user?.id]);
 
   const levelGroup = getLevelGroup(proficiency_level);
   const isDiscovery = stair?.order === 1;

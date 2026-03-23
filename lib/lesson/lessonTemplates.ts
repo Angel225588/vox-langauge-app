@@ -236,7 +236,7 @@ const ADVANCED_DISCOVERY: ActivityTemplate[] = [
 // ─── Regular Lesson Templates ──────────────────────
 
 /**
- * Beginner Regular — vocabulary-heavy with listening reinforcement
+ * Beginner Regular — 5 activities, vocabulary-heavy with all skills
  */
 const BEGINNER_REGULAR: ActivityTemplate[] = [
   {
@@ -264,6 +264,18 @@ const BEGINNER_REGULAR: ActivityTemplate[] = [
     },
   },
   {
+    type: 'reading',
+    title: 'Read & Comprehend',
+    description: 'Read a short passage using your new words',
+    icon: 'reader-outline',
+    estimated_seconds: 150,
+    config: {
+      type: 'reading',
+      word_count: 100,
+      question_count: 2,
+    },
+  },
+  {
     type: 'voice_call',
     title: 'Practice Conversation',
     description: 'Use what you learned in a conversation',
@@ -275,12 +287,36 @@ const BEGINNER_REGULAR: ActivityTemplate[] = [
       is_discovery: false,
     },
   },
+  {
+    type: 'writing',
+    title: 'Write It Out',
+    description: 'Practice writing with your new vocabulary',
+    icon: 'create-outline',
+    estimated_seconds: 120,
+    config: {
+      type: 'writing',
+      prompt_type: 'response',
+      word_target: 30,
+    },
+  },
 ];
 
 /**
- * Intermediate Regular — balanced skills
+ * Intermediate Regular — 5 activities, balanced skills
  */
 const INTERMEDIATE_REGULAR: ActivityTemplate[] = [
+  {
+    type: 'vocabulary',
+    title: 'Vocabulary Boost',
+    description: 'Expand your word bank for this topic',
+    icon: 'book-outline',
+    estimated_seconds: 150,
+    config: {
+      type: 'vocabulary',
+      word_count: 5,
+      show_translations: false,
+    },
+  },
   {
     type: 'listening',
     title: 'Listen & Analyze',
@@ -332,7 +368,7 @@ const INTERMEDIATE_REGULAR: ActivityTemplate[] = [
 ];
 
 /**
- * Advanced Regular — fluency-focused
+ * Advanced Regular — 5 activities, fluency-focused
  */
 const ADVANCED_REGULAR: ActivityTemplate[] = [
   {
@@ -345,6 +381,18 @@ const ADVANCED_REGULAR: ActivityTemplate[] = [
       type: 'listening',
       sentence_count: 10,
       speed: 'fast',
+    },
+  },
+  {
+    type: 'reading',
+    title: 'Critical Reading',
+    description: 'Analyze a professional article',
+    icon: 'reader-outline',
+    estimated_seconds: 200,
+    config: {
+      type: 'reading',
+      word_count: 300,
+      question_count: 4,
     },
   },
   {
@@ -369,6 +417,18 @@ const ADVANCED_REGULAR: ActivityTemplate[] = [
       type: 'writing',
       prompt_type: 'free_form',
       word_target: 100,
+    },
+  },
+  {
+    type: 'vocabulary',
+    title: 'Vocabulary Review',
+    description: 'Reinforce advanced terminology',
+    icon: 'book-outline',
+    estimated_seconds: 150,
+    config: {
+      type: 'vocabulary',
+      word_count: 5,
+      show_translations: false,
     },
   },
 ];

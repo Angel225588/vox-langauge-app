@@ -1114,15 +1114,142 @@ export function extractJSON<T = any>(response: string): T {
   // Extract just the JSON portion
   cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
 
+  // Save original for fallback passes
+  const originalJson = cleaned;
+
+  // ── Pass 0: Try direct parse (fast path for well-formed JSON) ──
   try {
     return JSON.parse(cleaned);
-  } catch (error) {
-    console.error('Failed to parse AI response as JSON:', error);
-    console.error('[extractJSON] Cleaned JSON length:', cleaned.length);
-    console.error('[extractJSON] First 300 chars:', cleaned.substring(0, 300));
-    console.error('[extractJSON] Last 300 chars:', cleaned.substring(cleaned.length - 300));
-    throw new Error('Invalid JSON response from AI');
+  } catch {
+    // Continue to sanitization passes
   }
+
+  // ── Pass 1: Sanitize control characters + unescaped interior quotes ──
+  // Gemini often returns:
+  //   1. Literal newlines/tabs inside string values (invalid JSON)
+  //   2. Unescaped dialogue quotes: {"passage": "She said "Hello" ..."}
+  // We walk character-by-character. When inside a string and we see '"',
+  // peek at the next non-whitespace character: if it's structural (:,}]")
+  // it's a close-quote; otherwise it's an unescaped interior quote.
+  {
+    let sanitized = '';
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < cleaned.length; i++) {
+      const ch = cleaned[i];
+      const code = ch.charCodeAt(0);
+      if (escaped) {
+        sanitized += ch;
+        escaped = false;
+        continue;
+      }
+      if (ch === '\\' && inString) {
+        sanitized += ch;
+        escaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        if (inString) {
+          // Peek ahead past whitespace to decide: structural close or interior quote?
+          let j = i + 1;
+          while (j < cleaned.length && ' \t\n\r'.includes(cleaned[j])) j++;
+          const nextChar = j < cleaned.length ? cleaned[j] : '';
+          if (':,}]'.includes(nextChar) || j >= cleaned.length) {
+            // Structural close-quote
+            inString = false;
+            sanitized += '"';
+          } else {
+            // Unescaped interior quote — escape it
+            sanitized += '\\"';
+          }
+        } else {
+          inString = true;
+          sanitized += '"';
+        }
+        continue;
+      }
+      if (inString && code <= 0x1F) {
+        if (ch === '\n') sanitized += '\\n';
+        else if (ch === '\r') sanitized += '\\r';
+        else if (ch === '\t') sanitized += '\\t';
+        // strip other control chars
+      } else {
+        sanitized += ch;
+      }
+    }
+    cleaned = sanitized;
+  }
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Continue to manual extraction fallback
+  }
+
+  // ── Pass 2: Manual extraction for simple single-key objects ──
+  // Works on the ORIGINAL string (before Pass 1 modifications) to avoid
+  // double-escaping issues. Handles: {"passage": "text with "quotes" and\nnewlines"}
+  try {
+    const keyMatch = originalJson.match(/"(\w+)"\s*:\s*"/);
+    if (keyMatch) {
+      const key = keyMatch[1];
+      const valueStart = originalJson.indexOf(keyMatch[0]) + keyMatch[0].length;
+      const lastBrace = originalJson.lastIndexOf('}');
+      // Find closing quote: last '"' before the final '}'
+      let closingQuote = lastBrace - 1;
+      while (closingQuote > valueStart && originalJson[closingQuote] !== '"') closingQuote--;
+      // Also handle arrays: last '"]' or '"]}'
+      const lastBracket = originalJson.lastIndexOf(']');
+      if (lastBracket > closingQuote && lastBracket < lastBrace) {
+        // This is an array value, not a simple string — skip this fallback
+        throw new Error('Array value detected, manual extraction not supported');
+      }
+      if (closingQuote > valueStart) {
+        const rawValue = originalJson.substring(valueStart, closingQuote);
+        // Escape the raw value character-by-character
+        let escapedValue = '';
+        for (let i = 0; i < rawValue.length; i++) {
+          const ch = rawValue[i];
+          const code = ch.charCodeAt(0);
+          if (ch === '\\') {
+            const next = i + 1 < rawValue.length ? rawValue[i + 1] : '';
+            if ('"\\\/bfnrtu'.includes(next)) {
+              // Valid JSON escape sequence — pass through
+              escapedValue += ch + next;
+              i++;
+            } else {
+              escapedValue += '\\\\';
+            }
+          } else if (ch === '"') {
+            escapedValue += '\\"';
+          } else if (ch === '\n') {
+            escapedValue += '\\n';
+          } else if (ch === '\r') {
+            escapedValue += '\\r';
+          } else if (ch === '\t') {
+            escapedValue += '\\t';
+          } else if (code <= 0x1F) {
+            // strip
+          } else {
+            escapedValue += ch;
+          }
+        }
+        return JSON.parse(`{"${key}": "${escapedValue}"}`);
+      }
+    }
+  } catch (innerError: any) {
+    if (innerError?.message?.includes('manual extraction')) {
+      // Array value — fall through to error
+    } else {
+      console.warn('[extractJSON] Manual extraction fallback also failed:', innerError);
+    }
+  }
+
+  console.error('[extractJSON] All parsing strategies failed');
+  console.error('[extractJSON] Cleaned JSON length:', cleaned.length);
+  console.error('[extractJSON] First 300 chars:', cleaned.substring(0, 300));
+  console.error('[extractJSON] Last 300 chars:', cleaned.substring(cleaned.length - 300));
+  throw new Error('Invalid JSON response from AI');
 }
 
 /**

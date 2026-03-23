@@ -981,56 +981,55 @@ async function generateGeminiFeedback(
   const overallScore = Math.round((scores.articulation * 0.6 + scores.fluency * 0.4));
   const completionRate = stats.wordsExpected > 0 ? Math.round((stats.wordsSpoken / stats.wordsExpected) * 100) : 0;
 
-  const prompt = `You are an expert ${targetLanguage} pronunciation coach with deep knowledge of phonetics and common challenges English speakers face when learning ${targetLanguage}.
+  const prompt = `You are a brutally honest ${targetLanguage} pronunciation coach — like a supportive friend who tells you the truth because they actually want you to improve. You have deep knowledge of phonetics and know exactly what English speakers struggle with in ${targetLanguage}.
 
-## Reading Session Analysis
+## Reading Session Data
 
-### Performance Metrics
-- **Overall Score**: ${overallScore}/100
-- **Articulation (word clarity)**: ${scores.articulation}/100 ${scores.articulation >= 80 ? '✓ Good' : scores.articulation >= 60 ? '→ Needs work' : '→ Focus area'}
-- **Fluency (smooth flow)**: ${scores.fluency}/100 ${scores.fluency >= 80 ? '✓ Good' : scores.fluency >= 60 ? '→ Needs work' : '→ Focus area'}
-- **Completion Rate**: ${completionRate}% (${stats.wordsSpoken} of ${stats.wordsExpected} words)
+### Scores
+- **Overall**: ${overallScore}/100
+- **Articulation (clarity)**: ${scores.articulation}/100
+- **Fluency (flow)**: ${scores.fluency}/100
+- **Completion**: ${completionRate}% (${stats.wordsSpoken}/${stats.wordsExpected} words)
 
-### Problem Words Identified
-${problemWordsDesc || 'None - the learner read everything clearly!'}
+### Problem Words
+${problemWordsDesc || 'None identified.'}
 
-## Your Task: Provide DETAILED, SPECIFIC Feedback
+## Your Task
 
-Return a JSON object with this structure:
+Give feedback like a direct, caring friend — not a cheerleader. Be honest about what needs work. Explain WHY things matter.
+
+Return JSON:
 {
-  "summary": "A specific 1-2 sentence summary mentioning their actual scores and what they did well or need to focus on",
+  "summary": "1-2 sentences. Be direct. If they scored 40, don't say 'great effort'. Say 'You struggled with clarity — here's exactly what to fix.' If they scored 90, say what pushed them to 90 and what's holding them from 95.",
   "strengths": [
-    "Be SPECIFIC - mention exact aspects they did well (e.g., 'Clear pronunciation of difficult consonant clusters', 'Good rhythm and natural pauses', 'Strong vowel sounds')",
-    "If scores are high, explain WHY that matters for ${targetLanguage} communication",
-    "Include at least 2 specific strengths even for lower scores"
+    "2-3 SPECIFIC things they did well. Not 'good job' — say exactly what was good.",
+    "Example: 'Your vowel sounds in the first paragraph were crisp and distinct — that's hard to do in ${targetLanguage} and you nailed it.'",
+    "If scores are low, find something genuine — even 'You completed the full passage without stopping' counts."
   ],
   "improvements": [
-    "For EACH problem word, explain the SPECIFIC phonetic challenge:",
-    "- What sound/syllable is tricky?",
-    "- Why is it hard for English speakers?",
-    "- What's the correct mouth/tongue position?",
-    "If fluency is low: explain how to improve pacing with specific techniques"
+    "2-3 honest, specific critiques. Don't soften with 'maybe try' — say 'This is wrong, here's why, here's the fix.'",
+    "For each problem word: what sound is wrong, why it's wrong, how to physically make the right sound.",
+    "Example: 'You're swallowing the final syllable of words. Your mouth is closing too early. Keep it open for an extra beat.'",
+    "If fluency is below 70: 'You're reading word-by-word instead of in phrases. Group 3-4 words together and read them as chunks.'"
   ],
-  "encouragement": "A genuine, personalized encouraging message based on their actual performance - not generic praise",
+  "encouragement": "1 sentence that's real, not generic. Reference their actual performance. Example: 'Your articulation jumped from where most learners plateau — keep pushing that fluency score next.'",
   "nextSteps": [
-    "For EACH problem word, give a SPECIFIC practice technique:",
-    "Example: 'For \"restaurante\" - break into res-tau-RAN-te, emphasizing the stressed syllable RAN. Practice saying just the RAN syllable first, then add the others.'",
-    "Include tongue/mouth position tips for tricky sounds",
-    "Suggest specific practice methods (shadowing, minimal pairs, etc.)",
-    "Recommend how long to practice (e.g., '5 minutes daily on these 3 words')"
+    "1-3 concrete, actionable drills. Not 'practice more' — give exact instructions.",
+    "Example: 'Record yourself saying just the problem words 5 times each, getting faster each time. Compare with a native recording.'",
+    "Include physical instructions: tongue position, lip shape, breath control."
   ]
 }
 
-## ${targetLanguage} Pronunciation Tips to Consider
+## ${targetLanguage} Context
 ${getLanguageSpecificTips(targetLanguage)}
 
-## Guidelines
-- Be SPECIFIC and DETAILED - generic feedback like "good job" or "keep practicing" is not helpful
-- For each problem word, explain the EXACT phonetic issue and HOW to fix it
-- Mention mouth/tongue positions, syllable stress patterns, and sound differences from English
-- If articulation is below 70, focus on clarity tips
-- If fluency is below 70, focus on rhythm and pacing tips
-- Return ONLY valid JSON, no markdown`;
+## Tone Rules
+- Direct, warm, no-BS. Like a coach who's invested in your progress.
+- Never say "great effort" for a score below 60. Be real.
+- Never give vague advice like "keep practicing". Always say WHAT and HOW.
+- Explain the WHY behind every critique — why does this matter for communication?
+- Short sentences. Punchy. Professional.
+- Return ONLY valid JSON, no markdown.`;
 
   try {
     const feedback = await generateJSON<ReadingFeedback>(prompt);
@@ -1117,13 +1116,13 @@ function getLanguageSpecificTips(language: string): string {
  */
 function generateSummary(accuracy: number, articulation: number, fluency: number): string {
   if (accuracy >= 95 && articulation >= 85) {
-    return `Excellent work! You read ${accuracy}% of words clearly with great articulation.`;
+    return `Strong reading — ${accuracy}% accuracy with clear articulation (${articulation}/100). Push for smoother flow next.`;
   } else if (accuracy >= 80 && articulation >= 70) {
-    return `Great progress! You read ${accuracy}% of words clearly.`;
+    return `${accuracy}% accuracy is solid. Articulation at ${articulation} — focus on finishing word endings clearly.`;
   } else if (accuracy >= 60) {
-    return `Good effort! You read ${accuracy}% of words. Keep practicing!`;
+    return `${accuracy}% accuracy — you're skipping or stumbling on too many words. Slow down and prioritize clarity over speed.`;
   } else {
-    return `Nice try! You're building your reading skills. Keep going!`;
+    return `${accuracy}% accuracy means most words weren't clear. Start with shorter passages and focus on saying each word completely.`;
   }
 }
 
@@ -1134,21 +1133,20 @@ function identifyStrengths(articulation: number, fluency: number, accuracy: numb
   const strengths: string[] = [];
 
   if (articulation >= 80) {
-    strengths.push('Clear word pronunciation');
+    strengths.push('Your word clarity is strong — individual words are distinct and recognizable.');
   }
   if (fluency >= 80) {
-    strengths.push('Smooth, natural flow');
+    strengths.push('Natural reading rhythm with good phrase grouping.');
   }
   if (accuracy >= 90) {
-    strengths.push('High word completion rate');
+    strengths.push(`${accuracy}% word completion — you're not skipping or avoiding difficult words.`);
   }
   if (articulation >= 70 && fluency >= 70) {
-    strengths.push('Good balance of clarity and pace');
+    strengths.push('Solid balance between clarity and pace — neither rushing nor over-articulating.');
   }
 
-  // Always have at least one strength
   if (strengths.length === 0) {
-    strengths.push('Willingness to practice and improve');
+    strengths.push('You completed the full passage — that takes commitment.');
   }
 
   return strengths;
@@ -1165,20 +1163,20 @@ function identifyImprovements(
   const improvements: string[] = [];
 
   if (articulation < 70) {
-    improvements.push('Focus on pronouncing each word completely');
+    improvements.push('Word endings are getting swallowed. Finish each word before starting the next.');
   }
   if (fluency < 70) {
-    improvements.push('Try to maintain a steady, consistent pace');
+    improvements.push('Too many pauses between words. Group 3-4 words together and read them as a phrase.');
   }
 
   const skippedWords = problemWords.filter(p => p.issueType === 'skipped');
   if (skippedWords.length > 3) {
-    improvements.push('Take your time - don\'t skip words');
+    improvements.push(`You skipped ${skippedWords.length} words. If a word looks hard, slow down and sound it out instead of jumping past it.`);
   }
 
   const hesitations = problemWords.filter(p => p.issueType === 'hesitated');
   if (hesitations.length > 5) {
-    improvements.push('Practice challenging words beforehand to build confidence');
+    improvements.push('Multiple hesitations detected. Preview the text before recording — scan for unfamiliar words first.');
   }
 
   return improvements;
@@ -1191,13 +1189,13 @@ function generateEncouragement(articulation: number, fluency: number): string {
   const overall = (articulation + fluency) / 2;
 
   if (overall >= 85) {
-    return 'You\'re doing fantastic! Your reading skills are really strong. Keep up the excellent work!';
+    return 'This is strong. You\'re past the basics — now it\'s about polishing the details.';
   } else if (overall >= 70) {
-    return 'You\'re making great progress! Every practice session makes you stronger. Keep it up!';
+    return 'Good foundation. The gap between here and fluent is smaller than you think — consistency closes it.';
   } else if (overall >= 50) {
-    return 'You\'re on the right track! Remember, improvement comes with practice. You\'ve got this!';
+    return 'Honest assessment: this needs focused work. But the fact that you\'re practicing puts you ahead of most people.';
   } else {
-    return 'Every expert was once a beginner. You\'re building important skills with each practice session!';
+    return 'This was rough, but that\'s exactly why practice exists. Slow the speed down and read shorter passages first.';
   }
 }
 

@@ -26,6 +26,7 @@ import type {
   StairSessionState,
   SessionStepResults,
   VocabularyStepResult,
+  ListeningStepResult,
   ConversationStepResult,
   ReadingStepResult,
   WritingStepResult,
@@ -60,6 +61,7 @@ export interface UseStairSessionReturn {
   previousStep: () => void;
   /** Submit results for the current step */
   submitVocabularyResult: (result: VocabularyStepResult) => void;
+  submitListeningResult: (result: ListeningStepResult) => void;
   submitConversationResult: (result: ConversationStepResult) => void;
   submitReadingResult: (result: ReadingStepResult) => void;
   submitWritingResult: (result: WritingStepResult) => void;
@@ -72,6 +74,7 @@ export interface UseStairSessionReturn {
 const STEP_ORDER: SessionStep[] = [
   'briefing',
   'vocabulary',
+  'listening',
   'conversation',
   'reading',
   'writing',
@@ -190,6 +193,13 @@ export function useStairSession(
     }));
   }, []);
 
+  const submitListeningResult = useCallback((result: ListeningStepResult) => {
+    setState((s) => ({
+      ...s,
+      results: { ...s.results, listening: result },
+    }));
+  }, []);
+
   const submitConversationResult = useCallback((result: ConversationStepResult) => {
     setState((s) => ({
       ...s,
@@ -283,6 +293,7 @@ export function useStairSession(
     nextStep,
     previousStep,
     submitVocabularyResult,
+    submitListeningResult,
     submitConversationResult,
     submitReadingResult,
     submitWritingResult,

@@ -31,7 +31,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
-import { useRouter } from 'expo-router';
 import { googleTTS, type SupportedLanguage } from '@/lib/voice';
 import * as Haptics from 'expo-haptics';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
@@ -71,7 +70,6 @@ export function ReadingResultsCard({
   onPracticeAgain,
   onFinish,
 }: ReadingResultsCardProps) {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   // State
@@ -291,6 +289,11 @@ export function ReadingResultsCard({
         {/* Quick Stats */}
         <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.statsRow}>
           <View style={styles.statItem}>
+            <Text style={styles.statValue}>{Math.round(articulationScore)}</Text>
+            <Text style={styles.statLabel}>Articulation</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
             <Text style={styles.statValue}>{Math.round(fluencyScore)}</Text>
             <Text style={styles.statLabel}>Fluency</Text>
           </View>
@@ -357,17 +360,24 @@ export function ReadingResultsCard({
               )}
             </View>
 
-            {/* View Details Button */}
+            {/* View Details Button — Eye-catching gradient */}
             <TouchableOpacity
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setShowDetailedFeedback(true);
               }}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               style={styles.viewDetailsButton}
             >
-              <Text style={styles.viewDetailsText}>View Detailed Feedback</Text>
-              <Text style={styles.viewDetailsArrow}>→</Text>
+              <LinearGradient
+                colors={colors.gradients.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.viewDetailsGradient}
+              >
+                <Text style={styles.viewDetailsText}>Detailed Feedback</Text>
+                <Text style={styles.viewDetailsArrow}>→</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -448,6 +458,34 @@ interface DetailedFeedbackViewProps {
   onBack: () => void;
 }
 
+// Section color scheme (glass box pattern from feedback-detail)
+const SECTION = {
+  green: {
+    gradient: ['rgba(16,185,129,0.10)', 'rgba(16,185,129,0.03)'] as const,
+    border: 'rgba(16,185,129,0.18)',
+    iconBg: 'rgba(16,185,129,0.15)',
+    chipBg: 'rgba(16,185,129,0.06)',
+    chipBorder: 'rgba(16,185,129,0.10)',
+    accent: '#10B981',
+    dot: '#34D399',
+  },
+  amber: {
+    gradient: ['rgba(245,158,11,0.10)', 'rgba(245,158,11,0.03)'] as const,
+    border: 'rgba(245,158,11,0.18)',
+    iconBg: 'rgba(245,158,11,0.15)',
+    chipBg: 'rgba(245,158,11,0.05)',
+    chipBorder: 'rgba(245,158,11,0.10)',
+    accent: '#F59E0B',
+    dot: '#FBBF24',
+  },
+  red: {
+    gradient: ['rgba(239,68,68,0.10)', 'rgba(239,68,68,0.03)'] as const,
+    border: 'rgba(239,68,68,0.18)',
+    iconBg: 'rgba(239,68,68,0.15)',
+    accent: '#EF4444',
+  },
+};
+
 function DetailedFeedbackView({
   insets,
   feedback,
@@ -495,48 +533,91 @@ function DetailedFeedbackView({
           </View>
         </Animated.View>
 
-        {/* Feedback Summary */}
-        {feedback && (
-          <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.feedbackArticle}>
-            <Text style={styles.articleTitle}>Summary</Text>
-            <Text style={styles.articleText}>{feedback.summary}</Text>
+        {/* GLASS BOX 1: What You Did Well (Green) */}
+        {feedback && feedback.strengths && feedback.strengths.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+            <LinearGradient
+              colors={SECTION.green.gradient}
+              start={{ x: 0.1, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={[styles.glassBox, { borderColor: SECTION.green.border }]}
+            >
+              <View style={styles.glassBoxHeader}>
+                <View style={[styles.glassBoxIcon, { backgroundColor: SECTION.green.iconBg }]}>
+                  <View style={[styles.glassBoxDot, { backgroundColor: SECTION.green.accent }]} />
+                </View>
+                <Text style={styles.glassBoxTitle}>What You Did Well</Text>
+              </View>
+              {feedback.strengths.map((item, index) => (
+                <View
+                  key={`str-${index}`}
+                  style={[styles.glassChip, { backgroundColor: SECTION.green.chipBg, borderColor: SECTION.green.chipBorder }]}
+                >
+                  <View style={[styles.chipDot, { backgroundColor: SECTION.green.dot }]} />
+                  <Text style={styles.chipText}>{item}</Text>
+                </View>
+              ))}
+            </LinearGradient>
+          </Animated.View>
+        )}
 
-            {feedback.improvements && feedback.improvements.length > 0 && (
-              <>
-                <Text style={styles.articleSubtitle}>Areas for Improvement</Text>
-                {feedback.improvements.map((item, index) => (
-                  <View key={index} style={styles.bulletItem}>
-                    <View style={styles.bulletDot} />
-                    <Text style={styles.bulletText}>{item}</Text>
-                  </View>
-                ))}
-              </>
-            )}
+        {/* GLASS BOX 2: What to Work On (Amber) */}
+        {feedback && feedback.improvements && feedback.improvements.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(350).duration(400)}>
+            <LinearGradient
+              colors={SECTION.amber.gradient}
+              start={{ x: 0.1, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={[styles.glassBox, { borderColor: SECTION.amber.border }]}
+            >
+              <View style={styles.glassBoxHeader}>
+                <View style={[styles.glassBoxIcon, { backgroundColor: SECTION.amber.iconBg }]}>
+                  <View style={[styles.glassBoxDot, { backgroundColor: SECTION.amber.accent }]} />
+                </View>
+                <Text style={styles.glassBoxTitle}>What to Work On</Text>
+              </View>
 
-            {feedback.strengths && feedback.strengths.length > 0 && (
-              <>
-                <Text style={styles.articleSubtitle}>Strengths</Text>
-                {feedback.strengths.map((item, index) => (
-                  <View key={index} style={styles.bulletItem}>
-                    <View style={[styles.bulletDot, styles.bulletDotSuccess]} />
-                    <Text style={styles.bulletText}>{item}</Text>
-                  </View>
-                ))}
-              </>
-            )}
+              {/* Summary paragraph */}
+              {feedback.summary && (
+                <Text style={styles.glassBoxParagraph}>{feedback.summary}</Text>
+              )}
+
+              {feedback.improvements.map((item, index) => (
+                <View
+                  key={`imp-${index}`}
+                  style={[styles.glassChip, { backgroundColor: SECTION.amber.chipBg, borderColor: SECTION.amber.chipBorder }]}
+                >
+                  <View style={[styles.chipDot, { backgroundColor: SECTION.amber.dot }]} />
+                  <Text style={styles.chipText}>{item}</Text>
+                </View>
+              ))}
+
+              {/* Next steps */}
+              {feedback.nextSteps && feedback.nextSteps.length > 0 && (
+                <View style={styles.nextStepsContainer}>
+                  <Text style={styles.nextStepsTitle}>Try this</Text>
+                  {feedback.nextSteps.map((step, index) => (
+                    <View key={`step-${index}`} style={styles.nextStepRow}>
+                      <Text style={styles.nextStepNumber}>{index + 1}</Text>
+                      <Text style={styles.nextStepText}>{step}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </LinearGradient>
           </Animated.View>
         )}
 
         {/* Mispronounced Words */}
         {mispronounced.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.wordSection}>
+          <Animated.View entering={FadeInDown.delay(500).duration(400)} style={styles.wordSection}>
             <View style={styles.wordSectionHeader}>
               <View style={[styles.issueIndicator, styles.issueError]} />
               <Text style={styles.wordSectionTitle}>Mispronounced</Text>
               <Text style={styles.wordSectionCount}>{mispronounced.length}</Text>
             </View>
             <Text style={styles.wordSectionDesc}>
-              These words were pronounced differently than expected. Tap to hear correct pronunciation.
+              Tap a word to hear correct pronunciation.
             </Text>
             <View style={styles.wordList}>
               {mispronounced.map((word, index) => (
@@ -553,14 +634,14 @@ function DetailedFeedbackView({
 
         {/* Skipped Words */}
         {skipped.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.wordSection}>
+          <Animated.View entering={FadeInDown.delay(600).duration(400)} style={styles.wordSection}>
             <View style={styles.wordSectionHeader}>
               <View style={[styles.issueIndicator, styles.issueWarning]} />
               <Text style={styles.wordSectionTitle}>Skipped</Text>
               <Text style={styles.wordSectionCount}>{skipped.length}</Text>
             </View>
             <Text style={styles.wordSectionDesc}>
-              These words were not detected in your reading.
+              Not detected in your reading. Practice these.
             </Text>
             <View style={styles.wordList}>
               {skipped.map((word, index) => (
@@ -577,14 +658,14 @@ function DetailedFeedbackView({
 
         {/* Hesitations */}
         {hesitations.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(500).duration(400)} style={styles.wordSection}>
+          <Animated.View entering={FadeInDown.delay(700).duration(400)} style={styles.wordSection}>
             <View style={styles.wordSectionHeader}>
               <View style={[styles.issueIndicator, styles.issueInfo]} />
               <Text style={styles.wordSectionTitle}>Hesitations</Text>
               <Text style={styles.wordSectionCount}>{hesitations.length}</Text>
             </View>
             <Text style={styles.wordSectionDesc}>
-              You paused or repeated these words. This is normal when learning.
+              You paused or repeated these words. Normal when learning.
             </Text>
             <View style={styles.wordList}>
               {hesitations.map((word, index) => (
@@ -850,23 +931,30 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
   },
   viewDetailsButton: {
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    shadowColor: colors.glow.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  viewDetailsGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: spacing.lg,
   },
   viewDetailsText: {
     fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
-    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+    fontWeight: typography.fontWeight.bold,
   },
   viewDetailsArrow: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.tertiary,
+    fontSize: typography.fontSize.lg,
+    color: colors.text.primary,
+    fontWeight: typography.fontWeight.bold,
   },
 
   // No Analysis
@@ -1031,51 +1119,96 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  // Feedback Article
-  feedbackArticle: {
-    marginBottom: spacing.xl,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
+  // Glass Box (colored feedback sections)
+  glassBox: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: spacing.md,
+    marginBottom: 14,
   },
-  articleTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.primary,
-    marginBottom: spacing.md,
-  },
-  articleSubtitle: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.primary,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  articleText: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
-    lineHeight: typography.fontSize.base * 1.6,
-  },
-  bulletItem: {
+  glassBoxHeader: {
     flexDirection: 'row',
-    marginBottom: spacing.sm,
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
   },
-  bulletDot: {
+  glassBoxIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glassBoxDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  glassBoxTitle: {
+    fontSize: 14,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    flex: 1,
+  },
+  glassBoxParagraph: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    lineHeight: typography.fontSize.sm * 1.6,
+    marginBottom: spacing.md,
+    paddingHorizontal: 4,
+  },
+  glassChip: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 6,
+    minHeight: 44,
+  },
+  chipDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.primary.DEFAULT,
-    marginTop: 8,
-    marginRight: spacing.sm,
+    marginTop: 6,
   },
-  bulletDotSuccess: {
-    backgroundColor: colors.success.DEFAULT,
-  },
-  bulletText: {
+  chipText: {
     flex: 1,
-    fontSize: typography.fontSize.base,
+    fontSize: 12.5,
+    fontWeight: typography.fontWeight.medium,
+    color: '#E5E7EB',
+    lineHeight: 17,
+  },
+  nextStepsContainer: {
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderRadius: borderRadius.md,
+  },
+  nextStepsTitle: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  nextStepRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  nextStepNumber: {
+    fontSize: 11,
+    fontWeight: typography.fontWeight.bold,
+    color: '#FBBF24',
+    width: 16,
+  },
+  nextStepText: {
+    flex: 1,
+    fontSize: 12,
     color: colors.text.secondary,
-    lineHeight: typography.fontSize.base * 1.5,
+    lineHeight: 16,
   },
 
   // Word Sections

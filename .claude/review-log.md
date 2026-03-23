@@ -529,3 +529,115 @@ This file tracks all automated code reviews triggered by commits.
 - **Time**: 2026-02-28 17:39:05
 - **Status**: Pending review via /master-review
 
+
+## Commit Review Triggered
+- **Commit**: bcf9fd8
+- **Message**: feat(onboarding): profile fingerprint cache invalidation + language picker
+- **Time**: 2026-02-28 17:57:34
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 52fe981
+- **Message**: fix(tts): await audio playback completion before speaking next line
+- **Time**: 2026-02-28 18:11:07
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 9113792
+- **Message**: feat(listening): add purpose section to VocabularyPreScreen
+- **Time**: 2026-02-28 18:28:07
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 0c07938
+- **Message**: fix(types): resolve all TypeScript errors and fix 3 failing tests
+- **Time**: 2026-02-28 18:30:01
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: e0a7f96
+- **Message**: feat(listening): multi-voice dialogue — each speaker gets a distinct voice
+- **Time**: 2026-02-28 18:34:54
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 68b9e7e
+- **Message**: feat(listening): gender-aware voices, before/after questions, scenarioMatcher V3 fix
+- **Time**: 2026-02-28 19:13:44
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 226c9e1
+- **Message**: feat(fonts): implement Humanist + Warm font system (DM Sans, Source Sans 3, DM Mono)
+- **Time**: 2026-02-28 19:16:44
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: c648717
+- **Message**: feat(sync): production Supabase sync — scores, streaks, flashcards, consents
+- **Time**: 2026-02-28 19:17:15
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 49e7e42
+- **Message**: feat(practice): add Reading & Listening library screens with 2x2 grids
+- **Time**: 2026-02-28 19:43:39
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: d53f43d
+- **Message**: feat(staircase): stair 2+ content generation, 80% trigger, feedback loop
+- **Time**: 2026-02-28 19:44:16
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 97c7467
+- **Message**: docs(teleprompter): document listen button feature with ElevenLabs TTS
+- **Time**: 2026-03-01 15:14:15
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 582feac
+- **Message**: feat(home): add skill carousel above staircase
+- **Time**: 2026-03-01 15:24:26
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 960e877
+- **Message**: fix(teleprompter): mode toggle stays visible during playback
+- **Time**: 2026-03-01 15:29:45
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: e3caf40
+- **Message**: test(lesson): add comprehensive activity ordering tests
+- **Time**: 2026-03-01 17:40:27
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: 806ed4c
+- **Message**: fix(voice): enforce target language in voice calls, fix voice IDs, redesign briefing
+- **Time**: 2026-03-09 20:02:34
+- **Status**: Pending review via /master-review
+
+
+## Commit Review Triggered
+- **Commit**: daa1d30
+- **Message**: fix(reading): language-aware content generation + thumbnail card redesign
+- **Time**: 2026-03-09 20:47:10
+- **Status**: Pending review via /master-review
+

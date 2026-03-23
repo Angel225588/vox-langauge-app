@@ -298,6 +298,291 @@ function GlowSphere({ percent, size = 48 }: { percent: number; size?: number }) 
 }
 
 // ═══════════════════════════════════════
+// VOICE HERO — Animated gradient banner
+// Water-like flowing gradient (white → electric blue)
+// ═══════════════════════════════════════
+
+function VoiceHeroBanner({ onPress }: { onPress: () => void }) {
+  const b1 = useSharedValue(0);
+  const b2 = useSharedValue(0);
+  const b3 = useSharedValue(0);
+  const b4 = useSharedValue(0);
+
+  useEffect(() => {
+    b1.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.inOut(Easing.ease) }), -1, true);
+    b2.value = withRepeat(withTiming(1, { duration: 5500, easing: Easing.inOut(Easing.ease) }), -1, true);
+    b3.value = withRepeat(withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.ease) }), -1, true);
+    b4.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.ease) }), -1, true);
+  }, []);
+
+  const blob1 = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: interpolate(b1.value, [0, 1], [-30, 80]) },
+      { translateY: interpolate(b2.value, [0, 1], [-15, 25]) },
+      { scale: interpolate(b1.value, [0, 0.5, 1], [0.8, 1.3, 0.8]) },
+    ],
+    opacity: interpolate(b1.value, [0, 0.5, 1], [0.15, 0.35, 0.15]),
+  }));
+
+  const blob2 = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: interpolate(b2.value, [0, 1], [60, -40]) },
+      { translateY: interpolate(b3.value, [0, 1], [20, -20]) },
+      { scale: interpolate(b2.value, [0, 0.5, 1], [1, 0.7, 1]) },
+    ],
+    opacity: interpolate(b2.value, [0, 0.5, 1], [0.2, 0.4, 0.2]),
+  }));
+
+  const blob3 = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: interpolate(b3.value, [0, 1], [0, 60]) },
+      { translateY: interpolate(b4.value, [0, 1], [10, -25]) },
+      { scale: interpolate(b3.value, [0, 0.5, 1], [0.9, 1.2, 0.9]) },
+    ],
+    opacity: interpolate(b3.value, [0, 0.5, 1], [0.1, 0.3, 0.1]),
+  }));
+
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={{ marginBottom: 10 }}>
+      <View style={vh.container}>
+        <LinearGradient
+          colors={['#001844', '#0036FF', '#0050CC']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
+        {/* Animated water-like blobs */}
+        <Animated.View style={[vh.blob, { top: -20, left: -30, width: 140, height: 100 }, blob1]}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.25)', 'rgba(77,148,255,0.12)', 'transparent']}
+            start={{ x: 0.3, y: 0 }}
+            end={{ x: 0.7, y: 1 }}
+            style={{ flex: 1, borderRadius: 70 }}
+          />
+        </Animated.View>
+
+        <Animated.View style={[vh.blob, { top: 10, right: -20, width: 120, height: 90 }, blob2]}>
+          <LinearGradient
+            colors={['rgba(0,210,255,0.2)', 'rgba(255,255,255,0.1)', 'transparent']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={{ flex: 1, borderRadius: 60 }}
+          />
+        </Animated.View>
+
+        <Animated.View style={[vh.blob, { bottom: -15, left: 40, width: 160, height: 80 }, blob3]}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.18)', 'rgba(0,54,255,0.1)', 'transparent']}
+            start={{ x: 0, y: 0.3 }}
+            end={{ x: 1, y: 0.7 }}
+            style={{ flex: 1, borderRadius: 80 }}
+          />
+        </Animated.View>
+
+        {/* Content */}
+        <View style={vh.content}>
+          <View style={vh.aiBadge}>
+            <Text style={vh.aiBadgeText}>AI</Text>
+          </View>
+          <View style={vh.inner}>
+            <View style={vh.micBox}>
+              <Ionicons name="mic" size={22} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={vh.title}>Practice Speaking</Text>
+              <Text style={vh.sub}>AI voice conversation</Text>
+            </View>
+            <View style={vh.playBtn}>
+              <Ionicons name="play" size={14} color="#fff" />
+            </View>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const vh = StyleSheet.create({
+  container: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    height: 80,
+    shadowColor: '#0047DB',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  blob: {
+    position: 'absolute',
+  },
+  content: {
+    ...StyleSheet.absoluteFillObject,
+    padding: 16,
+    justifyContent: 'center',
+  },
+  aiBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0,210,255,0.15)',
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    zIndex: 2,
+  },
+  aiBadgeText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#00D2FF',
+    letterSpacing: 0.8,
+  },
+  inner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  micBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -0.3,
+  },
+  sub: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 1,
+  },
+  playBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+});
+
+// ═══════════════════════════════════════
+// ROTATING SKILL BANNER — Subtle cycling card
+// Listening → Writing → Reading (3 sec each)
+// ═══════════════════════════════════════
+
+const SKILL_BANNERS = [
+  { icon: 'headset-outline' as const, title: 'Listening', sub: 'Dialogue comprehension', color: PZ.rose, route: '/listening-library' },
+  { icon: 'create-outline' as const, title: 'Writing', sub: 'AI-powered prompts', color: PZ.gold, route: '/practice-writing' },
+  { icon: 'book-outline' as const, title: 'Reading', sub: 'Read aloud & feedback', color: PZ.purple, route: '/reading-library' },
+];
+
+function RotatingSkillBanner({ onPress }: { onPress: (route: string) => void }) {
+  const [index, setIndex] = useState(0);
+  const fade = useSharedValue(1);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fade.value = withTiming(0, { duration: 300 });
+      setTimeout(() => {
+        setIndex(prev => (prev + 1) % SKILL_BANNERS.length);
+        fade.value = withTiming(1, { duration: 300 });
+      }, 350);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: fade.value,
+  }));
+
+  const banner = SKILL_BANNERS[index];
+  const world = getWorld(banner.color);
+
+  return (
+    <TouchableOpacity
+      onPress={() => onPress(banner.route)}
+      activeOpacity={0.8}
+      style={{ marginBottom: 10 }}
+    >
+      <Animated.View style={animStyle}>
+        <LinearGradient
+          colors={world.gradient}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={[rb.container, { borderColor: world.border }]}
+        >
+          <View style={[rb.iconBox, { backgroundColor: world.iconBg, borderColor: world.border }]}>
+            <Ionicons name={banner.icon} size={16} color={banner.color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={rb.title}>{banner.title}</Text>
+            <Text style={rb.sub}>{banner.sub}</Text>
+          </View>
+          <View style={rb.dots}>
+            {SKILL_BANNERS.map((_, i) => (
+              <View key={i} style={[rb.dot, i === index && { backgroundColor: banner.color, opacity: 1 }]} />
+            ))}
+          </View>
+          <Ionicons name="chevron-forward" size={14} color={PZ.sub} />
+        </LinearGradient>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+const rb = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: PZ.text,
+    letterSpacing: -0.2,
+  },
+  sub: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: PZ.sub,
+    marginTop: 1,
+  },
+  dots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: PZ.dim,
+    opacity: 0.5,
+  },
+});
+
+// ═══════════════════════════════════════
 // PRACTICE GATE — Shown to unauthenticated users
 // ═══════════════════════════════════════
 
@@ -599,41 +884,9 @@ export default function PracticeScreen() {
           </View>
         </Animated.View>
 
-        {/* ═══ VOICE CONVERSATION HERO ═══ */}
+        {/* ═══ PRACTICE SPEAKING HERO ═══ */}
         <Animated.View entering={FadeInDown.duration(400).delay(120)}>
-          <TouchableOpacity
-            onPress={handleVoiceConversation}
-            activeOpacity={0.9}
-            style={{ marginBottom: 10 }}
-          >
-            <LinearGradient
-              colors={['#0077FF', '#0050CC', '#003399']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={s.voiceHero}
-            >
-              {/* Decorative circle */}
-              <View style={s.voiceDecor} />
-
-              {/* AI badge */}
-              <View style={s.aiBadge}>
-                <Text style={s.aiBadgeText}>AI</Text>
-              </View>
-
-              <View style={s.voiceInner}>
-                <View style={s.voiceMicBox}>
-                  <Ionicons name="mic" size={22} color="#fff" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.voiceTitle}>Voice Conversation</Text>
-                  <Text style={s.voiceSub}>Fluency & articulation practice</Text>
-                </View>
-                <View style={s.voicePlayBtn}>
-                  <Text style={{ fontSize: 14, color: '#fff' }}>{'\u25B6'}</Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
+          <VoiceHeroBanner onPress={handleVoiceConversation} />
         </Animated.View>
 
         {/* ═══ 2x3 PRACTICE GRID ═══ */}
@@ -863,77 +1116,6 @@ const s = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#EEF0F6',
-  },
-
-  // ─── Voice Hero ───
-  voiceHero: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    padding: 16,
-    shadowColor: '#0047DB',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  voiceDecor: {
-    position: 'absolute',
-    top: -20,
-    right: -10,
-    width: 120,
-    height: 90,
-    borderRadius: 60,
-    backgroundColor: 'rgba(0,210,255,0.06)',
-  },
-  aiBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0,210,255,0.15)',
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    zIndex: 2,
-  },
-  aiBadgeText: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#00D2FF',
-    letterSpacing: 0.8,
-  },
-  voiceInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  voiceMicBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  voiceTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: -0.3,
-  },
-  voiceSub: {
-    fontSize: 11.5,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 1,
-  },
-  voicePlayBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
   },
 
   // ─── 2x3 Grid ───

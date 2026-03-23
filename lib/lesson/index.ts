@@ -58,3 +58,10 @@ export {
   generateRemainingStairActivities,
   clearStairCache,
 } from './stairContentGenerator';
+
+export {
+  // Activity Orderer (weakness-based reordering)
+  getWeaknessOrder,
+  reorderActivities,
+  getKeepGoingActivities,
+} from './activityOrderer';

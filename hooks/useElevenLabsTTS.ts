@@ -54,7 +54,7 @@ interface UseElevenLabsTTSReturn {
   /** Speak with full options */
   speakWithOptions: (options: SpeakOptions) => Promise<void>;
   /** Speak multiple lines in sequence */
-  speakSequence: (items: SequenceItem[], onLineStart?: (index: number) => void) => Promise<void>;
+  speakSequence: (items: SequenceItem[], onLineStart?: (index: number) => void, rate?: number) => Promise<void>;
   /** Stop current speech */
   stop: () => Promise<void>;
   /** Is currently speaking */
@@ -268,7 +268,8 @@ export function useElevenLabsTTS(): UseElevenLabsTTSReturn {
   // Speak sequence of lines
   const speakSequence = useCallback(async (
     items: SequenceItem[],
-    onLineStart?: (index: number) => void
+    onLineStart?: (index: number) => void,
+    rate?: number
   ): Promise<void> => {
     for (let i = 0; i < items.length; i++) {
       if (!isMountedRef.current) break;
@@ -288,6 +289,7 @@ export function useElevenLabsTTS(): UseElevenLabsTTSReturn {
         speakWithOptions({
           text: item.text,
           voiceId: item.voiceId,
+          rate,
           onDone: resolve,
           onError: reject,
         }).catch(reject);

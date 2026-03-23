@@ -12,6 +12,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { VocabularyPracticeScreen } from '@/components/cards/vocabulary/VocabularyPracticeScreen';
@@ -116,46 +117,52 @@ export default function VocabPracticeRoute() {
   // Loading state
   if (isLoading) {
     return (
-      <LinearGradient
-        colors={[colors.background.primary, colors.background.secondary]}
-        style={styles.centerContainer}
-      >
-        <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
-        <Text style={styles.loadingText}>Loading vocabulary...</Text>
-      </LinearGradient>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }} edges={['top', 'bottom']}>
+        <LinearGradient
+          colors={[colors.background.primary, colors.background.secondary]}
+          style={styles.centerContainer}
+        >
+          <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+          <Text style={styles.loadingText}>Loading vocabulary...</Text>
+        </LinearGradient>
+      </SafeAreaView>
     );
   }
 
   // Error state
   if (error || !vocabularyItem) {
     return (
-      <LinearGradient
-        colors={[colors.background.primary, colors.background.secondary]}
-        style={styles.centerContainer}
-      >
-        <Text style={styles.errorEmoji}>📚</Text>
-        <Text style={styles.errorTitle}>Vocabulary Not Found</Text>
-        <Text style={styles.errorMessage}>{error || 'Could not load vocabulary item'}</Text>
-        <Text
-          style={styles.backLink}
-          onPress={handleExit}
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }} edges={['top', 'bottom']}>
+        <LinearGradient
+          colors={[colors.background.primary, colors.background.secondary]}
+          style={styles.centerContainer}
         >
-          ← Go Back
-        </Text>
-      </LinearGradient>
+          <Text style={styles.errorEmoji}>📚</Text>
+          <Text style={styles.errorTitle}>Vocabulary Not Found</Text>
+          <Text style={styles.errorMessage}>{error || 'Could not load vocabulary item'}</Text>
+          <Text
+            style={styles.backLink}
+            onPress={handleExit}
+          >
+            ← Go Back
+          </Text>
+        </LinearGradient>
+      </SafeAreaView>
     );
   }
 
   return (
-    <VocabularyPracticeScreen
-      item={vocabularyItem}
-      userId={userId || 'anonymous'}
-      onComplete={handleComplete}
-      onExit={handleExit}
-      onPointsEarned={handlePointsEarned}
-      sequence={customSequence}
-      fullFlow={isFullFlow}
-    />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }} edges={['top', 'bottom']}>
+      <VocabularyPracticeScreen
+        item={vocabularyItem}
+        userId={userId || 'anonymous'}
+        onComplete={handleComplete}
+        onExit={handleExit}
+        onPointsEarned={handlePointsEarned}
+        sequence={customSequence}
+        fullFlow={isFullFlow}
+      />
+    </SafeAreaView>
   );
 }
 

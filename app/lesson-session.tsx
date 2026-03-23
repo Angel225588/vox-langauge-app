@@ -31,12 +31,15 @@ import {
   type LessonActivity,
   type DiscoveryLessonContent,
   type ActivityType,
+  type LevelGroup,
   type VocabularyContent,
   type ListeningContent,
   type ReadingContent,
   type WritingContent,
   type VoiceCallContent,
 } from '@/lib/lesson';
+import { getKeepGoingActivities, getWeaknessOrder } from '@/lib/lesson/activityOrderer';
+import { getActivityColor, getActivityLabel } from '@/lib/lesson/lessonTemplates';
 
 // Lazy imports for practice screens
 import { VocabularyPracticeScreen } from '@/components/cards/vocabulary/VocabularyPracticeScreen';
@@ -50,6 +53,8 @@ import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 
 const LESSON_PLAN_KEY = 'vox-active-lesson-plan';
 const ACTIVITY_COMPLETE_KEY = 'vox-activity-completion';
+const STAIRCASE_COUNT_PREFIX = 'vox_staircase_activity_count_';
+const MAX_STAIRCASE_ACTIVITIES = 20;
 
 // ─── Timeout Constants ────────────────────────────
 const DISCOVERY_CONTENT_TIMEOUT_MS = 10_000; // 10s for primary content generation
@@ -124,6 +129,24 @@ async function clearActivityCompletion(): Promise<void> {
   await AsyncStorage.removeItem(ACTIVITY_COMPLETE_KEY);
 }
 
+// ─── Staircase Activity Count Tracking ──────────────
+
+async function getStaircaseActivityCount(stairId: string): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem(`${STAIRCASE_COUNT_PREFIX}${stairId}`);
+    return raw ? parseInt(raw, 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function incrementStaircaseActivityCount(stairId: string, count: number = 1): Promise<number> {
+  const current = await getStaircaseActivityCount(stairId);
+  const updated = current + count;
+  await AsyncStorage.setItem(`${STAIRCASE_COUNT_PREFIX}${stairId}`, String(updated));
+  return updated;
+}
+
 // ─── 80% Pre-Generation Trigger ──────────────────
 
 /**
@@ -156,7 +179,7 @@ async function maybePreGenerateNextStair(
 
     // Generate a lesson plan for the next stair
     const proficiency = useOnboardingV3.getState().proficiency_level;
-    const nextPlan = generateLessonPlan(nextStair, proficiency, false);
+    const nextPlan = await generateLessonPlan(nextStair, proficiency, false, undefined, userId);
 
     // Pre-generate content (fire-and-forget, this is background work)
     generateStairLessonContent(nextPlan, userId).then(() => {
@@ -280,6 +303,72 @@ function CalmTransitionScreen({
   );
 }
 
+// ─── Keep Going Prompt ──────────────────────────────
+
+function KeepGoingPrompt({
+  activityCount,
+  maxActivities,
+  onKeepGoing,
+  onFinish,
+  isLoading,
+}: {
+  activityCount: number;
+  maxActivities: number;
+  onKeepGoing: () => void;
+  onFinish: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(400)}
+      style={keepGoingStyles.container}
+    >
+      <View style={keepGoingStyles.iconCircle}>
+        <Ionicons name="checkmark-done" size={40} color={colors.success.DEFAULT} />
+      </View>
+
+      <Text style={keepGoingStyles.title}>You completed all activities!</Text>
+
+      <View style={keepGoingStyles.countBadge}>
+        <Text style={keepGoingStyles.countText}>
+          {activityCount}/{maxActivities} activities this staircase
+        </Text>
+      </View>
+
+      <Text style={keepGoingStyles.subtitle}>
+        Want to keep practicing? We'll add 2 more activities targeting your weakest areas.
+      </Text>
+
+      <View style={keepGoingStyles.buttonRow}>
+        <TouchableOpacity
+          style={keepGoingStyles.finishButton}
+          onPress={onFinish}
+          activeOpacity={0.7}
+          disabled={isLoading}
+        >
+          <Text style={keepGoingStyles.finishText}>Finish Lesson</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={keepGoingStyles.keepGoingButton}
+          onPress={onKeepGoing}
+          activeOpacity={0.7}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              <Text style={keepGoingStyles.keepGoingText}>Keep Going</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
+  );
+}
+
 // ─── Session Screen ────────────────────────────────
 
 export default function LessonSessionScreen() {
@@ -297,6 +386,11 @@ export default function LessonSessionScreen() {
   const calmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track whether this is the first activity (skip calm for the very first one)
   const hasCompletedFirstActivity = useRef(false);
+
+  // Keep Going state
+  const [showKeepGoing, setShowKeepGoing] = useState(false);
+  const [keepGoingLoading, setKeepGoingLoading] = useState(false);
+  const [staircaseActivityCount, setStaircaseActivityCount] = useState(0);
 
   // Load the active lesson plan, check for pending activity completion, load discovery content
   useEffect(() => {
@@ -340,8 +434,28 @@ export default function LessonSessionScreen() {
         maybePreGenerateNextStair(activePlan, userId).catch(() => {});
       }
 
-      // If all activities done after processing completion, go to feedback
+      // Track staircase activity count if we advanced
+      if (didAdvance) {
+        const newCount = await incrementStaircaseActivityCount(activePlan.stair_id);
+        setStaircaseActivityCount(newCount);
+        activePlan.staircaseActivityCount = newCount;
+      }
+
+      // If all activities done after processing completion
       if (activePlan.completed) {
+        // Show Keep Going if eligible
+        if (activePlan.keepGoingAvailable) {
+          const currentCount = await getStaircaseActivityCount(activePlan.stair_id);
+          if (currentCount < MAX_STAIRCASE_ACTIVITIES) {
+            setPlan(activePlan);
+            setShowKeepGoing(true);
+            if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Otherwise go to feedback
         const scores = calculateLessonScores(activePlan);
         await clearActiveLessonPlan();
         if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
@@ -446,6 +560,34 @@ export default function LessonSessionScreen() {
   // Get current activity
   const currentActivity = plan?.activities.find(a => a.status === 'current');
 
+  // Navigate to feedback-detail with scores
+  const navigateToFeedback = useCallback(async (completedPlan: LessonPlan) => {
+    const scores = calculateLessonScores(completedPlan);
+    await clearActiveLessonPlan();
+
+    const scoreParams = JSON.stringify({
+      articulation: scores.articulation,
+      fluency: scores.fluency,
+      communication: scores.communication,
+      scenario: scores.scenario,
+      wordsLearned: scores.words_learned,
+      pointsEarned: scores.points_earned,
+      timeSpent: scores.practice_minutes * 60,
+      cefrLevel: scores.cefr_level,
+    });
+
+    router.replace({
+      pathname: '/feedback-detail',
+      params: {
+        scores: scoreParams,
+        stairTitle: completedPlan.stair_title,
+        stairId: completedPlan.stair_id,
+        isDiscovery: completedPlan.is_discovery ? 'true' : 'false',
+        scenario: completedPlan.stair_title,
+      },
+    });
+  }, [router]);
+
   // Handle activity completion with score
   const handleActivityComplete = useCallback(async (score?: number) => {
     if (!plan) return;
@@ -453,6 +595,12 @@ export default function LessonSessionScreen() {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     const updatedPlan = advanceActivity(plan, score || 70);
+
+    // Track staircase activity count
+    const newCount = await incrementStaircaseActivityCount(updatedPlan.stair_id);
+    setStaircaseActivityCount(newCount);
+    updatedPlan.staircaseActivityCount = newCount;
+
     setPlan(updatedPlan);
 
     // Persist updated plan
@@ -462,32 +610,16 @@ export default function LessonSessionScreen() {
     const userId = user?.id || 'anonymous';
     maybePreGenerateNextStair(updatedPlan, userId).catch(() => {});
 
-    // If lesson is complete, navigate to feedback
+    // If lesson is complete
     if (updatedPlan.completed) {
-      const scores = calculateLessonScores(updatedPlan);
-      await clearActiveLessonPlan();
+      // Show Keep Going prompt if eligible (not discovery, under 20-cap)
+      if (updatedPlan.keepGoingAvailable && newCount < MAX_STAIRCASE_ACTIVITIES) {
+        setShowKeepGoing(true);
+        return;
+      }
 
-      const scoreParams = JSON.stringify({
-        articulation: scores.articulation,
-        fluency: scores.fluency,
-        communication: scores.communication,
-        scenario: scores.scenario,
-        wordsLearned: scores.words_learned,
-        pointsEarned: scores.points_earned,
-        timeSpent: scores.practice_minutes * 60,
-        cefrLevel: scores.cefr_level,
-      });
-
-      router.replace({
-        pathname: '/feedback-detail',
-        params: {
-          scores: scoreParams,
-          stairTitle: updatedPlan.stair_title,
-          stairId: updatedPlan.stair_id,
-          isDiscovery: updatedPlan.is_discovery ? 'true' : 'false',
-          scenario: updatedPlan.stair_title,
-        },
-      });
+      // Otherwise go straight to feedback
+      await navigateToFeedback(updatedPlan);
       return;
     }
 
@@ -499,7 +631,7 @@ export default function LessonSessionScreen() {
       }, CALM_TRANSITION_MS);
     }
     hasCompletedFirstActivity.current = true;
-  }, [plan, router]);
+  }, [plan, router, navigateToFeedback, user]);
 
   // ─── Navigate to external practice screens via useEffect (not during render) ───
   useEffect(() => {
@@ -598,6 +730,71 @@ export default function LessonSessionScreen() {
     router.replace('/(tabs)/home');
   }, [router]);
 
+  // Handle "Keep Going" — append 2 more activities
+  const handleKeepGoing = useCallback(async () => {
+    if (!plan) return;
+    setKeepGoingLoading(true);
+
+    try {
+      const userId = user?.id || 'anonymous';
+      const weaknessOrder = await getWeaknessOrder(userId);
+      const completedTypes = plan.activities
+        .filter((a) => a.status === 'completed')
+        .map((a) => a.type);
+
+      const newTemplates = getKeepGoingActivities(
+        completedTypes,
+        weaknessOrder,
+        plan.level_group as LevelGroup,
+        2,
+      );
+
+      // Build new LessonActivity entries
+      const startIndex = plan.activities.length;
+      const newActivities = newTemplates.map((tmpl, i) => ({
+        id: `${plan.stair_id}-activity-${startIndex + i + 1}`,
+        type: tmpl.type,
+        order: startIndex + i + 1,
+        title: tmpl.title,
+        description: tmpl.description,
+        icon: tmpl.icon,
+        color: getActivityColor(tmpl.type),
+        label: getActivityLabel(tmpl.type),
+        estimated_seconds: tmpl.estimated_seconds,
+        config: tmpl.config,
+        status: (i === 0 ? 'current' : 'locked') as 'current' | 'locked',
+      }));
+
+      const extendedPlan: LessonPlan = {
+        ...plan,
+        activities: [...plan.activities, ...newActivities],
+        current_activity_index: startIndex,
+        completed: false,
+        staircaseActivityCount: staircaseActivityCount,
+      };
+
+      setPlan(extendedPlan);
+      await storeActiveLessonPlan(extendedPlan);
+
+      // Generate content for new activities in background
+      generateStairLessonContent(extendedPlan, userId).catch((err) =>
+        console.warn('[LessonSession] Keep Going content gen failed:', err),
+      );
+
+      setShowKeepGoing(false);
+    } catch (err) {
+      console.warn('[LessonSession] Keep Going failed:', err);
+    } finally {
+      setKeepGoingLoading(false);
+    }
+  }, [plan, user, staircaseActivityCount]);
+
+  // Handle "Finish Lesson" from Keep Going prompt
+  const handleFinishLesson = useCallback(async () => {
+    if (!plan) return;
+    await navigateToFeedback(plan);
+  }, [plan, navigateToFeedback]);
+
   // Handle vocabulary word completion
   const handleWordComplete = useCallback(async () => {
     // Word completed in vocabulary practice — advance to next activity
@@ -641,6 +838,19 @@ export default function LessonSessionScreen() {
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
       </View>
+    );
+  }
+
+  // ─── Keep Going Prompt ─────────────────────────
+  if (showKeepGoing) {
+    return (
+      <KeepGoingPrompt
+        activityCount={staircaseActivityCount}
+        maxActivities={MAX_STAIRCASE_ACTIVITIES}
+        onKeepGoing={handleKeepGoing}
+        onFinish={handleFinishLesson}
+        isLoading={keepGoingLoading}
+      />
     );
   }
 
@@ -835,5 +1045,90 @@ const calmStyles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
     fontWeight: '500' as const,
+  },
+});
+
+// ─── Keep Going Styles ───────────────────────────────
+
+const keepGoingStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background.primary,
+    padding: spacing.xl,
+  },
+  iconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.success.DEFAULT + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: colors.text.primary,
+    letterSpacing: -0.3,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  countBadge: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.lg,
+  },
+  countText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600' as const,
+    color: colors.text.secondary,
+  },
+  subtitle: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 300,
+    marginBottom: spacing['3xl'],
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    width: '100%',
+    paddingHorizontal: spacing.md,
+  },
+  finishButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  finishText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600' as const,
+    color: colors.text.secondary,
+  },
+  keepGoingButton: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary.DEFAULT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  keepGoingText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
   },
 });

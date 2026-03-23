@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vox — Voice Conversation Flow</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #060912;
+    --surface: #0A0E1A;
+    --card: #131829;
+    --card-elevated: #1A1F3A;
+    --border: rgba(255,255,255,0.06);
+    --border-active: rgba(0,54,255,0.3);
+    --blue: #0036FF;
+    --blue-soft: rgba(0,54,255,0.12);
+    --teal: #06D6A0;
+    --teal-soft: rgba(6,214,160,0.12);
+    --green: #10B981;
+    --gold: #F59E0B;
+    --red: #EF4444;
+    --rose: #F472B6;
+    --purple: #818CF8;
+    --text: #F9FAFB;
+    --text-secondary: #9CA3AF;
+    --text-dim: #6B7280;
+    --text-muted: #4B5563;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --radius-xs: 6px;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    padding: 40px 20px 120px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ═══ PAGE LAYOUT ═══ */
+  .page-header {
+    text-align: center;
+    margin-bottom: 32px;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .page-header h1 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    background: linear-gradient(135deg, var(--teal), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+  }
+  .page-header p {
+    font-size: 15px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  /* ═══ FLOW CONNECTOR ═══ */
+  .flow-section {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .flow-step {
+    display: flex;
+    gap: 48px;
+    margin-bottom: 64px;
+    align-items: flex-start;
+  }
+  .flow-step.reverse { flex-direction: row-reverse; }
+
+  .flow-meta {
+    flex: 1;
+    min-width: 280px;
+    max-width: 380px;
+    padding-top: 60px;
+  }
+  .flow-number {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 8px;
+  }
+  .flow-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  .flow-description {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .flow-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .flow-detail {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+  .flow-detail .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--blue);
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+  .flow-detail.teal .dot { background: var(--teal); }
+  .flow-detail.gold .dot { background: var(--gold); }
+  .flow-detail.red .dot { background: var(--red); }
+
+  /* Arrow between steps */
+  .flow-arrow {
+    text-align: center;
+    margin: -24px 0 40px;
+    color: var(--text-muted);
+    font-size: 24px;
+  }
+
+  /* ═══ PHONE FRAME ═══ */
+  .phone-frame {
+    width: 375px;
+    min-width: 375px;
+    height: 812px;
+    background: var(--surface);
+    border-radius: 44px;
+    border: 2.5px solid var(--border);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03),
+      0 24px 64px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  .phone-notch {
+    width: 160px;
+    height: 34px;
+    background: var(--bg);
+    border-radius: 0 0 20px 20px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 10;
+  }
+  .phone-content {
+    padding: 8px 20px 34px;
+    height: calc(100% - 34px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .phone-content::-webkit-scrollbar { display: none; }
+
+  /* ═══ SCREEN 1: SCENARIO SELECTION ═══ */
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    font-size: 18px;
+  }
+  .header-title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+  }
+  .header-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+  .history-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 16px;
+  }
+
+  /* Accent Selector */
+  .accent-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .accent-flag { font-size: 22px; }
+  .accent-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+  }
+  .accent-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .accent-arrow {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  /* Difficulty Pills */
+  .pill-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--card);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .pill.active {
+    background: var(--blue-soft);
+    color: var(--blue);
+    border-color: var(--border-active);
+  }
+
+  /* Scenario Cards */
+  .scenario-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .scenario-card:hover { border-color: var(--border-active); }
+  .scenario-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .scenario-icon.blue { background: var(--blue-soft); }
+  .scenario-icon.teal { background: var(--teal-soft); }
+  .scenario-icon.gold { background: rgba(245,158,11,0.12); }
+  .scenario-icon.rose { background: rgba(244,114,182,0.12); }
+  .scenario-icon.purple { background: rgba(129,140,248,0.12); }
+  .scenario-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .scenario-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.3;
+  }
+  .scenario-badge {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-top: 4px;
+    display: inline-block;
+  }
+  .scenario-badge.ai { background: var(--blue-soft); color: var(--blue); }
+  .scenario-badge.beginner { background: rgba(16,185,129,0.12); color: var(--green); }
+  .scenario-badge.intermediate { background: rgba(245,158,11,0.12); color: var(--gold); }
+  .scenario-call-arrow {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    background: var(--blue-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--blue);
+    font-size: 14px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  /* ═══ SCREEN 2: MISSION BRIEFING ═══ */
+  .briefing-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-top: 8px;
+  }
+  .briefing-emoji {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  .briefing-title {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+  }
+  .briefing-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .briefing-badges {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 12px 0 20px;
+  }
+  .briefing-badge {
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .briefing-badge.green { background: rgba(16,185,129,0.12); color: var(--green); }
+  .briefing-badge.dim { background: var(--card); color: var(--text-dim); }
+
+  .briefing-section {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .briefing-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .role-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .role-icon {
+    font-size: 20px;
+  }
+  .role-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+  }
+  .role-value {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .objective-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .objective-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: var(--blue-soft);
+    color: var(--blue);
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    background: var(--blue);
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .btn-secondary {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    background: var(--card);
+    color: var(--text-secondary);
+  }
+  .btn-ghost {
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  .bottom-actions {
+    margin-top: auto;
+    padding-top: 12px;
+  }
+
+  /* ═══ SCREEN 3: VOCAB PREVIEW ═══ */
+  .vocab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .vocab-title {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+  }
+  .close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    font-size: 16px;
+  }
+  .vocab-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+  .vocab-section-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .vocab-section-label .icon { color: var(--blue); }
+  .vocab-section-label .icon.teal { color: var(--teal); }
+
+  .word-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .word-chip {
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    border: 1px solid rgba(0,54,255,0.15);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .phrase-card {
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    border: 1px solid rgba(6,214,160,0.12);
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  /* ═══ SCREEN 4: ACTIVE CALL ═══ */
+  .call-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    padding: 0 10px;
+  }
+  .call-avatar-ring {
+    width: 180px;
+    height: 180px;
+    border-radius: 90px;
+    border: 3px solid var(--blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    position: relative;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.04); opacity: 0.8; }
+  }
+  .call-avatar-inner {
+    width: 160px;
+    height: 160px;
+    border-radius: 80px;
+    background: var(--card-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 56px;
+  }
+  .call-name {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .call-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 32px;
+  }
+  .call-status .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  .call-status .dot.green { background: var(--green); }
+  .call-status .dot.blue { background: var(--blue); }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .call-timer {
+    font-size: 36px;
+    font-weight: 200;
+    letter-spacing: 2px;
+    color: var(--text);
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .call-timer-target {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+  }
+
+  .call-transcript-bubble {
+    background: var(--card);
+    border-radius: 16px 16px 16px 4px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-bottom: 12px;
+    max-width: 280px;
+    text-align: left;
+    border: 1px solid var(--border);
+  }
+  .call-transcript-bubble.user {
+    border-radius: 16px 16px 4px 16px;
+    background: var(--blue-soft);
+    border-color: var(--border-active);
+    color: var(--text);
+    margin-left: auto;
+  }
+
+  .silence-prompt {
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--gold);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .call-end-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 32px;
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(239,68,68,0.3);
+    margin-top: auto;
+    margin-bottom: 20px;
+  }
+
+  /* ═══ SCREEN 5: FEEDBACK ═══ */
+  .feedback-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-top: 16px;
+  }
+  .feedback-score-ring {
+    width: 100px;
+    height: 100px;
+    border-radius: 50px;
+    border: 4px solid var(--teal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+  }
+  .feedback-score-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--teal);
+  }
+  .feedback-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .stat-box {
+    background: var(--card);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .stat-value {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 2px;
+  }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.teal { color: var(--teal); }
+  .stat-value.gold { color: var(--gold); }
+  .stat-value.green { color: var(--green); }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+  }
+
+  .feedback-section {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px;
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+  .feedback-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .feedback-item {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 6px;
+    display: flex;
+    gap: 8px;
+  }
+  .feedback-icon { flex-shrink: 0; }
+  .feedback-icon.green { color: var(--green); }
+  .feedback-icon.gold { color: var(--gold); }
+
+  .vocab-practice-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .vocab-practice-item:last-child { border-bottom: none; }
+  .vocab-word-main {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .vocab-word-phonetic {
+    font-size: 11px;
+    color: var(--blue);
+    font-weight: 500;
+  }
+
+  /* ═══ SCREEN 6: PRACTICE TAB ENTRY ═══ */
+  .practice-hero {
+    background: linear-gradient(135deg, rgba(0,54,255,0.15), rgba(6,214,160,0.08));
+    border-radius: 20px;
+    padding: 24px 20px;
+    border: 1px solid rgba(0,54,255,0.15);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .practice-hero-emoji {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+  .practice-hero-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .practice-hero-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-bottom: 16px;
+  }
+  .practice-hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: var(--blue);
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .kpi-card {
+    background: var(--card);
+    border-radius: var(--radius-sm);
+    padding: 14px 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .kpi-value {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 2px;
+  }
+  .kpi-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+  }
+
+  /* ═══ RESPONSIVE ═══ */
+  @media (max-width: 900px) {
+    .flow-step, .flow-step.reverse {
+      flex-direction: column;
+      align-items: center;
+    }
+    .flow-meta {
+      max-width: 100%;
+      text-align: center;
+      padding-top: 0;
+    }
+    .flow-details {
+      align-items: center;
+    }
+  }
+
+  /* ═══ ANNOTATION ═══ */
+  .annotation {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gold);
+    background: rgba(245,158,11,0.12);
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    z-index: 20;
+  }
+
+  /* Connection line */
+  .connector {
+    display: flex;
+    justify-content: center;
+    margin: -20px 0 40px;
+  }
+  .connector-line {
+    width: 2px;
+    height: 48px;
+    background: linear-gradient(to bottom, var(--blue), transparent);
+  }
+  .connector-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE HEADER                                             -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <h1>Voice Conversation Flow</h1>
+  <p>Complete screen-by-screen flow for the Vox voice practice feature.<br>
+  From the Practice Tab entry point through scenario selection, call, and feedback.</p>
+</div>
+
+
+<div class="flow-section">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- STEP 0: PRACTICE TAB (ENTRY POINT)                      -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="flow-step">
+  <div class="flow-meta">
+    <div class="flow-number">Entry Point</div>
+    <div class="flow-title">Practice Tab</div>
+    <div class="flow-description">
+      The user's home base for all practice activities. The Voice Conversation hero card is the primary CTA, positioned above the skill grid.
+    </div>
+    <div class="flow-details">
+      <div class="flow-detail teal"><span class="dot"></span>3 KPI boxes show real scores (Articulation, Fluency, Communication)</div>
+      <div class="flow-detail"><span class="dot"></span>Voice hero routes to <code>/voice-conversation</code></div>
+      <div class="flow-detail"><span class="dot"></span>Skill grid below (Vocabulary, Reading, Writing, Listening)</div>
+    </div>
+  </div>
+
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="phone-content">
+      <!-- KPIs -->
+      <div style="margin-bottom: 16px;">
+        <div style="font-size:18px; font-weight:800; margin-bottom:14px;">Practice Zone</div>
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-value" style="color:var(--teal);">72</div>
+            <div class="kpi-label">Articulation</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value" style="color:var(--blue);">65</div>
+            <div class="kpi-label">Fluency</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value" style="color:var(--purple);">78</div>
+            <div class="kpi-label">Communication</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voice Hero -->
+      <div class="practice-hero">
+        <div class="practice-hero-emoji">🎙️</div>
+        <div class="practice-hero-title">Voice Practice</div>
+        <div class="practice-hero-sub">Real conversations with AI tutors.<br>Tailored to your weaknesses.</div>
+        <div class="practice-hero-btn">Start a Conversation →</div>
+      </div>
+
+      <!-- Skill Grid (simplified) -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div style="background:var(--card); border-radius:14px; padding:16px; border:1px solid var(--border);">
+          <div style="font-size:20px; margin-bottom:6px;">📚</div>
+          <div style="font-size:13px; font-weight:700;">Vocabulary</div>
+          <div style="font-size:11px; color:var(--text-dim);">Word bank</div>
+        </div>
+        <div style="background:var(--card); border-radius:14px; padding:16px; border:1px solid var(--border);">
+          <div style="font-size:20px; margin-bottom:6px;">📖</div>
+          <div style="font-size:13px; font-weight:700;">Reading</div>
+          <div style="font-size:11px; color:var(--text-dim);">Read aloud</div>
+        </div>
+        <div style="background:var(--card); border-radius:14px; padding:16px; border:1px solid var(--border);">
+          <div style="font-size:20px; margin-bottom:6px;">✍️</div>
+          <div style="font-size:13px; font-weight:700;">Writing</div>
+          <div style="font-size:11px; color:var(--text-dim);">AI prompt</div>
+        </div>
+        <div style="background:var(--card); border-radius:14px; padding:16px; border:1px solid var(--border);">
+          <div style="font-size:20px; margin-bottom:6px;">🎧</div>
+          <div style="font-size:13px; font-weight:700;">Listening</div>
+          <div style="font-size:11px; color:var(--text-dim);">Dialogues</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="connector">
+  <div>
+    <div class="connector-line"></div>
+    <div class="connector-label">Tap "Start a Conversation"</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- STEP 1: SCENARIO SELECTION                              -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="flow-step reverse">
+  <div class="flow-meta">
+    <div class="flow-number">Screen 1</div>
+    <div class="flow-title">Scenario Selection</div>
+    <div class="flow-description">
+      AI-generated scenarios personalized to the user's profession, goals, and weaknesses. Accent selector and difficulty filter at the top.
+    </div>
+    <div class="flow-details">
+      <div class="flow-detail"><span class="dot"></span>Scenarios generated from onboarding + feedback history</div>
+      <div class="flow-detail teal"><span class="dot"></span>Weakest KPI drives scenario design (e.g., low fluency → debate scenarios)</div>
+      <div class="flow-detail"><span class="dot"></span>Recently practiced scenarios are excluded</div>
+      <div class="flow-detail gold"><span class="dot"></span>Accent selector: Latin American, Castilian, etc.</div>
+      <div class="flow-detail"><span class="dot"></span>Difficulty filter: All, Beginner, Intermediate, Advanced</div>
+    </div>
+  </div>
+
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="phone-content">
+      <div class="header-row">
+        <div class="back-btn">‹</div>
+        <div>
+          <div class="header-title">Voice Practice</div>
+        </div>
+        <div class="history-btn">🕐</div>
+      </div>
+      <div class="header-sub">Real conversations with AI</div>
+
+      <!-- Accent -->
+      <div class="accent-selector">
+        <div class="accent-flag">🇲🇽</div>
+        <div>
+          <div class="accent-label">Accent</div>
+          <div class="accent-value">Latin American</div>
+        </div>
+        <div class="accent-arrow">▾</div>
+      </div>
+
+      <!-- Difficulty Filter -->
+      <div class="pill-row">
+        <div class="pill active">All</div>
+        <div class="pill">Beginner</div>
+        <div class="pill">Intermediate</div>
+        <div class="pill">Advanced</div>
+      </div>
+
+      <!-- Scenario Cards -->
+      <div class="scenario-card">
+        <div class="scenario-icon blue">💼</div>
+        <div style="flex:1;">
+          <div class="scenario-title">Client Pitch Meeting</div>
+          <div class="scenario-desc">Present your product to a potential client in Spanish</div>
+          <div class="scenario-badge ai">AI Personalized</div>
+        </div>
+        <div class="scenario-call-arrow">→</div>
+      </div>
+
+      <div class="scenario-card">
+        <div class="scenario-icon teal">☕</div>
+        <div style="flex:1;">
+          <div class="scenario-title">Networking at a Cafe</div>
+          <div class="scenario-desc">Small talk with a fellow professional over coffee</div>
+          <div class="scenario-badge beginner">Beginner</div>
+        </div>
+        <div class="scenario-call-arrow">→</div>
+      </div>
+
+      <div class="scenario-card">
+        <div class="scenario-icon gold">🏥</div>
+        <div style="flex:1;">
+          <div class="scenario-title">Doctor's Appointment</div>
+          <div class="scenario-desc">Describe symptoms and understand instructions</div>
+          <div class="scenario-badge intermediate">Intermediate</div>
+        </div>
+        <div class="scenario-call-arrow">→</div>
+      </div>
+
+      <div class="scenario-card">
+        <div class="scenario-icon rose">🍽️</div>
+        <div style="flex:1;">
+          <div class="scenario-title">Restaurant Reservation</div>
+          <div class="scenario-desc">Book a table for a business dinner</div>
+          <div class="scenario-badge beginner">Beginner</div>
+        </div>
+        <div class="scenario-call-arrow">→</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="connector">
+  <div>
+    <div class="connector-line"></div>
+    <div class="connector-label">Select a scenario</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- STEP 2: MISSION BRIEFING                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="flow-step">
+  <div class="flow-meta">
+    <div class="flow-number">Screen 2</div>
+    <div class="flow-title">Mission Briefing</div>
+    <div class="flow-description">
+      Pre-call screen that sets context. Shows roles, objectives, and the vocabulary preview button. Consent check happens when user taps "Start Call".
+    </div>
+    <div class="flow-details">
+      <div class="flow-detail"><span class="dot"></span>Your Role + Their Role clearly defined</div>
+      <div class="flow-detail"><span class="dot"></span>3 objectives to accomplish during the call</div>
+      <div class="flow-detail teal"><span class="dot"></span><strong>Preview Vocabulary</strong> button shows words you'll practice</div>
+      <div class="flow-detail gold"><span class="dot"></span>Voice recording consent gate on first call</div>
+      <div class="flow-detail"><span class="dot"></span>Duration estimate from onboarding practice time</div>
+    </div>
+  </div>
+
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="phone-content">
+      <div style="margin-bottom:12px;">
+        <div class="back-btn">‹</div>
+      </div>
+
+      <div class="briefing-header">
+        <div class="briefing-emoji">💼</div>
+        <div class="briefing-title">Client Pitch Meeting</div>
+        <div class="briefing-desc">Present your product to a potential client in Spanish. Practice professional vocabulary and persuasion.</div>
+      </div>
+
+      <div class="briefing-badges">
+        <div class="briefing-badge green">Intermediate</div>
+        <div class="briefing-badge dim">~5 min</div>
+      </div>
+
+      <!-- Roles -->
+      <div class="briefing-section">
+        <div class="briefing-section-title">Roles</div>
+        <div class="role-row">
+          <div class="role-icon">👤</div>
+          <div>
+            <div class="role-label">You</div>
+            <div class="role-value">A sales consultant</div>
+          </div>
+        </div>
+        <div class="role-row">
+          <div class="role-icon">🤖</div>
+          <div>
+            <div class="role-label">They</div>
+            <div class="role-value">Carlos, potential client</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Objectives -->
+      <div class="briefing-section">
+        <div class="briefing-section-title">Objectives</div>
+        <div class="objective-item">
+          <div class="objective-num">1</div>
+          <div>Introduce yourself and your company</div>
+        </div>
+        <div class="objective-item">
+          <div class="objective-num">2</div>
+          <div>Present the key benefits of your product</div>
+        </div>
+        <div class="objective-item">
+          <div class="objective-num">3</div>
+          <div>Handle a price objection professionally</div>
+        </div>
+      </div>
+
+      <div class="bottom-actions">
+        <div class="btn-secondary" style="margin-bottom:10px;">📖 Preview Vocabulary</div>
+        <div class="btn-primary">Start Call</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="connector">
+  <div>
+    <div class="connector-line"></div>
+    <div class="connector-label">Tap "Preview Vocabulary" (optional)</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- STEP 3: VOCABULARY PREVIEW (MODAL)                      -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="flow-step reverse">
+  <div class="flow-meta">
+    <div class="flow-number">Screen 2b — Modal</div>
+    <div class="flow-title">Vocabulary Preview</div>
+    <div class="flow-description">
+      Slide-up modal showing the key words and phrases the AI will weave into the conversation. Level-appropriate vocabulary only — not basic words the user already knows.
+    </div>
+    <div class="flow-details">
+      <div class="flow-detail"><span class="dot"></span>Key words shown as chips (easy to scan)</div>
+      <div class="flow-detail teal"><span class="dot"></span>Useful phrases shown as cards (contextual)</div>
+      <div class="flow-detail"><span class="dot"></span>"Start the call" CTA goes directly to call</div>
+      <div class="flow-detail"><span class="dot"></span>"Back to briefing" returns to mission screen</div>
+      <div class="flow-detail gold"><span class="dot"></span>Same pattern as Listening's VocabularyPreScreen</div>
+    </div>
+  </div>
+
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="phone-content">
+      <div class="vocab-header">
+        <div class="vocab-title">Vocabulary Preview</div>
+        <div class="close-btn">×</div>
+      </div>
+      <div class="vocab-sub">Words and phrases you'll practice in this conversation</div>
+
+      <div class="vocab-section-label"><span class="icon">📖</span> Key Words</div>
+      <div class="word-grid">
+        <div class="word-chip">propuesta</div>
+        <div class="word-chip">beneficios</div>
+        <div class="word-chip">inversión</div>
+        <div class="word-chip">presupuesto</div>
+        <div class="word-chip">competencia</div>
+        <div class="word-chip">garantía</div>
+      </div>
+
+      <div class="vocab-section-label"><span class="icon teal">💬</span> Useful Phrases</div>
+      <div class="phrase-card">Me gustaría presentarle nuestra propuesta.</div>
+      <div class="phrase-card">¿Cuál es su presupuesto para este proyecto?</div>
+      <div class="phrase-card">Los beneficios principales son...</div>
+      <div class="phrase-card">Ofrecemos una garantía de satisfacción.</div>
+
+      <div class="bottom-actions">
+        <div class="btn-primary">Start the call</div>
+        <div class="btn-ghost">Back to briefing</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="connector">
+  <div>
+    <div class="connector-line"></div>
+    <div class="connector-label">Tap "Start the call" → Consent check → Connect</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- STEP 4: ACTIVE CALL                                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="flow-step">
+  <div class="flow-meta">
+    <div class="flow-number">Screen 3</div>
+    <div class="flow-title">Active Call</div>
+    <div class="flow-description">
+      The core experience. ElevenLabs handles VAD (voice activity detection) automatically — no push-to-talk needed. The AI speaks the target language exclusively and responds quickly.
+    </div>
+    <div class="flow-details">
+      <div class="flow-detail"><span class="dot"></span>Avatar pulses when AI is speaking</div>
+      <div class="flow-detail"><span class="dot"></span>Live timer with target duration indicator</div>
+      <div class="flow-detail teal"><span class="dot"></span>AI responds FAST — no unnecessary pauses</div>
+      <div class="flow-detail gold"><span class="dot"></span>Adaptive silence: Beginner 10s, Intermediate 7s, Advanced 5s before gentle nudge</div>
+      <div class="flow-detail"><span class="dot"></span>AI ONLY speaks target language (absolute rule)</div>
+      <div class="flow-detail"><span class="dot"></span>Key vocab is woven naturally into conversation</div>
+      <div class="flow-detail red"><span class="dot"></span>Red end button — always accessible</div>
+    </div>
+  </div>
+
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="phone-content" style="padding-bottom:20px;">
+      <div class="call-screen">
+        <!-- Avatar -->
+        <div class="call-avatar-ring">
+          <div class="call-avatar-inner">🇲🇽</div>
+        </div>
+        <div class="call-name">Antoni</div>
+        <div class="call-status">
+          <div class="dot blue"></div>
+          <span style="color:var(--blue);">Speaking...</span>
+        </div>
+
+        <!-- Timer -->
+        <div class="call-timer">2:34</div>
+        <div class="call-timer-target">Target: ~5 min</div>
+
+        <!-- Transcript bubbles -->
+        <div style="width:100%; margin-bottom:16px;">
+          <div class="call-transcript-bubble">
+            Buenos días, soy Carlos. Me alegra conocerle. ¿En qué puedo ayudarle?
+          </div>
+          <div class="call-transcript-bubble user">
+            Hola Carlos, gracias por recibirme. Vengo a presentar nuestra propuesta.
+          </div>
+          <div class="call-transcript-bubble">
+            Perfecto, cuénteme sobre los beneficios principales.
+          </div>
+        </div>
+
+        <!-- Silence nudge example -->
+        <div class="silence-prompt">
+          <span>⏳</span>
+          <span>Gentle nudge after 7s silence:<br>"Tómate tu tiempo, no hay prisa."</span>
+        </div>
+
+        <!-- End call button -->
+        <div class="call-end-btn">📞</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="connector">
+  <div>
+    <div class="connector-line"></div>
+    <div class="connector-label">User ends call (or timer auto-wraps)</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- STEP 5: FEEDBACK                                        -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="flow-step reverse">
+  <div class="flow-meta">
+    <div class="flow-number">Screen 4</div>
+    <div class="flow-title">Post-Call Feedback</div>
+    <div class="flow-description">
+      Immediate, actionable feedback. Overall score ring, 4-stat grid, highlights, improvements, and words to practice. Scores are saved and feed back into the next scenario generation.
+    </div>
+    <div class="flow-details">
+      <div class="flow-detail teal"><span class="dot"></span>Overall score ring (color-coded by performance)</div>
+      <div class="flow-detail"><span class="dot"></span>4 stats: Accuracy, Turns, Duration, Words</div>
+      <div class="flow-detail"><span class="dot"></span>Highlights (what went well)</div>
+      <div class="flow-detail gold"><span class="dot"></span>Improvements (specific, actionable areas)</div>
+      <div class="flow-detail"><span class="dot"></span>Words to Practice (with phonetics)</div>
+      <div class="flow-detail"><span class="dot"></span>"Practice Again" reruns the same scenario</div>
+      <div class="flow-detail"><span class="dot"></span>"Continue" returns to scenario selection</div>
+      <div class="flow-detail red"><span class="dot"></span>Feedback stored → drives next scenario generation</div>
+    </div>
+  </div>
+
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="phone-content">
+      <!-- Score Ring -->
+      <div class="feedback-header">
+        <div class="feedback-score-ring">
+          <div class="feedback-score-value">73</div>
+        </div>
+        <div style="font-size:18px; font-weight:800; margin-bottom:4px;">Good Performance</div>
+        <div class="feedback-label">Client Pitch Meeting</div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-value blue">78%</div>
+          <div class="stat-label">Accuracy</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value teal">6</div>
+          <div class="stat-label">Turns</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value gold">2:34</div>
+          <div class="stat-label">Duration</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value green">84</div>
+          <div class="stat-label">Words</div>
+        </div>
+      </div>
+
+      <!-- Highlights -->
+      <div class="feedback-section">
+        <div class="feedback-section-title">Highlights</div>
+        <div class="feedback-item">
+          <span class="feedback-icon green">✓</span>
+          <span>Good use of professional vocabulary (propuesta, beneficios)</span>
+        </div>
+        <div class="feedback-item">
+          <span class="feedback-icon green">✓</span>
+          <span>Natural greeting and introduction</span>
+        </div>
+      </div>
+
+      <!-- Improvements -->
+      <div class="feedback-section">
+        <div class="feedback-section-title">Areas to Improve</div>
+        <div class="feedback-item">
+          <span class="feedback-icon gold">→</span>
+          <span>Practice "presupuesto" pronunciation — stress on third syllable</span>
+        </div>
+        <div class="feedback-item">
+          <span class="feedback-icon gold">→</span>
+          <span>Try longer responses — expand on benefits with examples</span>
+        </div>
+      </div>
+
+      <!-- Words to Practice -->
+      <div class="feedback-section">
+        <div class="feedback-section-title">Words to Practice</div>
+        <div class="vocab-practice-item">
+          <div>
+            <div class="vocab-word-main">presupuesto</div>
+            <div class="vocab-word-phonetic">/pɾe.su.ˈpwes.to/</div>
+          </div>
+        </div>
+        <div class="vocab-practice-item">
+          <div>
+            <div class="vocab-word-main">garantía</div>
+            <div class="vocab-word-phonetic">/ɡa.ɾan.ˈti.a/</div>
+          </div>
+        </div>
+        <div class="vocab-practice-item">
+          <div>
+            <div class="vocab-word-main">competencia</div>
+            <div class="vocab-word-phonetic">/kom.pe.ˈten.θja/</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-actions">
+        <div class="btn-primary">Practice Again</div>
+        <div class="btn-secondary">Continue</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="connector">
+  <div>
+    <div class="connector-line"></div>
+    <div class="connector-label">Feedback saved → Feeds next scenario generation</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- DATA FLOW DIAGRAM                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div style="max-width:800px; margin:40px auto 0; background:var(--card); border-radius:20px; padding:32px; border:1px solid var(--border);">
+  <div style="text-align:center; margin-bottom:24px;">
+    <div style="font-size:11px; font-weight:800; letter-spacing:2px; color:var(--blue); text-transform:uppercase; margin-bottom:6px;">Architecture</div>
+    <div style="font-size:22px; font-weight:800;">Feedback → Scenario Loop</div>
+    <div style="font-size:13px; color:var(--text-dim); margin-top:6px;">How feedback drives the next conversation</div>
+  </div>
+
+  <pre style="
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    overflow-x: auto;
+    padding: 16px;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  ">
+  ┌─────────────────────────────────────────────────────┐
+  │                 ONBOARDING DATA                      │
+  │  profession · goal · proficiency · scenarios         │
+  └──────────────────────┬──────────────────────────────┘
+                         │
+                         ▼
+  ┌─────────────────────────────────────────────────────┐
+  │          generatePracticeScenarios()                 │
+  │                                                      │
+  │  Reads: Onboarding + Feedback History                │
+  │  Identifies: Weakest KPI + Recent scenarios          │
+  │  Generates: 4 targeted scenarios via Gemini          │
+  │  Caches: 4 hours (refreshes often)                   │
+  └──────────────────────┬──────────────────────────────┘
+                         │
+                         ▼
+  ┌──────────────────────────────────────────────────────┐
+  │              VOICE CONVERSATION                       │
+  │                                                       │
+  │  System Prompt includes:                              │
+  │  ├─ Target language enforcement (ABSOLUTE)            │
+  │  ├─ Adaptive silence handling (5-10s by level)        │
+  │  ├─ Key vocabulary woven into conversation            │
+  │  └─ Response speed: FAST, no unnecessary pauses       │
+  └──────────────────────┬───────────────────────────────┘
+                         │
+                         ▼
+  ┌──────────────────────────────────────────────────────┐
+  │              POST-CALL ANALYSIS                       │
+  │                                                       │
+  │  ├─ Articulation score → competencyMetrics            │
+  │  ├─ Fluency score → competencyMetrics                 │
+  │  ├─ Communication score → competencyMetrics           │
+  │  ├─ Scenario score → competencyMetrics                │
+  │  ├─ Words to practice → Word Bank (FSRS)              │
+  │  └─ Scenario ID → conversation_sessions               │
+  └──────────────────────┬───────────────────────────────┘
+                         │
+                         ▼
+              ┌─────────────────────┐
+              │   FEEDBACK LIBRARY   │
+              │  (Supabase + SQLite) │
+              └──────────┬──────────┘
+                         │
+                         └──── feeds back ────┐
+                                              │
+                         ┌────────────────────┘
+                         │
+                         ▼
+              Next call targets weakest KPI
+              with fresh scenarios
+  </pre>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;">
+    <div style="background:var(--surface); border-radius:10px; padding:14px; border:1px solid var(--border);">
+      <div style="font-size:11px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:6px;">Silence Handling</div>
+      <div style="font-size:12px; color:var(--text-secondary); line-height:1.5;">
+        Beginner: 10s wait<br>
+        Intermediate: 7s wait<br>
+        Advanced: 5s wait<br>
+        Then gentle nudge in target language
+      </div>
+    </div>
+    <div style="background:var(--surface); border-radius:10px; padding:14px; border:1px solid var(--border);">
+      <div style="font-size:11px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:6px;">Language Rule</div>
+      <div style="font-size:12px; color:var(--text-secondary); line-height:1.5;">
+        AI speaks ONLY target language.<br>
+        Never switches, even if user speaks English.<br>
+        Gently guides back to target language.
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</div><!-- /flow-section -->
+
+</body>
+</html>

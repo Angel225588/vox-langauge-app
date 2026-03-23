@@ -21,7 +21,7 @@ export default function VocabularyDashboardScreen() {
           headerShadowVisible: false,
         }}
       />
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }} edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }} edges={['top', 'bottom']}>
         <VocabularyDashboard />
       </SafeAreaView>
     </>

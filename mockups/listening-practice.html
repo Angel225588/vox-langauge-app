@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vox — Listening Practice Screens</title>
+<style>
+  /* ═══ RESET & BASE ═══ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #060912;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    color: #F9FAFB;
+    padding: 40px 20px 80px;
+    min-height: 100vh;
+  }
+
+  /* ═══ PAGE HEADER ═══ */
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .page-header h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #06D6A0, #4ECDC4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    font-size: 15px;
+    color: #9CA3AF;
+    font-weight: 500;
+  }
+
+  /* ═══ SCREEN GRID ═══ */
+  .screens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 48px;
+    justify-content: center;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* ═══ PHONE FRAME ═══ */
+  .phone-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .phone-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #06D6A0;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .phone-sublabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
+    margin-top: 2px;
+  }
+  .phone-frame {
+    width: 375px;
+    height: 812px;
+    background: #0A0E1A;
+    border-radius: 44px;
+    border: 3px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 20px 60px rgba(0,0,0,0.5),
+      0 0 80px rgba(6,214,160,0.06);
+  }
+
+  /* Notch */
+  .phone-frame::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 126px;
+    height: 34px;
+    background: #000;
+    border-radius: 0 0 20px 20px;
+    z-index: 100;
+  }
+
+  /* Home indicator */
+  .phone-frame::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 134px;
+    height: 5px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+    z-index: 100;
+  }
+
+  /* ═══ SCREEN CONTENT ═══ */
+  .screen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 56px 20px 28px;
+    overflow-y: auto;
+  }
+
+  /* ═══ SHARED COMPONENTS ═══ */
+
+  /* Back button */
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9CA3AF;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    cursor: pointer;
+  }
+  .back-btn svg { opacity: 0.6; }
+
+  /* Stage Indicator */
+  .stage-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .stage-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.12);
+    transition: all 0.3s;
+  }
+  .stage-dot.completed {
+    background: #06D6A0;
+  }
+  .stage-dot.active {
+    width: 24px;
+    background: linear-gradient(135deg, #06D6A0, #4ECDC4);
+    border-radius: 4px;
+  }
+  .stage-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #9CA3AF;
+  }
+  .stage-label span {
+    color: #06D6A0;
+    font-weight: 700;
+  }
+
+  /* Audio Buttons — BIG RECTANGULAR */
+  .audio-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .audio-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 16px;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .audio-btn:hover { transform: scale(0.97); }
+  .audio-btn:active { transform: scale(0.95); }
+
+  .audio-btn.play {
+    background: linear-gradient(135deg, #06D6A0, #4ECDC4);
+    color: #fff;
+    flex: 1.3;
+  }
+  .audio-btn.slow {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: #D1D5DB;
+    flex: 0.7;
+  }
+
+  .audio-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Prompt text */
+  .prompt-text {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 500;
+    color: #9CA3AF;
+    font-style: italic;
+    margin-bottom: 16px;
+    padding: 0 8px;
+  }
+
+  /* ═══ VOCABULARY GRID (70% of screen) ═══ */
+  .vocab-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    margin-bottom: 16px;
+  }
+  .vocab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    margin-bottom: 4px;
+  }
+  .vocab-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .vocab-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: #06D6A0;
+    background: rgba(6,214,160,0.10);
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  .vocab-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 4px;
+  }
+
+  .vocab-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .vocab-card:hover {
+    background: rgba(6,214,160,0.06);
+    border-color: rgba(6,214,160,0.15);
+  }
+  .vocab-card .word {
+    font-size: 17px;
+    font-weight: 700;
+    color: #F9FAFB;
+    letter-spacing: -0.2px;
+  }
+  .vocab-card .phonetic {
+    font-size: 12px;
+    font-weight: 500;
+    color: #06D6A0;
+  }
+  .vocab-card .translation {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
+    margin-top: 2px;
+  }
+  .vocab-card .translation.hidden {
+    color: rgba(255,255,255,0.15);
+    font-style: italic;
+  }
+  .vocab-card .speaker-icon {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .vocab-card .speaker-icon svg {
+    opacity: 0.4;
+  }
+
+  /* ═══ CTA BUTTON ═══ */
+  .cta-bar {
+    padding-top: 8px;
+    flex-shrink: 0;
+  }
+  .cta-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.15s;
+  }
+  .cta-btn:hover { transform: scale(0.98); }
+  .cta-btn.teal {
+    background: linear-gradient(135deg, #06D6A0, #4ECDC4);
+  }
+  .cta-btn.glass {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #D1D5DB;
+  }
+
+  /* ═══ QUIZ COMPONENTS ═══ */
+  .quiz-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 8px;
+  }
+  .quiz-counter {
+    font-size: 14px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .quiz-counter span {
+    color: #06D6A0;
+    font-weight: 800;
+  }
+
+  .quiz-question {
+    font-size: 20px;
+    font-weight: 800;
+    color: #F9FAFB;
+    line-height: 1.35;
+    margin-bottom: 24px;
+    letter-spacing: -0.3px;
+  }
+
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+
+  .quiz-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .quiz-option:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.14);
+  }
+  .quiz-option .letter {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #9CA3AF;
+    flex-shrink: 0;
+  }
+  .quiz-option .text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #F9FAFB;
+    flex: 1;
+  }
+  .quiz-option .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  /* Quiz option states */
+  .quiz-option.correct {
+    background: rgba(16,185,129,0.10);
+    border-color: rgba(16,185,129,0.30);
+  }
+  .quiz-option.correct .letter {
+    background: rgba(16,185,129,0.20);
+    color: #10B981;
+  }
+  .quiz-option.correct .text { color: #34D399; }
+  .quiz-option.correct .icon {
+    background: #10B981;
+    color: #fff;
+  }
+
+  .quiz-option.wrong {
+    background: rgba(239,68,68,0.08);
+    border-color: rgba(239,68,68,0.25);
+  }
+  .quiz-option.wrong .letter {
+    background: rgba(239,68,68,0.20);
+    color: #EF4444;
+  }
+  .quiz-option.wrong .text { color: #F87171; }
+  .quiz-option.wrong .icon {
+    background: #EF4444;
+    color: #fff;
+  }
+
+  .quiz-option.selected {
+    background: rgba(6,214,160,0.08);
+    border-color: rgba(6,214,160,0.25);
+  }
+  .quiz-option.selected .letter {
+    background: rgba(6,214,160,0.20);
+    color: #06D6A0;
+  }
+
+  /* Progress dots */
+  .quiz-progress {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 20px;
+  }
+  .quiz-progress .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.12);
+  }
+  .quiz-progress .dot.active {
+    background: #06D6A0;
+    width: 16px;
+  }
+  .quiz-progress .dot.done-correct { background: #10B981; }
+  .quiz-progress .dot.done-wrong { background: #EF4444; }
+
+  /* ═══ SUBTITLE DISPLAY ═══ */
+  .dialogue-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+  }
+  .dialogue-line {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .dialogue-speaker {
+    font-size: 11px;
+    font-weight: 700;
+    color: #06D6A0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .dialogue-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #F9FAFB;
+    line-height: 1.4;
+  }
+  .dialogue-text.translation {
+    color: #9CA3AF;
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  /* ═══ RESULTS SCREEN ═══ */
+  .results-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 16px;
+  }
+
+  .results-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #F9FAFB;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+  .results-subtitle {
+    font-size: 14px;
+    font-weight: 500;
+    color: #9CA3AF;
+    margin-bottom: 28px;
+  }
+
+  .scores-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+
+  .score-circle {
+    width: 110px;
+    height: 110px;
+    border-radius: 55px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .score-circle.before {
+    border: 3px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.03);
+  }
+  .score-circle.after {
+    border: 3px solid #06D6A0;
+    background: rgba(6,214,160,0.06);
+    box-shadow: 0 0 30px rgba(6,214,160,0.15);
+  }
+  .score-number {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1px;
+  }
+  .score-circle.before .score-number { color: #9CA3AF; }
+  .score-circle.after .score-number { color: #06D6A0; }
+  .score-denom {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6B7280;
+    margin-top: -2px;
+  }
+  .score-type {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 8px;
+  }
+  .score-circle.before .score-type { color: #6B7280; }
+  .score-circle.after .score-type { color: #06D6A0; }
+
+  /* Delta badge */
+  .delta-badge {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(6,214,160,0.15);
+    border: 1.5px solid rgba(6,214,160,0.30);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #06D6A0;
+    z-index: 2;
+    white-space: nowrap;
+  }
+
+  /* Message */
+  .results-message {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 0 16px;
+  }
+  .results-message .main {
+    font-size: 18px;
+    font-weight: 700;
+    color: #F9FAFB;
+    margin-bottom: 4px;
+  }
+  .results-message .sub {
+    font-size: 13px;
+    font-weight: 500;
+    color: #9CA3AF;
+    line-height: 1.4;
+  }
+
+  /* Points badge */
+  .points-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(6,214,160,0.08);
+    border: 1px solid rgba(6,214,160,0.20);
+    border-radius: 24px;
+    padding: 8px 18px;
+    margin-bottom: 32px;
+  }
+  .points-badge .star { font-size: 16px; }
+  .points-badge .pts {
+    font-size: 15px;
+    font-weight: 700;
+    color: #06D6A0;
+  }
+
+  /* Results buttons */
+  .results-buttons {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+  }
+
+  /* ═══ SECTION DIVIDER ═══ */
+  .section-divider {
+    width: 100%;
+    max-width: 1600px;
+    margin: 16px auto 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .section-divider::before,
+  .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+  }
+  .section-divider .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE HEADER                                            -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <h1>Listening Practice — Screen Mockups</h1>
+  <p>4-Stage Scaffolding Loop &middot; 7 Screens &middot; Vox Dark Theme</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- STAGE 1: AUDIO SCREENS                                 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section-divider"><span class="label">Stage 1 — Listen</span></div>
+
+<div class="screens">
+
+<!-- ─── SCREEN 1: Pure Audio Listen ─── -->
+<div class="phone-wrap">
+  <div class="phone-label">Screen 1</div>
+  <div class="phone-sublabel">Stage 1 — Pure Audio</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot active"></div>
+          <div class="stage-dot"></div>
+          <div class="stage-dot"></div>
+          <div class="stage-dot"></div>
+        </div>
+        <div class="stage-label"><span>Stage 1:</span> Listen</div>
+      </div>
+
+      <!-- Big Audio Buttons -->
+      <div class="audio-controls">
+        <button class="audio-btn play">
+          <div class="audio-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          Play Dialogue
+        </button>
+        <button class="audio-btn slow">
+          <span style="font-size:20px">🐢</span>
+          Slow
+        </button>
+      </div>
+
+      <div class="prompt-text">Focus on the sounds and rhythm...</div>
+
+      <!-- Vocabulary Grid (70% of remaining space) -->
+      <div class="vocab-section">
+        <div class="vocab-header">
+          <span class="vocab-title">Words to recognize</span>
+          <span class="vocab-count">8 words</span>
+        </div>
+        <div class="vocab-grid">
+          <div class="vocab-card">
+            <div class="word">Buenos dias</div>
+            <div class="phonetic">/bwe.nos di.as/</div>
+            <div class="translation hidden">Tap to reveal</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Reserva</div>
+            <div class="phonetic">/re.ser.ba/</div>
+            <div class="translation hidden">Tap to reveal</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Mesa</div>
+            <div class="phonetic">/me.sa/</div>
+            <div class="translation hidden">Tap to reveal</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Personas</div>
+            <div class="phonetic">/per.so.nas/</div>
+            <div class="translation hidden">Tap to reveal</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Por favor</div>
+            <div class="phonetic">/por fa.bor/</div>
+            <div class="translation hidden">Tap to reveal</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Ventana</div>
+            <div class="phonetic">/ben.ta.na/</div>
+            <div class="translation hidden">Tap to reveal</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Gracias</div>
+            <div class="phonetic">/gra.θjas/</div>
+            <div class="translation hidden">Tap to reveal</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Momento</div>
+            <div class="phonetic">/mo.men.to/</div>
+            <div class="translation hidden">Tap to reveal</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-bar">
+        <button class="cta-btn teal">
+          Answer Questions
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCREEN 2: Stage 1 Quiz (Before) ─── -->
+<div class="phone-wrap">
+  <div class="phone-label">Screen 2</div>
+  <div class="phone-sublabel">Stage 1 — Quiz (Before)</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot active"></div>
+          <div class="stage-dot"></div>
+          <div class="stage-dot"></div>
+          <div class="stage-dot"></div>
+        </div>
+        <div class="stage-label"><span>Stage 1:</span> Comprehension Check</div>
+      </div>
+
+      <div class="quiz-section">
+        <div class="quiz-counter">Question <span>1</span> of 3</div>
+
+        <div class="quiz-question">What did the speaker ask for at the restaurant?</div>
+
+        <div class="quiz-options">
+          <div class="quiz-option selected">
+            <div class="letter">A</div>
+            <div class="text">A table for two by the window</div>
+          </div>
+          <div class="quiz-option">
+            <div class="letter">B</div>
+            <div class="text">The menu in English</div>
+          </div>
+          <div class="quiz-option">
+            <div class="letter">C</div>
+            <div class="text">A reservation for tomorrow</div>
+          </div>
+          <div class="quiz-option">
+            <div class="letter">D</div>
+            <div class="text">Directions to the hotel</div>
+          </div>
+        </div>
+
+        <div class="quiz-progress">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- STAGES 2 & 3: SUBTITLE SCREENS                         -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section-divider"><span class="label">Stages 2 &amp; 3 — Subtitles</span></div>
+
+<div class="screens">
+
+<!-- ─── SCREEN 3: Stage 2 — Target Language Subtitles ─── -->
+<div class="phone-wrap">
+  <div class="phone-label">Screen 3</div>
+  <div class="phone-sublabel">Stage 2 — Target Subtitles</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot active"></div>
+          <div class="stage-dot"></div>
+          <div class="stage-dot"></div>
+        </div>
+        <div class="stage-label"><span>Stage 2:</span> Read Along</div>
+      </div>
+
+      <div class="audio-controls">
+        <button class="audio-btn play">
+          <div class="audio-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          </div>
+          Playing...
+        </button>
+        <button class="audio-btn slow">
+          <span style="font-size:20px">🐢</span>
+          Slow
+        </button>
+      </div>
+
+      <div class="dialogue-section">
+        <div class="dialogue-line">
+          <div class="dialogue-speaker">Host</div>
+          <div class="dialogue-text">Buenos dias, bienvenido al restaurante. ¿Tiene una reserva?</div>
+        </div>
+        <div class="dialogue-line">
+          <div class="dialogue-speaker">Guest</div>
+          <div class="dialogue-text">Buenos dias. No tengo reserva, pero somos dos personas. ¿Tiene una mesa disponible?</div>
+        </div>
+        <div class="dialogue-line">
+          <div class="dialogue-speaker">Host</div>
+          <div class="dialogue-text">Si, por supuesto. ¿Prefiere una mesa cerca de la ventana?</div>
+        </div>
+        <div class="dialogue-line">
+          <div class="dialogue-speaker">Guest</div>
+          <div class="dialogue-text">Si, por favor. Eso seria perfecto. Gracias.</div>
+        </div>
+        <div class="dialogue-line">
+          <div class="dialogue-speaker">Host</div>
+          <div class="dialogue-text">Muy bien. Un momento, por favor. Les preparo la mesa.</div>
+        </div>
+      </div>
+
+      <div class="cta-bar">
+        <button class="cta-btn teal">
+          Next Stage
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCREEN 4: Stage 3 — Translation Subtitles ─── -->
+<div class="phone-wrap">
+  <div class="phone-label">Screen 4</div>
+  <div class="phone-sublabel">Stage 3 — Translation</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot active"></div>
+          <div class="stage-dot"></div>
+        </div>
+        <div class="stage-label"><span>Stage 3:</span> Understand</div>
+      </div>
+
+      <div class="audio-controls">
+        <button class="audio-btn play">
+          <div class="audio-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          Play Dialogue
+        </button>
+        <button class="audio-btn slow">
+          <span style="font-size:20px">🐢</span>
+          Slow
+        </button>
+      </div>
+
+      <div class="dialogue-section">
+        <div class="dialogue-line">
+          <div class="dialogue-speaker">Host</div>
+          <div class="dialogue-text translation">Good morning, welcome to the restaurant. Do you have a reservation?</div>
+        </div>
+        <div class="dialogue-line">
+          <div class="dialogue-speaker">Guest</div>
+          <div class="dialogue-text translation">Good morning. I don't have a reservation, but there are two of us. Do you have a table available?</div>
+        </div>
+        <div class="dialogue-line">
+          <div class="dialogue-speaker">Host</div>
+          <div class="dialogue-text translation">Yes, of course. Would you prefer a table near the window?</div>
+        </div>
+        <div class="dialogue-line">
+          <div class="dialogue-speaker">Guest</div>
+          <div class="dialogue-text translation">Yes, please. That would be perfect. Thank you.</div>
+        </div>
+        <div class="dialogue-line">
+          <div class="dialogue-speaker">Host</div>
+          <div class="dialogue-text translation">Very well. One moment, please. I'll prepare the table for you.</div>
+        </div>
+      </div>
+
+      <div class="cta-bar">
+        <button class="cta-btn teal">
+          Next Stage
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- STAGE 4: PROOF                                         -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section-divider"><span class="label">Stage 4 — Prove It</span></div>
+
+<div class="screens">
+
+<!-- ─── SCREEN 5: Stage 4 — Pure Audio (Proof) ─── -->
+<div class="phone-wrap">
+  <div class="phone-label">Screen 5</div>
+  <div class="phone-sublabel">Stage 4 — Prove It</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot active"></div>
+        </div>
+        <div class="stage-label"><span>Stage 4:</span> Prove It</div>
+      </div>
+
+      <div class="audio-controls">
+        <button class="audio-btn play">
+          <div class="audio-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          Play Dialogue
+        </button>
+        <button class="audio-btn slow">
+          <span style="font-size:20px">🐢</span>
+          Slow
+        </button>
+      </div>
+
+      <div class="prompt-text">You've seen the words and translation. Now understand it naturally.</div>
+
+      <div class="vocab-section">
+        <div class="vocab-header">
+          <span class="vocab-title">Words to recognize</span>
+          <span class="vocab-count">8 words</span>
+        </div>
+        <div class="vocab-grid">
+          <div class="vocab-card">
+            <div class="word">Buenos dias</div>
+            <div class="phonetic">/bwe.nos di.as/</div>
+            <div class="translation">Good morning</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Reserva</div>
+            <div class="phonetic">/re.ser.ba/</div>
+            <div class="translation">Reservation</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Mesa</div>
+            <div class="phonetic">/me.sa/</div>
+            <div class="translation">Table</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Personas</div>
+            <div class="phonetic">/per.so.nas/</div>
+            <div class="translation">People</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Por favor</div>
+            <div class="phonetic">/por fa.bor/</div>
+            <div class="translation">Please</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Ventana</div>
+            <div class="phonetic">/ben.ta.na/</div>
+            <div class="translation">Window</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Gracias</div>
+            <div class="phonetic">/gra.θjas/</div>
+            <div class="translation">Thank you</div>
+          </div>
+          <div class="vocab-card">
+            <div class="word">Momento</div>
+            <div class="phonetic">/mo.men.to/</div>
+            <div class="translation">Moment</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-bar">
+        <button class="cta-btn teal">
+          Answer Questions
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCREEN 6: Stage 4 Quiz (After) — Reveal Mode ─── -->
+<div class="phone-wrap">
+  <div class="phone-label">Screen 6</div>
+  <div class="phone-sublabel">Stage 4 — Quiz (After, Reveal)</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="stage-indicator">
+        <div class="stage-dots">
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot completed"></div>
+          <div class="stage-dot active"></div>
+        </div>
+        <div class="stage-label"><span>Stage 4:</span> Final Check</div>
+      </div>
+
+      <div class="quiz-section">
+        <div class="quiz-counter">Question <span>2</span> of 3</div>
+
+        <div class="quiz-question">Where did the guest prefer to sit?</div>
+
+        <div class="quiz-options">
+          <div class="quiz-option">
+            <div class="letter">A</div>
+            <div class="text">Near the bar</div>
+          </div>
+          <div class="quiz-option wrong">
+            <div class="letter">B</div>
+            <div class="text">On the terrace outside</div>
+            <div class="icon">✗</div>
+          </div>
+          <div class="quiz-option correct">
+            <div class="letter">C</div>
+            <div class="text">Near the window</div>
+            <div class="icon">✓</div>
+          </div>
+          <div class="quiz-option">
+            <div class="letter">D</div>
+            <div class="text">In a private room</div>
+          </div>
+        </div>
+
+        <div class="quiz-progress">
+          <div class="dot done-correct"></div>
+          <div class="dot active"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- RESULTS                                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section-divider"><span class="label">Results</span></div>
+
+<div class="screens">
+
+<!-- ─── SCREEN 7: Results Comparison ─── -->
+<div class="phone-wrap">
+  <div class="phone-label">Screen 7</div>
+  <div class="phone-sublabel">Results — Before vs After</div>
+  <div class="phone-frame">
+    <div class="screen">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </div>
+
+      <div class="results-section">
+        <div class="results-title">Your Progress</div>
+        <div class="results-subtitle">Before and after comparison</div>
+
+        <div class="scores-row">
+          <div class="score-circle before">
+            <div class="score-number">1</div>
+            <div class="score-denom">of 3</div>
+            <div class="score-type">Before</div>
+          </div>
+
+          <div class="delta-badge">+2</div>
+
+          <div class="score-circle after">
+            <div class="score-number">3</div>
+            <div class="score-denom">of 3</div>
+            <div class="score-type">After</div>
+          </div>
+        </div>
+
+        <div class="results-message">
+          <div class="main">Impressive growth!</div>
+          <div class="sub">You improved by 2 questions after studying the dialogue and translation.</div>
+        </div>
+
+        <div class="points-badge">
+          <span class="star">⭐</span>
+          <span class="pts">+17 pts</span>
+        </div>
+
+        <div class="results-buttons">
+          <button class="cta-btn teal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            New Exercise
+          </button>
+          <button class="cta-btn glass">
+            Continue Lesson
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<div style="text-align:center; margin-top:64px; padding-bottom:40px;">
+  <p style="font-size:12px; color:#6B7280; font-weight:500;">Vox Language App &middot; Listening Practice Mockups &middot; v1.0</p>
+</div>
+
+</body>
+</html>

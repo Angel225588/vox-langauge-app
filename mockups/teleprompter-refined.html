@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teleprompter — Refined Controls</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0A0E1A;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', sans-serif;
+    gap: 40px;
+  }
+
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: #0A0E1A;
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .label {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.25);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    z-index: 10;
+    white-space: nowrap;
+  }
+
+  /* ─── Top bar ─── */
+  .top-bar {
+    padding: 54px 20px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 5;
+    position: relative;
+  }
+
+  .back-btn, .listen-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #F9FAFB;
+    font-size: 18px;
+  }
+
+  .listen-btn.active {
+    background: rgba(6,214,160,0.15);
+    border: 1px solid rgba(6,214,160,0.3);
+    color: #06D6A0;
+  }
+
+  /* ─── Progress bar ─── */
+  .progress-bar {
+    margin: 0 20px;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 45%;
+    background: linear-gradient(90deg, #0036FF, #3D6BFF);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  /* ─── Reading text area ─── */
+  .text-area {
+    flex: 1;
+    padding: 0 24px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .text-content {
+    padding-top: 32px;
+    font-size: 28px;
+    font-weight: 400;
+    color: #F9FAFB;
+    line-height: 1.65;
+    letter-spacing: -0.2px;
+  }
+
+  /* Fade overlays */
+  .fade-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(to bottom, #0A0E1A, transparent);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .fade-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to top, #0A0E1A 20%, transparent);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* ─── Controls container ─── */
+  .controls {
+    padding: 0 20px 40px;
+    z-index: 5;
+    background: #0A0E1A;
+  }
+
+  /* Speed slider */
+  .speed-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .speed-icon {
+    font-size: 20px;
+    color: #9CA3AF;
+    width: 28px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .speed-track-container {
+    flex: 1;
+    position: relative;
+    height: 36px;
+    display: flex;
+    align-items: center;
+  }
+
+  .speed-track {
+    width: 100%;
+    height: 36px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 10px;
+    position: relative;
+  }
+
+  .tick {
+    width: 1px;
+    height: 10px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 1px;
+  }
+
+  .tick.center {
+    height: 16px;
+    background: rgba(255,255,255,0.3);
+  }
+
+  .speed-knob {
+    position: absolute;
+    width: 4px;
+    height: 22px;
+    border-radius: 2px;
+    background: linear-gradient(to bottom, #FF6B00, #FF9500);
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 6px rgba(255,107,0,0.4);
+  }
+
+  /* WPM */
+  .wpm-display {
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  .wpm-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #F9FAFB;
+  }
+
+  .wpm-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6B7280;
+    letter-spacing: 1px;
+  }
+
+  /* ─── Button row ─── */
+  .controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .mode-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6B7280;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mode-btn.active {
+    background: rgba(255,255,255,0.12);
+    color: #F9FAFB;
+  }
+
+  /* Aa / font size button */
+  .font-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    font-size: 16px;
+    font-weight: 700;
+    color: #F9FAFB;
+  }
+
+  .font-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    background: #0036FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 800;
+    color: white;
+  }
+
+  /* Play/Pause — center hero button */
+  .play-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background: #0036FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 24px;
+    color: white;
+    box-shadow: 0 4px 16px rgba(0,54,255,0.4);
+  }
+
+  /* Stop button */
+  .stop-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(239,68,68,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    color: #EF4444;
+  }
+
+  /* Recording indicator */
+  .recording-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .rec-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #EF4444;
+    animation: rec-blink 1s ease-in-out infinite;
+  }
+
+  @keyframes rec-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .rec-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #EF4444;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ═══ MODAL ═══ */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    border-radius: 44px;
+  }
+
+  .modal-overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal-card {
+    background: #1A1F3A;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    padding: 32px 24px;
+    text-align: center;
+    width: 300px;
+  }
+
+  .modal-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 32px;
+    background: rgba(239,68,68,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 28px;
+  }
+
+  .modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #F9FAFB;
+    margin-bottom: 8px;
+  }
+
+  .modal-subtitle {
+    font-size: 14px;
+    color: #9CA3AF;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  .modal-primary {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    background: linear-gradient(90deg, #EF4444, #FF6B6B);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    margin-bottom: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .modal-secondary {
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6B7280;
+    cursor: pointer;
+    text-align: center;
+  }
+
+  /* ─── State toggle (for demo) ─── */
+  .demo-toggle {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 200;
+  }
+
+  .demo-btn {
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #9CA3AF;
+    font-size: 10px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .demo-btn:hover {
+    background: rgba(255,255,255,0.15);
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PHONE 1: Practice Mode (during playback) -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="phone" id="phone-practice">
+  <span class="label">Practice Mode — Playing</span>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="back-btn">‹</div>
+    <div class="listen-btn">🔊</div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-bar">
+    <div class="progress-fill" style="width: 45%"></div>
+  </div>
+
+  <!-- Reading text -->
+  <div class="text-area">
+    <div class="fade-top"></div>
+    <div class="text-content">
+      Welcome to the reading practice! This is a sample text to help you improve your reading fluency.
+
+      <br><br>
+
+      Reading aloud is one of the best ways to improve your pronunciation and build confidence in speaking. Take your time, focus on clarity, and don't worry about making mistakes.
+
+      <br><br>
+
+      The key to improvement is consistent practice. Try to read a little bit every day, even if it's just for a few minutes. Over time, you'll notice significant progress in your reading speed and comprehension.
+    </div>
+    <div class="fade-bottom"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <!-- Speed slider -->
+    <div class="speed-row">
+      <div class="speed-icon">🚶</div>
+      <div class="speed-track-container">
+        <div class="speed-track">
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick center"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+        </div>
+        <div class="speed-knob"></div>
+      </div>
+      <div class="speed-icon">🏃</div>
+    </div>
+
+    <!-- WPM -->
+    <div class="wpm-display">
+      <span class="wpm-value">180</span>
+      <span class="wpm-label"> WPM</span>
+    </div>
+
+    <!-- Button row: Mode | Aa | Play/Pause | Stop -->
+    <div class="controls-row">
+      <div class="mode-toggle">
+        <div class="mode-btn active">Practice</div>
+        <div class="mode-btn">Record</div>
+      </div>
+
+      <div class="font-btn">
+        Aa
+        <div class="font-badge">M</div>
+      </div>
+
+      <div class="play-btn">⏸</div>
+
+      <div class="stop-btn">⏹</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PHONE 2: Record Mode (during recording) -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="phone" id="phone-record">
+  <span class="label">Record Mode — Recording</span>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="back-btn">‹</div>
+    <div class="listen-btn">🔊</div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-bar">
+    <div class="progress-fill" style="width: 32%"></div>
+  </div>
+
+  <!-- Reading text -->
+  <div class="text-area">
+    <div class="fade-top"></div>
+    <div class="text-content">
+      Welcome to the reading practice! This is a sample text to help you improve your reading fluency.
+
+      <br><br>
+
+      Reading aloud is one of the best ways to improve your pronunciation and build confidence in speaking. Take your time, focus on clarity, and don't worry about making mistakes.
+
+      <br><br>
+
+      The key to improvement is consistent practice. Try to read a little bit every day, even if it's just for a few minutes. Over time, you'll notice significant progress in your reading speed and comprehension.
+    </div>
+    <div class="fade-bottom"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <!-- Speed slider -->
+    <div class="speed-row">
+      <div class="speed-icon">🚶</div>
+      <div class="speed-track-container">
+        <div class="speed-track">
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick center"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+          <div class="tick"></div>
+        </div>
+        <div class="speed-knob" style="left: 35%"></div>
+      </div>
+      <div class="speed-icon">🏃</div>
+    </div>
+
+    <!-- WPM -->
+    <div class="wpm-display">
+      <span class="wpm-value">132</span>
+      <span class="wpm-label"> WPM</span>
+    </div>
+
+    <!-- Button row: Mode | Aa | Play/Pause | Stop -->
+    <div class="controls-row">
+      <div class="mode-toggle">
+        <div class="mode-btn">Practice</div>
+        <div class="mode-btn active">Record</div>
+      </div>
+
+      <div class="font-btn">
+        Aa
+        <div class="font-badge">M</div>
+      </div>
+
+      <div class="play-btn" style="background: linear-gradient(135deg, #0036FF, #3D6BFF)">⏸</div>
+
+      <div class="stop-btn">⏹</div>
+    </div>
+
+    <!-- Recording indicator -->
+    <div class="recording-indicator">
+      <div class="rec-dot"></div>
+      <span class="rec-text">0:20</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PHONE 3: Switch Modal (no auto-countdown) -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="phone" id="phone-modal">
+  <span class="label">Practice Done → Record Modal</span>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="back-btn">‹</div>
+    <div class="listen-btn">🔊</div>
+  </div>
+
+  <!-- Reading text (dimmed) -->
+  <div class="text-area" style="opacity: 0.3">
+    <div class="text-content">
+      Welcome to the reading practice! This is a sample text to help you improve your reading fluency.
+
+      <br><br>
+
+      Reading aloud is one of the best ways to improve your pronunciation and build confidence in speaking.
+    </div>
+  </div>
+
+  <div class="controls" style="opacity: 0.3">
+    <div class="wpm-display">
+      <span class="wpm-value">180</span>
+      <span class="wpm-label"> WPM</span>
+    </div>
+  </div>
+
+  <!-- Modal overlay -->
+  <div class="modal-overlay visible">
+    <div class="modal-card">
+      <div class="modal-icon">🎤</div>
+      <div class="modal-title">Nice practice run!</div>
+      <div class="modal-subtitle">
+        Now record your reading to get pronunciation feedback.
+      </div>
+      <div class="modal-primary">
+        🎤 Start Recording
+      </div>
+      <div class="modal-secondary">Skip to Results</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

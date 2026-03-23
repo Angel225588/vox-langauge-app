@@ -18,20 +18,20 @@ import {
   TouchableOpacity,
   Dimensions,
   StatusBar,
+  Modal,
 } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   FadeIn,
-  runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
-import { TypeBadge } from '@/components/ui/TypeBadge';
+
 import { useAudioRecording, type Passage } from '@/lib/reading';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS';
@@ -82,37 +82,29 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
   // TTS for listen mode
   const { speakSequence, stop: stopTTS, isSpeaking: isTTSSpeaking } = useElevenLabsTTS();
 
-  const handleListenToggle = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (isTTSSpeaking) {
-      await stopTTS();
-    } else {
-      const paragraphs = passage.text.split('\n\n').filter(p => p.trim());
-      const items = paragraphs.map(p => ({ text: p.trim() }));
-      try {
-        await speakSequence(items);
-      } catch {
-        // TTS error — handled by hook
-      }
-    }
-  }, [isTTSSpeaking, stopTTS, speakSequence, passage.text]);
-
   // State
   const [mode, setMode] = useState<TeleprompterMode>('practice');
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [speedNormalized, setSpeedNormalized] = useState(0.5);
   const [fontSizeOption, setFontSizeOption] = useState<FontSizeOption>('medium');
+  const [showSwitchModal, setShowSwitchModal] = useState(false);
 
   // Refs - using ref for isPlaying to avoid stale closure in animation
   const isPlayingRef = useRef(false);
   const scrollAnimationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
+  const handleFinishRef = useRef<(() => Promise<void>) | null>(null);
+  const modeRef = useRef<TeleprompterMode>('practice');
 
-  // Keep ref in sync with state
+  // Keep refs in sync with state
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   // Reanimated values
   const scrollY = useSharedValue(0);
@@ -125,6 +117,45 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
   const currentWpm = useMemo(() => {
     return Math.round(MIN_WPM + speedNormalized * (MAX_WPM - MIN_WPM));
   }, [speedNormalized]);
+
+  const handleListenToggle = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (isTTSSpeaking) {
+      await stopTTS();
+    } else {
+      const paragraphs = passage.text.split('\n\n').filter(p => p.trim());
+      const items = paragraphs.map(p => ({ text: p.trim() }));
+      // Match TTS speed to scroll speed: 60 WPM → 0.5x, 150 WPM → 1.0x, 300 WPM → 2.0x
+      const rate = Math.max(0.5, Math.min(2.0, currentWpm / 150));
+
+      // Pre-compute character proportions for scroll sync
+      const totalChars = paragraphs.reduce((sum, p) => sum + p.length, 0);
+
+      // Scroll sync: when TTS starts a paragraph, scroll proportionally
+      const onParagraphStart = (index: number) => {
+        if (totalChars === 0 || maxScroll <= 0) return;
+
+        // Calculate proportion of text before this paragraph
+        let charsBefore = 0;
+        for (let i = 0; i < index; i++) {
+          charsBefore += paragraphs[i].length;
+        }
+        const proportion = charsBefore / totalChars;
+        const targetY = Math.min(Math.round(proportion * maxScroll), maxScroll);
+
+        scrollY.value = withTiming(targetY, { duration: 500 });
+        progressWidth.value = withTiming(Math.min(100, proportion * 100), { duration: 500 });
+      };
+
+      try {
+        // Pause manual auto-scroll while TTS drives position
+        setIsPlaying(false);
+        await speakSequence(items, onParagraphStart, rate);
+      } catch {
+        // TTS error — handled by hook
+      }
+    }
+  }, [isTTSSpeaking, stopTTS, speakSequence, passage.text, currentWpm, maxScroll, scrollY, progressWidth]);
 
   // Total words
   const totalWords = useMemo(() =>
@@ -174,9 +205,19 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
       if (newScrollY >= maxScroll) {
         scrollY.value = maxScroll;
         progressWidth.value = 100;
-        setTimeout(() => {
-          runOnJS(handleFinish)();
-        }, 1500);
+        isPlayingRef.current = false;
+        if (modeRef.current === 'practice') {
+          // Practice mode done — show switch-to-record modal
+          setTimeout(() => {
+            setIsPlaying(false);
+            setShowSwitchModal(true);
+          }, 800);
+        } else {
+          // Record mode done — finish and get results
+          setTimeout(() => {
+            handleFinishRef.current?.();
+          }, 1500);
+        }
         return;
       }
 
@@ -271,6 +312,40 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     });
   };
 
+  // Keep handleFinishRef in sync to avoid stale closures in scroll animation
+  useEffect(() => {
+    handleFinishRef.current = handleFinish;
+  });
+
+  // Switch from practice to record mode
+  const handleSwitchToRecord = useCallback(async () => {
+    setShowSwitchModal(false);
+    await stopTTS();
+
+    // Reset scroll to beginning
+    scrollY.value = 0;
+    progressWidth.value = 0;
+    setMode('record');
+
+    // Brief pause for mode to update, then start recording
+    setTimeout(async () => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      await startRecording();
+      startTimeRef.current = Date.now();
+      setHasStarted(true);
+      setIsPlaying(true);
+    }, 500);
+  }, [scrollY, progressWidth, startRecording, stopTTS]);
+
+  const handleKeepPracticing = useCallback(() => {
+    setShowSwitchModal(false);
+    // Reset scroll to beginning so user can practice again
+    scrollY.value = 0;
+    progressWidth.value = 0;
+    setHasStarted(false);
+    setIsPlaying(false);
+  }, [scrollY, progressWidth]);
+
   const handleBack = () => {
     if (isRecording) {
       stopRecording();
@@ -288,15 +363,65 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
     setFontSizeOption(sizes[nextIndex]);
   };
 
-  const handleSpeedChange = (delta: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSpeedNormalized(prev => Math.max(0, Math.min(1, prev + delta)));
-  };
+  // Draggable speed slider with haptic ticks every 5 WPM
+  const lastTickWpm = useRef(currentWpm);
+  const speedTrackWidth = useRef(0);
+  const speedPanStartX = useRef(0);
+  const speedPanStartNormalized = useRef(0);
+
+  const onSpeedTouchStart = useCallback((e: any) => {
+    speedPanStartX.current = e.nativeEvent.pageX;
+    speedPanStartNormalized.current = speedNormalized;
+  }, [speedNormalized]);
+
+  const onSpeedTouchMove = useCallback((e: any) => {
+    if (speedTrackWidth.current <= 0) return;
+    const dx = e.nativeEvent.pageX - speedPanStartX.current;
+    const delta = dx / speedTrackWidth.current;
+    const newNormalized = Math.max(0, Math.min(1, speedPanStartNormalized.current + delta));
+    const newWpm = Math.round(MIN_WPM + newNormalized * (MAX_WPM - MIN_WPM));
+
+    // Haptic tick every 5 WPM
+    const lastStep = Math.floor(lastTickWpm.current / 5);
+    const newStep = Math.floor(newWpm / 5);
+    if (newStep !== lastStep) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      lastTickWpm.current = newWpm;
+    }
+
+    setSpeedNormalized(newNormalized);
+  }, []);
 
   return (
     <View style={styles.container}>
-      <TypeBadge variant="reading" />
       <StatusBar barStyle="light-content" hidden={hasStarted} />
+
+      {/* Back Button - Top Left (always visible) */}
+      <TouchableOpacity
+        onPress={handleBack}
+        style={[styles.topCornerButton, styles.topLeftButton, { top: insets.top + spacing.sm }]}
+        accessibilityLabel="Go back"
+      >
+        <Ionicons name="chevron-back" size={20} color={colors.text.primary} />
+      </TouchableOpacity>
+
+      {/* Listen Button - Top Right below tag (always visible) */}
+      <TouchableOpacity
+        onPress={handleListenToggle}
+        style={[
+          styles.topCornerButton,
+          styles.topRightButton,
+          { top: insets.top + spacing.sm },
+          isTTSSpeaking && styles.listenButtonActive,
+        ]}
+        accessibilityLabel={isTTSSpeaking ? 'Stop listening' : 'Listen to text'}
+      >
+        <Ionicons
+          name={isTTSSpeaking ? 'volume-high' : 'volume-medium-outline'}
+          size={18}
+          color={isTTSSpeaking ? colors.secondary.DEFAULT : colors.text.primary}
+        />
+      </TouchableOpacity>
 
       {/* Progress Bar (top) - only during playback */}
       {hasStarted && (
@@ -338,16 +463,20 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
       {/* Controls Container */}
       <View style={[styles.controlsContainer, { paddingBottom: insets.bottom + spacing.lg }]}>
 
-        {/* Speed Slider - Always visible */}
+        {/* Speed Slider - Draggable with haptic ticks */}
         <View style={styles.speedSliderContainer}>
-          <TouchableOpacity
-            onPress={() => handleSpeedChange(-0.1)}
-            style={styles.speedIconButton}
-          >
+          <View style={styles.speedIconButton}>
             <Ionicons name="walk-outline" size={22} color={colors.text.secondary} />
-          </TouchableOpacity>
+          </View>
 
-          <View style={styles.speedTrackContainer}>
+          <View
+            style={styles.speedTrackContainer}
+            onLayout={(e) => { speedTrackWidth.current = e.nativeEvent.layout.width; }}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onResponderGrant={onSpeedTouchStart}
+            onResponderMove={onSpeedTouchMove}
+          >
             <View style={styles.speedTrack}>
               {/* Tick marks */}
               {Array.from({ length: 21 }).map((_, i) => (
@@ -370,12 +499,9 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
             />
           </View>
 
-          <TouchableOpacity
-            onPress={() => handleSpeedChange(0.1)}
-            style={styles.speedIconButton}
-          >
+          <View style={styles.speedIconButton}>
             <Ionicons name="walk" size={22} color={colors.text.secondary} />
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* WPM Display */}
@@ -409,15 +535,6 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
           {!hasStarted ? (
             // Pre-start controls
             <>
-              {/* Back Button */}
-              <TouchableOpacity
-                onPress={handleBack}
-                style={styles.controlButton}
-                accessibilityLabel="Go back"
-              >
-                <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
-              </TouchableOpacity>
-
               {/* Font Size Button */}
               <TouchableOpacity
                 onPress={cycleFontSize}
@@ -430,19 +547,6 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
                     {fontSizeOption === 'small' ? 'S' : fontSizeOption === 'medium' ? 'M' : 'L'}
                   </Text>
                 </View>
-              </TouchableOpacity>
-
-              {/* Listen Button (ElevenLabs TTS) */}
-              <TouchableOpacity
-                onPress={handleListenToggle}
-                style={[styles.controlButton, isTTSSpeaking && styles.listenButtonActive]}
-                accessibilityLabel={isTTSSpeaking ? 'Stop listening' : 'Listen to text'}
-              >
-                <Ionicons
-                  name={isTTSSpeaking ? 'volume-high' : 'volume-medium-outline'}
-                  size={22}
-                  color={isTTSSpeaking ? colors.secondary.DEFAULT : colors.text.primary}
-                />
               </TouchableOpacity>
 
               {/* Start Button */}
@@ -459,20 +563,8 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
               </TouchableOpacity>
             </>
           ) : (
-            // During playback controls
+            // During playback controls: Mode | Aa | Play/Pause | Stop (record only)
             <>
-              {/* Rewind */}
-              <TouchableOpacity
-                onPress={() => {
-                  scrollY.value = Math.max(0, scrollY.value - 150);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                style={styles.controlButton}
-                accessibilityLabel="Rewind"
-              >
-                <Ionicons name="play-skip-back" size={22} color={colors.text.primary} />
-              </TouchableOpacity>
-
               {/* Font Size */}
               <TouchableOpacity
                 onPress={cycleFontSize}
@@ -485,19 +577,6 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
                     {fontSizeOption === 'small' ? 'S' : fontSizeOption === 'medium' ? 'M' : 'L'}
                   </Text>
                 </View>
-              </TouchableOpacity>
-
-              {/* Listen Button (ElevenLabs TTS) */}
-              <TouchableOpacity
-                onPress={handleListenToggle}
-                style={[styles.controlButton, isTTSSpeaking && styles.listenButtonActive]}
-                accessibilityLabel={isTTSSpeaking ? 'Stop listening' : 'Listen to text'}
-              >
-                <Ionicons
-                  name={isTTSSpeaking ? 'volume-high' : 'volume-medium-outline'}
-                  size={22}
-                  color={isTTSSpeaking ? colors.secondary.DEFAULT : colors.text.primary}
-                />
               </TouchableOpacity>
 
               {/* Play/Pause - Larger center button */}
@@ -513,26 +592,16 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
                 />
               </TouchableOpacity>
 
-              {/* Forward */}
-              <TouchableOpacity
-                onPress={() => {
-                  scrollY.value = Math.min(maxScroll, scrollY.value + 150);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                style={styles.controlButton}
-                accessibilityLabel="Forward"
-              >
-                <Ionicons name="play-skip-forward" size={22} color={colors.text.primary} />
-              </TouchableOpacity>
-
-              {/* Stop/Finish */}
-              <TouchableOpacity
-                onPress={handleFinish}
-                style={[styles.controlButton, styles.stopButtonSmall]}
-                accessibilityLabel="Finish"
-              >
-                <Ionicons name="stop" size={22} color={colors.error.DEFAULT} />
-              </TouchableOpacity>
+              {/* Stop/Finish - Only in record mode */}
+              {mode === 'record' && (
+                <TouchableOpacity
+                  onPress={handleFinish}
+                  style={[styles.controlButton, styles.stopButtonSmall]}
+                  accessibilityLabel="Finish"
+                >
+                  <Ionicons name="stop" size={22} color={colors.error.DEFAULT} />
+                </TouchableOpacity>
+              )}
             </>
           )}
         </View>
@@ -546,6 +615,49 @@ export function TeleprompterCard({ passage, onFinish, onBack }: TeleprompterCard
           </View>
         )}
       </View>
+
+      {/* Switch to Record Modal */}
+      <Modal
+        visible={showSwitchModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleKeepPracticing}
+      >
+        <View style={styles.modalOverlay}>
+          <Animated.View entering={FadeIn.duration(300)} style={styles.modalCard}>
+            <View style={styles.modalIconCircle}>
+              <Ionicons name="mic" size={28} color={colors.text.primary} />
+            </View>
+            <Text style={styles.modalTitle}>Nice practice run!</Text>
+            <Text style={styles.modalSubtitle}>
+              Now record your reading to get pronunciation feedback.
+            </Text>
+
+            <TouchableOpacity
+              onPress={handleSwitchToRecord}
+              activeOpacity={0.85}
+              style={styles.modalPrimaryButton}
+            >
+              <LinearGradient
+                colors={[colors.error.DEFAULT, '#FF6B6B']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.modalPrimaryGradient}
+              >
+                <Ionicons name="mic" size={18} color={colors.text.primary} />
+                <Text style={styles.modalPrimaryText}>Start Recording</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleKeepPracticing}
+              style={styles.modalSecondaryButton}
+            >
+              <Text style={styles.modalSecondaryText}>Keep Practicing</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -789,6 +901,91 @@ const styles = StyleSheet.create({
   stopButtonSmall: {
     borderWidth: 1,
     borderColor: colors.error.DEFAULT + '4D', // 30% opacity
+  },
+
+  // Top corner buttons (Back + Listen)
+  topCornerButton: {
+    position: 'absolute',
+    zIndex: 101,
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.card + 'CC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topLeftButton: {
+    left: spacing.lg,
+  },
+  topRightButton: {
+    right: spacing.lg,
+  },
+
+  // Switch modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  modalCard: {
+    backgroundColor: colors.background.elevated,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    width: '100%',
+    maxWidth: 320,
+  },
+  modalIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  modalSubtitle: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: typography.fontSize.base * 1.5,
+    marginBottom: spacing.xl,
+  },
+  modalPrimaryButton: {
+    width: '100%',
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    marginBottom: spacing.md,
+  },
+  modalPrimaryGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+  },
+  modalPrimaryText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+  },
+  modalSecondaryButton: {
+    paddingVertical: spacing.md,
+  },
+  modalSecondaryText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    fontWeight: typography.fontWeight.medium,
   },
 
   // Recording indicator

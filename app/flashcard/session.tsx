@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useFlashcardSession } from '@/hooks/useFlashcard';
@@ -93,17 +94,17 @@ export default function FlashcardSessionScreen() {
   // Loading state
   if (isLoading && !currentCard) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary }}>
+      <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary }} edges={['top', 'bottom']}>
         <ActivityIndicator size="large" color={colors.accent.blue} />
         <Text style={{ fontSize: typography.fontSize.lg, color: colors.text.disabled, marginTop: spacing.md }}>Loading session...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary, paddingHorizontal: spacing.lg }}>
+      <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary, paddingHorizontal: spacing.lg }} edges={['top', 'bottom']}>
         <Text style={{ fontSize: typography.fontSize['2xl'], marginBottom: spacing.md }}>😕</Text>
         <Text style={{ fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>Oops!</Text>
         <Text style={{ fontSize: typography.fontSize.base, color: colors.text.disabled, textAlign: 'center', marginBottom: spacing.lg }}>{error}</Text>
@@ -119,14 +120,14 @@ export default function FlashcardSessionScreen() {
         >
           <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.bold }}>Go Back</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     );
   }
 
   // No active session or no current card
   if (!isSessionActive || !currentCard) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary, paddingHorizontal: spacing.lg }}>
+      <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary, paddingHorizontal: spacing.lg }} edges={['top', 'bottom']}>
         <Text style={{ fontSize: typography.fontSize['2xl'], marginBottom: spacing.md }}>🎉</Text>
         <Text style={{ fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>
           No Cards to Review
@@ -146,7 +147,7 @@ export default function FlashcardSessionScreen() {
         >
           <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.bold }}>Done</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -154,7 +155,7 @@ export default function FlashcardSessionScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }} edges={['top', 'bottom']}>
       {/* Header with progress */}
       <Animated.View
         entering={FadeIn.duration(300)}
@@ -385,7 +386,7 @@ export default function FlashcardSessionScreen() {
           <ActivityIndicator size="large" color={colors.accent.blue} />
         </View>
       )}
-      </View>
+      </SafeAreaView>
     </GestureHandlerRootView>
   );
 }

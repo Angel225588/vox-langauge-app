@@ -26,6 +26,7 @@ import {
   type ActivityConfig,
   type LevelGroup,
 } from './lessonTemplates';
+import { getWeaknessOrder, reorderActivities } from './activityOrderer';
 
 // ─── Lesson Plan Types ─────────────────────────────
 
@@ -56,6 +57,10 @@ export interface LessonPlan {
   estimated_minutes: number;
   current_activity_index: number;
   completed: boolean;
+  /** Whether "Keep Going" can be offered after last activity */
+  keepGoingAvailable: boolean;
+  /** Total activities completed across this staircase (for 20-cap) */
+  staircaseActivityCount: number;
   // Scores (populated after completion)
   scores?: LessonScores;
 }
@@ -95,24 +100,45 @@ export function getLessonQuote(levelGroup: LevelGroup, isDiscovery: boolean): st
 /**
  * Generate a lesson plan for a specific stair.
  *
+ * Activities are reordered based on user weakness data so lessons
+ * target what they need most. Discovery lessons keep static order.
+ *
  * @param stair - The stair being started
  * @param proficiencyLevel - User's proficiency from onboarding
  * @param isFirstLesson - Whether this is the user's very first lesson
  * @param scenario - The scenario context (e.g., "Client meetings")
+ * @param userId - User ID for fetching weakness scores
  */
-export function generateLessonPlan(
+export async function generateLessonPlan(
   stair: StairForDisplay,
   proficiencyLevel: ProficiencyLevel | string | null,
   isFirstLesson: boolean,
   scenario?: string,
-): LessonPlan {
+  userId?: string,
+): Promise<LessonPlan> {
   const levelGroup = getLevelGroup(proficiencyLevel);
   const template = getLessonTemplate(levelGroup, isFirstLesson);
+
+  // Reorder activities based on user weakness data
+  let orderedTemplateActivities = template.activities;
+  if (userId) {
+    try {
+      const weaknessOrder = await getWeaknessOrder(userId);
+      orderedTemplateActivities = reorderActivities(
+        template.activities,
+        weaknessOrder,
+        isFirstLesson,
+        levelGroup,
+      );
+    } catch (err) {
+      console.warn('[LessonEngine] Weakness reorder failed, using template order:', err);
+    }
+  }
 
   // Extract scenario name from stair title (e.g., "Client meetings: Essentials" → "Client meetings")
   const scenarioName = scenario || extractScenario(stair.title);
 
-  const activities: LessonActivity[] = template.activities.map((tmpl, index) => ({
+  const activities: LessonActivity[] = orderedTemplateActivities.map((tmpl, index) => ({
     id: `${stair.id}-activity-${index + 1}`,
     type: tmpl.type,
     order: index + 1,
@@ -138,6 +164,8 @@ export function generateLessonPlan(
     estimated_minutes: template.estimated_minutes,
     current_activity_index: 0,
     completed: false,
+    keepGoingAvailable: !isFirstLesson,
+    staircaseActivityCount: 0,
   };
 }
 

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vox — Practice Screen Mockups</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #060912;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    color: #F9FAFB;
+    padding: 40px 20px 80px;
+    min-height: 100vh;
+  }
+
+  /* ═══ PAGE HEADER ═══ */
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .page-header h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #06D6A0, #0036FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    font-size: 15px;
+    color: #9CA3AF;
+    font-weight: 500;
+  }
+
+  /* ═══ SCREEN LAYOUT ═══ */
+  .screens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 48px;
+    justify-content: center;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .phone-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .phone-label {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .phone-label.teal { color: #06D6A0; }
+  .phone-label.blue { color: #0036FF; }
+  .phone-sublabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
+    margin-top: 2px;
+  }
+
+  .phone-frame {
+    width: 375px;
+    height: 812px;
+    background: #0A0E1A;
+    border-radius: 44px;
+    border: 3px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 20px 60px rgba(0,0,0,0.5);
+  }
+  .phone-frame.teal-glow {
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 20px 60px rgba(0,0,0,0.5),
+      0 0 80px rgba(6,214,160,0.06);
+  }
+  .phone-frame.blue-glow {
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 20px 60px rgba(0,0,0,0.5),
+      0 0 80px rgba(0,54,255,0.08);
+  }
+
+  /* Notch */
+  .phone-frame::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 28px;
+    background: #000;
+    border-radius: 0 0 20px 20px;
+    z-index: 10;
+  }
+
+  .phone-content {
+    width: 100%;
+    height: 100%;
+    padding: 60px 16px 34px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ═══ SCREEN HEADER ═══ */
+  .screen-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 0 4px;
+  }
+  .back-arrow {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #9CA3AF;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .screen-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  /* ═══ 2x2 GRID ═══ */
+  .practice-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    flex: 1;
+    align-content: start;
+  }
+
+  /* ═══ GRID CARD (Available) ═══ */
+  .grid-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    aspect-ratio: 1;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+  .grid-card:hover {
+    transform: scale(1.02);
+  }
+  .grid-card.teal-card:hover {
+    border-color: rgba(6,214,160,0.3);
+  }
+  .grid-card.blue-card:hover {
+    border-color: rgba(0,54,255,0.4);
+  }
+
+  /* Badge */
+  .card-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+  }
+  .card-badge.teal-badge {
+    background: rgba(6,214,160,0.15);
+    color: #06D6A0;
+    border: 1px solid rgba(6,214,160,0.25);
+  }
+  .card-badge.blue-badge {
+    background: rgba(0,54,255,0.15);
+    color: #4D7AFF;
+    border: 1px solid rgba(0,54,255,0.25);
+  }
+
+  /* ═══ VINYL DISC (Listening) ═══ */
+  .vinyl-disc {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    position: relative;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .vinyl-disc .ring-outer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1a1f2e, #12161f);
+    border: 2px solid rgba(255,255,255,0.06);
+  }
+  .vinyl-disc .ring-middle {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.04);
+  }
+  .vinyl-disc .ring-groove-1 {
+    position: absolute;
+    inset: 20px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.03);
+  }
+  .vinyl-disc .ring-groove-2 {
+    position: absolute;
+    inset: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.03);
+  }
+  .vinyl-disc .ring-accent {
+    position: absolute;
+    inset: 22px;
+    border-radius: 50%;
+  }
+  .vinyl-disc.teal-vinyl .ring-accent {
+    border: 2px solid rgba(6,214,160,0.25);
+    box-shadow: 0 0 12px rgba(6,214,160,0.1);
+  }
+  .vinyl-disc.teal-vinyl-alt .ring-accent {
+    border: 2px solid rgba(78,205,196,0.25);
+    box-shadow: 0 0 12px rgba(78,205,196,0.1);
+  }
+  .vinyl-disc .ring-center {
+    position: absolute;
+    inset: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .vinyl-disc.teal-vinyl .ring-center {
+    background: linear-gradient(135deg, #06D6A0, #04A57E);
+    box-shadow: 0 2px 8px rgba(6,214,160,0.3);
+  }
+  .vinyl-disc.teal-vinyl-alt .ring-center {
+    background: linear-gradient(135deg, #4ECDC4, #2CB5AC);
+    box-shadow: 0 2px 8px rgba(78,205,196,0.3);
+  }
+  .vinyl-disc .center-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.4);
+  }
+  /* Grooves/lines */
+  .vinyl-disc::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: repeating-radial-gradient(
+      circle at center,
+      transparent 0px,
+      transparent 2px,
+      rgba(255,255,255,0.015) 2px,
+      rgba(255,255,255,0.015) 3px
+    );
+    pointer-events: none;
+  }
+
+  /* ═══ BOOK ILLUSTRATION (Reading) ═══ */
+  .book-illus {
+    width: 90px;
+    height: 90px;
+    position: relative;
+    margin-top: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .book-page {
+    width: 64px;
+    height: 78px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px 10px 10px 4px;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  .book-spine {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    border-radius: 4px 0 0 4px;
+  }
+  .book-spine.blue-spine {
+    background: linear-gradient(180deg, #0036FF, #003AE6);
+    box-shadow: 2px 0 8px rgba(0,54,255,0.2);
+  }
+  .book-spine.blue-spine-alt {
+    background: linear-gradient(180deg, #4D7AFF, #0036FF);
+    box-shadow: 2px 0 8px rgba(0,54,255,0.15);
+  }
+  .book-lines {
+    position: absolute;
+    left: 14px;
+    right: 10px;
+    top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .book-line {
+    height: 2px;
+    border-radius: 1px;
+    background: rgba(255,255,255,0.08);
+  }
+  .book-line:nth-child(3) { width: 70%; }
+  .book-line:nth-child(5) { width: 85%; }
+  .book-line:nth-child(7) { width: 60%; }
+  .book-shadow {
+    position: absolute;
+    left: -3px;
+    top: 6px;
+    width: 64px;
+    height: 78px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px 10px 10px 4px;
+    z-index: -1;
+    transform: rotate(-3deg);
+  }
+
+  /* Mic icon for reading */
+  .mic-indicator {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    font-size: 11px;
+    opacity: 0.5;
+  }
+
+  /* ═══ CARD TEXT ═══ */
+  .card-info {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: auto;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #F9FAFB;
+    letter-spacing: -0.1px;
+  }
+  .card-subtitle {
+    font-size: 10.5px;
+    color: #9CA3AF;
+    font-weight: 500;
+  }
+
+  /* ═══ LOCKED CARD ═══ */
+  .grid-card-locked {
+    border: 2px dashed rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    aspect-ratio: 1;
+    background: rgba(255,255,255,0.015);
+  }
+  .lock-icon {
+    font-size: 24px;
+    opacity: 0.25;
+  }
+  .lock-text {
+    font-size: 10.5px;
+    color: #6B7280;
+    text-align: center;
+    line-height: 1.4;
+    max-width: 110px;
+  }
+
+  /* ═══ CTA BUTTON ═══ */
+  .cta-section {
+    padding-top: 16px;
+    margin-top: auto;
+  }
+  .cta-button {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    letter-spacing: 0.2px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .cta-button:hover {
+    transform: translateY(-1px);
+  }
+  .cta-button.teal-cta {
+    background: linear-gradient(135deg, #06D6A0, #04A57E);
+    box-shadow: 0 4px 20px rgba(6,214,160,0.25);
+  }
+  .cta-button.teal-cta:hover {
+    box-shadow: 0 6px 28px rgba(6,214,160,0.35);
+  }
+  .cta-button.blue-cta {
+    background: linear-gradient(135deg, #0036FF, #0052FF);
+    box-shadow: 0 4px 20px rgba(0,54,255,0.25);
+  }
+  .cta-button.blue-cta:hover {
+    box-shadow: 0 6px 28px rgba(0,54,255,0.35);
+  }
+
+  /* ═══ RESPONSIVE ═══ */
+  @media (max-width: 820px) {
+    .screens {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Page Title -->
+<div class="page-header">
+  <h1>Vox — Practice Screen Mockups</h1>
+  <p>Listening & Reading — 2x2 Grid Layouts</p>
+</div>
+
+<div class="screens">
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 1: LISTENING PRACTICE                    -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="phone-wrap">
+    <div class="phone-label teal">Listening Practice</div>
+    <div class="phone-sublabel">2x2 Grid — Vinyl Disc Cards</div>
+    <div class="phone-frame teal-glow">
+      <div class="phone-content">
+
+        <!-- Header -->
+        <div class="screen-header">
+          <div class="back-arrow">&#8592;</div>
+          <div class="screen-title">Listening Practice</div>
+        </div>
+
+        <!-- 2x2 Grid -->
+        <div class="practice-grid">
+
+          <!-- Card 1: At the Cafe (Available) -->
+          <div class="grid-card teal-card">
+            <span class="card-badge teal-badge">NEW</span>
+            <div class="vinyl-disc teal-vinyl">
+              <div class="ring-outer"></div>
+              <div class="ring-middle"></div>
+              <div class="ring-groove-1"></div>
+              <div class="ring-groove-2"></div>
+              <div class="ring-accent"></div>
+              <div class="ring-center">
+                <div class="center-dot"></div>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="card-title">At the Caf&eacute;</div>
+              <div class="card-subtitle">2:30 &bull; 5 new words</div>
+            </div>
+          </div>
+
+          <!-- Card 2: Business Meeting (Available) -->
+          <div class="grid-card teal-card">
+            <div class="vinyl-disc teal-vinyl-alt">
+              <div class="ring-outer"></div>
+              <div class="ring-middle"></div>
+              <div class="ring-groove-1"></div>
+              <div class="ring-groove-2"></div>
+              <div class="ring-accent"></div>
+              <div class="ring-center">
+                <div class="center-dot"></div>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="card-title">Business Meeting</div>
+              <div class="card-subtitle">3:15 &bull; 8 new words</div>
+            </div>
+          </div>
+
+          <!-- Card 3: Locked -->
+          <div class="grid-card-locked">
+            <div class="lock-icon">&#128274;</div>
+            <div class="lock-text">Complete a lecture to unlock</div>
+          </div>
+
+          <!-- Card 4: Locked -->
+          <div class="grid-card-locked">
+            <div class="lock-icon">+</div>
+            <div class="lock-text">Complete a lecture to unlock</div>
+          </div>
+
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-section">
+          <button class="cta-button teal-cta">Start Random Exercise</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREEN 2: READING PRACTICE                      -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="phone-wrap">
+    <div class="phone-label blue">Reading Practice</div>
+    <div class="phone-sublabel">2x2 Grid — Book Page Cards</div>
+    <div class="phone-frame blue-glow">
+      <div class="phone-content">
+
+        <!-- Header -->
+        <div class="screen-header">
+          <div class="back-arrow">&#8592;</div>
+          <div class="screen-title">Reading Practice</div>
+        </div>
+
+        <!-- 2x2 Grid -->
+        <div class="practice-grid">
+
+          <!-- Card 1: The New Office (Available) -->
+          <div class="grid-card blue-card">
+            <span class="card-badge blue-badge">NEW</span>
+            <div class="book-illus">
+              <div class="book-shadow"></div>
+              <div class="book-page">
+                <div class="book-spine blue-spine"></div>
+                <div class="book-lines">
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                </div>
+                <div class="mic-indicator">&#127908;</div>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="card-title">The New Office</div>
+              <div class="card-subtitle">150 words &bull; 3 questions</div>
+            </div>
+          </div>
+
+          <!-- Card 2: First Day in Paris (Available) -->
+          <div class="grid-card blue-card">
+            <div class="book-illus">
+              <div class="book-shadow"></div>
+              <div class="book-page">
+                <div class="book-spine blue-spine-alt"></div>
+                <div class="book-lines">
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                </div>
+                <div class="mic-indicator">&#127908;</div>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="card-title">First Day in Paris</div>
+              <div class="card-subtitle">200 words &bull; 4 questions</div>
+            </div>
+          </div>
+
+          <!-- Card 3: Locked -->
+          <div class="grid-card-locked">
+            <div class="lock-icon">&#128274;</div>
+            <div class="lock-text">Complete a lecture to unlock</div>
+          </div>
+
+          <!-- Card 4: Locked -->
+          <div class="grid-card-locked">
+            <div class="lock-icon">+</div>
+            <div class="lock-text">Complete a lecture to unlock</div>
+          </div>
+
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-section">
+          <button class="cta-button blue-cta">Start Random Exercise</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

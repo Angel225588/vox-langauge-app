@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vox — Feedback History v2 (Two Options)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #060810;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 24px 16px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    gap: 40px;
+  }
+
+  /* === OPTION LABELS === */
+  .option-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .option-label {
+    color: #F9FAFB;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 8px 20px;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .option-label.a { background: linear-gradient(135deg, #0036FF, #00A3FF); }
+  .option-label.b { background: linear-gradient(135deg, #8B5CF6, #06D6A0); }
+  .option-label span {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+    margin-top: 2px;
+  }
+
+  /* === PHONE FRAME === */
+  .phone-frame {
+    width: 393px;
+    min-height: 852px;
+    background: #0A0E1A;
+    border-radius: 44px;
+    border: 2px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 25px 80px rgba(0,0,0,0.6),
+      0 0 120px rgba(0,54,255,0.08);
+  }
+
+  /* === STATUS BAR === */
+  .status-bar {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    color: #F9FAFB;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .status-icons svg { width: 16px; height: 16px; fill: #F9FAFB; }
+
+  /* === DYNAMIC ISLAND === */
+  .dynamic-island {
+    width: 126px;
+    height: 36px;
+    background: #000;
+    border-radius: 20px;
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+  }
+
+  /* === HEADER === */
+  .header {
+    padding: 8px 24px 20px;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #D1D5DB;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .header h1 {
+    color: #F9FAFB;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+  .header p {
+    color: #9CA3AF;
+    font-size: 14px;
+  }
+
+  /* === PROGRESS STRIP === */
+  .progress-strip {
+    margin: 0 24px 20px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(0,54,255,0.12) 0%, rgba(0,163,255,0.06) 100%);
+    border: 1px solid rgba(0,54,255,0.18);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .mini-ring {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .mini-ring svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 4; }
+  .ring-fill { fill: none; stroke: #0036FF; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 150.8; stroke-dashoffset: 37.7; }
+  .ring-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #F9FAFB;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .progress-info { flex: 1; }
+  .progress-info .label { color: #9CA3AF; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .progress-info .value { color: #F9FAFB; font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+  .progress-info .trend { display: flex; align-items: center; gap: 4px; color: #10B981; font-size: 12px; font-weight: 500; }
+  .trend svg { width: 12px; height: 12px; }
+  .progress-stats { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+  .progress-stats .stat { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #D1D5DB; }
+  .stat-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .stat-dot.blue { background: #0036FF; }
+  .stat-dot.teal { background: #06D6A0; }
+  .stat-dot.purple { background: #8B5CF6; }
+
+  /* === FILTER CHIPS === */
+  .filter-chips {
+    display: flex;
+    gap: 8px;
+    padding: 0 24px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+  }
+  .filter-chips::-webkit-scrollbar { display: none; }
+  .chip {
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+  .chip.active {
+    background: linear-gradient(135deg, #0036FF, #00A3FF);
+    color: #F9FAFB;
+  }
+  .chip.inactive {
+    background: rgba(255,255,255,0.04);
+    color: #9CA3AF;
+    border-color: rgba(255,255,255,0.08);
+  }
+
+  /* === DATE DIVIDER === */
+  .date-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+    margin-bottom: 2px;
+  }
+  .date-divider span {
+    color: #9CA3AF;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+  }
+  .date-divider .line {
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* === SESSION LIST === */
+  .session-list {
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 40px;
+  }
+
+  /* ==============================
+     OPTION A — CLEAN MINIMAL
+     ============================== */
+
+  .card-a {
+    border-radius: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .card-a:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.10);
+    transform: translateY(-1px);
+  }
+  .card-a:active {
+    transform: scale(0.98);
+  }
+
+  .card-a .session-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .card-a .card-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .card-a .card-title {
+    color: #F9FAFB;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-a .card-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9CA3AF;
+    font-size: 12px;
+  }
+  .card-a .type-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .card-a .type-dot.voice { background: #0036FF; }
+  .card-a .type-dot.lesson { background: #00A3FF; }
+  .card-a .type-dot.reading { background: #8B5CF6; }
+  .card-a .type-dot.writing { background: #06D6A0; }
+  .card-a .type-dot.listening { background: #F59E0B; }
+
+  .card-a .card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .card-a .score-pill {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .card-a .score-pill.high { color: #10B981; }
+  .card-a .score-pill.mid { color: #F59E0B; }
+  .card-a .score-pill.low { color: #EF4444; }
+
+  .card-a .score-trend {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .score-trend.up { background: rgba(16,185,129,0.12); color: #10B981; }
+  .score-trend.down { background: rgba(239,68,68,0.10); color: #EF4444; }
+  .score-trend.same { background: rgba(255,255,255,0.06); color: #9CA3AF; }
+
+  .card-a .chevron-a {
+    color: rgba(255,255,255,0.15);
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-left: 4px;
+  }
+
+  /* ==============================
+     OPTION B — INSIGHT CARD
+     ============================== */
+
+  .card-b {
+    border-radius: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .card-b:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.10);
+    transform: translateY(-1px);
+  }
+  .card-b:active {
+    transform: scale(0.98);
+  }
+
+  .card-b .card-b-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .card-b .session-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .card-b .card-meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .card-b .card-title {
+    color: #F9FAFB;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-b .card-time {
+    color: #9CA3AF;
+    font-size: 12px;
+  }
+  .card-b .score-badge {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .score-badge.high { background: rgba(16,185,129,0.12); color: #10B981; }
+  .score-badge.mid { background: rgba(245,158,11,0.12); color: #F59E0B; }
+  .score-badge.low { background: rgba(239,68,68,0.12); color: #EF4444; }
+
+  /* Insight line */
+  .card-b .insight-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .card-b .insight-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+  .insight-dot.green { background: #10B981; }
+  .insight-dot.amber { background: #F59E0B; }
+  .insight-dot.purple { background: #8B5CF6; }
+
+  .card-b .insight-text {
+    font-size: 13px;
+    color: #D1D5DB;
+    line-height: 1.4;
+    flex: 1;
+  }
+  .card-b .insight-text strong {
+    color: #F9FAFB;
+    font-weight: 600;
+  }
+  .card-b .insight-chevron {
+    color: rgba(255,255,255,0.15);
+    font-size: 16px;
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  /* === ICON SHARED STYLES === */
+  .icon-voice {
+    background: linear-gradient(135deg, rgba(0,54,255,0.20), rgba(0,163,255,0.12));
+    border: 1px solid rgba(0,54,255,0.25);
+  }
+  .icon-reading {
+    background: linear-gradient(135deg, rgba(139,92,246,0.20), rgba(139,92,246,0.12));
+    border: 1px solid rgba(139,92,246,0.25);
+  }
+  .icon-writing {
+    background: linear-gradient(135deg, rgba(6,214,160,0.20), rgba(6,214,160,0.12));
+    border: 1px solid rgba(6,214,160,0.25);
+  }
+  .icon-listening {
+    background: linear-gradient(135deg, rgba(245,158,11,0.20), rgba(245,158,11,0.12));
+    border: 1px solid rgba(245,158,11,0.25);
+  }
+  .icon-lesson {
+    background: linear-gradient(135deg, rgba(0,163,255,0.20), rgba(0,163,255,0.12));
+    border: 1px solid rgba(0,163,255,0.25);
+  }
+
+  /* === BOTTOM === */
+  .bottom-hint {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(to top, #0A0E1A 40%, transparent);
+    pointer-events: none;
+  }
+  .home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 134px;
+    height: 5px;
+    border-radius: 100px;
+    background: rgba(255,255,255,0.20);
+  }
+
+  /* === ANIMATIONS === */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card-a, .card-b { animation: fadeInUp 0.4s ease both; }
+  .card-a:nth-child(1), .card-b:nth-child(1) { animation-delay: 0.02s; }
+  .card-a:nth-child(2), .card-b:nth-child(2) { animation-delay: 0.06s; }
+  .card-a:nth-child(3), .card-b:nth-child(3) { animation-delay: 0.10s; }
+  .card-a:nth-child(4), .card-b:nth-child(4) { animation-delay: 0.14s; }
+  .card-a:nth-child(5), .card-b:nth-child(5) { animation-delay: 0.18s; }
+  .card-a:nth-child(6), .card-b:nth-child(6) { animation-delay: 0.22s; }
+  .card-a:nth-child(7), .card-b:nth-child(7) { animation-delay: 0.26s; }
+  .card-a:nth-child(8), .card-b:nth-child(8) { animation-delay: 0.30s; }
+  .progress-strip { animation: fadeInUp 0.4s ease both; }
+  .filter-chips { animation: fadeInUp 0.4s ease both; animation-delay: 0.03s; }
+</style>
+</head>
+<body>
+
+<!-- ===========================
+     OPTION A — CLEAN MINIMAL
+     =========================== -->
+<div class="option-wrapper">
+  <div class="option-label a">Option A<span>Clean & Minimal — Revolut-style rows</span></div>
+  <div class="phone-frame">
+    <div class="dynamic-island"></div>
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-icons">
+        <svg viewBox="0 0 16 16"><path d="M1 10h2v4H1zm4-3h2v7H5zm4-3h2v10H9zm4-3h2v13h-2z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M8 2C4.7 2 1.7 3.3 0 5.5l1.4 1.4C2.8 5 5.3 3.8 8 3.8s5.2 1.2 6.6 3.1L16 5.5C14.3 3.3 11.3 2 8 2zm0 4c-2 0-3.8.8-5.1 2.1l1.4 1.4C5.3 8.5 6.6 7.8 8 7.8s2.7.7 3.7 1.7l1.4-1.4C11.8 6.8 10 6 8 6zm0 4c-1.1 0-2 .4-2.7 1.1L8 14l2.7-2.9C10 10.4 9.1 10 8 10z"/></svg>
+        <svg viewBox="0 0 24 16"><rect x="1" y="2" width="18" height="12" rx="2" fill="none" stroke="#F9FAFB" stroke-width="1.5"/><rect x="20" y="5.5" width="2.5" height="5" rx="1" fill="#F9FAFB"/><rect x="2.5" y="3.5" width="12" height="9" rx="1" fill="#10B981"/></svg>
+      </div>
+    </div>
+
+    <div class="header">
+      <div class="header-top">
+        <div class="back-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F9FAFB" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </div>
+        <div class="filter-btn">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          Filter
+        </div>
+      </div>
+      <h1>Your Feedback</h1>
+      <p>23 sessions across 4 weeks</p>
+    </div>
+
+    <div class="progress-strip">
+      <div class="mini-ring">
+        <svg width="56" height="56" viewBox="0 0 56 56">
+          <circle class="ring-bg" cx="28" cy="28" r="24"/>
+          <circle class="ring-fill" cx="28" cy="28" r="24"/>
+        </svg>
+        <span class="ring-value">75</span>
+      </div>
+      <div class="progress-info">
+        <div class="label">Overall Score</div>
+        <div class="value">B1 Intermediate</div>
+        <div class="trend">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8l4-4 4 4"/></svg>
+          +8 pts this week
+        </div>
+      </div>
+      <div class="progress-stats">
+        <div class="stat"><span class="stat-dot blue"></span> 12 voice</div>
+        <div class="stat"><span class="stat-dot teal"></span> 6 practice</div>
+        <div class="stat"><span class="stat-dot purple"></span> 5 lessons</div>
+      </div>
+    </div>
+
+    <div class="filter-chips">
+      <div class="chip active">All</div>
+      <div class="chip inactive">Voice</div>
+      <div class="chip inactive">Lessons</div>
+      <div class="chip inactive">Reading</div>
+      <div class="chip inactive">Writing</div>
+      <div class="chip inactive">Listening</div>
+    </div>
+
+    <div class="session-list">
+      <div class="date-divider"><span>Today</span><div class="line"></div></div>
+
+      <div class="card-a">
+        <div class="session-icon icon-voice">🎙️</div>
+        <div class="card-body">
+          <div class="card-title">Business Negotiation Call</div>
+          <div class="card-subtitle">
+            <span class="type-dot voice"></span>
+            Voice · 12 min · 2:45 PM
+          </div>
+        </div>
+        <div class="card-right">
+          <span class="score-pill high">82</span>
+          <span class="score-trend up">+7</span>
+        </div>
+        <span class="chevron-a">›</span>
+      </div>
+
+      <div class="card-a">
+        <div class="session-icon icon-lesson">📘</div>
+        <div class="card-body">
+          <div class="card-title">Formal Email Writing</div>
+          <div class="card-subtitle">
+            <span class="type-dot lesson"></span>
+            Lesson · 8 min · 11:20 AM
+          </div>
+        </div>
+        <div class="card-right">
+          <span class="score-pill high">88</span>
+          <span class="score-trend up">+3</span>
+        </div>
+        <span class="chevron-a">›</span>
+      </div>
+
+      <div class="date-divider"><span>Yesterday</span><div class="line"></div></div>
+
+      <div class="card-a">
+        <div class="session-icon icon-reading">📖</div>
+        <div class="card-body">
+          <div class="card-title">Medical Terminology</div>
+          <div class="card-subtitle">
+            <span class="type-dot reading"></span>
+            Reading · 15 min · 7:30 PM
+          </div>
+        </div>
+        <div class="card-right">
+          <span class="score-pill mid">71</span>
+          <span class="score-trend down">-2</span>
+        </div>
+        <span class="chevron-a">›</span>
+      </div>
+
+      <div class="card-a">
+        <div class="session-icon icon-voice">🎙️</div>
+        <div class="card-body">
+          <div class="card-title">Job Interview Practice</div>
+          <div class="card-subtitle">
+            <span class="type-dot voice"></span>
+            Voice · 18 min · 1:15 PM
+          </div>
+        </div>
+        <div class="card-right">
+          <span class="score-pill high">79</span>
+          <span class="score-trend up">+5</span>
+        </div>
+        <span class="chevron-a">›</span>
+      </div>
+
+      <div class="card-a">
+        <div class="session-icon icon-listening">🎧</div>
+        <div class="card-body">
+          <div class="card-title">Earnings Call Comprehension</div>
+          <div class="card-subtitle">
+            <span class="type-dot listening"></span>
+            Listening · 14 min · 10:30 AM
+          </div>
+        </div>
+        <div class="card-right">
+          <span class="score-pill mid">68</span>
+          <span class="score-trend same">—</span>
+        </div>
+        <span class="chevron-a">›</span>
+      </div>
+
+      <div class="date-divider"><span>Feb 25</span><div class="line"></div></div>
+
+      <div class="card-a">
+        <div class="session-icon icon-writing">✍️</div>
+        <div class="card-body">
+          <div class="card-title">Client Proposal Draft</div>
+          <div class="card-subtitle">
+            <span class="type-dot writing"></span>
+            Writing · 10 min · 4:00 PM
+          </div>
+        </div>
+        <div class="card-right">
+          <span class="score-pill high">85</span>
+          <span class="score-trend up">+4</span>
+        </div>
+        <span class="chevron-a">›</span>
+      </div>
+
+      <div class="card-a">
+        <div class="session-icon icon-voice">🎙️</div>
+        <div class="card-body">
+          <div class="card-title">Restaurant Ordering</div>
+          <div class="card-subtitle">
+            <span class="type-dot voice"></span>
+            Voice · 6 min · 12:10 PM
+          </div>
+        </div>
+        <div class="card-right">
+          <span class="score-pill high">91</span>
+          <span class="score-trend up">+2</span>
+        </div>
+        <span class="chevron-a">›</span>
+      </div>
+
+      <div class="card-a">
+        <div class="session-icon icon-reading">📖</div>
+        <div class="card-body">
+          <div class="card-title">Contract Review Terms</div>
+          <div class="card-subtitle">
+            <span class="type-dot reading"></span>
+            Reading · 11 min · 9:00 AM
+          </div>
+        </div>
+        <div class="card-right">
+          <span class="score-pill mid">74</span>
+          <span class="score-trend up">+6</span>
+        </div>
+        <span class="chevron-a">›</span>
+      </div>
+    </div>
+
+    <div class="bottom-hint"></div>
+    <div class="home-indicator"></div>
+  </div>
+</div>
+
+
+<!-- ===========================
+     OPTION B — INSIGHT CARD
+     =========================== -->
+<div class="option-wrapper">
+  <div class="option-label b">Option B<span>Insight Preview — one key takeaway per card</span></div>
+  <div class="phone-frame">
+    <div class="dynamic-island"></div>
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-icons">
+        <svg viewBox="0 0 16 16"><path d="M1 10h2v4H1zm4-3h2v7H5zm4-3h2v10H9zm4-3h2v13h-2z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M8 2C4.7 2 1.7 3.3 0 5.5l1.4 1.4C2.8 5 5.3 3.8 8 3.8s5.2 1.2 6.6 3.1L16 5.5C14.3 3.3 11.3 2 8 2zm0 4c-2 0-3.8.8-5.1 2.1l1.4 1.4C5.3 8.5 6.6 7.8 8 7.8s2.7.7 3.7 1.7l1.4-1.4C11.8 6.8 10 6 8 6zm0 4c-1.1 0-2 .4-2.7 1.1L8 14l2.7-2.9C10 10.4 9.1 10 8 10z"/></svg>
+        <svg viewBox="0 0 24 16"><rect x="1" y="2" width="18" height="12" rx="2" fill="none" stroke="#F9FAFB" stroke-width="1.5"/><rect x="20" y="5.5" width="2.5" height="5" rx="1" fill="#F9FAFB"/><rect x="2.5" y="3.5" width="12" height="9" rx="1" fill="#10B981"/></svg>
+      </div>
+    </div>
+
+    <div class="header">
+      <div class="header-top">
+        <div class="back-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F9FAFB" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </div>
+        <div class="filter-btn">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          Filter
+        </div>
+      </div>
+      <h1>Your Feedback</h1>
+      <p>23 sessions across 4 weeks</p>
+    </div>
+
+    <div class="progress-strip">
+      <div class="mini-ring">
+        <svg width="56" height="56" viewBox="0 0 56 56">
+          <circle class="ring-bg" cx="28" cy="28" r="24"/>
+          <circle class="ring-fill" cx="28" cy="28" r="24"/>
+        </svg>
+        <span class="ring-value">75</span>
+      </div>
+      <div class="progress-info">
+        <div class="label">Overall Score</div>
+        <div class="value">B1 Intermediate</div>
+        <div class="trend">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8l4-4 4 4"/></svg>
+          +8 pts this week
+        </div>
+      </div>
+      <div class="progress-stats">
+        <div class="stat"><span class="stat-dot blue"></span> 12 voice</div>
+        <div class="stat"><span class="stat-dot teal"></span> 6 practice</div>
+        <div class="stat"><span class="stat-dot purple"></span> 5 lessons</div>
+      </div>
+    </div>
+
+    <div class="filter-chips">
+      <div class="chip active">All</div>
+      <div class="chip inactive">Voice</div>
+      <div class="chip inactive">Lessons</div>
+      <div class="chip inactive">Reading</div>
+      <div class="chip inactive">Writing</div>
+      <div class="chip inactive">Listening</div>
+    </div>
+
+    <div class="session-list">
+      <div class="date-divider"><span>Today</span><div class="line"></div></div>
+
+      <div class="card-b">
+        <div class="card-b-top">
+          <div class="session-icon icon-voice">🎙️</div>
+          <div class="card-meta">
+            <div class="card-title">Business Negotiation Call</div>
+            <div class="card-time">Voice · 12 min · 2:45 PM</div>
+          </div>
+          <div class="score-badge high">82</div>
+        </div>
+        <div class="insight-line">
+          <span class="insight-dot green"></span>
+          <span class="insight-text"><strong>Conditional verbs improved</strong> — "would have been" used correctly 4 times</span>
+          <span class="insight-chevron">›</span>
+        </div>
+      </div>
+
+      <div class="card-b">
+        <div class="card-b-top">
+          <div class="session-icon icon-lesson">📘</div>
+          <div class="card-meta">
+            <div class="card-title">Formal Email Writing</div>
+            <div class="card-time">Lesson · 8 min · 11:20 AM</div>
+          </div>
+          <div class="score-badge high">88</div>
+        </div>
+        <div class="insight-line">
+          <span class="insight-dot green"></span>
+          <span class="insight-text"><strong>Excellent register control</strong> — formal tone maintained throughout</span>
+          <span class="insight-chevron">›</span>
+        </div>
+      </div>
+
+      <div class="date-divider"><span>Yesterday</span><div class="line"></div></div>
+
+      <div class="card-b">
+        <div class="card-b-top">
+          <div class="session-icon icon-reading">📖</div>
+          <div class="card-meta">
+            <div class="card-title">Medical Terminology</div>
+            <div class="card-time">Reading · 15 min · 7:30 PM</div>
+          </div>
+          <div class="score-badge mid">71</div>
+        </div>
+        <div class="insight-line">
+          <span class="insight-dot amber"></span>
+          <span class="insight-text"><strong>Latin-root words</strong> — "diagnosis" and "prognosis" pronunciation needs work</span>
+          <span class="insight-chevron">›</span>
+        </div>
+      </div>
+
+      <div class="card-b">
+        <div class="card-b-top">
+          <div class="session-icon icon-voice">🎙️</div>
+          <div class="card-meta">
+            <div class="card-title">Job Interview Practice</div>
+            <div class="card-time">Voice · 18 min · 1:15 PM</div>
+          </div>
+          <div class="score-badge high">79</div>
+        </div>
+        <div class="insight-line">
+          <span class="insight-dot purple"></span>
+          <span class="insight-text"><strong>STAR method improved</strong> — answers 40% more concise than last attempt</span>
+          <span class="insight-chevron">›</span>
+        </div>
+      </div>
+
+      <div class="card-b">
+        <div class="card-b-top">
+          <div class="session-icon icon-listening">🎧</div>
+          <div class="card-meta">
+            <div class="card-title">Earnings Call Comprehension</div>
+            <div class="card-time">Listening · 14 min · 10:30 AM</div>
+          </div>
+          <div class="score-badge mid">68</div>
+        </div>
+        <div class="insight-line">
+          <span class="insight-dot amber"></span>
+          <span class="insight-text"><strong>Financial jargon gaps</strong> — "quarterly guidance" misunderstood in context</span>
+          <span class="insight-chevron">›</span>
+        </div>
+      </div>
+
+      <div class="date-divider"><span>Feb 25</span><div class="line"></div></div>
+
+      <div class="card-b">
+        <div class="card-b-top">
+          <div class="session-icon icon-writing">✍️</div>
+          <div class="card-meta">
+            <div class="card-title">Client Proposal Draft</div>
+            <div class="card-time">Writing · 10 min · 4:00 PM</div>
+          </div>
+          <div class="score-badge high">85</div>
+        </div>
+        <div class="insight-line">
+          <span class="insight-dot green"></span>
+          <span class="insight-text"><strong>Persuasive language mastery</strong> — effective use of "I'd recommend"</span>
+          <span class="insight-chevron">›</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="bottom-hint"></div>
+    <div class="home-indicator"></div>
+  </div>
+</div>
+
+</body>
+</html>

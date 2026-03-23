@@ -355,7 +355,7 @@ export default function CreatingPathRoute() {
         const stairs = await loadPreviewStairs();
         const firstStair = stairs?.find(s => s.order === 1);
         if (firstStair) {
-          const plan = generateLessonPlan(
+          const plan = await generateLessonPlan(
             firstStair,
             v3Data.proficiency_level || 'starting_fresh',
             true, // isFirstLesson

@@ -44,16 +44,19 @@ const VALUE_PROPS = [
     icon: 'shield-checkmark-outline' as const,
     title: 'Your data stays private',
     desc: 'No ads, no tracking, no data selling',
+    color: '#06D6A0',
   },
   {
     icon: 'locate-outline' as const,
     title: 'Personalized to your profession',
     desc: 'Lessons built around your real scenarios',
+    color: '#00A3FF',
   },
   {
     icon: 'trending-up-outline' as const,
     title: 'Track real communication ability',
     desc: 'Measure articulation, fluency, and more',
+    color: '#8B5CF6',
   },
 ];
 
@@ -75,7 +78,6 @@ export default function DiscoverySignupScreen() {
   }, [params.scores]);
 
   const stairTitle = params.stairTitle || 'Discovery Lesson';
-  const cefrLevel = params.cefrLevel || 'A2';
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -86,15 +88,10 @@ export default function DiscoverySignupScreen() {
           style={styles.headerSection}
         >
           <View style={styles.checkCircle}>
-            <Ionicons name="checkmark" size={32} color="#10B981" />
+            <Ionicons name="checkmark" size={36} color="#06D6A0" />
           </View>
-          <Text style={styles.title}>Lesson Complete</Text>
+          <Text style={styles.title}>Lesson Complete!</Text>
           <Text style={styles.subtitle}>{stairTitle}</Text>
-          {cefrLevel && (
-            <View style={styles.cefrChip}>
-              <Text style={styles.cefrChipText}>Level {cefrLevel}</Text>
-            </View>
-          )}
         </Animated.View>
 
         {/* ═══ KPI Scores ═══ */}
@@ -103,15 +100,19 @@ export default function DiscoverySignupScreen() {
           style={styles.scoresCard}
         >
           <View style={styles.scoresGrid}>
-            {KPI_CONFIG.map((kpi) => (
-              <View key={kpi.key} style={styles.scoreItem}>
-                <Ionicons name={kpi.icon} size={16} color={kpi.color} />
-                <Text style={[styles.scoreValue, { color: kpi.color }]}>
-                  {scores[kpi.key] ?? 0}
-                </Text>
-                <Text style={styles.scoreLabel}>{kpi.label}</Text>
-              </View>
-            ))}
+            {KPI_CONFIG.map((kpi) => {
+              const score = scores[kpi.key] ?? 0;
+              const scoreColor = score >= 50 ? kpi.color : colors.text.disabled;
+              return (
+                <View key={kpi.key} style={styles.scoreItem}>
+                  <Ionicons name={kpi.icon} size={18} color={scoreColor} />
+                  <Text style={[styles.scoreValue, { color: scoreColor }]}>
+                    {score}
+                  </Text>
+                  <Text style={styles.scoreLabel}>{kpi.label}</Text>
+                </View>
+              );
+            })}
           </View>
         </Animated.View>
 
@@ -129,7 +130,7 @@ export default function DiscoverySignupScreen() {
               ]}
             >
               <View style={styles.valueIcon}>
-                <Ionicons name={prop.icon} size={20} color="#3D6BFF" />
+                <Ionicons name={prop.icon} size={20} color={prop.color} />
               </View>
               <View style={styles.valueText}>
                 <Text style={styles.valueTitle}>{prop.title}</Text>
@@ -153,9 +154,9 @@ export default function DiscoverySignupScreen() {
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={['#0077FF', '#0050CC']}
+              colors={colors.gradients.secondary}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+              end={{ x: 1, y: 0 }}
               style={styles.primaryCta}
             >
               <Text style={styles.primaryCtaText}>Create Free Account</Text>
@@ -172,6 +173,15 @@ export default function DiscoverySignupScreen() {
               Already have an account?{' '}
               <Text style={styles.signInLink}>Sign in</Text>
             </Text>
+          </TouchableOpacity>
+
+          {/* Skip link */}
+          <TouchableOpacity
+            onPress={() => router.replace('/(tabs)/home')}
+            activeOpacity={0.7}
+            style={styles.skipBtn}
+          >
+            <Text style={styles.skipText}>Continue without account</Text>
           </TouchableOpacity>
 
         </Animated.View>
@@ -199,12 +209,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   checkCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(6, 214, 160, 0.12)',
     borderWidth: 1.5,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: 'rgba(6, 214, 160, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
@@ -221,19 +231,6 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.medium,
     color: colors.text.tertiary,
     textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  cefrChip: {
-    backgroundColor: 'rgba(0, 54, 255, 0.12)',
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  cefrChipText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
-    color: '#3D6BFF',
-    letterSpacing: 0.5,
   },
 
   // Scores card
@@ -247,18 +244,22 @@ const styles = StyleSheet.create({
   },
   scoresGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   scoreItem: {
+    width: (SCREEN_WIDTH - spacing.lg * 2 - spacing.md * 2 - spacing.sm) / 2,
     alignItems: 'center',
+    paddingVertical: spacing.md,
     gap: spacing.xs,
   },
   scoreValue: {
-    fontSize: typography.fontSize.xl,
+    fontSize: typography.fontSize['2xl'],
     fontWeight: typography.fontWeight.extrabold,
+    letterSpacing: -0.5,
   },
   scoreLabel: {
-    fontSize: 10,
+    fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.semibold,
     color: colors.text.tertiary,
     textTransform: 'uppercase',
@@ -337,5 +338,15 @@ const styles = StyleSheet.create({
   signInLink: {
     color: '#3D6BFF',
     fontWeight: typography.fontWeight.semibold,
+  },
+  skipBtn: {
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  skipText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.disabled,
   },
 });

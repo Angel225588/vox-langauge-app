@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vox — Feedback History</title>
+<style>
+  /* === RESET & BASE === */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #060810;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  }
+
+  /* === PHONE FRAME === */
+  .phone-frame {
+    width: 393px;
+    min-height: 852px;
+    background: #0A0E1A;
+    border-radius: 44px;
+    border: 2px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 25px 80px rgba(0,0,0,0.6),
+      0 0 120px rgba(0,54,255,0.08);
+  }
+
+  /* === STATUS BAR === */
+  .status-bar {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    color: #F9FAFB;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .status-bar .time { letter-spacing: 0.5px; }
+  .status-icons { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+  .status-icons svg { width: 16px; height: 16px; fill: #F9FAFB; }
+
+  /* === DYNAMIC ISLAND === */
+  .dynamic-island {
+    width: 126px;
+    height: 36px;
+    background: #000;
+    border-radius: 20px;
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+  }
+
+  /* === HEADER === */
+  .header {
+    padding: 8px 24px 20px;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #F9FAFB;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #D1D5DB;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .filter-btn svg { width: 14px; height: 14px; }
+
+  .header h1 {
+    color: #F9FAFB;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+  .header p {
+    color: #9CA3AF;
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  /* === OVERALL PROGRESS STRIP === */
+  .progress-strip {
+    margin: 0 24px 20px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(0,54,255,0.12) 0%, rgba(0,163,255,0.06) 100%);
+    border: 1px solid rgba(0,54,255,0.18);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* SVG Score Ring */
+  .mini-ring {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .mini-ring svg { transform: rotate(-90deg); }
+  .mini-ring .ring-bg {
+    fill: none;
+    stroke: rgba(255,255,255,0.06);
+    stroke-width: 4;
+  }
+  .mini-ring .ring-fill {
+    fill: none;
+    stroke: #0036FF;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 150.8;
+    stroke-dashoffset: 37.7; /* 75% filled */
+    transition: stroke-dashoffset 1.2s ease;
+  }
+  .mini-ring .ring-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #F9FAFB;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .progress-info { flex: 1; }
+  .progress-info .label {
+    color: #9CA3AF;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .progress-info .value {
+    color: #F9FAFB;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .progress-info .trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #10B981;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .trend svg { width: 12px; height: 12px; }
+
+  .progress-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+  }
+  .progress-stats .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #D1D5DB;
+  }
+  .stat-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .stat-dot.blue { background: #0036FF; }
+  .stat-dot.teal { background: #06D6A0; }
+  .stat-dot.purple { background: #8B5CF6; }
+
+  /* === FILTER CHIPS === */
+  .filter-chips {
+    display: flex;
+    gap: 8px;
+    padding: 0 24px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+  }
+  .filter-chips::-webkit-scrollbar { display: none; }
+  .chip {
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+  .chip.active {
+    background: linear-gradient(135deg, #0036FF, #00A3FF);
+    color: #F9FAFB;
+    border-color: transparent;
+  }
+  .chip.inactive {
+    background: rgba(255,255,255,0.04);
+    color: #9CA3AF;
+    border-color: rgba(255,255,255,0.08);
+  }
+
+  /* === SESSION LIST (Scrollable) === */
+  .session-list {
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 40px;
+  }
+
+  /* === DATE DIVIDER === */
+  .date-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+    margin-bottom: 2px;
+  }
+  .date-divider span {
+    color: #9CA3AF;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+  }
+  .date-divider .line {
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* === FEEDBACK SESSION CARD === */
+  .session-card {
+    border-radius: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .session-card:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.10);
+    transform: translateY(-1px);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .card-left { display: flex; align-items: center; gap: 12px; }
+
+  .session-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .icon-voice {
+    background: linear-gradient(135deg, rgba(0,54,255,0.20), rgba(0,163,255,0.12));
+    border: 1px solid rgba(0,54,255,0.25);
+  }
+  .icon-reading {
+    background: linear-gradient(135deg, rgba(139,92,246,0.20), rgba(139,92,246,0.12));
+    border: 1px solid rgba(139,92,246,0.25);
+  }
+  .icon-writing {
+    background: linear-gradient(135deg, rgba(6,214,160,0.20), rgba(6,214,160,0.12));
+    border: 1px solid rgba(6,214,160,0.25);
+  }
+  .icon-listening {
+    background: linear-gradient(135deg, rgba(245,158,11,0.20), rgba(245,158,11,0.12));
+    border: 1px solid rgba(245,158,11,0.25);
+  }
+  .icon-lesson {
+    background: linear-gradient(135deg, rgba(0,163,255,0.20), rgba(0,163,255,0.12));
+    border: 1px solid rgba(0,163,255,0.25);
+  }
+
+  .session-meta .session-title {
+    color: #F9FAFB;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .session-meta .session-time {
+    color: #9CA3AF;
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  .card-score {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .score-high {
+    background: rgba(16,185,129,0.12);
+    color: #10B981;
+  }
+  .score-mid {
+    background: rgba(245,158,11,0.12);
+    color: #F59E0B;
+  }
+  .score-low {
+    background: rgba(239,68,68,0.12);
+    color: #EF4444;
+  }
+
+  /* === KPI Mini Bar === */
+  .kpi-mini-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .kpi-mini {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .kpi-mini .kpi-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .kpi-mini .kpi-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+  .kpi-bar .kpi-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.8s ease;
+  }
+  .kpi-fill.articulation { background: #00A3FF; }
+  .kpi-fill.fluency { background: #06D6A0; }
+  .kpi-fill.communication { background: #8B5CF6; }
+  .kpi-fill.scenario { background: #F59E0B; }
+
+  /* === KEY INSIGHT STRIP === */
+  .insight-strip {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .insight-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .insight-icon.green {
+    background: rgba(16,185,129,0.15);
+    color: #10B981;
+  }
+  .insight-icon.amber {
+    background: rgba(245,158,11,0.15);
+    color: #F59E0B;
+  }
+  .insight-icon.purple {
+    background: rgba(139,92,246,0.15);
+    color: #8B5CF6;
+  }
+  .insight-text {
+    font-size: 13px;
+    color: #D1D5DB;
+    line-height: 1.4;
+    flex: 1;
+  }
+  .insight-text strong {
+    color: #F9FAFB;
+    font-weight: 600;
+  }
+
+  /* === CARD FOOTER === */
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tag.strength {
+    background: rgba(16,185,129,0.10);
+    color: #34D399;
+    border: 1px solid rgba(16,185,129,0.15);
+  }
+  .tag.improve {
+    background: rgba(245,158,11,0.10);
+    color: #FBBF24;
+    border: 1px solid rgba(245,158,11,0.15);
+  }
+  .tag.focus {
+    background: rgba(239,68,68,0.10);
+    color: #F87171;
+    border: 1px solid rgba(239,68,68,0.15);
+  }
+
+  .chevron {
+    color: #9CA3AF;
+    font-size: 16px;
+    opacity: 0.5;
+  }
+
+  /* === EXPANDED CARD STATE (first card demo) === */
+  .session-card.expanded {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(0,54,255,0.15);
+  }
+
+  /* === GLASS FEEDBACK SECTIONS (Expanded) === */
+  .expanded-content {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .glass-section {
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .glass-section.green-world {
+    background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02));
+    border: 1px solid rgba(16,185,129,0.12);
+  }
+  .glass-section.amber-world {
+    background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02));
+    border: 1px solid rgba(245,158,11,0.12);
+  }
+  .glass-section.purple-world {
+    background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(139,92,246,0.02));
+    border: 1px solid rgba(139,92,246,0.12);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .section-header .section-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+  .section-header .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    flex: 1;
+  }
+  .section-header .section-count {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+
+  .green-world .section-icon { background: rgba(16,185,129,0.20); color: #10B981; }
+  .green-world .section-title { color: #34D399; }
+  .green-world .section-count { background: rgba(16,185,129,0.15); color: #34D399; }
+
+  .amber-world .section-icon { background: rgba(245,158,11,0.20); color: #F59E0B; }
+  .amber-world .section-title { color: #FBBF24; }
+  .amber-world .section-count { background: rgba(245,158,11,0.15); color: #FBBF24; }
+
+  .purple-world .section-icon { background: rgba(139,92,246,0.20); color: #8B5CF6; }
+  .purple-world .section-title { color: #A78BFA; }
+  .purple-world .section-count { background: rgba(139,92,246,0.15); color: #A78BFA; }
+
+  /* Section Items */
+  .section-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+  }
+  .section-item + .section-item {
+    border-top: 1px solid rgba(255,255,255,0.03);
+  }
+  .item-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .green-world .item-check { background: rgba(16,185,129,0.15); color: #10B981; }
+  .amber-world .item-check { background: rgba(245,158,11,0.15); color: #F59E0B; }
+
+  .item-content { flex: 1; }
+  .item-content .item-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #F9FAFB;
+    line-height: 1.3;
+  }
+  .item-content .item-detail {
+    font-size: 11px;
+    color: #9CA3AF;
+    margin-top: 2px;
+  }
+
+  /* Progress bar item */
+  .progress-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+  }
+  .progress-item + .progress-item {
+    border-top: 1px solid rgba(255,255,255,0.03);
+  }
+  .progress-item .metric-name {
+    font-size: 12px;
+    color: #D1D5DB;
+    width: 80px;
+    flex-shrink: 0;
+  }
+  .progress-item .metric-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+  .metric-bar .metric-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #8B5CF6, #A78BFA);
+  }
+  .progress-item .metric-values {
+    font-size: 11px;
+    color: #A78BFA;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .metric-values .old { color: #9CA3AF; font-weight: 400; }
+
+  /* === BOTTOM NAV HINT === */
+  .bottom-hint {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(to top, #0A0E1A 40%, transparent);
+    pointer-events: none;
+  }
+  .home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 134px;
+    height: 5px;
+    border-radius: 100px;
+    background: rgba(255,255,255,0.20);
+  }
+
+  /* === ANIMATIONS === */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .session-card { animation: fadeInUp 0.5s ease both; }
+  .session-card:nth-child(1) { animation-delay: 0.05s; }
+  .session-card:nth-child(2) { animation-delay: 0.10s; }
+  .session-card:nth-child(3) { animation-delay: 0.15s; }
+  .session-card:nth-child(4) { animation-delay: 0.25s; }
+  .session-card:nth-child(5) { animation-delay: 0.35s; }
+  .session-card:nth-child(6) { animation-delay: 0.45s; }
+  .progress-strip { animation: fadeInUp 0.4s ease both; animation-delay: 0.0s; }
+  .filter-chips { animation: fadeInUp 0.4s ease both; animation-delay: 0.05s; }
+
+  /* === LABEL FOR MOCKUP === */
+  .mockup-label {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    color: #9CA3AF;
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .mockup-label span { color: #0036FF; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="mockup-label">VOX — <span>Feedback History</span> (Mockup v1)</div>
+
+<div class="phone-frame">
+  <div class="dynamic-island"></div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="status-icons">
+      <svg viewBox="0 0 16 16"><path d="M1 10h2v4H1zm4-3h2v7H5zm4-3h2v10H9zm4-3h2v13h-2z"/></svg>
+      <svg viewBox="0 0 16 16"><path d="M8 2C4.7 2 1.7 3.3 0 5.5l1.4 1.4C2.8 5 5.3 3.8 8 3.8s5.2 1.2 6.6 3.1L16 5.5C14.3 3.3 11.3 2 8 2zm0 4c-2 0-3.8.8-5.1 2.1l1.4 1.4C5.3 8.5 6.6 7.8 8 7.8s2.7.7 3.7 1.7l1.4-1.4C11.8 6.8 10 6 8 6zm0 4c-1.1 0-2 .4-2.7 1.1L8 14l2.7-2.9C10 10.4 9.1 10 8 10z"/></svg>
+      <svg viewBox="0 0 24 16"><rect x="1" y="2" width="18" height="12" rx="2" fill="none" stroke="#F9FAFB" stroke-width="1.5"/><rect x="20" y="5.5" width="2.5" height="5" rx="1" fill="#F9FAFB"/><rect x="2.5" y="3.5" width="12" height="9" rx="1" fill="#10B981"/></svg>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F9FAFB" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div class="filter-btn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round">
+          <path d="M2 4h12M4 8h8M6 12h4"/>
+        </svg>
+        Filter
+      </div>
+    </div>
+    <h1>Your Feedback</h1>
+    <p>23 sessions across 4 weeks</p>
+  </div>
+
+  <!-- Overall Progress Strip -->
+  <div class="progress-strip">
+    <div class="mini-ring">
+      <svg width="56" height="56" viewBox="0 0 56 56">
+        <circle class="ring-bg" cx="28" cy="28" r="24"/>
+        <circle class="ring-fill" cx="28" cy="28" r="24"/>
+      </svg>
+      <span class="ring-value">75</span>
+    </div>
+    <div class="progress-info">
+      <div class="label">Overall Score</div>
+      <div class="value">B1 Intermediate</div>
+      <div class="trend">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8l4-4 4 4"/></svg>
+        +8 pts this week
+      </div>
+    </div>
+    <div class="progress-stats">
+      <div class="stat"><span class="stat-dot blue"></span> 12 voice</div>
+      <div class="stat"><span class="stat-dot teal"></span> 6 practice</div>
+      <div class="stat"><span class="stat-dot purple"></span> 5 lessons</div>
+    </div>
+  </div>
+
+  <!-- Filter Chips -->
+  <div class="filter-chips">
+    <div class="chip active">All</div>
+    <div class="chip inactive">Voice</div>
+    <div class="chip inactive">Lessons</div>
+    <div class="chip inactive">Reading</div>
+    <div class="chip inactive">Writing</div>
+    <div class="chip inactive">Listening</div>
+  </div>
+
+  <!-- Session List -->
+  <div class="session-list">
+
+    <!-- Date Divider -->
+    <div class="date-divider">
+      <span>Today</span>
+      <div class="line"></div>
+    </div>
+
+    <!-- Card 1: Voice — Expanded State -->
+    <div class="session-card expanded">
+      <div class="card-header">
+        <div class="card-left">
+          <div class="session-icon icon-voice">🎙️</div>
+          <div class="session-meta">
+            <div class="session-title">Business Negotiation Call</div>
+            <div class="session-time">Today, 2:45 PM · 12 min</div>
+          </div>
+        </div>
+        <div class="card-score score-high">82</div>
+      </div>
+
+      <!-- KPI Mini Bars -->
+      <div class="kpi-mini-row">
+        <div class="kpi-mini">
+          <span class="kpi-label">Articulation</span>
+          <div class="kpi-bar"><div class="kpi-fill articulation" style="width: 85%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Fluency</span>
+          <div class="kpi-bar"><div class="kpi-fill fluency" style="width: 78%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Communication</span>
+          <div class="kpi-bar"><div class="kpi-fill communication" style="width: 80%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Scenario</span>
+          <div class="kpi-bar"><div class="kpi-fill scenario" style="width: 84%"></div></div>
+        </div>
+      </div>
+
+      <!-- Key Insight -->
+      <div class="insight-strip">
+        <div class="insight-icon green">✓</div>
+        <div class="insight-text"><strong>Strong conditional usage</strong> — verb tenses improved significantly since last session</div>
+      </div>
+
+      <!-- Expanded Glass Sections -->
+      <div class="expanded-content">
+        <!-- Strengths -->
+        <div class="glass-section green-world">
+          <div class="section-header">
+            <div class="section-icon">✓</div>
+            <div class="section-title">Strengths</div>
+            <div class="section-count">3</div>
+          </div>
+          <div class="section-item">
+            <div class="item-check">✓</div>
+            <div class="item-content">
+              <div class="item-label">Conditional verb forms</div>
+              <div class="item-detail">Used "would have been" correctly 4 times</div>
+            </div>
+          </div>
+          <div class="section-item">
+            <div class="item-check">✓</div>
+            <div class="item-content">
+              <div class="item-label">Negotiation vocabulary</div>
+              <div class="item-detail">Counter-offer, leverage, terms — all used naturally</div>
+            </div>
+          </div>
+          <div class="section-item">
+            <div class="item-check">✓</div>
+            <div class="item-content">
+              <div class="item-label">Pronunciation clarity</div>
+              <div class="item-detail">Clear "th" sounds in "think" and "through"</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Improvements -->
+        <div class="glass-section amber-world">
+          <div class="section-header">
+            <div class="section-icon">!</div>
+            <div class="section-title">To Improve</div>
+            <div class="section-count">2</div>
+          </div>
+          <div class="section-item">
+            <div class="item-check">!</div>
+            <div class="item-content">
+              <div class="item-label">Filler word frequency</div>
+              <div class="item-detail">"Um" used 8 times — try pausing instead</div>
+            </div>
+          </div>
+          <div class="section-item">
+            <div class="item-check">!</div>
+            <div class="item-content">
+              <div class="item-label">Transition phrases</div>
+              <div class="item-detail">Practice "on the other hand", "having said that"</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="glass-section purple-world">
+          <div class="section-header">
+            <div class="section-icon">↑</div>
+            <div class="section-title">Progress</div>
+          </div>
+          <div class="progress-item">
+            <span class="metric-name">Fluency</span>
+            <div class="metric-bar"><div class="metric-fill" style="width: 78%"></div></div>
+            <span class="metric-values"><span class="old">71 →</span> 78</span>
+          </div>
+          <div class="progress-item">
+            <span class="metric-name">Vocabulary</span>
+            <div class="metric-bar"><div class="metric-fill" style="width: 85%"></div></div>
+            <span class="metric-values"><span class="old">80 →</span> 85</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="card-footer">
+        <div class="tags">
+          <span class="tag strength">Conditionals</span>
+          <span class="tag strength">Vocab</span>
+          <span class="tag improve">Fillers</span>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+    </div>
+
+    <!-- Card 2: Lesson — Collapsed -->
+    <div class="session-card">
+      <div class="card-header">
+        <div class="card-left">
+          <div class="session-icon icon-lesson">📘</div>
+          <div class="session-meta">
+            <div class="session-title">Formal Email Writing</div>
+            <div class="session-time">Today, 11:20 AM · 8 min</div>
+          </div>
+        </div>
+        <div class="card-score score-high">88</div>
+      </div>
+
+      <div class="kpi-mini-row">
+        <div class="kpi-mini">
+          <span class="kpi-label">Articulation</span>
+          <div class="kpi-bar"><div class="kpi-fill articulation" style="width: 90%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Fluency</span>
+          <div class="kpi-bar"><div class="kpi-fill fluency" style="width: 85%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Communication</span>
+          <div class="kpi-bar"><div class="kpi-fill communication" style="width: 88%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Scenario</span>
+          <div class="kpi-bar"><div class="kpi-fill scenario" style="width: 90%"></div></div>
+        </div>
+      </div>
+
+      <div class="insight-strip">
+        <div class="insight-icon green">✓</div>
+        <div class="insight-text"><strong>Excellent register control</strong> — formal tone maintained throughout all prompts</div>
+      </div>
+
+      <div class="card-footer">
+        <div class="tags">
+          <span class="tag strength">Register</span>
+          <span class="tag strength">Structure</span>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+    </div>
+
+    <!-- Date Divider -->
+    <div class="date-divider">
+      <span>Yesterday</span>
+      <div class="line"></div>
+    </div>
+
+    <!-- Card 3: Reading — Collapsed -->
+    <div class="session-card">
+      <div class="card-header">
+        <div class="card-left">
+          <div class="session-icon icon-reading">📖</div>
+          <div class="session-meta">
+            <div class="session-title">Medical Terminology</div>
+            <div class="session-time">Yesterday, 7:30 PM · 15 min</div>
+          </div>
+        </div>
+        <div class="card-score score-mid">71</div>
+      </div>
+
+      <div class="kpi-mini-row">
+        <div class="kpi-mini">
+          <span class="kpi-label">Articulation</span>
+          <div class="kpi-bar"><div class="kpi-fill articulation" style="width: 68%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Fluency</span>
+          <div class="kpi-bar"><div class="kpi-fill fluency" style="width: 72%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Communication</span>
+          <div class="kpi-bar"><div class="kpi-fill communication" style="width: 70%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Scenario</span>
+          <div class="kpi-bar"><div class="kpi-fill scenario" style="width: 74%"></div></div>
+        </div>
+      </div>
+
+      <div class="insight-strip">
+        <div class="insight-icon amber">!</div>
+        <div class="insight-text"><strong>Latin-root words</strong> need practice — "diagnosis" and "prognosis" pronunciation inconsistent</div>
+      </div>
+
+      <div class="card-footer">
+        <div class="tags">
+          <span class="tag improve">Latin roots</span>
+          <span class="tag focus">Pronunciation</span>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+    </div>
+
+    <!-- Card 4: Voice — Collapsed -->
+    <div class="session-card">
+      <div class="card-header">
+        <div class="card-left">
+          <div class="session-icon icon-voice">🎙️</div>
+          <div class="session-meta">
+            <div class="session-title">Job Interview Practice</div>
+            <div class="session-time">Yesterday, 1:15 PM · 18 min</div>
+          </div>
+        </div>
+        <div class="card-score score-high">79</div>
+      </div>
+
+      <div class="kpi-mini-row">
+        <div class="kpi-mini">
+          <span class="kpi-label">Articulation</span>
+          <div class="kpi-bar"><div class="kpi-fill articulation" style="width: 80%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Fluency</span>
+          <div class="kpi-bar"><div class="kpi-fill fluency" style="width: 75%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Communication</span>
+          <div class="kpi-bar"><div class="kpi-fill communication" style="width: 82%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Scenario</span>
+          <div class="kpi-bar"><div class="kpi-fill scenario" style="width: 78%"></div></div>
+        </div>
+      </div>
+
+      <div class="insight-strip">
+        <div class="insight-icon purple">↑</div>
+        <div class="insight-text"><strong>STAR method improved</strong> — structured answers were 40% more concise than last attempt</div>
+      </div>
+
+      <div class="card-footer">
+        <div class="tags">
+          <span class="tag strength">Structure</span>
+          <span class="tag improve">Confidence</span>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+    </div>
+
+    <!-- Date Divider -->
+    <div class="date-divider">
+      <span>Feb 25</span>
+      <div class="line"></div>
+    </div>
+
+    <!-- Card 5: Writing — Collapsed -->
+    <div class="session-card">
+      <div class="card-header">
+        <div class="card-left">
+          <div class="session-icon icon-writing">✍️</div>
+          <div class="session-meta">
+            <div class="session-title">Client Proposal Draft</div>
+            <div class="session-time">Feb 25, 4:00 PM · 10 min</div>
+          </div>
+        </div>
+        <div class="card-score score-high">85</div>
+      </div>
+
+      <div class="kpi-mini-row">
+        <div class="kpi-mini">
+          <span class="kpi-label">Articulation</span>
+          <div class="kpi-bar"><div class="kpi-fill articulation" style="width: 88%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Fluency</span>
+          <div class="kpi-bar"><div class="kpi-fill fluency" style="width: 82%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Communication</span>
+          <div class="kpi-bar"><div class="kpi-fill communication" style="width: 86%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Scenario</span>
+          <div class="kpi-bar"><div class="kpi-fill scenario" style="width: 84%"></div></div>
+        </div>
+      </div>
+
+      <div class="insight-strip">
+        <div class="insight-icon green">✓</div>
+        <div class="insight-text"><strong>Persuasive language mastery</strong> — effective use of "I'd recommend" and "the data suggests"</div>
+      </div>
+
+      <div class="card-footer">
+        <div class="tags">
+          <span class="tag strength">Persuasion</span>
+          <span class="tag strength">Formal tone</span>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+    </div>
+
+    <!-- Card 6: Listening — Collapsed -->
+    <div class="session-card">
+      <div class="card-header">
+        <div class="card-left">
+          <div class="session-icon icon-listening">🎧</div>
+          <div class="session-meta">
+            <div class="session-title">Earnings Call Comprehension</div>
+            <div class="session-time">Feb 25, 10:30 AM · 14 min</div>
+          </div>
+        </div>
+        <div class="card-score score-mid">68</div>
+      </div>
+
+      <div class="kpi-mini-row">
+        <div class="kpi-mini">
+          <span class="kpi-label">Articulation</span>
+          <div class="kpi-bar"><div class="kpi-fill articulation" style="width: 65%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Fluency</span>
+          <div class="kpi-bar"><div class="kpi-fill fluency" style="width: 70%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Communication</span>
+          <div class="kpi-bar"><div class="kpi-fill communication" style="width: 66%"></div></div>
+        </div>
+        <div class="kpi-mini">
+          <span class="kpi-label">Scenario</span>
+          <div class="kpi-bar"><div class="kpi-fill scenario" style="width: 72%"></div></div>
+        </div>
+      </div>
+
+      <div class="insight-strip">
+        <div class="insight-icon amber">!</div>
+        <div class="insight-text"><strong>Financial jargon gaps</strong> — "quarterly guidance" and "EBITDA" misunderstood in context</div>
+      </div>
+
+      <div class="card-footer">
+        <div class="tags">
+          <span class="tag focus">Finance vocab</span>
+          <span class="tag improve">Fast speech</span>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Gradient & Home Indicator -->
+  <div class="bottom-hint"></div>
+  <div class="home-indicator"></div>
+</div>
+
+</body>
+</html>

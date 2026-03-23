@@ -22,6 +22,9 @@ import type {
   SessionScenario,
   SessionReadingContent,
   SessionWritingContent,
+  SessionListeningContent,
+  ListeningLine,
+  ListeningQuestion,
   ContentSources,
   FsrsUpdate,
   SessionSummary,
@@ -78,7 +81,10 @@ export async function loadSessionContent(
   const reading = await generateReadingContent(scenario, sessionVocab, params);
   const writing = generateWritingContent(scenario, sessionVocab);
 
-  // 6. Build source tracking
+  // 6. Generate listening content — scenario story/dialogue
+  const listening = generateListeningContent(scenario, sessionVocab, params);
+
+  // 7. Build source tracking
   const sources: ContentSources = {
     vocab_from_library: 0,
     vocab_from_stair: sessionVocab.filter(v => v.source === 'stair_content').length,
@@ -90,12 +96,14 @@ export async function loadSessionContent(
   console.log('[StairSession] Content loaded:', {
     scenario: scenario.title,
     vocab: sessionVocab.length,
+    listening: listening.type,
     sources,
   });
 
   return {
     scenario,
     vocabulary: sessionVocab,
+    listening,
     reading,
     writing,
     sources,
@@ -362,6 +370,199 @@ function buildComprehensionQuestions(
 }
 
 // ============================================================================
+// LISTENING CONTENT GENERATION
+// ============================================================================
+
+/**
+ * Generate scenario-relevant listening content.
+ *
+ * Creates a compelling story or dialogue that:
+ * - Uses vocabulary the user just reviewed
+ * - Shows a real-world success scenario (motivation)
+ * - Gives daily-life tips for using the language
+ *
+ * Template-based for now. Will be replaced by Gemini AI generation.
+ */
+function generateListeningContent(
+  scenario: SessionScenario,
+  vocabulary: SessionVocabItem[],
+  params: { target_language: string; native_language: string; proficiency_level: string }
+): SessionListeningContent {
+  const vocabWords = vocabulary.slice(0, 6).map(v => v.word);
+  const isDialogue = scenario.ai_persona.role.includes('colleague') ||
+    scenario.ai_persona.role.includes('contact') ||
+    scenario.title.toLowerCase().includes('meeting') ||
+    scenario.title.toLowerCase().includes('interview');
+
+  if (isDialogue) {
+    return buildDialogueListening(scenario, vocabWords, params);
+  }
+  return buildStoryListening(scenario, vocabWords, params);
+}
+
+/**
+ * Build a storytelling-style listening (single narrator).
+ * The "sell the pen" model — a compelling success story.
+ */
+function buildStoryListening(
+  scenario: SessionScenario,
+  vocabWords: string[],
+  params: { target_language: string; native_language: string; proficiency_level: string }
+): SessionListeningContent {
+  // Template stories — will be replaced by Gemini
+  const storyLines: ListeningLine[] = [
+    {
+      speaker: 'narrator',
+      speaker_name: 'Narrator',
+      text: `Let me tell you a story about someone who mastered exactly this situation.`,
+      translation: '',
+    },
+    {
+      speaker: 'narrator',
+      speaker_name: 'Narrator',
+      text: scenario.context,
+      translation: '',
+    },
+    {
+      speaker: 'narrator',
+      speaker_name: 'Narrator',
+      text: `The key was knowing the right phrases. Words like "${vocabWords[0] || 'hello'}" and "${vocabWords[1] || 'thank you'}" made all the difference.`,
+      translation: '',
+    },
+    {
+      speaker: 'narrator',
+      speaker_name: 'Narrator',
+      text: `When they used "${vocabWords[2] || 'please'}" at the right moment, everything changed. The conversation became natural.`,
+      translation: '',
+    },
+    {
+      speaker: 'narrator',
+      speaker_name: 'Narrator',
+      text: `The secret? Practice these phrases in your daily routine. When you wake up, when you eat, when you commute. Make the language part of your life.`,
+      translation: '',
+    },
+  ];
+
+  const questions: ListeningQuestion[] = [
+    {
+      question: 'What was the key to success in this story?',
+      options: [
+        'Knowing the right phrases for the situation',
+        'Speaking as fast as possible',
+        'Memorizing the dictionary',
+        'Avoiding conversation',
+      ],
+      correct_index: 0,
+    },
+    {
+      question: 'When should you practice these phrases?',
+      options: [
+        'Only during lessons',
+        'In your daily routine — waking up, eating, commuting',
+        'Once a week',
+        'Only before important meetings',
+      ],
+      correct_index: 1,
+    },
+  ];
+
+  return {
+    title: `Story: ${scenario.title}`,
+    description: `A real-world success story about ${scenario.title.toLowerCase()}. Listen and learn how others mastered this situation.`,
+    type: 'story',
+    lines: storyLines,
+    questions,
+    vocabulary_spotlight: vocabWords.slice(0, 4),
+    daily_tip: `Try using "${vocabWords[0] || 'the key phrase'}" in a real situation today. Even thinking the phrase in your head counts as practice.`,
+  };
+}
+
+/**
+ * Build a dialogue-style listening (two speakers).
+ * Shows a realistic conversation for the scenario.
+ */
+function buildDialogueListening(
+  scenario: SessionScenario,
+  vocabWords: string[],
+  params: { target_language: string; native_language: string; proficiency_level: string }
+): SessionListeningContent {
+  const speakerA = scenario.ai_persona.role.split(' ').pop() || 'Alex';
+  const speakerB = 'You (example)';
+
+  const dialogueLines: ListeningLine[] = [
+    {
+      speaker: 'A',
+      speaker_name: speakerA,
+      text: `${vocabWords[0] || 'Hello'}! I've been looking forward to this.`,
+      translation: '',
+    },
+    {
+      speaker: 'B',
+      speaker_name: speakerB,
+      text: `${vocabWords[1] || 'Thank you'}. I've prepared some thoughts about ${scenario.title.toLowerCase()}.`,
+      translation: '',
+    },
+    {
+      speaker: 'A',
+      speaker_name: speakerA,
+      text: `Great. What's your approach? I'm curious to hear your perspective.`,
+      translation: '',
+    },
+    {
+      speaker: 'B',
+      speaker_name: speakerB,
+      text: `Well, I think the most important thing is ${vocabWords[2] || 'being clear'}. And knowing when to use "${vocabWords[3] || 'the right phrase'}".`,
+      translation: '',
+    },
+    {
+      speaker: 'A',
+      speaker_name: speakerA,
+      text: `That's exactly right. Most people overcomplicate it. Keep it simple and direct.`,
+      translation: '',
+    },
+    {
+      speaker: 'B',
+      speaker_name: speakerB,
+      text: `${vocabWords[4] || 'I agree'}. Simple and confident wins every time.`,
+      translation: '',
+    },
+  ];
+
+  const questions: ListeningQuestion[] = [
+    {
+      question: 'What approach did the speakers recommend?',
+      options: [
+        'Simple and direct communication',
+        'Using complex vocabulary',
+        'Avoiding difficult topics',
+        'Speaking very formally',
+      ],
+      correct_index: 0,
+    },
+    {
+      question: 'What quality helps most in this situation?',
+      options: [
+        'Speed',
+        'Confidence and clarity',
+        'Memorizing scripts',
+        'Avoiding eye contact',
+      ],
+      correct_index: 1,
+    },
+  ];
+
+  return {
+    title: `Dialogue: ${scenario.title}`,
+    description: `Listen to how two people handle ${scenario.title.toLowerCase()}. Notice the phrases and tone they use.`,
+    type: 'dialogue',
+    lines: dialogueLines,
+    questions,
+    vocabulary_spotlight: vocabWords.slice(0, 4),
+    daily_tip: `Next time you're in a similar situation, start with "${vocabWords[0] || 'the greeting'}". First impressions set the tone.`,
+  };
+}
+
+// ============================================================================
 // WRITING CONTENT GENERATION
 // ============================================================================
 
@@ -411,6 +612,8 @@ export function calculateSessionSummary(
     ? Math.round((results.vocabulary.words_known / Math.max(results.vocabulary.words_reviewed, 1)) * 100)
     : 0;
 
+  const listeningScore = results.listening?.comprehension_score ?? 0;
+
   const conversationScore = results.conversation?.fluency_score ?? 0;
 
   const readingScore = results.reading?.comprehension_score ?? 0;
@@ -419,12 +622,13 @@ export function calculateSessionSummary(
     ? Math.round((results.writing.key_vocab_used / Math.max(results.writing.key_vocab_total, 1)) * 100)
     : 0;
 
-  // Overall score: weighted average
+  // Overall score: weighted average (conversation is king)
   const overall = Math.round(
-    vocabScore * 0.2 +
+    vocabScore * 0.10 +
+    listeningScore * 0.15 +
     conversationScore * 0.35 +
-    readingScore * 0.25 +
-    writingScore * 0.2
+    readingScore * 0.20 +
+    writingScore * 0.20
   );
 
   // Build FSRS updates from conversation data
@@ -467,6 +671,7 @@ export function calculateSessionSummary(
     total_time_seconds: totalTime,
     vocab_reviewed: results.vocabulary?.words_reviewed ?? 0,
     vocab_added: wordsAdded.length,
+    listening_score: listeningScore,
     conversation_score: conversationScore,
     reading_score: readingScore,
     writing_score: writingScore,
