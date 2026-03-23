@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colors, spacing, borderRadius, typography, shadows } from '@/constants/designSystem';
 import { useOnboardingV2 } from '@/hooks/useOnboardingV2';
@@ -454,6 +455,72 @@ export default function ProfileScreen() {
                 isLast
               />
             </View>
+
+            {/* Update Content — regenerates session content from profile + feedback */}
+            <TouchableOpacity
+              onPress={async () => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                Alert.alert(
+                  'Update Learning Content',
+                  'This will regenerate your session content based on your current profile, selected scenarios, and feedback history. Your vocabulary and progress will be kept.\n\nContinue?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Update',
+                      onPress: async () => {
+                        try {
+                          const { invalidateIfProfileChanged } = require('@/lib/utils/profileFingerprint');
+                          const { generatePreviewStairs, storePreviewStairs } = require('@/lib/services/previewStairs');
+                          const v3Data = v3Store.getOnboardingData();
+
+                          // Force regenerate stairs
+                          const previewStairs = generatePreviewStairs({
+                            scenarios: v3Data.scenarios,
+                            target_language: v3Data.target_language || 'english',
+                            profession: v3Data.profession || undefined,
+                            proficiency_level: v3Data.proficiency_level || undefined,
+                          });
+                          await storePreviewStairs(previewStairs);
+
+                          // Invalidate caches
+                          await invalidateIfProfileChanged({
+                            target_language: v3Data.target_language || 'english',
+                            native_language: v3Data.native_language || 'english',
+                            proficiency_level: v3Data.proficiency_level || 'starting_fresh',
+                            scenarios: [...(v3Data.scenarios || []), ...(v3Data.custom_scenarios || [])],
+                            profession: v3Data.profession || v3Data.profession_custom || undefined,
+                          });
+
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          Alert.alert('Content Updated', 'Your learning path has been refreshed with updated scenarios and content.');
+                        } catch (err) {
+                          console.error('[Profile] Update content error:', err);
+                          Alert.alert('Error', 'Could not update content. Please try again.');
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+              style={{
+                backgroundColor: colors.primary.DEFAULT + '15',
+                borderRadius: borderRadius.lg,
+                paddingVertical: spacing.md,
+                paddingHorizontal: spacing.lg,
+                marginTop: spacing.md,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.sm,
+                borderWidth: 1,
+                borderColor: colors.primary.DEFAULT + '30',
+              }}
+            >
+              <Ionicons name="refresh" size={18} color={colors.primary.DEFAULT} />
+              <Text style={{ color: colors.primary.DEFAULT, fontSize: typography.fontSize.base, fontWeight: '600' }}>
+                Update Learning Content
+              </Text>
+            </TouchableOpacity>
           </Animated.View>
 
           {/* 5. App Language */}

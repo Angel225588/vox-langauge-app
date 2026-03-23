@@ -197,21 +197,11 @@ export default function LessonScreen() {
   }, [router]);
 
   const handleStart = useCallback(async () => {
-    if (!lessonPlan) return;
+    if (!id) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await storeActiveLessonPlan(lessonPlan);
-
-    // Pre-generate content in background (fire-and-forget)
-    // This warms the AsyncStorage cache so lesson-session picks it up instantly
-    const preGenFn = lessonPlan.is_discovery
-      ? generateDiscoveryLessonContent
-      : generateStairLessonContent;
-    preGenFn(lessonPlan, user?.id || 'anonymous').catch((err) =>
-      console.warn('[LessonScreen] Content pre-gen failed:', err)
-    );
-
-    router.push('/lesson-session');
-  }, [lessonPlan, user, router]);
+    // Navigate to the new 7-step stair session
+    router.push(`/stair-session/${id}`);
+  }, [id, router]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {

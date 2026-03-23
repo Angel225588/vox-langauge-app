@@ -50,7 +50,8 @@ import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS';
 import VoiceCallScreenElevenLabs from '@/components/cards/VoiceCallScreenElevenLabs';
 import type { VoiceCallCompletionResult } from '@/components/cards/VoiceCallScreenElevenLabs';
-import { getDefaultVoiceForLanguage } from '@/lib/voice/elevenLabsConfig';
+import { getDefaultVoiceForLanguage, getDialogueVoices } from '@/lib/voice/elevenLabsConfig';
+import { advanceStairProgression } from '@/lib/services/previewStairs';
 import type {
   SessionStep,
   SessionVocabItem,
@@ -66,6 +67,11 @@ import type { VoiceScenario, SupportedLanguage } from '@/lib/voice';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// Map SupportedLanguage to expo-speech language codes
+const SPEECH_LANG_MAP: Record<string, string> = {
+  en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', it: 'it-IT', pt: 'pt-BR',
+};
+
 // ============================================================================
 // MAIN SCREEN
 // ============================================================================
@@ -76,6 +82,8 @@ export default function StairSessionScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const userId = user?.id || 'anonymous';
+  const onboarding = useOnboardingV3();
+  const targetLang = (onboarding?.target_language || 'en') as SupportedLanguage;
   const session = useStairSession(id, userId);
 
   useEffect(() => {
@@ -181,6 +189,7 @@ export default function StairSessionScreen() {
           {session.currentStep === 'vocabulary' && (
             <VocabularyStep
               vocabulary={session.content.vocabulary}
+              targetLanguage={targetLang}
               onComplete={(result) => {
                 session.submitVocabularyResult(result);
                 handleStepComplete();
@@ -192,6 +201,7 @@ export default function StairSessionScreen() {
           {session.currentStep === 'listening' && (
             <ListeningStep
               listening={session.content.listening}
+              targetLanguage={targetLang}
               onComplete={(result) => {
                 session.submitListeningResult(result);
                 handleStepComplete();
@@ -226,6 +236,16 @@ export default function StairSessionScreen() {
               wordsAdded={session.state.wordsAdded}
               onFinish={async () => {
                 await session.completeSession();
+                // Mark stair as completed in local storage + unlock next
+                if (id) {
+                  try {
+                    await advanceStairProgression(id);
+                  } catch (e) {
+                    console.warn('[StairSession] Could not mark stair complete:', e);
+                  }
+                }
+                // Navigate back to home (staircase will show completion)
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 router.back();
               }}
             />
@@ -337,10 +357,12 @@ type VocabPhase = 'overview' | 'review';
 
 function VocabularyStep({
   vocabulary,
+  targetLanguage,
   onComplete,
   onAddWord,
 }: {
   vocabulary: SessionVocabItem[];
+  targetLanguage: SupportedLanguage;
   onComplete: (result: VocabularyStepResult) => void;
   onAddWord: (word: string) => void;
 }) {
@@ -363,7 +385,7 @@ function VocabularyStep({
         <View style={S.vocabGrid}>
           {vocabulary.map((word, i) => (
             <Animated.View key={word.word} entering={FadeInDown.delay(i * 60)}>
-              <VocabOverviewChip word={word} />
+              <VocabOverviewChip word={word} targetLanguage={targetLanguage} />
             </Animated.View>
           ))}
         </View>
@@ -424,7 +446,7 @@ function VocabularyStep({
         <TouchableOpacity
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            Speech.speak(currentWord.word, { rate: 0.85 });
+            Speech.speak(currentWord.word, { rate: 0.85, language: SPEECH_LANG_MAP[targetLanguage] || 'en-US' });
           }}
           style={S.vocabAudioBtn}
         >
@@ -469,12 +491,12 @@ function VocabularyStep({
 }
 
 /** Single vocab chip in overview grid — tap to hear */
-function VocabOverviewChip({ word }: { word: SessionVocabItem }) {
+function VocabOverviewChip({ word, targetLanguage }: { word: SessionVocabItem; targetLanguage: SupportedLanguage }) {
   const [expanded, setExpanded] = useState(false);
 
   const handleTap = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Speech.speak(word.word, { rate: 0.85 });
+    Speech.speak(word.word, { rate: 0.85, language: SPEECH_LANG_MAP[targetLanguage] || 'en-US' });
     setExpanded(!expanded);
   };
 
@@ -500,9 +522,11 @@ function VocabOverviewChip({ word }: { word: SessionVocabItem }) {
 
 function ListeningStep({
   listening,
+  targetLanguage,
   onComplete,
 }: {
   listening: SessionListeningContent;
+  targetLanguage: SupportedLanguage;
   onComplete: (result: ListeningStepResult) => void;
 }) {
   const [phase, setPhase] = useState<'intro' | 'playing' | 'questions' | 'done'>('intro');
@@ -515,16 +539,36 @@ function ListeningStep({
 
   const { speak, speakSequence, stop: stopTTS, isSpeaking } = useElevenLabsTTS();
 
-  // Start playing all lines
+  // Start playing all lines with language-appropriate voices
   const handleStartListening = useCallback(async () => {
     setPhase('playing');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      const sequence = listening.lines.map((line, idx) => ({
-        text: line.text,
-        delayBefore: idx === 0 ? 500 : 800,
-      }));
+      // Get voices based on content type
+      const defaultVoice = getDefaultVoiceForLanguage(targetLanguage);
+      const defaultVoiceId = defaultVoice?.id;
+
+      let dialogueVoices: ReturnType<typeof getDialogueVoices> = [];
+      if (listening.type === 'dialogue') {
+        dialogueVoices = getDialogueVoices(targetLanguage, 2);
+      }
+
+      const sequence = listening.lines.map((line, idx) => {
+        let voiceId = defaultVoiceId; // Default: narrator voice
+
+        // For dialogues, assign different voices per speaker
+        if (listening.type === 'dialogue' && dialogueVoices.length >= 2) {
+          if (line.speaker === 'A') voiceId = dialogueVoices[0]?.id;
+          else if (line.speaker === 'B') voiceId = dialogueVoices[1]?.id;
+        }
+
+        return {
+          text: line.text,
+          voiceId,
+          delayBefore: idx === 0 ? 500 : 800,
+        };
+      });
 
       await speakSequence(sequence, (lineIndex) => {
         setCurrentLine(lineIndex);
@@ -534,11 +578,10 @@ function ListeningStep({
       setPhase('questions');
     } catch (err) {
       console.error('[Listening] TTS error:', err);
-      // Fallback: mark as listened and move to questions
       setListenedFully(true);
       setPhase('questions');
     }
-  }, [listening.lines, speakSequence]);
+  }, [listening.lines, listening.type, targetLanguage, speakSequence]);
 
   // Handle skip to questions
   const handleSkipToQuestions = useCallback(async () => {
