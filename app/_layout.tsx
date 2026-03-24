@@ -186,6 +186,14 @@ export default function RootLayout() {
           <Stack.Screen name="conversation-history" options={{ headerShown: false }} />
           <Stack.Screen name="design-showcase" options={{ headerShown: false }} />
 
+          {/* ─── Guided Session ─── */}
+          <Stack.Screen name="stair-session/[id]" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="flashcard/session" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="lesson/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="vocab-practice/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="mini-lesson/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="recording-feedback/[id]" options={{ headerShown: false }} />
+
           {/* ─── Profile ─── */}
           <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
 
