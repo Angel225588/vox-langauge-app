@@ -27,7 +27,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import Animated, {
   useAnimatedStyle,
@@ -259,10 +258,11 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
     });
   }, []);
 
-  // Pick custom image from gallery
+  // Pick custom image from gallery (lazy load to avoid native module crash in Expo Go)
   const handlePickImage = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      const ImagePicker = require('expo-image-picker');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -274,7 +274,8 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
         setCustomImageUri(result.assets[0].uri);
       }
     } catch (err) {
-      console.warn('[IntroCard] Image picker error:', err);
+      console.warn('[IntroCard] Image picker not available:', err);
+      // Silently fail — gallery feature not available in Expo Go
     }
   }, []);
 

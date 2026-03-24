@@ -17,6 +17,7 @@
     "@expo-google-fonts/dm-mono": "^0.4.2",
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo-google-fonts/source-sans-3": "^0.4.1",
+    "@google/genai": "^1.46.0",
     "@google/generative-ai": "^0.24.1",
     "@livekit/react-native": "^2.9.6",
     "@livekit/react-native-webrtc": "^137.0.2",
