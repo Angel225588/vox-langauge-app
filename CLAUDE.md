@@ -1,5 +1,51 @@
 # CLAUDE.md - Project Instructions for Claude Code
 
+## Premium Quality Standard — Zero-Tolerance for Mistakes
+
+**Vox targets top professionals who need fast, functional, premium services.**
+These users pay for quality and have zero patience for broken experiences.
+
+### The Premium Rule
+
+Every screen, every interaction, every piece of content must work correctly
+**the first time**. Professionals don't debug apps — they delete them.
+
+```
+BEFORE writing any code, ask:
+1. Will this work in ALL supported languages? (EN/FR/ES)
+2. Will this work on first launch? (no stale cache, no race conditions)
+3. Will this work offline? (graceful degradation, never a blank screen)
+4. Would a lawyer/doctor trust this with their time?
+```
+
+### Language Integrity — CRITICAL
+
+The user's selected target language is **sacred**. Showing English content
+to someone learning French is a product-breaking bug, not a minor issue.
+
+- **NEVER hardcode 'english' as a fallback** in content generators
+- **ALWAYS read language from AsyncStorage** if Zustand isn't hydrated
+- **ALWAYS include language in cache keys** so content doesn't get served in the wrong language
+- **ALL fallback/template content must be language-aware** — no English-only fallbacks
+- Test the full chain: onboarding selection → store → cache key → AI prompt → rendered content
+
+### Simplicity Over Features
+
+- Premium means **less but perfect**, not more features
+- Every tap should feel intentional and responsive
+- If it takes more than 2 taps to do something common, redesign it
+- Loading states should feel premium (calm transitions, not spinners)
+- Error states should offer a clear next action, never a dead end
+
+### Known Anti-Patterns to Avoid
+
+1. **Zustand hydration race**: Always `await` profile from AsyncStorage as fallback
+2. **Stale content cache**: Include language + version in ALL cache keys
+3. **Wrong-language content**: Log CRITICAL errors when fallback profile is used
+4. **Template English**: Fallback content templates must support all target languages
+
+---
+
 ## NotebookLM — Single Source of Truth
 
 **Notebook ID**: `2bf69003-b9cb-4d10-a40f-68b60777cb95`

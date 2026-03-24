@@ -22,8 +22,9 @@
 import { generateJSON } from '@/lib/ai/gemini';
 import { sanitizePromptInput } from '@/lib/ai/sanitize';
 import { getWordsByPriority, getWords, getWordCount } from '@/lib/word-bank/storage';
-import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getUserProfile, getSafeProfile, buildCacheKey } from './profileLoader';
+import type { UserProfile } from './profileLoader';
 import type { LessonPlan, LessonActivity } from './lessonEngine';
 import type { BankWord } from '@/lib/word-bank/types';
 
@@ -124,37 +125,6 @@ export interface DiscoveryLessonContent {
   activities: Record<string, ActivityContent>;
   generatedAt: string;
   planId: string;
-}
-
-// ─── User Profile (non-hook access) ──────────────────
-
-interface UserProfile {
-  targetLanguage: string;
-  nativeLanguage: string;
-  proficiencyLevel: string;
-  goal: string;
-  profession: string;
-  scenarios: string[];
-  firstName: string;
-}
-
-function getUserProfile(): UserProfile | null {
-  try {
-    const state = useOnboardingV3.getState();
-    if (!state.target_language) return null;
-
-    return {
-      targetLanguage: state.target_language,
-      nativeLanguage: state.native_language || 'english',
-      proficiencyLevel: state.proficiency_level || 'starting_fresh',
-      goal: state.goal || 'general communication',
-      profession: state.profession || state.profession_custom || '',
-      scenarios: [...state.scenarios, ...state.custom_scenarios],
-      firstName: state.first_name || '',
-    };
-  } catch {
-    return null;
-  }
 }
 
 // ─── Cache ────────────────────────────────────────────
@@ -604,20 +574,19 @@ export async function generateDiscoveryLessonContent(
   plan: LessonPlan,
   userId: string,
 ): Promise<DiscoveryLessonContent> {
+  // Load profile first — we need the language for the cache key
+  const profile = await getUserProfile();
+  const cacheKey = buildCacheKey(plan.id, profile);
+
   // Check cache first — validate types match the plan
-  const cached = await getCachedContent(plan.id);
+  const cached = await getCachedContent(cacheKey);
   if (cached && isCacheValid(cached, plan)) {
-    console.log('[DiscoveryGenerator] Using cached content for', plan.id);
+    console.log(`[DiscoveryGenerator] Using cached ${lang} content for`, plan.id);
     return cached;
   }
   if (cached) {
     console.warn('[DiscoveryGenerator] Stale cache detected, regenerating for', plan.id);
-    await clearDiscoveryCache(plan.id);
-  }
-
-  const profile = getUserProfile();
-  if (!profile) {
-    console.warn('[DiscoveryGenerator] No user profile available, using minimal content');
+    await clearDiscoveryCache(cacheKey);
   }
 
   // Load word bank words once for all activities
@@ -650,8 +619,8 @@ export async function generateDiscoveryLessonContent(
     planId: plan.id,
   };
 
-  // Cache the result
-  await setCachedContent(plan.id, result);
+  // Cache the result with language-aware key
+  await setCachedContent(cacheKey, result);
 
   console.log(
     `[DiscoveryGenerator] Generated content for ${Object.keys(activities).length}/${plan.activities.length} activities`,
@@ -668,16 +637,7 @@ async function generateActivityContent(
   profile: UserProfile | null,
   words: BankWord[],
 ): Promise<ActivityContent> {
-  // Use a minimal profile if none available
-  const safeProfile: UserProfile = profile || {
-    targetLanguage: 'english',
-    nativeLanguage: 'spanish',
-    proficiencyLevel: 'starting_fresh',
-    goal: 'general communication',
-    profession: '',
-    scenarios: [],
-    firstName: '',
-  };
+  const safeProfile = getSafeProfile(profile, 'DiscoveryGenerator');
 
   switch (activity.type) {
     case 'vocabulary':
@@ -711,7 +671,7 @@ export async function generateSingleActivityContent(
   const activity = plan.activities.find((a) => a.id === activityId);
   if (!activity) return null;
 
-  const profile = getUserProfile();
+  const profile = await getUserProfile();
   const bankWords = await getDiscoveryWords(25);
 
   try {
@@ -734,18 +694,20 @@ export async function generateFirstActivityContent(
   plan: LessonPlan,
   userId: string,
 ): Promise<DiscoveryLessonContent> {
+  const profile = await getUserProfile();
+  const cacheKey = buildCacheKey(plan.id, profile);
+
   // Check cache first — if valid content exists, use it
-  const cached = await getCachedContent(plan.id);
+  const cached = await getCachedContent(cacheKey);
   if (cached && Object.keys(cached.activities).length > 0 && isCacheValid(cached, plan)) {
-    console.log('[DiscoveryGenerator] First activity already cached for', plan.id);
+    console.log(`[DiscoveryGenerator] First activity already cached for`, plan.id);
     return cached;
   }
   if (cached && !isCacheValid(cached, plan)) {
     console.warn('[DiscoveryGenerator] Stale cache in first activity, clearing for', plan.id);
-    await clearDiscoveryCache(plan.id);
+    await clearDiscoveryCache(cacheKey);
   }
 
-  const profile = getUserProfile();
   const bankWords = await getDiscoveryWords(25);
 
   const firstActivity = plan.activities[0];
@@ -766,7 +728,7 @@ export async function generateFirstActivityContent(
     planId: plan.id,
   };
 
-  await setCachedContent(plan.id, result);
+  await setCachedContent(cacheKey, result);
   console.log(`[DiscoveryGenerator] First activity (${firstActivity?.type}) cached`);
   return result;
 }
@@ -779,8 +741,11 @@ export async function generateRemainingActivities(
   plan: LessonPlan,
   userId: string,
 ): Promise<DiscoveryLessonContent> {
+  const profile = await getUserProfile();
+  const cacheKey = buildCacheKey(plan.id, profile);
+
   // Load existing cache (should have first activity from creating-path)
-  const existing = await getCachedContent(plan.id);
+  const existing = await getCachedContent(cacheKey);
 
   // Validate cache isn't stale (activity types must match plan)
   const cacheValid = existing ? isCacheValid(existing, plan) : true;
@@ -790,7 +755,7 @@ export async function generateRemainingActivities(
 
   if (!cacheValid) {
     console.warn('[DiscoveryGenerator] Stale cache in remaining activities, clearing for', plan.id);
-    await clearDiscoveryCache(plan.id);
+    await clearDiscoveryCache(cacheKey);
   }
 
   // Check if all activities are already generated (with correct types)
@@ -803,7 +768,6 @@ export async function generateRemainingActivities(
     return existing!;
   }
 
-  const profile = getUserProfile();
   const bankWords = await getDiscoveryWords(25);
 
   // Generate only missing activities
@@ -826,7 +790,7 @@ export async function generateRemainingActivities(
     planId: plan.id,
   };
 
-  await setCachedContent(plan.id, result);
+  await setCachedContent(cacheKey, result);
   console.log(
     `[DiscoveryGenerator] Background complete: ${Object.keys(activities).length}/${plan.activities.length} activities`,
   );

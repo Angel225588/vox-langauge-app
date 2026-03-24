@@ -20,9 +20,10 @@
 import { generateJSON } from '@/lib/ai/gemini';
 import { sanitizePromptInput } from '@/lib/ai/sanitize';
 import { getWordsByPriority, getWordCount } from '@/lib/word-bank/storage';
-import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getScoreHistory, type PracticeScore } from '@/lib/db/competencyMetrics';
+import { getUserProfile, getSafeProfile, buildCacheKey } from './profileLoader';
+import type { UserProfile } from './profileLoader';
 import type { LessonPlan, LessonActivity } from './lessonEngine';
 import type { BankWord } from '@/lib/word-bank/types';
 import type {
@@ -39,37 +40,6 @@ import type {
 
 // Re-export the content type so lesson-session can use a single import
 export type { DiscoveryLessonContent as StairLessonContent };
-
-// ─── User Profile (non-hook access) ──────────────────
-
-interface UserProfile {
-  targetLanguage: string;
-  nativeLanguage: string;
-  proficiencyLevel: string;
-  goal: string;
-  profession: string;
-  scenarios: string[];
-  firstName: string;
-}
-
-function getUserProfile(): UserProfile | null {
-  try {
-    const state = useOnboardingV3.getState();
-    if (!state.target_language) return null;
-
-    return {
-      targetLanguage: state.target_language,
-      nativeLanguage: state.native_language || 'english',
-      proficiencyLevel: state.proficiency_level || 'starting_fresh',
-      goal: state.goal || 'general communication',
-      profession: state.profession || state.profession_custom || '',
-      scenarios: [...state.scenarios, ...state.custom_scenarios],
-      firstName: state.first_name || '',
-    };
-  } catch {
-    return null;
-  }
-}
 
 // ─── Cache ────────────────────────────────────────────
 
@@ -578,15 +548,7 @@ async function generateActivityContent(
   difficultyContext: string,
   performanceContext: string,
 ): Promise<ActivityContent> {
-  const safeProfile: UserProfile = profile || {
-    targetLanguage: 'english',
-    nativeLanguage: 'spanish',
-    proficiencyLevel: 'starting_fresh',
-    goal: 'general communication',
-    profession: '',
-    scenarios: [],
-    firstName: '',
-  };
+  const safeProfile = getSafeProfile(profile, 'StairContentGenerator');
 
   switch (activity.type) {
     case 'vocabulary':
@@ -623,18 +585,27 @@ export async function generateStairLessonContent(
   plan: LessonPlan,
   userId: string,
 ): Promise<DiscoveryLessonContent> {
+  // Load profile first — need language for cache key
+  const profile = await getUserProfile();
+  if (!profile) {
+    console.error(
+      '[StairContentGenerator] CRITICAL: No profile loaded — content will default to English.',
+    );
+  }
+
+  // Include language in cache key so switching languages doesn't serve stale content
+  const cacheKey = buildCacheKey(plan.id, profile);
+
   // Check cache first
-  const cached = await getCachedContent(plan.id);
+  const cached = await getCachedContent(cacheKey);
   if (cached && isCacheValid(cached, plan)) {
-    console.log('[StairContentGenerator] Using cached content for', plan.id);
+    console.log(`[StairContentGenerator] Using cached cached content for`, plan.id);
     return cached;
   }
   if (cached) {
     console.warn('[StairContentGenerator] Stale cache detected, regenerating for', plan.id);
-    await clearStairCache(plan.id);
+    await clearStairCache(cacheKey);
   }
-
-  const profile = getUserProfile();
   const bankWords = await getStairWords(25);
   const stairTheme = extractStairTheme(plan.stair_title);
   const difficultyContext = getDifficultyContext(
@@ -673,10 +644,10 @@ export async function generateStairLessonContent(
     planId: plan.id,
   };
 
-  await setCachedContent(plan.id, result);
+  await setCachedContent(cacheKey, result);
 
   console.log(
-    `[StairContentGenerator] Generated content for ${Object.keys(activities).length}/${plan.activities.length} activities`,
+    `[StairContentGenerator] Generated cached content for ${Object.keys(activities).length}/${plan.activities.length} activities`,
   );
 
   return result;
@@ -690,13 +661,15 @@ export async function generateFirstStairActivityContent(
   plan: LessonPlan,
   userId: string,
 ): Promise<DiscoveryLessonContent> {
-  const cached = await getCachedContent(plan.id);
+  const profile = await getUserProfile();
+  const cacheKey = buildCacheKey(plan.id, profile);
+
+  const cached = await getCachedContent(cacheKey);
   if (cached && Object.keys(cached.activities).length > 0 && isCacheValid(cached, plan)) {
-    console.log('[StairContentGenerator] First activity already cached for', plan.id);
+    console.log(`[StairContentGenerator] First activity already cached for`, plan.id);
     return cached;
   }
 
-  const profile = getUserProfile();
   const bankWords = await getStairWords(25);
   const stairTheme = extractStairTheme(plan.stair_title);
   const difficultyContext = getDifficultyContext(
@@ -730,7 +703,7 @@ export async function generateFirstStairActivityContent(
     planId: plan.id,
   };
 
-  await setCachedContent(plan.id, result);
+  await setCachedContent(cacheKey, result);
   console.log(`[StairContentGenerator] First activity (${firstActivity?.type}) cached`);
   return result;
 }
@@ -743,14 +716,17 @@ export async function generateRemainingStairActivities(
   plan: LessonPlan,
   userId: string,
 ): Promise<DiscoveryLessonContent> {
-  const existing = await getCachedContent(plan.id);
+  const profile = await getUserProfile();
+  const cacheKey = buildCacheKey(plan.id, profile);
+
+  const existing = await getCachedContent(cacheKey);
   const cacheValid = existing ? isCacheValid(existing, plan) : true;
   const activities: Record<string, ActivityContent> = cacheValid
     ? { ...(existing?.activities || {}) }
     : {};
 
   if (!cacheValid) {
-    await clearStairCache(plan.id);
+    await clearStairCache(cacheKey);
   }
 
   const missing = plan.activities.filter((a) => {
@@ -758,11 +734,10 @@ export async function generateRemainingStairActivities(
     return !cached || cached.type !== a.type;
   });
   if (missing.length === 0) {
-    console.log('[StairContentGenerator] All activities already cached for', plan.id);
+    console.log(`[StairContentGenerator] All activities already cached for`, plan.id);
     return existing!;
   }
 
-  const profile = getUserProfile();
   const bankWords = await getStairWords(25);
   const stairTheme = extractStairTheme(plan.stair_title);
   const difficultyContext = getDifficultyContext(
@@ -797,9 +772,9 @@ export async function generateRemainingStairActivities(
     planId: plan.id,
   };
 
-  await setCachedContent(plan.id, result);
+  await setCachedContent(cacheKey, result);
   console.log(
-    `[StairContentGenerator] Background complete: ${Object.keys(activities).length}/${plan.activities.length} activities`,
+    `[StairContentGenerator] Background complete (${lang}): ${Object.keys(activities).length}/${plan.activities.length} activities`,
   );
   return result;
 }

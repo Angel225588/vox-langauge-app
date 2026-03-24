@@ -65,3 +65,11 @@ export {
   reorderActivities,
   getKeepGoingActivities,
 } from './activityOrderer';
+
+export {
+  // Profile Loader (hydration-safe, shared by all generators)
+  getUserProfile,
+  getSafeProfile,
+  buildCacheKey,
+  type UserProfile,
+} from './profileLoader';

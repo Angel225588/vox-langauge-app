@@ -1,392 +1,200 @@
 /**
- * Flashcard Session Screen
+ * Flashcard Session Screen — Batch Vocabulary Practice
  *
- * Main screen for reviewing flashcards with the 3-card cycle.
- * Displays Learning → Listening → Speaking cards sequentially.
+ * Uses VocabularyBatchFlow for the full 5-phase cycle:
+ * Introduce → Select → Listen → Speak → Write → Results
+ *
+ * Loads words from the word bank (due for review or new words).
+ * After completion, updates FSRS scores and returns to previous screen.
+ *
+ * Route: /flashcard/session
+ * Entry: Practice Tab → Vocabulary Sprint
  */
 
-import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { useFlashcardSession } from '@/hooks/useFlashcard';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
 import { useAuth } from '@/hooks/useAuth';
-import { SimpleQuality } from '@/types/flashcard';
-import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
+import { VocabularyBatchFlow } from '@/components/cards/vocabulary/VocabularyBatchFlow';
+import type { BatchFlowResult } from '@/components/cards/vocabulary/VocabularyBatchFlow';
+import { getWords, recordReview } from '@/lib/word-bank/storage';
+import { bankWordToVocabularyItem } from '@/lib/word-bank/adapter';
 import { updateStreakData } from '@/lib/db/sqlite';
+import type { VocabularyItem } from '@/types/vocabulary';
 
-// Import card components
-import LearningCard from '@/components/flashcards/LearningCard';
-import ListeningCard from '@/components/flashcards/ListeningCard';
-import SpeakingCard from '@/components/flashcards/SpeakingCard';
+const BATCH_SIZE = 5;
 
 export default function FlashcardSessionScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const userId = user?.id || 'anonymous';
 
-  const {
-    currentCard,
-    isSessionActive,
-    isLoading,
-    error,
-    currentCardNumber,
-    totalCards,
-    progressPercentage,
-    pointsEarned,
-    startSession,
-    submitReview,
-    skipCard,
-    sessionSummary,
-  } = useFlashcardSession({
-    userId: user?.id || '',
-    limit: 5, // Start with 5 flashcards for testing
-  });
+  const [items, setItems] = useState<VocabularyItem[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Start session on mount
+  // Load vocabulary items from word bank
   useEffect(() => {
-    if (user?.id) {
-      startSession();
-    }
-  }, [user?.id, startSession]);
+    loadVocabulary();
+  }, []);
 
-  // Persist points + show summary when session ends
-  useEffect(() => {
-    if (sessionSummary) {
-      console.log('Session ended, showing summary:', sessionSummary);
+  const loadVocabulary = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-      // Persist points to SQLite (single source of truth)
-      if (user?.id && sessionSummary.points_earned > 0) {
-        updateStreakData(user.id, sessionSummary.points_earned).catch(() => {});
+    try {
+      // Get words due for review first, then fill with new words
+      const dueWords = await getWords({
+        needsReview: true,
+        limit: BATCH_SIZE,
+      });
+
+      let bankWords = dueWords;
+
+      // If not enough due words, add recent ones
+      if (bankWords.length < BATCH_SIZE) {
+        const recentWords = await getWords({
+          limit: BATCH_SIZE - bankWords.length,
+        });
+        // Avoid duplicates
+        const existingIds = new Set(bankWords.map(w => w.id));
+        for (const w of recentWords) {
+          if (!existingIds.has(w.id)) {
+            bankWords.push(w);
+            if (bankWords.length >= BATCH_SIZE) break;
+          }
+        }
       }
 
-      Alert.alert(
-        'Session Complete!',
-        `You reviewed ${sessionSummary.flashcards_reviewed} flashcards and earned ${sessionSummary.points_earned} points!\n\nAccuracy: ${sessionSummary.accuracy}%`,
-        [
-          {
-            text: 'Done',
-            onPress: () => router.back(),
-          },
-        ]
-      );
+      if (bankWords.length === 0) {
+        setError('No vocabulary words available. Complete onboarding to generate your word bank.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Convert BankWord → VocabularyItem for card components
+      const vocabItems = bankWords.map(bw => bankWordToVocabularyItem(bw));
+      setItems(vocabItems);
+      setIsLoading(false);
+    } catch (err) {
+      console.error('[FlashcardSession] Error loading vocabulary:', err);
+      setError('Could not load vocabulary. Please try again.');
+      setIsLoading(false);
     }
-  }, [sessionSummary, router, user?.id]);
+  }, []);
 
-  /**
-   * Handle quality rating
-   */
-  const handleQualityRating = async (quality: SimpleQuality) => {
-    await submitReview(quality);
-  };
+  // Handle batch flow completion
+  const handleComplete = useCallback(async (result: BatchFlowResult) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-  /**
-   * Handle skip
-   */
-  const handleSkip = () => {
-    Alert.alert('Skip Card?', 'Are you sure you want to skip this card?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Skip', style: 'destructive', onPress: skipCard },
-    ]);
-  };
+    // Update FSRS — words to review get "again", rest get "good"
+    try {
+      const reviewWords = new Set(result.wordsToReview);
+      if (items) {
+        for (const item of items) {
+          const quality = reviewWords.has(item.word) ? 1 : 3; // 1 = again, 3 = good
+          await recordReview(item.id, quality, 'flashcard_session');
+        }
+      }
 
-  // Loading state
-  if (isLoading && !currentCard) {
+      // Award points
+      const points = result.totalCorrect * 10;
+      if (points > 0) {
+        await updateStreakData(userId, points);
+      }
+
+      console.log('[FlashcardSession] Complete:', {
+        accuracy: Math.round((result.totalCorrect / result.totalAttempts) * 100),
+        wordsToReview: result.wordsToReview.length,
+        points,
+      });
+    } catch (err) {
+      console.warn('[FlashcardSession] Error saving results:', err);
+    }
+
+    router.back();
+  }, [items, userId, router]);
+
+  const handleExit = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.back();
+  }, [router]);
+
+  // Loading
+  if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary }} edges={['top', 'bottom']}>
-        <ActivityIndicator size="large" color={colors.accent.blue} />
-        <Text style={{ fontSize: typography.fontSize.lg, color: colors.text.disabled, marginTop: spacing.md }}>Loading session...</Text>
+      <SafeAreaView style={S.center} edges={['top', 'bottom']}>
+        <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+        <Text style={S.loadingText}>Loading vocabulary...</Text>
       </SafeAreaView>
     );
   }
 
-  // Error state
-  if (error) {
+  // Error
+  if (error || !items) {
     return (
-      <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary, paddingHorizontal: spacing.lg }} edges={['top', 'bottom']}>
-        <Text style={{ fontSize: typography.fontSize['2xl'], marginBottom: spacing.md }}>😕</Text>
-        <Text style={{ fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>Oops!</Text>
-        <Text style={{ fontSize: typography.fontSize.base, color: colors.text.disabled, textAlign: 'center', marginBottom: spacing.lg }}>{error}</Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: colors.accent.blue,
-            paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.md,
-            borderRadius: borderRadius.md
-          }}
-          onPress={() => router.back()}
-          activeOpacity={0.8}
-        >
-          <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.bold }}>Go Back</Text>
+      <SafeAreaView style={S.center} edges={['top', 'bottom']}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.text.secondary} />
+        <Text style={S.errorTitle}>No Words Available</Text>
+        <Text style={S.errorMsg}>{error || 'No vocabulary loaded.'}</Text>
+        <TouchableOpacity onPress={handleExit} style={S.backBtn}>
+          <Text style={S.backBtnText}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
-
-  // No active session or no current card
-  if (!isSessionActive || !currentCard) {
-    return (
-      <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.primary, paddingHorizontal: spacing.lg }} edges={['top', 'bottom']}>
-        <Text style={{ fontSize: typography.fontSize['2xl'], marginBottom: spacing.md }}>🎉</Text>
-        <Text style={{ fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold, color: colors.text.primary, marginBottom: spacing.sm }}>
-          No Cards to Review
-        </Text>
-        <Text style={{ fontSize: typography.fontSize.base, color: colors.text.disabled, textAlign: 'center', marginBottom: spacing.lg }}>
-          Great job! You've reviewed all your flashcards for today.
-        </Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: colors.accent.blue,
-            paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.md,
-            borderRadius: borderRadius.md
-          }}
-          onPress={() => router.back()}
-          activeOpacity={0.8}
-        >
-          <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.bold }}>Done</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
-  const { flashcard, cardType } = currentCard;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }} edges={['top', 'bottom']}>
-      {/* Header with progress */}
-      <Animated.View
-        entering={FadeIn.duration(300)}
-        style={{
-          backgroundColor: colors.background.card,
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.md,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
-          elevation: 2,
-        }}
-      >
-        {/* Progress Bar */}
-        <View style={{ marginBottom: spacing.md }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
-            <Text style={{ fontSize: typography.fontSize.sm, color: colors.text.disabled }}>
-              Card {currentCardNumber} of {totalCards}
-            </Text>
-            <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.accent.blue }}>
-              {pointsEarned} pts
-            </Text>
-          </View>
-          <View style={{ width: '100%', height: spacing.sm, backgroundColor: colors.border.light, borderRadius: borderRadius.full, overflow: 'hidden' }}>
-            <View
-              style={{
-                height: '100%',
-                backgroundColor: colors.accent.blue,
-                borderRadius: borderRadius.full,
-                width: `${progressPercentage}%`
-              }}
-            />
-          </View>
-        </View>
-
-        {/* Card Type Indicator */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-          <View
-            style={{
-              paddingHorizontal: spacing.md,
-              paddingVertical: spacing.sm,
-              borderRadius: borderRadius.full,
-              backgroundColor:
-                cardType === 'learning' ? `${colors.accent.blue}20` :
-                cardType === 'listening' ? `${colors.success.DEFAULT}20` :
-                `${colors.accent.purple}20`
-            }}
-          >
-            <Text
-              style={{
-                fontSize: typography.fontSize.sm,
-                fontWeight: typography.fontWeight.semibold,
-                color:
-                  cardType === 'learning' ? colors.accent.blue :
-                  cardType === 'listening' ? colors.success.DEFAULT :
-                  colors.accent.purple
-              }}
-            >
-              {cardType === 'learning'
-                ? '📖 Learning'
-                : cardType === 'listening'
-                ? '🎧 Listening'
-                : '🎤 Speaking'}
-            </Text>
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Card Content */}
-      <View style={{ flex: 1, paddingHorizontal: spacing.lg, paddingVertical: spacing.xl }}>
-        {cardType === 'learning' && (
-          <Animated.View
-            key={`learning-${flashcard.id}`}
-            entering={FadeIn.duration(400)}
-            exiting={FadeOut.duration(200)}
-            className="flex-1"
-          >
-            <LearningCard
-              word={flashcard.word}
-              translation={flashcard.translation}
-              phonetic={flashcard.phonetic}
-              imageUrl={flashcard.image_url}
-              audioUrl={flashcard.audio_url}
-              exampleSentence={flashcard.example_sentence}
-            />
-          </Animated.View>
-        )}
-
-        {cardType === 'listening' && (
-          <Animated.View
-            key={`listening-${flashcard.id}`}
-            entering={FadeIn.duration(400)}
-            exiting={FadeOut.duration(200)}
-            className="flex-1"
-          >
-            <ListeningCard
-              word={flashcard.word}
-              audioUrl={flashcard.audio_url || ''}
-              onCorrect={() => handleQualityRating('easy')}
-              onIncorrect={() => handleQualityRating('forgot')}
-              onSkip={handleSkip}
-            />
-          </Animated.View>
-        )}
-
-        {cardType === 'speaking' && (
-          <Animated.View
-            key={`speaking-${flashcard.id}`}
-            entering={FadeIn.duration(400)}
-            exiting={FadeOut.duration(200)}
-            className="flex-1"
-          >
-            <SpeakingCard
-              word={flashcard.word}
-              phonetic={flashcard.phonetic}
-              exampleAudioUrl={flashcard.audio_url}
-              onComplete={(audioUri) => {
-                console.log('Recording completed:', audioUri);
-                handleQualityRating('easy'); // Auto-rate as easy after recording
-              }}
-              onSkip={handleSkip}
-            />
-          </Animated.View>
-        )}
-      </View>
-
-      {/* Quality Rating Buttons */}
-      <Animated.View
-        entering={FadeIn.duration(400).delay(200)}
-        style={{
-          backgroundColor: colors.background.card,
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.lg,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: spacing.sm,
-          elevation: 5,
-        }}
-      >
-        <Text style={{ textAlign: 'center', fontSize: typography.fontSize.sm, color: colors.text.disabled, marginBottom: spacing.md }}>
-          How well did you know this?
-        </Text>
-
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          {/* Forgot */}
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: colors.error.DEFAULT,
-              paddingVertical: spacing.md,
-              borderRadius: borderRadius.md,
-              alignItems: 'center',
-            }}
-            activeOpacity={0.8}
-            onPress={() => handleQualityRating('forgot')}
-            disabled={isLoading}
-          >
-            <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold }}>😕</Text>
-            <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-              Forgot
-            </Text>
-          </TouchableOpacity>
-
-          {/* Remembered */}
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: colors.warning.DEFAULT,
-              paddingVertical: spacing.md,
-              borderRadius: borderRadius.md,
-              alignItems: 'center',
-            }}
-            activeOpacity={0.8}
-            onPress={() => handleQualityRating('remembered')}
-            disabled={isLoading}
-          >
-            <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold }}>🤔</Text>
-            <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-              Remembered
-            </Text>
-          </TouchableOpacity>
-
-          {/* Easy */}
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: colors.success.DEFAULT,
-              paddingVertical: spacing.md,
-              borderRadius: borderRadius.md,
-              alignItems: 'center',
-            }}
-            activeOpacity={0.8}
-            onPress={() => handleQualityRating('easy')}
-            disabled={isLoading}
-          >
-            <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold }}>😄</Text>
-            <Text style={{ color: '#FFFFFF', fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm, marginTop: spacing.xs }}>
-              Easy
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Skip Button */}
-        <TouchableOpacity
-          style={{ marginTop: spacing.md, paddingVertical: spacing.md, alignItems: 'center' }}
-          onPress={handleSkip}
-          disabled={isLoading}
-          activeOpacity={0.6}
-        >
-          <Text style={{ color: colors.text.disabled, fontWeight: typography.fontWeight.medium }}>Skip →</Text>
-        </TouchableOpacity>
-      </Animated.View>
-
-      {/* Loading Overlay */}
-      {isLoading && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.2)',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <ActivityIndicator size="large" color={colors.accent.blue} />
-        </View>
-      )}
-      </SafeAreaView>
+      <VocabularyBatchFlow
+        items={items}
+        onComplete={handleComplete}
+        onExit={handleExit}
+      />
     </GestureHandlerRootView>
   );
 }
+
+const S = StyleSheet.create({
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.primary,
+    paddingHorizontal: spacing.xl,
+  },
+  loadingText: {
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.base,
+    marginTop: spacing.md,
+  },
+  errorTitle: {
+    color: colors.text.primary,
+    fontSize: typography.fontSize.xl,
+    fontWeight: '700',
+    marginTop: spacing.md,
+  },
+  errorMsg: {
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.base,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  backBtn: {
+    backgroundColor: colors.primary.DEFAULT,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  backBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: typography.fontSize.base,
+  },
+});

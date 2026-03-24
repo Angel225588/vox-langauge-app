@@ -1,8 +1,15 @@
 /**
  * IntroductionCardV2 - Premium New Word Card
  *
- * FRONT: Full image with word/phonetic overlay + translation icon + audio
- * BACK: Image with overlay + Definition (target language) + Examples
+ * FRONT: Image with word/phonetic overlay + translate icon + Play + Slow audio
+ * BACK (flip): Definition (target language) + Examples with audio + translate toggle
+ *
+ * Features:
+ * - Custom image from gallery (camera icon top-right)
+ * - Play (normal speed) + Slow (🐢) audio buttons
+ * - Translate icon to peek at translation without flipping
+ * - Tap card to flip → definition + examples
+ * - Again / Got it buttons fixed at bottom with interval preview
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -20,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import Animated, {
   useAnimatedStyle,
@@ -30,6 +38,7 @@ import Animated, {
   FadeIn,
   FadeInDown,
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
 import { Icon } from '@/components/ui/Icon';
 import { useVocabCard } from './hooks/useVocabCard';
@@ -83,6 +92,10 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
   const [isPlayingWord, setIsPlayingWord] = useState(false);
   const [isPlayingExample, setIsPlayingExample] = useState<number | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [customImageUri, setCustomImageUri] = useState<string | null>(null);
+
+  // The display image — custom from gallery or item's default
+  const displayImageUri = customImageUri || item.imageUrl;
 
   // Animation
   const flipProgress = useSharedValue(0);
@@ -246,6 +259,25 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
     });
   }, []);
 
+  // Pick custom image from gallery
+  const handlePickImage = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setCustomImageUri(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.warn('[IntroCard] Image picker error:', err);
+    }
+  }, []);
+
   const handleAgain = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     complete(false);
@@ -292,9 +324,9 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
         <Animated.View style={[styles.card, frontAnimatedStyle]}>
           <Pressable onPress={handleFlip} style={styles.cardPressable}>
             {/* Full Background Image */}
-            {item.imageUrl ? (
+            {displayImageUri ? (
               <Image
-                source={{ uri: item.imageUrl }}
+                source={{ uri: displayImageUri }}
                 style={styles.fullImage}
                 resizeMode="cover"
               />
@@ -304,15 +336,26 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
 
             {/* Gradient Overlay */}
             <LinearGradient
-              colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.85)']}
+              colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.85)']}
               style={styles.frontOverlay}
             >
-              {/* Category Badge - Top Left */}
+              {/* Top Row: Category + Gallery + Flip hint */}
               <View style={styles.topRow}>
                 <View style={styles.categoryBadge}>
                   <Text style={styles.categoryText}>{item.category}</Text>
                 </View>
-                <Icon name="sync-outline" size="sm" color="white" style={{ opacity: 0.6 }} />
+                <View style={styles.topActions}>
+                  {/* Custom image from gallery */}
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation(); handlePickImage(); }}
+                    style={styles.topIconBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="camera-outline" size={18} color="rgba(255,255,255,0.7)" />
+                  </TouchableOpacity>
+                  {/* Flip indicator */}
+                  <Ionicons name="sync-outline" size={16} color="rgba(255,255,255,0.4)" />
+                </View>
               </View>
 
               {/* Spacer */}
@@ -329,22 +372,22 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
                   </Text>
                 )}
 
-                {/* Translation - tap to reveal */}
+                {/* Translate button — peek at translation */}
                 <TouchableOpacity
                   onPress={(e) => { e.stopPropagation(); handleToggleTranslation(); }}
-                  style={styles.translationRow}
+                  style={styles.translateBtn}
                 >
-                  <Icon
-                    name={showTranslation ? 'eye' : 'eye-outline'}
-                    size="sm"
-                    color="white"
+                  <Ionicons
+                    name={showTranslation ? 'language' : 'language-outline'}
+                    size={20}
+                    color={showTranslation ? colors.accent.purple : 'rgba(255,255,255,0.8)'}
                   />
                   {showTranslation ? (
                     <Animated.Text entering={FadeIn.duration(200)} style={styles.translationFront}>
                       {item.translation}
                     </Animated.Text>
                   ) : (
-                    <Text style={styles.translationHint}>tap to reveal</Text>
+                    <Text style={styles.translationHint}>translate</Text>
                   )}
                 </TouchableOpacity>
 
@@ -386,10 +429,10 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
               showsVerticalScrollIndicator={false}
             >
               {/* Image with Word Overlay */}
-              {item.imageUrl && (
+              {displayImageUri && (
                 <View style={styles.backImageContainer}>
                   <Image
-                    source={{ uri: item.imageUrl }}
+                    source={{ uri: displayImageUri }}
                     style={styles.backImage}
                     resizeMode="cover"
                   />
@@ -564,6 +607,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  topActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  topIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   categoryBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: spacing.md,
@@ -599,15 +655,17 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-  translationRow: {
+  translateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     marginTop: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.sm + 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   translationFront: {
     color: colors.accent.purple,
