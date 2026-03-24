@@ -174,7 +174,15 @@ export default function ListeningLibraryScreen() {
   const handleLecturePress = useCallback(
     (lecture: ListeningLecture) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      router.push('/practice-listening');
+      router.push({
+        pathname: '/practice-listening',
+        params: {
+          lectureId: lecture.id,
+          lectureTitle: lecture.title,
+          lectureDifficulty: lecture.difficulty,
+          lectureCategory: lecture.category,
+        },
+      });
     },
     [router],
   );

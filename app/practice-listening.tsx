@@ -29,6 +29,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { generateListeningContent, type ListeningExercise } from '@/lib/ai/practiceGenerator';
@@ -201,6 +202,10 @@ export default function PracticeListeningScreen() {
     returnToSession?: string;
     activityId?: string;
     discoveryContent?: string;
+    lectureId?: string;
+    lectureTitle?: string;
+    lectureDifficulty?: string;
+    lectureCategory?: string;
   }>();
   const isSessionActivity = params.returnToSession === 'true';
 
@@ -487,14 +492,61 @@ export default function PracticeListeningScreen() {
     }
   }, [isSessionActivity, router, stopSpeaking]);
 
-  const handleDone = useCallback(() => {
+  const handleDone = useCallback(async () => {
     stopSpeaking();
+
+    // Mark lecture as completed in library
+    const lectureId = params.lectureId;
+    if (lectureId) {
+      try {
+        const raw = await AsyncStorage.getItem('vox_listening_library_completed');
+        const completed = raw ? JSON.parse(raw) : [];
+        if (!completed.includes(lectureId)) {
+          completed.push(lectureId);
+          await AsyncStorage.setItem('vox_listening_library_completed', JSON.stringify(completed));
+        }
+      } catch {}
+    }
+
+    // Save to competency metrics
+    const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
+    const accuracy = totalQuestions > 0 ? Math.round((afterScore / totalQuestions) * 100) : 0;
+    try {
+      if (user?.id) {
+        await savePracticeScore(user.id, 'listening', {
+          articulation: accuracy,
+          fluency: accuracy,
+          communication: Math.round(accuracy * 0.9),
+        }, { source: 'listening_practice', lectureId: params.lectureId });
+      }
+      await updateStreakData(user?.id || 'anonymous', pointsRef.current);
+    } catch {}
+
     if (isSessionActivity) {
       router.replace('/lesson-session');
     } else {
-      router.back();
+      // Navigate to feedback detail
+      router.push({
+        pathname: '/feedback-detail',
+        params: {
+          scores: JSON.stringify({
+            articulation: accuracy,
+            fluency: accuracy,
+            communication: Math.round(accuracy * 0.9),
+            scenario: accuracy,
+            wordsLearned: wordsLearned,
+            pointsEarned: pointsRef.current,
+            timeSpent,
+            cefrLevel: 'B1',
+          }),
+          stairTitle: content?.title || 'Listening Practice',
+          stairId: params.lectureId || 'listening',
+          isDiscovery: 'false',
+          scenario: content?.title || 'Listening Practice',
+        },
+      });
     }
-  }, [isSessionActivity, router, stopSpeaking]);
+  }, [isSessionActivity, router, stopSpeaking, afterScore, totalQuestions, wordsLearned, content, user, params.lectureId]);
 
   const handleNewExercise = useCallback(() => {
     stopSpeaking();
