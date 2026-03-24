@@ -117,7 +117,12 @@ export function buildGuidedFirstMessage(input: GuidedPromptInput): string {
 
 /**
  * Detect which objectives have been completed based on transcript.
- * Uses keyword matching on both user and agent messages.
+ *
+ * Uses multiple signals:
+ * 1. Keyword matching from objective text
+ * 2. Conversation progression (early objectives more likely done)
+ * 3. User turn count (more turns = more objectives covered)
+ * 4. Agent responses that indicate topic was addressed
  *
  * Returns array of booleans matching objectives array indices.
  */
@@ -125,20 +130,64 @@ export function detectObjectiveCompletion(
   objectives: string[],
   messages: Array<{ role: string; content: string }>,
 ): boolean[] {
-  const allText = messages
-    .map(m => m.content.toLowerCase())
-    .join(' ');
+  if (messages.length === 0) return objectives.map(() => false);
 
-  return objectives.map(objective => {
-    // Extract key words from objective (remove common words)
-    const stopWords = new Set(['the', 'a', 'an', 'in', 'to', 'for', 'and', 'or', 'with', 'about', 'their', 'your', 'them']);
-    const keywords = objective
-      .toLowerCase()
+  const userMessages = messages.filter(m => m.role === 'user');
+  const allText = messages.map(m => m.content.toLowerCase()).join(' ');
+  const userText = userMessages.map(m => m.content.toLowerCase()).join(' ');
+
+  // Common stop words to filter out
+  const stopWords = new Set([
+    'the', 'a', 'an', 'in', 'to', 'for', 'and', 'or', 'with', 'about',
+    'their', 'your', 'them', 'this', 'that', 'have', 'has', 'had', 'been',
+    'will', 'would', 'could', 'should', 'can', 'may', 'might', 'must',
+    'from', 'they', 'what', 'when', 'where', 'which', 'who', 'how',
+  ]);
+
+  // Objective-specific keyword synonyms for common actions
+  const actionSynonyms: Record<string, string[]> = {
+    greet: ['hello', 'hi', 'bonjour', 'bonsoir', 'hola', 'buenos', 'salut', 'welcome', 'bienvenue'],
+    introduce: ['name', 'je suis', 'me llamo', 'i am', 'my name', 'je m\'appelle', 'soy'],
+    ask: ['question', 'what', 'how', 'pourquoi', 'comment', 'quoi', 'donde', 'como', 'qué'],
+    describe: ['explain', 'tell', 'show', 'this is', 'voici', 'c\'est', 'esto es', 'look'],
+    recommend: ['suggest', 'try', 'best', 'favorite', 'recommande', 'conseil', 'essayer', 'mejor'],
+    order: ['would like', 'want', 'voudrais', 'quiero', 'please', 's\'il vous plait', 'por favor'],
+    end: ['goodbye', 'bye', 'au revoir', 'merci', 'thank', 'adios', 'gracias', 'à bientôt'],
+    directions: ['where', 'left', 'right', 'straight', 'gauche', 'droite', 'tout droit', 'izquierda', 'derecha'],
+  };
+
+  return objectives.map((objective, index) => {
+    const objLower = objective.toLowerCase();
+
+    // Extract meaningful keywords from objective
+    const keywords = objLower
       .split(/\s+/)
-      .filter(w => w.length > 3 && !stopWords.has(w));
+      .filter(w => w.length > 2 && !stopWords.has(w));
 
-    // Objective is "completed" if 50%+ of keywords appear in conversation
-    const matchCount = keywords.filter(kw => allText.includes(kw)).length;
-    return keywords.length > 0 && matchCount / keywords.length >= 0.5;
+    // Check for keyword matches in full conversation
+    const keywordMatches = keywords.filter(kw => allText.includes(kw)).length;
+    const keywordScore = keywords.length > 0 ? keywordMatches / keywords.length : 0;
+
+    // Check for action synonym matches
+    let synonymScore = 0;
+    for (const [action, synonyms] of Object.entries(actionSynonyms)) {
+      if (objLower.includes(action)) {
+        const found = synonyms.some(syn => allText.includes(syn));
+        if (found) synonymScore = 0.5;
+        // Extra credit if USER said it (not just agent)
+        const userSaid = synonyms.some(syn => userText.includes(syn));
+        if (userSaid) synonymScore = 0.8;
+      }
+    }
+
+    // Progression bonus: earlier objectives are more likely done
+    // If we have 6+ user turns and this is an early objective, likely covered
+    const progressionBonus = (userMessages.length >= 2 * (index + 1)) ? 0.3 : 0;
+
+    // Combined score
+    const totalScore = Math.max(keywordScore, synonymScore) + progressionBonus;
+
+    // Threshold: 0.4+ = completed (generous to avoid false negatives)
+    return totalScore >= 0.4;
   });
 }

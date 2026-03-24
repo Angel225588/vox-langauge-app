@@ -39,6 +39,7 @@ interface CallResults {
   objectivesCompleted: boolean[];
   feedbackSummary: string;
   duration: number;
+  fullFeedback?: any; // Full feedback object for detail screen
 }
 
 export default function GuidedVoicePracticeScreen() {
@@ -51,6 +52,9 @@ export default function GuidedVoicePracticeScreen() {
   const [step, setStep] = useState<FlowStep>('briefing');
   const [results, setResults] = useState<CallResults | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Save transcript to ref — hook may clear messages after disconnect
+  const savedTranscriptRef = useRef<any[]>([]);
 
   // Parse scenario from route params
   const scenario: VoiceScenario | null = params.scenarioData
@@ -95,6 +99,13 @@ export default function GuidedVoicePracticeScreen() {
     },
   });
 
+  // Keep transcript ref up to date (messages from hook may clear after disconnect)
+  useEffect(() => {
+    if (messages.length > 0) {
+      savedTranscriptRef.current = [...messages];
+    }
+  }, [messages]);
+
   // Handle call end → analyze → show results
   const handleCallEnd = useCallback(async (session?: any) => {
     if (!scenario) return;
@@ -102,7 +113,14 @@ export default function GuidedVoicePracticeScreen() {
     setIsAnalyzing(true);
 
     try {
-      const transcript = session?.messages || messages;
+      // Priority: session messages > saved ref > hook state
+      const transcript = session?.messages?.length > 0
+        ? session.messages
+        : savedTranscriptRef.current.length > 0
+          ? savedTranscriptRef.current
+          : messages;
+
+      console.log(`[VoicePractice] Analyzing ${transcript.length} messages`);
       const feedback = await analyzeConversation({
         messages: transcript,
         scenario: scenario.title,
@@ -149,6 +167,7 @@ export default function GuidedVoicePracticeScreen() {
         pointsEarned,
         objectivesCompleted,
         feedbackSummary: feedback?.feedback?.overallMessage || 'Good practice session.',
+        fullFeedback: feedback?.feedback || null,
         duration: sessionDuration,
       });
     } catch (err) {
@@ -178,11 +197,15 @@ export default function GuidedVoicePracticeScreen() {
   }, [startSession]);
 
   const handleEndCall = useCallback(async () => {
+    // Save current messages before ending (hook may clear them)
+    const currentMessages = [...savedTranscriptRef.current];
     try {
       await endSession();
+      // onSessionEnd callback will call handleCallEnd with session data
     } catch {
-      // endSession may fail if already disconnected
-      await handleCallEnd();
+      // endSession may fail if already disconnected — use saved transcript
+      console.log(`[VoicePractice] Ending with ${currentMessages.length} saved messages`);
+      await handleCallEnd({ messages: currentMessages });
     }
   }, [endSession, handleCallEnd]);
 
@@ -274,8 +297,16 @@ export default function GuidedVoicePracticeScreen() {
             router.push({
               pathname: '/feedback-detail',
               params: {
-                scores: JSON.stringify(results.kpis),
+                scores: JSON.stringify({
+                  articulation: results.kpis.articulation,
+                  fluency: results.kpis.fluency,
+                  communication: results.kpis.communication,
+                  scenario: results.kpis.scenario,
+                  overallScore: results.overallScore,
+                  pointsEarned: results.pointsEarned,
+                }),
                 type: 'voice',
+                feedback: results.fullFeedback ? JSON.stringify(results.fullFeedback) : undefined,
               },
             });
           }}

@@ -56,7 +56,7 @@ interface ListeningLecture {
 const DEFAULT_LECTURES: ListeningLecture[] = [
   {
     id: 'listening-1',
-    title: 'At the Cafe',
+    title: 'Au Café — A Morning Ritual',
     duration: '2:30',
     newWords: 5,
     category: 'Daily Life',
@@ -64,9 +64,9 @@ const DEFAULT_LECTURES: ListeningLecture[] = [
   },
   {
     id: 'listening-2',
-    title: 'Business Meeting',
+    title: 'La Réunion — Under Pressure',
     duration: '3:15',
-    newWords: 8,
+    newWords: 5,
     category: 'Work',
     difficulty: 'intermediate',
   },

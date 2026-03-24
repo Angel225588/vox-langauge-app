@@ -182,63 +182,75 @@ function normalizeExerciseContent(ex: ListeningExercise): NormalizedContent | nu
 
 const LIBRARY_CONTENT: Record<string, NormalizedContent> = {
   'listening-1': {
-    title: 'At the Cafe',
+    title: 'Au Café — A Morning Ritual',
     dialogueLines: [
-      { speaker: 'Serveur', text: 'Bonjour ! Bienvenue. Qu\'est-ce que je vous sers ?', translation: 'Hello! Welcome. What can I get you?' },
-      { speaker: 'Client', text: 'Bonjour ! Je voudrais un café crème, s\'il vous plaît.', translation: 'Hello! I\'d like a coffee with cream, please.' },
-      { speaker: 'Serveur', text: 'Bien sûr. Un grand ou un petit ?', translation: 'Of course. A large or a small?' },
-      { speaker: 'Client', text: 'Un grand, s\'il vous plaît. Et un croissant aussi.', translation: 'A large, please. And a croissant too.' },
-      { speaker: 'Serveur', text: 'Excellent choix. Vous désirez autre chose ?', translation: 'Excellent choice. Would you like anything else?' },
-      { speaker: 'Client', text: 'Non merci, ce sera tout.', translation: 'No thanks, that\'ll be all.' },
-      { speaker: 'Serveur', text: 'Ça fait cinq euros cinquante, s\'il vous plaît.', translation: 'That\'s five euros fifty, please.' },
-      { speaker: 'Client', text: 'Voici. Merci beaucoup !', translation: 'Here you go. Thank you very much!' },
+      // Natural, flowing conversation — feels real, not scripted
+      { speaker: 'Narrator', text: 'C\'est un mardi matin à Paris. Le café est presque vide. Un homme entre et s\'assoit au comptoir.', translation: 'It\'s a Tuesday morning in Paris. The cafe is almost empty. A man enters and sits at the counter.', gender: 'male' },
+      { speaker: 'Narrator', text: 'Le serveur, Antoine, prépare un expresso. Il lève les yeux.', translation: 'The waiter, Antoine, is making an espresso. He looks up.', gender: 'male' },
+      { speaker: 'Antoine', text: 'Bonjour ! Le même que d\'habitude ?', translation: 'Good morning! The usual?', gender: 'male' },
+      { speaker: 'Client', text: 'Ah non, pas aujourd\'hui. Je voudrais essayer quelque chose de nouveau.', translation: 'Ah no, not today. I\'d like to try something new.', gender: 'male' },
+      { speaker: 'Antoine', text: 'Intéressant ! On a un nouveau mélange colombien. Il est incroyable. Corsé mais doux à la fin.', translation: 'Interesting! We have a new Colombian blend. It\'s incredible. Bold but smooth at the end.', gender: 'male' },
+      { speaker: 'Client', text: 'Ça a l\'air parfait. Avec un peu de lait, s\'il vous plaît.', translation: 'That sounds perfect. With a bit of milk, please.', gender: 'male' },
+      { speaker: 'Antoine', text: 'Et pour accompagner ? Les croissants sont sortis du four il y a cinq minutes.', translation: 'And to go with it? The croissants came out of the oven five minutes ago.', gender: 'male' },
+      { speaker: 'Client', text: 'Comment résister ? Un croissant alors. Merci, Antoine.', translation: 'How can I resist? A croissant then. Thanks, Antoine.', gender: 'male' },
+      { speaker: 'Narrator', text: 'Antoine sourit. C\'est pour ça qu\'il aime ce métier. Chaque matin, une nouvelle conversation.', translation: 'Antoine smiles. That\'s why he loves this job. Every morning, a new conversation.', gender: 'male' },
     ],
     vocabulary: [
-      { word: 'un café crème', translation: 'coffee with cream', phonetic: '/kafe kʁɛm/' },
-      { word: 's\'il vous plaît', translation: 'please (formal)', phonetic: '/sil vu plɛ/' },
-      { word: 'un croissant', translation: 'a croissant', phonetic: '/kʁwasɑ̃/' },
-      { word: 'ce sera tout', translation: 'that\'ll be all', phonetic: '/sə sʁa tu/' },
+      { word: 'le même que d\'habitude', translation: 'the usual', phonetic: '/lə mɛm kə dabityd/' },
+      { word: 'essayer', translation: 'to try', phonetic: '/eseje/' },
+      { word: 'corsé', translation: 'bold (coffee)', phonetic: '/kɔʁse/' },
+      { word: 'accompagner', translation: 'to go with / to accompany', phonetic: '/akɔ̃paɲe/' },
+      { word: 'sorti du four', translation: 'fresh from the oven', phonetic: '/sɔʁti dy fuʁ/' },
+    ],
+    // Stage 1: GIST questions — what's the general idea?
+    beforeQuestions: [
+      { question: 'Where does this story take place?', options: ['A cafe in Paris', 'A restaurant in Lyon', 'A bakery', 'A supermarket'], correctIndex: 0 },
+      { question: 'What does the customer want to do differently today?', options: ['Sit outside', 'Try something new', 'Leave quickly', 'Meet a friend'], correctIndex: 1 },
+    ],
+    // Stage 3: DETAIL questions — did you catch the specifics?
+    afterQuestions: [
+      { question: 'What type of coffee blend does Antoine recommend?', options: ['Brazilian', 'Ethiopian', 'Colombian', 'Italian'], correctIndex: 2 },
+      { question: 'How long ago did the croissants come out of the oven?', options: ['Ten minutes', 'Twenty minutes', 'Five minutes', 'One hour'], correctIndex: 2 },
+      { question: 'Why does Antoine love his job?', options: ['The pay is good', 'Every morning brings a new conversation', 'He gets free coffee', 'He works short hours'], correctIndex: 1 },
     ],
     questions: [
-      { question: 'What did the customer order?', options: ['Coffee with cream and a croissant', 'Tea and a sandwich', 'Orange juice', 'Water'], correctIndex: 0 },
-      { question: 'How much was the total?', options: ['€3.50', '€5.50', '€7.00', '€4.00'], correctIndex: 1 },
-    ],
-    beforeQuestions: [
-      { question: 'Where does this conversation take place?', options: ['A cafe', 'A restaurant', 'A shop', 'An office'], correctIndex: 0 },
-    ],
-    afterQuestions: [
-      { question: 'What size coffee did the customer choose?', options: ['Small', 'Large', 'Medium', 'Extra large'], correctIndex: 1 },
-      { question: 'What did the server ask after taking the order?', options: ['How to pay', 'If they wanted anything else', 'Their name', 'Where to sit'], correctIndex: 1 },
+      { question: 'What does the customer order?', options: ['The Colombian blend with milk and a croissant', 'An espresso', 'Tea and cake', 'Just water'], correctIndex: 0 },
     ],
   },
   'listening-2': {
-    title: 'Business Meeting',
+    title: 'La Réunion — Under Pressure',
     dialogueLines: [
-      { speaker: 'Sophie', text: 'Bonjour tout le monde. Merci d\'être venus.', translation: 'Hello everyone. Thank you for coming.' },
-      { speaker: 'Marc', text: 'Bonjour Sophie. De quoi allons-nous parler aujourd\'hui ?', translation: 'Hello Sophie. What are we going to talk about today?' },
-      { speaker: 'Sophie', text: 'J\'aimerais discuter du nouveau projet. Nous devons respecter les délais.', translation: 'I\'d like to discuss the new project. We need to meet the deadlines.' },
-      { speaker: 'Marc', text: 'D\'accord. Quelles sont les prochaines étapes ?', translation: 'Alright. What are the next steps?' },
-      { speaker: 'Sophie', text: 'Premièrement, nous devons finaliser le budget. Ensuite, on commence le développement.', translation: 'First, we need to finalize the budget. Then, we start development.' },
-      { speaker: 'Marc', text: 'Je suis d\'accord. Je peux préparer une présentation pour vendredi.', translation: 'I agree. I can prepare a presentation for Friday.' },
-      { speaker: 'Sophie', text: 'Parfait. Est-ce que quelqu\'un a des questions ?', translation: 'Perfect. Does anyone have questions?' },
-      { speaker: 'Marc', text: 'Non, c\'est très clair. Merci Sophie.', translation: 'No, it\'s very clear. Thank you Sophie.' },
+      { speaker: 'Narrator', text: 'Sophie regarde sa montre. La réunion commence dans deux minutes et le client principal n\'est pas encore arrivé.', translation: 'Sophie checks her watch. The meeting starts in two minutes and the main client hasn\'t arrived yet.', gender: 'female' },
+      { speaker: 'Sophie', text: 'Marc, tu as des nouvelles du client ? Il devait être là à neuf heures.', translation: 'Marc, any news from the client? He was supposed to be here at nine.', gender: 'female' },
+      { speaker: 'Marc', text: 'Je viens de recevoir un message. Il est coincé dans les embouteillages. Dix minutes de retard.', translation: 'I just got a message. He\'s stuck in traffic. Ten minutes late.', gender: 'male' },
+      { speaker: 'Sophie', text: 'D\'accord. Profitons-en pour revoir les chiffres une dernière fois. Le budget a changé hier soir.', translation: 'Alright. Let\'s use the time to review the numbers one last time. The budget changed last night.', gender: 'female' },
+      { speaker: 'Marc', text: 'Changé ? Comment ça ? On avait tout validé vendredi !', translation: 'Changed? What do you mean? We validated everything on Friday!', gender: 'male' },
+      { speaker: 'Sophie', text: 'Le directeur a réduit l\'enveloppe de quinze pour cent. Il faut adapter notre proposition.', translation: 'The director cut the budget by fifteen percent. We need to adapt our proposal.', gender: 'female' },
+      { speaker: 'Marc', text: 'Quinze pour cent... C\'est beaucoup. On supprime quoi ?', translation: 'Fifteen percent... That\'s a lot. What do we cut?', gender: 'male' },
+      { speaker: 'Sophie', text: 'La phase de test. On la fait en interne au lieu de sous-traiter. Ça économise le budget sans perdre en qualité.', translation: 'The testing phase. We do it in-house instead of outsourcing. That saves the budget without losing quality.', gender: 'female' },
+      { speaker: 'Marc', text: 'Brillant. Je mets à jour la présentation. Sophie, tu gères vraiment bien la pression.', translation: 'Brilliant. I\'ll update the presentation. Sophie, you really handle pressure well.', gender: 'male' },
+      { speaker: 'Narrator', text: 'Le client arrive cinq minutes plus tard. La présentation se passe parfaitement. Parfois, les meilleures solutions naissent sous pression.', translation: 'The client arrives five minutes later. The presentation goes perfectly. Sometimes the best solutions are born under pressure.', gender: 'male' },
     ],
     vocabulary: [
-      { word: 'les délais', translation: 'the deadlines', phonetic: '/le delɛ/' },
-      { word: 'le budget', translation: 'the budget', phonetic: '/lə byʒɛ/' },
-      { word: 'les prochaines étapes', translation: 'the next steps', phonetic: '/le pʁɔʃɛn etap/' },
-      { word: 'une présentation', translation: 'a presentation', phonetic: '/yn pʁezɑ̃tasjɔ̃/' },
+      { word: 'les embouteillages', translation: 'traffic jams', phonetic: '/lɛz ɑ̃butɛjaʒ/' },
+      { word: 'profitons-en', translation: 'let\'s take advantage of it', phonetic: '/pʁɔfitɔ̃z ɑ̃/' },
+      { word: 'l\'enveloppe', translation: 'the budget envelope', phonetic: '/lɑ̃vlɔp/' },
+      { word: 'sous-traiter', translation: 'to outsource', phonetic: '/su tʁɛte/' },
+      { word: 'mettre à jour', translation: 'to update', phonetic: '/mɛtʁ a ʒuʁ/' },
+    ],
+    // Stage 1: GIST questions — big picture understanding
+    beforeQuestions: [
+      { question: 'What is the overall mood of this scene?', options: ['Relaxed and casual', 'Stressful but professional', 'Angry and confrontational', 'Boring and routine'], correctIndex: 1 },
+      { question: 'What is the main problem they face?', options: ['The client is late and the budget changed', 'They lost an important document', 'The office is closed', 'Marc forgot the presentation'], correctIndex: 0 },
+    ],
+    // Stage 3: DETAIL questions — specific information
+    afterQuestions: [
+      { question: 'By what percentage was the budget cut?', options: ['5%', '10%', '15%', '20%'], correctIndex: 2 },
+      { question: 'What solution does Sophie propose?', options: ['Cancel the project', 'Do testing in-house instead of outsourcing', 'Ask for more money', 'Delay the deadline'], correctIndex: 1 },
+      { question: 'What does Marc say about Sophie?', options: ['She talks too much', 'She handles pressure well', 'She should relax more', 'She needs more experience'], correctIndex: 1 },
     ],
     questions: [
-      { question: 'What is the main topic of the meeting?', options: ['A new project', 'A holiday party', 'Employee reviews', 'Office move'], correctIndex: 0 },
-      { question: 'What will Marc prepare?', options: ['A report', 'A presentation for Friday', 'A budget', 'An email'], correctIndex: 1 },
-    ],
-    beforeQuestions: [
-      { question: 'How many speakers are in this dialogue?', options: ['One', 'Two', 'Three', 'Four'], correctIndex: 1 },
-    ],
-    afterQuestions: [
-      { question: 'What needs to happen first before development?', options: ['Finalize the budget', 'Hire new people', 'Get approval from the CEO', 'Write a proposal'], correctIndex: 0 },
-      { question: 'How did Marc react to the plan?', options: ['He disagreed', 'He agreed and offered to help', 'He asked for more time', 'He left the meeting'], correctIndex: 1 },
+      { question: 'How does the meeting end?', options: ['It gets cancelled', 'The presentation goes perfectly', 'The client is unhappy', 'They reschedule'], correctIndex: 1 },
     ],
   },
 };
@@ -333,25 +345,32 @@ export default function PracticeListeningScreen() {
       setAudioCurrentTime(0);
       setAudioProgress(0);
 
-      // Build speaker → voice map using gender from AI-generated dialogue
+      // Build speaker → voice map
+      // Narrator uses default voice. Characters get distinct voices.
       const speakerVoiceMap = new Map<string, string>();
       const usedVoiceIds = new Set<string>();
       const uniqueSpeakers = [...new Set(content.dialogueLines.map(l => l.speaker))];
 
+      // Default narrator voice (always available)
+      const narratorVoiceId = voiceConfig?.elevenLabsVoiceId || '';
+
       for (const speakerName of uniqueSpeakers) {
-        // Find the first line by this speaker to get their gender
+        // Narrator always uses the default voice
+        if (speakerName.toLowerCase() === 'narrator' || speakerName.toLowerCase() === 'narrateur') {
+          speakerVoiceMap.set(speakerName, narratorVoiceId);
+          continue;
+        }
+
+        // For characters: try to match gender
         const speakerLine = content.dialogueLines.find(l => l.speaker === speakerName);
         const speakerGender = speakerLine?.gender;
 
-        // Try to find a voice matching the gender that hasn't been used yet
         let bestVoice = dialogueVoices.find(
           v => v.gender === speakerGender && !usedVoiceIds.has(v.elevenLabsVoiceId),
         );
-        // Fallback: any unused voice
         if (!bestVoice) {
           bestVoice = dialogueVoices.find(v => !usedVoiceIds.has(v.elevenLabsVoiceId));
         }
-        // Last resort: cycle back to first voice
         if (!bestVoice && dialogueVoices.length > 0) {
           bestVoice = dialogueVoices[0];
         }
@@ -359,6 +378,9 @@ export default function PracticeListeningScreen() {
         if (bestVoice) {
           speakerVoiceMap.set(speakerName, bestVoice.elevenLabsVoiceId);
           usedVoiceIds.add(bestVoice.elevenLabsVoiceId);
+        } else {
+          // Fallback to narrator voice
+          speakerVoiceMap.set(speakerName, narratorVoiceId);
         }
       }
 
