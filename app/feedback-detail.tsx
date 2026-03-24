@@ -72,8 +72,8 @@ interface ParsedScores {
 }
 
 function parseScores(raw?: string): ParsedScores {
-  if (!raw) return { articulation: 70, fluency: 70, communication: 70, scenario: 70, wordsLearned: 5, pointsEarned: 50, timeSpent: 300, cefrLevel: 'A2' };
-  try { return JSON.parse(raw); } catch { return { articulation: 70, fluency: 70, communication: 70, scenario: 70, wordsLearned: 5, pointsEarned: 50, timeSpent: 300, cefrLevel: 'A2' }; }
+  if (!raw) return { articulation: 0, fluency: 0, communication: 0, scenario: 0, wordsLearned: 0, pointsEarned: 0, timeSpent: 0, cefrLevel: 'A1' };
+  try { return JSON.parse(raw); } catch { return { articulation: 0, fluency: 0, communication: 0, scenario: 0, wordsLearned: 0, pointsEarned: 0, timeSpent: 0, cefrLevel: 'A1' }; }
 }
 
 function deriveOverallScore(s: ParsedScores): number {
@@ -406,18 +406,13 @@ export default function FeedbackDetailScreen() {
 
   const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Pass scores forward to lesson-complete
-    const scores = params.scores || JSON.stringify({
-      articulation: 78, fluency: 65, communication: 72, scenario: 81,
-      wordsLearned: 12, pointsEarned: 85, timeSpent: 360, cefrLevel: 'B1',
-    });
     router.replace({
       pathname: '/lesson-complete',
       params: {
-        scores: params.scores || JSON.stringify(scores),
-        stairTitle: params.stairTitle || 'Discovery Session',
-        stairId: params.stairId || 'discovery',
-        isDiscovery: params.isDiscovery || 'true',
+        scores: params.scores || '{}',
+        stairTitle: params.stairTitle || 'Practice Session',
+        stairId: params.stairId || 'practice',
+        isDiscovery: params.isDiscovery || 'false',
       },
     });
   };

@@ -637,19 +637,23 @@ export default function PracticeListeningScreen() {
     if (isSessionActivity) {
       router.replace('/lesson-session');
     } else {
-      // Navigate to feedback detail
+      // Navigate to feedback detail with listening-specific scores
+      const beforePct = totalQuestions > 0 ? Math.round((beforeScore / totalQuestions) * 100) : 0;
+      const afterPct = totalQuestions > 0 ? Math.round((afterScore / totalQuestions) * 100) : 0;
+      const improvement = afterPct - beforePct;
+
       router.push({
         pathname: '/feedback-detail',
         params: {
           scores: JSON.stringify({
-            articulation: accuracy,
-            fluency: accuracy,
-            communication: Math.round(accuracy * 0.9),
-            scenario: accuracy,
+            articulation: afterPct,       // Comprehension (mapped to articulation for display)
+            fluency: Math.min(100, afterPct + 10),  // Listening skill
+            communication: beforePct,      // Before score for comparison
+            scenario: afterPct,            // Overall comprehension
             wordsLearned: wordsLearned,
             pointsEarned: pointsRef.current,
             timeSpent,
-            cefrLevel: 'B1',
+            cefrLevel: afterPct >= 80 ? 'B2' : afterPct >= 60 ? 'B1' : 'A2',
           }),
           stairTitle: content?.title || 'Listening Practice',
           stairId: params.lectureId || 'listening',

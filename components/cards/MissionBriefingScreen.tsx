@@ -84,7 +84,7 @@ export const MissionBriefingScreen: React.FC<MissionBriefingScreenProps> = ({
   onBack,
 }) => {
   const insets = useSafeAreaInsets();
-  const [showObjectives, setShowObjectives] = useState(false);
+  const [showObjectives, setShowObjectives] = useState(true); // All objectives visible by default
 
   // Animations
   const ringRotation = useSharedValue(0);
@@ -92,8 +92,8 @@ export const MissionBriefingScreen: React.FC<MissionBriefingScreenProps> = ({
   const avatarScale = useSharedValue(0.6);
 
   useEffect(() => {
-    // Avatar spring in
-    avatarScale.value = withSpring(1, { damping: 14, stiffness: 90 });
+    // Avatar fade in (no bouncing — professional feel)
+    avatarScale.value = withTiming(1, { duration: 400 });
 
     // Subtle ring rotation
     ringRotation.value = withRepeat(
@@ -222,50 +222,18 @@ export const MissionBriefingScreen: React.FC<MissionBriefingScreenProps> = ({
             {/* Divider */}
             <View style={styles.divider} />
 
-            {/* Primary Goal */}
-            <View style={styles.goalRow}>
-              <View style={styles.goalIconCircle}>
-                <Ionicons name="flag" size={14} color={colors.primary.DEFAULT} />
-              </View>
-              <View style={styles.goalContent}>
-                <Text style={styles.goalLabel}>YOUR GOAL</Text>
-                <Text style={styles.goalText}>{primaryGoal}</Text>
-              </View>
+            {/* OBJECTIVES — All visible as checklist (verified design) */}
+            <Text style={styles.goalLabel}>OBJECTIVES</Text>
+            <View style={styles.objectivesList}>
+              {objectives.map((obj, i) => (
+                <View key={i} style={styles.objectiveItem}>
+                  <View style={styles.objectiveCheckbox}>
+                    <Ionicons name="square-outline" size={18} color={colors.text.tertiary} />
+                  </View>
+                  <Text style={styles.objectiveText}>{obj}</Text>
+                </View>
+              ))}
             </View>
-
-            {/* Collapsible Objectives */}
-            {objectives.length > 1 && (
-              <>
-                <TouchableOpacity
-                  onPress={toggleObjectives}
-                  activeOpacity={0.7}
-                  style={styles.objectivesToggle}
-                >
-                  <Text style={styles.objectivesToggleText}>
-                    {showObjectives ? 'Hide objectives' : `+ ${objectives.length - 1} more objective${objectives.length > 2 ? 's' : ''}`}
-                  </Text>
-                  <Ionicons
-                    name={showObjectives ? 'chevron-up' : 'chevron-down'}
-                    size={14}
-                    color={colors.text.tertiary}
-                  />
-                </TouchableOpacity>
-
-                {showObjectives && (
-                  <Animated.View
-                    entering={FadeInDown.duration(250)}
-                    style={styles.objectivesList}
-                  >
-                    {objectives.slice(1).map((obj, i) => (
-                      <View key={i} style={styles.objectiveItem}>
-                        <View style={styles.objectiveDot} />
-                        <Text style={styles.objectiveText}>{obj}</Text>
-                      </View>
-                    ))}
-                  </Animated.View>
-                )}
-              </>
-            )}
           </View>
         </Animated.View>
 
@@ -540,6 +508,9 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
     backgroundColor: colors.primary.DEFAULT + '80',
     marginTop: 7,
+  },
+  objectiveCheckbox: {
+    marginTop: 1,
   },
   objectiveText: {
     flex: 1,

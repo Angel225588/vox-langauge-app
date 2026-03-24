@@ -243,18 +243,27 @@ export default function GuidedVoicePracticeScreen() {
         />
       );
 
-    case 'phrases':
+    case 'phrases': {
+      // Build phrases with translations where available
+      const phrasesList = (scenario.suggestedPhrases || []).map((p: any) => {
+        if (typeof p === 'object' && p.text) return p; // Already has text + translation
+        return { text: p, translation: '' };
+      });
+      // If no phrases at all, show a message
+      if (phrasesList.length === 0) {
+        phrasesList.push(
+          { text: 'No key phrases for this scenario', translation: 'Start the call to practice freely' },
+        );
+      }
       return (
         <KeyPhrasesScreen
           scenarioTitle={scenario.title}
-          phrases={(scenario.suggestedPhrases || []).map(p => ({
-            text: p,
-            translation: '', // Gemini fills this in real scenarios
-          }))}
+          phrases={phrasesList}
           onStartCall={handleStartCall}
           onBack={() => setStep('briefing')}
         />
       );
+    }
 
     case 'call':
       return (

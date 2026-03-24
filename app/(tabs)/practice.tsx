@@ -753,7 +753,37 @@ export default function PracticeScreen() {
       router.push('/(auth)/onboarding-v3/signup' as any);
       return;
     }
-    // Default scenario for quick practice — guided flow
+    // Default scenario with language-specific phrases
+    const lang = v3.target_language || 'english';
+    const phrases: Record<string, string[]> = {
+      french: [
+        'Bonjour, je m\'appelle...',
+        'Comment allez-vous aujourd\'hui ?',
+        'Je travaille dans le domaine de...',
+        'Qu\'est-ce que vous faites dans la vie ?',
+        'C\'est très intéressant !',
+        'Enchanté de vous connaître',
+        'Au revoir, bonne journée !',
+      ],
+      spanish: [
+        'Hola, me llamo...',
+        '¿Cómo está usted hoy?',
+        'Trabajo en el campo de...',
+        '¿A qué se dedica usted?',
+        '¡Es muy interesante!',
+        'Encantado de conocerle',
+        '¡Adiós, que tenga un buen día!',
+      ],
+      english: [
+        'Hello, my name is...',
+        'How are you doing today?',
+        'I work in the field of...',
+        'What do you do for a living?',
+        'That\'s really interesting!',
+        'Nice to meet you',
+        'Goodbye, have a great day!',
+      ],
+    };
     const defaultScenario = {
       id: 'quick-practice',
       title: 'Free Practice',
@@ -762,10 +792,10 @@ export default function PracticeScreen() {
       aiRole: 'Conversation Partner',
       userRole: 'Learner',
       objectives: ['Introduce yourself', 'Ask about their day', 'Describe your work', 'End the conversation politely'],
-      language: v3.target_language || 'english',
+      language: lang,
       difficulty: 'intermediate' as const,
       category: 'general',
-      suggestedPhrases: [],
+      suggestedPhrases: phrases[lang] || phrases.english,
       keyVocabulary: [],
       suggestedDuration: 300,
     };
