@@ -1,0 +1,14 @@
+[
+  {"text": "Vocabulary batch flow", "status": "done", "agent": "GSD"},
+  {"text": "Language hydration fix (profileLoader)", "status": "done", "agent": "Claude"},
+  {"text": "Triple Verification system (/verify)", "status": "done", "agent": "Claude"},
+  {"text": "Design Pipeline foundation (Nano Banana)", "status": "done", "agent": "Claude"},
+  {"text": "Progress dashboard (auto-updating)", "status": "done", "agent": "Claude"},
+  {"text": "Reading flow — staircase integration", "status": "in_progress", "agent": "GSD"},
+  {"text": "Voice call — scenario wiring in staircase", "status": "queued", "agent": "GSD"},
+  {"text": "Listening — staircase content integration", "status": "queued", "agent": "GSD"},
+  {"text": "Writing — history storage + redesign", "status": "queued", "agent": "GSD"},
+  {"text": "Commit + push all changes", "status": "queued", "agent": "Claude"},
+  {"text": "NotebookLM re-auth (nlm login)", "status": "queued", "agent": "Angel"},
+  {"text": "Apple Developer Account setup", "status": "queued", "agent": "Angel"}
+]

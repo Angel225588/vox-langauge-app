@@ -30,6 +30,9 @@ export function bankWordToVocabularyItem(bw: BankWord): VocabularyItem {
     cefrLevel: bw.cefrLevel,
     partOfSpeech: bw.partOfSpeech,
 
+    // Definition — use translation as fallback
+    definition: bw.translation || undefined,
+
     // Learning state
     masteryScore: bw.masteryScore,
     priority: bw.priority,

@@ -59,7 +59,7 @@ interface ListeningCardProps extends VocabCardProps {
   mode?: 'type' | 'quiz';
 }
 
-export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCardProps) {
+export function ListeningCard({ item, onComplete, onSkip, mode = 'type' }: ListeningCardProps) {
   const speechLang = getTargetSpeechLang();
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
@@ -362,6 +362,13 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
               </LinearGradient>
             </TouchableOpacity>
           </Animated.View>
+        )}
+
+        {/* Can't hear right now — skip to next card type */}
+        {!showResult && onSkip && (
+          <TouchableOpacity onPress={() => { Speech.stop(); onSkip(); }} style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
+            <Text style={{ color: colors.text.tertiary, fontSize: typography.fontSize.sm }}>I can't hear right now</Text>
+          </TouchableOpacity>
         )}
       </View>
 

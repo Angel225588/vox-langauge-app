@@ -124,6 +124,8 @@ export function VocabularyBatchFlow({
 
   // Handle card completion — advance word or phase
   const handleCardComplete = useCallback((result: VocabCardResult) => {
+    // CRITICAL: Stop any playing audio before transitioning
+    Speech.stop();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setResults(prev => [...prev, result]);
     recordResult(result.correct, currentItem?.word || '');

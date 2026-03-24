@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vox Language — Project Progress</title>
+<meta http-equiv="refresh" content="30">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0A0E1A;--card:#1A1F3A;--card2:#222847;--p:#0036FF;--s:#06D6A0;--w:#F59E0B;--e:#EF4444;--t1:#F9FAFB;--t2:#D1D5DB;--t3:#6B7280;--b:rgba(255,255,255,0.06);--r:16px;--rs:10px}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;padding:28px;max-width:1200px;margin:0 auto}
+
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px}
+  .hdr h1{font-size:26px;font-weight:700;letter-spacing:-0.5px}
+  .hdr .sub{color:var(--t3);font-size:13px;font-family:'DM Mono',monospace}
+  .hdr .meta{text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--t3)}
+  .hdr .branch{color:var(--p);margin-top:2px}
+  .live{color:var(--s);font-size:11px;margin-top:4px}
+  .live::before{content:'●';margin-right:4px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  .card{background:var(--card);border:1px solid var(--b);border-radius:var(--r);padding:22px 26px;margin-bottom:20px;position:relative;overflow:hidden}
+  .card-accent::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--p),var(--s))}
+  .row{display:flex;justify-content:space-between;align-items:center}
+  .pct{font-size:30px;font-weight:700;background:linear-gradient(135deg,var(--p),var(--s));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .bar{width:100%;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;margin:10px 0}
+  .bar-f{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--p),var(--s));transition:width 1s}
+  .stats{display:flex;gap:24px;flex-wrap:wrap;margin-top:12px}
+  .sv{font-size:17px;font-weight:700}.sl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+  @media(max-width:860px){.cols{grid-template-columns:1fr}}
+
+  .st{font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+
+  .todo{padding:7px 0;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:9px;font-size:13px}
+  .todo:last-child{border-bottom:none}
+  .tc{width:16px;height:16px;border-radius:4px;border:2px solid var(--t3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px}
+  .td .tc{border-color:var(--s);background:rgba(6,214,160,.15);color:var(--s)}
+  .tp .tc{border-color:var(--p);background:rgba(0,54,255,.15);color:var(--p)}
+  .td .tt{color:var(--t3);text-decoration:line-through}
+  .ta{font-size:9px;padding:2px 6px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--t3);margin-left:auto;flex-shrink:0}
+
+  .fr{background:var(--card);border:1px solid var(--b);border-radius:var(--rs);padding:12px 16px;margin-bottom:8px}
+  .ft{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .fn{font-size:13px;font-weight:600}
+  .fb{font-size:9px;font-weight:600;padding:3px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:.3px}
+  .bd{background:rgba(6,214,160,.15);color:var(--s)}.bp{background:rgba(0,54,255,.15);color:#6B8AFF}.bq{background:rgba(255,255,255,.06);color:var(--t3)}
+  .fbar{width:100%;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+  .ff{height:100%;border-radius:2px}
+  .fd{background:var(--s)}.fp{background:var(--p)}
+
+  .agents{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+  .ag{background:var(--card);border:1px solid var(--b);border-radius:var(--rs);padding:12px 16px;flex:1;min-width:180px}
+  .ag-h{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+  .ag-n{font-weight:600;font-size:12px}.ag-s{font-size:11px;color:var(--t2);line-height:1.4}
+
+  .act{background:var(--card);border:1px solid var(--b);border-radius:var(--r);overflow:hidden;max-height:350px;overflow-y:auto}
+  .ai{padding:9px 16px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px;font-size:12px}
+  .ai:last-child{border-bottom:none}
+  .ah{font-family:'DM Mono',monospace;color:var(--p);width:52px;flex-shrink:0;font-size:11px}
+  .am{color:var(--t2);flex:1}.at{font-size:9px;font-weight:600;padding:2px 6px;border-radius:8px;text-transform:uppercase;flex-shrink:0}
+  .tf{background:rgba(0,54,255,.15);color:#6B8AFF}.tx{background:rgba(245,158,11,.15);color:var(--w)}.tt2{background:rgba(139,92,246,.15);color:#A78BFA}.tdo{background:rgba(255,255,255,.06);color:var(--t3)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+  .chip{font-size:10px;padding:4px 8px;border-radius:7px;display:flex;align-items:center;gap:4px}
+  .cd{background:rgba(6,214,160,.08);color:var(--s);border:1px solid rgba(6,214,160,.15)}
+  .cp{background:rgba(255,255,255,.03);color:var(--t3);border:1px solid var(--b)}
+
+  .phases{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+  .ph{flex:1;min-width:90px;padding:10px;border-radius:var(--rs);text-align:center}
+  .pl{font-size:9px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:1px}
+  .pn{font-weight:600;font-size:12px}.ps{font-size:10px;margin-top:1px}
+  .pd{background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2)}.pd .pl,.pd .ps{color:var(--s)}
+  .pa{background:rgba(0,54,255,.1);border:1px solid rgba(0,54,255,.3);box-shadow:0 0 15px rgba(0,54,255,.1)}.pa .pl,.pa .ps{color:#6B8AFF}
+  .pf{background:rgba(255,255,255,.02);border:1px solid var(--b);color:var(--t3)}.pf .pl,.pf .ps{color:var(--t3)}
+
+  .foot{text-align:center;padding:16px 0;font-size:10px;color:var(--t3);font-family:'DM Mono',monospace}
+</style>
+</head>
+<body>
+<script src="dashboard-data.js"></script>
+<script>
+const D = window.VOX_DATA || { date:'?', branch:'?', commits:[], todos:[], commitCount:0, phase4Commits:0, testsPassing:375, suitesPassing:23, fileCount:0 };
+
+const FLOWS = [
+  {n:"📚 Vocabulary",p:100,s:"done"},
+  {n:"🪜 Staircase",p:85,s:"progress"},
+  {n:"🎙️ Voice Calls",p:75,s:"progress"},
+  {n:"📖 Reading",p:70,s:"progress"},
+  {n:"🎧 Listening",p:65,s:"progress"},
+  {n:"✍️ Writing",p:40,s:"queued"},
+];
+
+const INFRA = [
+  {n:"Language fix",d:1},{n:"/verify",d:1},{n:"GSD v2.42",d:1},{n:"Nano Banana",d:1},
+  {n:"Design Pipeline",d:1},{n:"NotebookLM",d:1},{n:"Privacy+GDPR",d:1},{n:"Competency",d:1},
+  {n:"Points SQLite",d:1},{n:"EAS Build",d:1},
+  {n:"Apple Dev Acct",d:0},{n:"TestFlight",d:0},{n:"CI/CD",d:0},{n:"Lint+Format",d:0},{n:"Prod Supabase",d:0},
+];
+
+const ov = Math.round(FLOWS.reduce((s,f)=>s+f.p,0)/FLOWS.length);
+const id = INFRA.filter(i=>i.d).length;
+
+const todoHtml = D.todos.length ? D.todos.map(t=>{
+  const c=t.status==='done'?'td':t.status==='in_progress'?'tp':'';
+  const i=t.status==='done'?'✓':t.status==='in_progress'?'→':'';
+  return `<div class="todo ${c}"><div class="tc">${i}</div><div class="tt">${t.text}</div>${t.agent?`<div class="ta">${t.agent}</div>`:''}</div>`;
+}).join('') : '<div style="padding:10px;color:var(--t3);font-size:12px">No tasks yet</div>';
+
+const flowHtml = FLOWS.map(f=>{
+  const b=f.s==='done'?'bd':f.s==='progress'?'bp':'bq';
+  const fc=f.s==='done'?'fd':'fp';
+  const l=f.s==='done'?'Done':f.s==='progress'?'Active':'Queued';
+  return `<div class="fr"><div class="ft"><span class="fn">${f.n}</span><span class="fb ${b}">${l}</span></div><div class="fbar"><div class="ff ${fc}" style="width:${f.p}%"></div></div></div>`;
+}).join('');
+
+const commitHtml = D.commits.map(c=>{
+  const tc=c.type==='feat'?'tf':c.type==='test'?'tt2':c.type==='docs'?'tdo':'tx';
+  return `<div class="ai"><div class="ah">${c.hash}</div><div class="am">${c.msg}</div><div class="at ${tc}">${c.type}</div></div>`;
+}).join('');
+
+const infraHtml = INFRA.map(i=>`<div class="chip ${i.d?'cd':'cp'}">${i.d?'✓':'○'} ${i.n}</div>`).join('');
+
+document.body.innerHTML = `
+<div class="hdr">
+  <div><h1>Vox Language</h1><div class="sub">Project Progress</div></div>
+  <div class="meta"><div>${D.date}</div><div class="branch">${D.branch}</div><div class="live">Auto-refreshes every 30s</div></div>
+</div>
+
+<div class="card card-accent">
+  <div class="row"><h2 style="font-size:15px;font-weight:600">Overall</h2><div class="pct">${ov}%</div></div>
+  <div class="bar"><div class="bar-f" style="width:${ov}%"></div></div>
+  <div class="stats">
+    <div><div class="sv" style="color:var(--s)">${D.testsPassing}</div><div class="sl">Tests</div></div>
+    <div><div class="sv">${D.suitesPassing}</div><div class="sl">Suites</div></div>
+    <div><div class="sv">${D.fileCount}</div><div class="sl">Files</div></div>
+    <div><div class="sv">${D.phase4Commits}</div><div class="sl">P4 Commits</div></div>
+    <div><div class="sv">${id}/${INFRA.length}</div><div class="sl">Infra</div></div>
+  </div>
+</div>
+
+<div class="agents">
+  <div class="ag"><div class="ag-h"><span>🤖</span><span class="ag-n">GSD</span></div><div class="ag-s">Vocab ✓ → Reading → Voice → Listen → Write</div></div>
+  <div class="ag"><div class="ag-h"><span>🔧</span><span class="ag-n">Claude</span></div><div class="ag-s">Language fix, /verify, dashboard, design pipeline</div></div>
+  <div class="ag"><div class="ag-h"><span>👤</span><span class="ag-n">Angel</span></div><div class="ag-s">Vision, testing, direction. Features → Polish → Ship</div></div>
+</div>
+
+<div class="cols">
+  <div><div class="st">Session To-Do</div><div class="card">${todoHtml}</div></div>
+  <div><div class="st">Content Flows</div>${flowHtml}</div>
+</div>
+
+<div class="st">Phases</div>
+<div class="phases">
+  <div class="ph pd"><div class="pl">P0-1</div><div class="pn">Foundation</div><div class="ps">Done ✓</div></div>
+  <div class="ph pd"><div class="pl">P2</div><div class="pn">Metrics</div><div class="ps">Done ✓</div></div>
+  <div class="ph pd"><div class="pl">P3</div><div class="pn">Privacy</div><div class="ps">Done ✓</div></div>
+  <div class="ph pa"><div class="pl">P4</div><div class="pn">Polish</div><div class="ps">Active →</div></div>
+  <div class="ph pf"><div class="pl">P5</div><div class="pn">Partners</div><div class="ps">Next</div></div>
+</div>
+
+<div class="st">Infrastructure</div>
+<div class="chips">${infraHtml}</div>
+
+<div class="st">Recent Activity</div>
+<div class="act">${commitHtml}</div>
+
+<div class="foot">Vox Language — Precision tools for professionals · ${D.date}</div>
+`;
+</script>
+</body>
+</html>

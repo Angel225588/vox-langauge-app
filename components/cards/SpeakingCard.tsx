@@ -1,14 +1,15 @@
 /**
- * SpeakingCard — Live Pronunciation Practice with Whisper
+ * SpeakingCard — Pronunciation Practice with ElevenLabs Scribe v2
  *
  * Flow:
  * 1. Show word + phonetic + Play/Slow audio
- * 2. User taps "Speak" → recording starts
- * 3. User taps "Done" → Whisper transcribes → word-by-word comparison
- * 4. Words highlight green (match) or red (miss) → score badge
- * 5. Auto-advance after 2s or tap Continue
+ * 2. "Start Speaking" → recording starts (pulsing red button, FIXED at bottom)
+ * 3. "Done" → stop recording → ElevenLabs Scribe transcribes → compare
+ * 4. Words highlight green/red → score badge
+ * 5. "Try Again" or "Continue" buttons
  *
- * Uses OpenAI Whisper via lib/reading/speechToText.ts
+ * Uses ElevenLabs Scribe v2 (fast, accurate, 90+ languages).
+ * Falls back to OpenAI Whisper if Scribe fails.
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -31,7 +32,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
-import { transcribeWithHint } from '@/lib/reading/speechToText';
+import { transcribeWithScribe } from '@/lib/voice/scribeSTT';
 import { getTargetSpeechLang } from '@/components/cards/vocabulary/speechLang';
 
 // =============================================================================
@@ -54,11 +55,11 @@ interface SpeakingCardProps {
 type CardState = 'ready' | 'recording' | 'analyzing' | 'result';
 
 // =============================================================================
-// WORD COMPARISON
+// HELPERS
 // =============================================================================
 
 function normalize(w: string): string {
-  return w.toLowerCase().replace(/[.,!?;:'"«»\-()]/g, '').replace(/'/g, "'").trim();
+  return w.toLowerCase().replace(/[.,!?;:'"«»\-()[\]]/g, '').replace(/'/g, "'").trim();
 }
 
 function levenshtein(a: string, b: string): number {
@@ -76,8 +77,8 @@ function compareWords(target: string, spoken: string): { matches: boolean[]; sco
   const sw = spoken.split(/\s+/).map(normalize).filter(w => w.length > 0);
   const matches = tw.map((t, i) => {
     if (sw[i] === t) return true;
-    if (sw[i] && t.length > 3 && levenshtein(t, sw[i]) <= 1) return true;
-    return sw.some(s => s === t || (t.length > 3 && levenshtein(t, s) <= 1));
+    if (sw[i] && t.length > 2 && levenshtein(t, sw[i]) <= 1) return true;
+    return sw.some(s => s === t || (t.length > 2 && levenshtein(t, s) <= 1));
   });
   return { matches, score: matches.filter(Boolean).length / Math.max(tw.length, 1) };
 }
@@ -98,7 +99,7 @@ export function SpeakingCard({
 }: SpeakingCardProps) {
   const insets = useSafeAreaInsets();
   const speechLang = language || getTargetSpeechLang();
-  const whisperLang = speechLang.split('-')[0];
+  const scribeLang = speechLang.split('-')[0]; // 'fr-FR' → 'fr'
 
   const [state, setState] = useState<CardState>('ready');
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
@@ -106,23 +107,26 @@ export function SpeakingCard({
   const [isPlayingSlow, setIsPlayingSlow] = useState(false);
   const [result, setResult] = useState<{ matches: boolean[]; score: number; spoken: string } | null>(null);
   const [showTranslation, setShowTranslation] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pulseScale = useSharedValue(1);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (recording) recording.stopAndUnloadAsync().catch(() => {});
       Speech.stop();
-      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [recording]);
 
+  // Request mic permission
+  useEffect(() => { Audio.requestPermissionsAsync().catch(() => {}); }, []);
+
+  // Pulse animation while recording
   useEffect(() => {
     if (state === 'recording') {
       pulseScale.value = withRepeat(
         withSequence(
-          withTiming(1.12, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1.08, { duration: 500, easing: Easing.inOut(Easing.ease) }),
           withTiming(1, { duration: 500, easing: Easing.inOut(Easing.ease) }),
         ), -1, true
       );
@@ -131,25 +135,21 @@ export function SpeakingCard({
     }
   }, [state]);
 
-  // Request mic permission on mount
-  useEffect(() => {
-    Audio.requestPermissionsAsync().catch(() => {});
-  }, []);
-
+  // ── Play audio ──
   const handlePlay = useCallback((slow: boolean) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Speech.stop();
     const setter = slow ? setIsPlayingSlow : setIsPlaying;
     setter(true);
     Speech.speak(word, {
-      language: speechLang,
-      rate: slow ? 0.5 : 0.85,
-      onDone: () => setter(false),
-      onError: () => setter(false),
+      language: speechLang, rate: slow ? 0.5 : 0.85,
+      onDone: () => setter(false), onError: () => setter(false),
     });
   }, [word, speechLang]);
 
+  // ── Start recording ──
   const handleStartRecording = useCallback(async () => {
+    Speech.stop(); // Kill any playing audio
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
@@ -161,12 +161,7 @@ export function SpeakingCard({
     }
   }, []);
 
-  const finish = useCallback((success: boolean) => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    const handler = onComplete || onNext;
-    if (handler) handler({ success, score: result?.score ?? 0 });
-  }, [onComplete, onNext, result]);
-
+  // ── Stop recording + transcribe ──
   const handleStopRecording = useCallback(async () => {
     if (!recording) return;
     setState('analyzing');
@@ -178,56 +173,74 @@ export function SpeakingCard({
       setRecording(null);
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
 
-      if (!uri) { finish(false); return; }
+      if (!uri) {
+        setResult({ matches: [false], score: 0, spoken: '' });
+        setState('result');
+        return;
+      }
 
-      const transcription = await transcribeWithHint(uri, word, whisperLang);
+      // Use ElevenLabs Scribe v2 for fast transcription
+      const transcription = await transcribeWithScribe(uri, scribeLang);
       const spoken = transcription.text.trim();
       const comparison = compareWords(word, spoken);
 
       setResult({ ...comparison, spoken });
       setState('result');
 
+      // Haptic feedback
       if (comparison.score >= 0.8) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       else if (comparison.score >= 0.5) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 
-      timerRef.current = setTimeout(() => finish(comparison.score >= 0.5), 2500);
     } catch (err) {
       console.error('[SpeakingCard] Transcription error:', err);
       setResult({ matches: [false], score: 0, spoken: '' });
       setState('result');
-      timerRef.current = setTimeout(() => finish(false), 2000);
     }
-  }, [recording, word, whisperLang, finish]);
+  }, [recording, word, scribeLang]);
 
+  // ── Complete / advance ──
+  const handleFinish = useCallback((success: boolean) => {
+    Speech.stop();
+    const handler = onComplete || onNext;
+    if (handler) handler({ success, score: result?.score ?? 0 });
+  }, [onComplete, onNext, result]);
+
+  // ── Retry ──
+  const handleRetry = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setResult(null);
+    setState('ready');
+  }, []);
+
+  // ── Can't speak ──
   const handleCantSpeak = useCallback(() => {
+    Speech.stop();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (onCantSpeak) onCantSpeak();
-    else finish(false);
-  }, [onCantSpeak, finish]);
+    else handleFinish(false);
+  }, [onCantSpeak, handleFinish]);
 
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulseScale.value }] }));
-
   const targetWords = word.split(/\s+/);
 
-  // Header text based on state
   const headerText = state === 'recording' ? 'Listening...'
     : state === 'analyzing' ? 'Checking...'
-    : state === 'result' ? (result && result.score >= 0.8 ? '🎉 Great job!' : result && result.score >= 0.5 ? 'Almost there!' : 'Let\'s try again')
+    : state === 'result' ? (result && result.score >= 0.8 ? '🎉 Great job!' : result && result.score >= 0.5 ? '💪 Almost!' : '📖 Try again')
     : 'Say this out loud';
 
   return (
     <View style={S.container}>
+      {/* Badge */}
       {expressionType && (
         <View style={[S.badge, { top: insets.top + spacing.md }]}>
           <Text style={S.badgeText}>{expressionType.toUpperCase()}</Text>
         </View>
       )}
 
+      {/* Content */}
       <View style={[S.content, { paddingTop: insets.top + spacing.xl + spacing.lg }]}>
-        <Animated.Text entering={FadeInDown.duration(300)} style={S.header} key={state}>
-          {headerText}
-        </Animated.Text>
+        <Text style={S.header} key={state}>{headerText}</Text>
 
         {/* Word with per-word highlighting */}
         <View style={S.wordRow}>
@@ -236,19 +249,16 @@ export function SpeakingCard({
             if (state === 'result' && result) {
               color = result.matches[i] ? '#10B981' : '#EF4444';
             }
-            return (
-              <Text key={i} style={[S.word, { color }]}>
-                {w}{i < targetWords.length - 1 ? ' ' : ''}
-              </Text>
-            );
+            return <Text key={i} style={[S.word, { color }]}>{w}{i < targetWords.length - 1 ? ' ' : ''}</Text>;
           })}
         </View>
 
         {phonetic && <Text style={S.phonetic}>/{phonetic}/</Text>}
 
+        {/* Translate */}
         {translation && (
           <TouchableOpacity
-            onPress={() => { setShowTranslation(!showTranslation); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+            onPress={() => { setShowTranslation(v => !v); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
             style={S.translateBtn}
           >
             <Ionicons name="language" size={16} color={showTranslation ? colors.secondary.DEFAULT : colors.text.tertiary} />
@@ -258,11 +268,11 @@ export function SpeakingCard({
           </TouchableOpacity>
         )}
 
-        {/* Audio — only when ready */}
+        {/* Audio — ready only */}
         {state === 'ready' && (
           <Animated.View entering={FadeIn.delay(200)} style={S.audioRow}>
             <TouchableOpacity onPress={() => handlePlay(false)} style={S.playBtn}>
-              <LinearGradient colors={colors.gradients.primary} style={S.playBtnInner}>
+              <LinearGradient colors={colors.gradients.primary} style={S.playInner}>
                 <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
@@ -274,10 +284,9 @@ export function SpeakingCard({
 
         {/* Analyzing */}
         {state === 'analyzing' && (
-          <Animated.View entering={FadeIn} style={S.analyzeBox}>
+          <View style={S.analyzeBox}>
             <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
-            <Text style={S.analyzeText}>Checking pronunciation...</Text>
-          </Animated.View>
+          </View>
         )}
 
         {/* Result */}
@@ -294,7 +303,7 @@ export function SpeakingCard({
               <Text style={[S.resultScoreText, {
                 color: result.score >= 0.8 ? '#10B981' : result.score >= 0.5 ? '#F59E0B' : '#EF4444',
               }]}>
-                {Math.round(result.score * 100)}% match
+                {Math.round(result.score * 100)}%
               </Text>
             </View>
             {result.spoken.length > 0 && (
@@ -306,13 +315,13 @@ export function SpeakingCard({
         <View style={{ flex: 1 }} />
       </View>
 
-      {/* Bottom CTA */}
+      {/* ══════════ BOTTOM — FIXED ══════════ */}
       <View style={[S.bottom, { paddingBottom: insets.bottom + spacing.md }]}>
         {state === 'ready' && (
           <>
             <TouchableOpacity onPress={handleStartRecording} activeOpacity={0.85}>
               <LinearGradient colors={colors.gradients.primary} style={S.mainBtn}>
-                <Ionicons name="mic" size={24} color="#fff" />
+                <Ionicons name="mic" size={22} color="#fff" />
                 <Text style={S.mainBtnText}>Start Speaking</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -321,23 +330,39 @@ export function SpeakingCard({
             </TouchableOpacity>
           </>
         )}
+
         {state === 'recording' && (
           <Animated.View style={pulseStyle}>
             <TouchableOpacity onPress={handleStopRecording} activeOpacity={0.85}>
               <LinearGradient colors={['#EF4444', '#DC2626']} style={S.mainBtn}>
-                <Ionicons name="stop" size={24} color="#fff" />
+                <Ionicons name="stop-circle" size={22} color="#fff" />
                 <Text style={S.mainBtnText}>Done</Text>
               </LinearGradient>
             </TouchableOpacity>
           </Animated.View>
         )}
+
+        {state === 'analyzing' && (
+          <View style={[S.mainBtn, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+            <Text style={[S.mainBtnText, { color: colors.text.secondary }]}>Checking...</Text>
+          </View>
+        )}
+
         {state === 'result' && (
-          <TouchableOpacity onPress={() => finish(result?.score ? result.score >= 0.5 : false)} activeOpacity={0.85}>
-            <LinearGradient colors={colors.gradients.success} style={S.mainBtn}>
-              <Text style={S.mainBtnText}>Continue</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
+          <View style={S.resultActions}>
+            <TouchableOpacity onPress={handleRetry} activeOpacity={0.85} style={{ flex: 1 }}>
+              <View style={S.retryBtn}>
+                <Ionicons name="refresh" size={20} color={colors.primary.DEFAULT} />
+                <Text style={S.retryBtnText}>Try Again</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleFinish(result?.score ? result.score >= 0.5 : false)} activeOpacity={0.85} style={{ flex: 1 }}>
+              <LinearGradient colors={colors.gradients.success} style={S.mainBtn}>
+                <Text style={S.mainBtnText}>Continue</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     </View>
@@ -357,17 +382,21 @@ const S = StyleSheet.create({
   translateText: { color: colors.text.tertiary, fontSize: typography.fontSize.sm },
   audioRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
   playBtn: { width: 52, height: 52, borderRadius: 26, overflow: 'hidden' },
-  playBtnInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  playInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   slowBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  analyzeBox: { alignItems: 'center', gap: spacing.md, marginTop: spacing.xl },
-  analyzeText: { color: colors.text.secondary, fontSize: typography.fontSize.sm },
+  analyzeBox: { marginTop: spacing.xl },
   resultBox: { alignItems: 'center', marginTop: spacing.lg },
   resultBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: borderRadius.lg },
-  resultScoreText: { fontSize: typography.fontSize.xl, fontWeight: '700' },
+  resultScoreText: { fontSize: 28, fontWeight: '800' },
   resultSpoken: { color: colors.text.tertiary, fontSize: typography.fontSize.sm, marginTop: spacing.sm, fontStyle: 'italic', textAlign: 'center' },
-  bottom: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+
+  // Bottom — ALWAYS fixed
+  bottom: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.04)' },
   mainBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: 16, borderRadius: borderRadius.lg },
   mainBtnText: { color: '#fff', fontSize: typography.fontSize.lg, fontWeight: '700' },
-  skipBtn: { alignItems: 'center', paddingVertical: spacing.md },
+  skipBtn: { alignItems: 'center', paddingVertical: spacing.sm },
   skipText: { color: colors.text.tertiary, fontSize: typography.fontSize.sm },
+  resultActions: { flexDirection: 'row', gap: spacing.md },
+  retryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: 16, borderRadius: borderRadius.lg, borderWidth: 1.5, borderColor: colors.primary.DEFAULT },
+  retryBtnText: { color: colors.primary.DEFAULT, fontSize: typography.fontSize.base, fontWeight: '700' },
 });
