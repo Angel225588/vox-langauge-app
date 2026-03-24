@@ -81,6 +81,11 @@ export interface UseElevenLabsConversationProps {
   /** Callback on error */
   onError?: (error: Error) => void;
   /**
+   * Custom system prompt — overrides buildSystemPrompt() entirely.
+   * Used when scenarios have their own rich persona templates.
+   */
+  customSystemPrompt?: string;
+  /**
    * Slow speech mode - reduces TTS speed for better comprehension
    * @default 'normal'
    */
@@ -171,6 +176,7 @@ export function useElevenLabsConversation(
     keyVocabulary,
     onSessionEnd,
     onError,
+    customSystemPrompt,
     slowSpeechMode = 'normal',
     targetDuration,
     disableOverrides = false,
@@ -267,7 +273,9 @@ export function useElevenLabsConversation(
   // Resolve language: voice config → explicit targetLanguage → fallback
   const resolvedLanguage = voice?.language || targetLanguage || 'en';
 
-  const systemPrompt = buildSystemPrompt({
+  // Use custom system prompt if provided (from smart scenario builder),
+  // otherwise build from context using the standard builder
+  const systemPrompt = customSystemPrompt || buildSystemPrompt({
     voiceName: voice?.name || 'AI Tutor',
     accent: voice?.accent ? getAccentDisplayName(voice.accent) : 'native',
     language: resolvedLanguage,

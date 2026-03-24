@@ -260,13 +260,33 @@ export default function VoiceConversationScreen() {
           }
         }
 
-        // Tier 3: No stair scenarios — generate from onboarding + feedback
+        // Tier 3: No stair scenarios — generate from onboarding + feedback + vocab
         if (hasV3Data && v3Store.profession) {
           try {
             let generated: VoiceScenario[] = [];
 
-            // For authenticated users: use feedback-driven practice generator
-            if (user?.id) {
+            // Primary: Smart scenario builder (uses competency + vocab + history)
+            try {
+              const { buildSmartScenarios } = await import('@/lib/voice/smartScenarioBuilder');
+              const smart = await buildSmartScenarios({
+                target_language: v3Store.target_language || 'spanish',
+                native_language: v3Store.native_language || 'english',
+                proficiency_level: v3Store.proficiency_level || 'conversational',
+                profession: v3Store.profession || '',
+                scenarios: v3Store.scenarios || [],
+                userId: user?.id || 'anonymous',
+                first_name: v3Store.first_name || '',
+              });
+              if (smart.length > 0) {
+                generated = smart;
+                console.log('[VoiceConversation] Smart scenarios generated:', smart.length, smart.map(s => s.title));
+              }
+            } catch (smartErr) {
+              console.warn('[VoiceConversation] Smart scenario builder failed:', smartErr);
+            }
+
+            // Fallback: For authenticated users, use feedback-driven practice generator
+            if (generated.length === 0 && user?.id) {
               const { generatePracticeScenarios } = await import('@/lib/voice/scenarioGenerator');
               generated = await generatePracticeScenarios({
                 userId: user.id,
@@ -279,7 +299,7 @@ export default function VoiceConversationScreen() {
               });
             }
 
-            // Fallback for unauthenticated: onboarding-only generator
+            // Fallback: onboarding-only generator
             if (generated.length === 0) {
               generated = await generateScenariosFromOnboarding({
                 first_name: v3Store.first_name || '',

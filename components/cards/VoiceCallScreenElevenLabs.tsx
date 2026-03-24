@@ -509,6 +509,7 @@ export const VoiceCallScreenElevenLabs: React.FC<VoiceCallScreenElevenLabsProps>
     userProficiency: proficiency,
     targetDuration,
     keyVocabulary: scenario.keyVocabulary,
+    customSystemPrompt: scenario.systemPromptTemplate,
     disableOverrides: false,
     overrideOptions: {
       enablePrompt: true,

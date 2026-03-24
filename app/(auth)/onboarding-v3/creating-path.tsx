@@ -387,7 +387,6 @@ export default function CreatingPathRoute() {
         // Sync profile to Supabase so it persists across app restarts
         await syncProfileToSupabase(user.id, v3Data);
 
-        await clearPreviewStairs();
         const validationError = validateV3Data(v3Data);
         if (validationError) {
           console.warn('[CreatingPath] Validation warning:', validationError);
@@ -395,8 +394,11 @@ export default function CreatingPathRoute() {
         const adaptedData = adaptV3ToOnboardingData(v3Data);
         const result = await createPersonalizedPath(user.id, adaptedData);
         if (result.success) {
+          // Only clear preview stairs AFTER real path is confirmed in Supabase
+          await clearPreviewStairs();
           await AsyncStorage.removeItem(ONBOARDING_COMPLETED_KEY);
         }
+        // If createPersonalizedPath failed, preview stairs remain as fallback
       }
     } catch (err) {
       console.warn('[CreatingPath] Background personalization error:', err);

@@ -5,6 +5,10 @@
       "command": "/Users/angelpolanco/.local/bin/notebooklm-mcp",
       "args": [],
       "env": {}
+    },
+    "supabase": {
+      "type": "url",
+      "url": "https://mcp.supabase.com/mcp?project_ref=bfkpscfggmofssgvqaau"
     }
   }
 }

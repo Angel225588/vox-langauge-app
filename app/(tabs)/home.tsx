@@ -225,7 +225,29 @@ export default function HomeScreen() {
   // Load preview stairs from onboarding (personalized but no auth)
   const [previewStairs, setPreviewStairs] = useState<StairForDisplay[] | null>(null);
   useEffect(() => {
-    loadPreviewStairs().then(setPreviewStairs);
+    loadPreviewStairs().then(async (loaded) => {
+      if (loaded && loaded.length > 0) {
+        setPreviewStairs(loaded);
+        return;
+      }
+
+      // No stairs in AsyncStorage — regenerate from V3 onboarding data
+      const v3 = useOnboardingV3.getState();
+      if (v3.completed && v3.scenarios.length > 0) {
+        console.log('[Home] No preview stairs found, regenerating from V3 data');
+        const { generatePreviewStairs, storePreviewStairs } = await import('@/lib/services/previewStairs');
+        const freshStairs = generatePreviewStairs({
+          scenarios: v3.scenarios,
+          target_language: v3.target_language || 'english',
+          profession: v3.profession || undefined,
+          proficiency_level: v3.proficiency_level || undefined,
+        });
+        if (freshStairs.length > 0) {
+          await storePreviewStairs(freshStairs);
+          setPreviewStairs(freshStairs);
+        }
+      }
+    });
   }, []);
 
   // Priority: real Supabase stairs > preview stairs from onboarding > empty

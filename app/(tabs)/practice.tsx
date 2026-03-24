@@ -748,17 +748,18 @@ export default function PracticeScreen() {
 
   const handleVoiceConversation = useCallback(() => {
     if (!user) {
-      router.push('/(auth)/onboarding-v3' as any);
+      router.push('/(auth)/onboarding-v3/signup' as any);
       return;
     }
     router.push('/voice-conversation');
   }, [router, user]);
 
   // ─── Gate: unauthenticated users see sign-up screen ───
+  // If they completed onboarding, go straight to signup (not full onboarding again)
   if (!user) {
     return (
       <PracticeGate
-        onSignUp={() => router.push('/(auth)/onboarding-v3' as any)}
+        onSignUp={() => router.push('/(auth)/onboarding-v3/signup' as any)}
         onSignIn={() => router.push('/(auth)/onboarding-v3/login' as any)}
       />
     );
@@ -906,7 +907,7 @@ export default function PracticeScreen() {
                       activeOpacity={0.7}
                       onPress={() => {
                         if (isLocked) {
-                          router.push('/(auth)/onboarding-v3' as any);
+                          router.push('/(auth)/onboarding-v3/signup' as any);
                           return;
                         }
                         if (card.route) router.push(card.route as any);
