@@ -31,6 +31,7 @@ import { colors, typography, spacing, borderRadius, shadows } from '@/constants/
 import { useHaptics } from '@/hooks/useHaptics';
 import { DarkOverlay } from '@/components/ui';
 import { useVocabCard } from './hooks/useVocabCard';
+import { getTargetSpeechLang } from './speechLang';
 import type { VocabCardProps } from '@/types/vocabulary';
 
 // Levenshtein distance for typo tolerance
@@ -59,6 +60,7 @@ interface ListeningCardProps extends VocabCardProps {
 }
 
 export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCardProps) {
+  const speechLang = getTargetSpeechLang();
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
   const [input, setInput] = useState('');
@@ -130,14 +132,14 @@ export function ListeningCard({ item, onComplete, mode = 'type' }: ListeningCard
         );
         setSound(newSound);
       } catch {
-        Speech.speak(item.word, {
+        Speech.speak(item.word, { language: speechLang,
           rate: 0.85,
           onDone: () => setIsPlaying(false),
           onError: () => setIsPlaying(false),
         });
       }
     } else {
-      Speech.speak(item.word, {
+      Speech.speak(item.word, { language: speechLang,
         rate: slow ? 0.5 : 0.85,
         onDone: () => setIsPlaying(false),
         onError: () => setIsPlaying(false),

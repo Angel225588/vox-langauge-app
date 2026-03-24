@@ -38,6 +38,7 @@ import { IntroductionCardV2 } from './IntroductionCardV2';
 import { AudioQuizCard } from './AudioQuizCard';
 import { ListeningCard } from './ListeningCard';
 import { SpeakingCard } from '@/components/cards/SpeakingCard';
+import { getTargetSpeechLang } from './speechLang';
 import { TypingCard } from './TypingCard';
 import type { VocabularyItem, VocabCardResult } from '@/types/vocabulary';
 
@@ -96,6 +97,7 @@ export function VocabularyBatchFlow({
     return PHASE_ORDER.filter(p => p === 'results' || !skipPhases.includes(p));
   }, [skipPhases]);
 
+  const speechLang = useMemo(() => getTargetSpeechLang(), []);
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [wordIndex, setWordIndex] = useState(0);
   const [results, setResults] = useState<VocabCardResult[]>([]);
@@ -313,6 +315,7 @@ export function VocabularyBatchFlow({
             phonetic={currentItem.phonetic}
             audio_url={currentItem.audioUrl}
             expressionType={currentItem.partOfSpeech}
+            language={speechLang}
             onComplete={handleSpeakingComplete}
             onCantSpeak={handleSkip}
           />

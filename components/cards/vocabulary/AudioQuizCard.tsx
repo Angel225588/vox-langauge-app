@@ -31,6 +31,7 @@ import { colors, typography, spacing, borderRadius, shadows } from '@/constants/
 import { useHaptics } from '@/hooks/useHaptics';
 import { DarkOverlay, AnswerOption } from '@/components/ui';
 import { useVocabCard } from './hooks/useVocabCard';
+import { getTargetSpeechLang } from './speechLang';
 import type { VocabCardProps, VocabularyItem } from '@/types/vocabulary';
 
 interface AudioQuizCardProps extends VocabCardProps {
@@ -72,6 +73,7 @@ export function AudioQuizCard({
   correctIndex: providedCorrectIndex,
   quizMode = 'word',
 }: AudioQuizCardProps) {
+  const speechLang = getTargetSpeechLang();
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
 
@@ -152,7 +154,7 @@ export function AudioQuizCard({
         setSound(newSound);
       } catch {
         // Fallback to Speech
-        Speech.speak(item.word, {
+        Speech.speak(item.word, { language: speechLang,
           rate: 0.85,
           onDone: () => setIsPlaying(false),
           onError: () => setIsPlaying(false),
@@ -160,7 +162,7 @@ export function AudioQuizCard({
       }
     } else {
       // Slow mode always uses Speech for better control
-      Speech.speak(item.word, {
+      Speech.speak(item.word, { language: speechLang,
         rate: slow ? 0.5 : 0.85,
         onDone: () => setIsPlaying(false),
         onError: () => setIsPlaying(false),

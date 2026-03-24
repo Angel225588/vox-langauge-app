@@ -18,7 +18,7 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  Image,
+
   Platform,
   KeyboardAvoidingView,
   Dimensions,
@@ -47,6 +47,7 @@ import { colors, typography, spacing, borderRadius, shadows } from '@/constants/
 import { useHaptics } from '@/hooks/useHaptics';
 import { DarkOverlay, AnswerFeedbackOverlay } from '@/components/ui';
 import { useVocabCard } from './hooks/useVocabCard';
+import { getTargetSpeechLang } from './speechLang';
 import type { VocabCardProps } from '@/types/vocabulary';
 
 // Levenshtein distance for typo tolerance
@@ -171,49 +172,23 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
 
       {/* Main Content Area - respects safe area */}
       <View style={[styles.contentArea, { paddingTop: insets.top + spacing.xl }]}>
-        {/* H2 Question Heading - Clean, no container */}
+        {/* Question: What's the word? Show the translation/meaning prominently */}
         <Animated.Text
           entering={FadeInDown.duration(400).delay(100)}
           style={styles.questionHeading}
         >
-          How do you say this in English?
+          Type this word:
         </Animated.Text>
 
-        {/* Hero Image with Word Overlay */}
+        {/* Translation shown prominently — this is what they need to translate */}
         <Animated.View
           entering={FadeInDown.duration(500).delay(200)}
-          style={styles.imageContainer}
+          style={styles.translationCard}
         >
-          {item.imageUrl ? (
-            <Image
-              source={{ uri: item.imageUrl }}
-              style={styles.heroImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Text style={styles.placeholderEmoji}>
-                {item.category === 'food' ? '🍎' :
-                 item.category === 'animals' ? '🐕' :
-                 item.category === 'travel' ? '✈️' :
-                 item.category === 'greetings' ? '👋' :
-                 '📚'}
-              </Text>
-            </View>
+          <Text style={styles.translationWord}>{item.translation}</Text>
+          {item.examples?.[0] && (
+            <Text style={styles.translationContext}>"{item.examples[0].text}"</Text>
           )}
-
-          {/* Word Overlay on Image */}
-          <View style={styles.wordOverlay}>
-            <LinearGradient
-              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.8)']}
-              style={styles.wordOverlayGradient}
-            >
-              <Text style={styles.overlayWord}>{item.translation}</Text>
-              {item.phonetic && (
-                <Text style={styles.overlayPhonetic}>{item.phonetic}</Text>
-              )}
-            </LinearGradient>
-          </View>
         </Animated.View>
 
         {/* Character hint */}
@@ -420,53 +395,31 @@ const styles = StyleSheet.create({
   },
 
   // Hero Image Container - Square ratio to show full faces
-  imageContainer: {
+  // Translation card (replaces image)
+  translationCard: {
     width: '100%',
-    aspectRatio: 1, // Square to show more of the image/face
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
     backgroundColor: colors.background.card,
-    ...shadows.lg,
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-  },
-  imagePlaceholder: {
-    flex: 1,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background.elevated,
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    ...shadows.lg,
   },
-  placeholderEmoji: {
-    fontSize: 80,
-    opacity: 0.8,
-  },
-
-  // Word Overlay on Image
-  wordOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  wordOverlayGradient: {
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    alignItems: 'center',
-  },
-  overlayWord: {
-    fontSize: typography.fontSize['3xl'],
-    fontWeight: typography.fontWeight.bold,
+  translationWord: {
+    fontSize: 28,
+    fontWeight: '800',
     color: colors.text.primary,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
   },
-  overlayPhonetic: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
-    marginTop: spacing.xs,
+  translationContext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 
   // Character hint

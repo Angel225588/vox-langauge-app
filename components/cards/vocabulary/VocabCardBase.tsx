@@ -28,6 +28,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows, neomorphism } from '@/constants/designSystem';
 import { useHaptics } from '@/hooks/useHaptics';
 import type { VocabularyItem } from '@/types/vocabulary';
+import { getTargetSpeechLang } from './speechLang';
 
 export interface VocabCardBaseProps {
   item: VocabularyItem;
@@ -49,6 +50,7 @@ export function VocabCardBase({
   children,
 }: VocabCardBaseProps) {
   const haptics = useHaptics();
+  const speechLang = getTargetSpeechLang();
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1.0);
@@ -119,7 +121,7 @@ export function VocabCardBase({
       } catch (error) {
         console.error('Error playing audio:', error);
         // Fallback to speech synthesis
-        Speech.speak(item.word, {
+        Speech.speak(item.word, { language: speechLang,
           rate: slow ? 0.5 : 0.8,
           onDone: () => setIsPlaying(false),
           onError: () => setIsPlaying(false),
@@ -127,7 +129,7 @@ export function VocabCardBase({
       }
     } else {
       // Use speech synthesis as fallback
-      Speech.speak(item.word, {
+      Speech.speak(item.word, { language: speechLang,
         rate: slow ? 0.5 : 0.8,
         onDone: () => setIsPlaying(false),
         onError: () => setIsPlaying(false),

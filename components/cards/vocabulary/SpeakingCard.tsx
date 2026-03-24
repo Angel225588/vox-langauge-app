@@ -40,11 +40,13 @@ import { colors, typography, spacing, borderRadius, shadows } from '@/constants/
 import { useHaptics } from '@/hooks/useHaptics';
 import { AudioButton, AudioButtonGroup } from '@/components/ui';
 import { useVocabCard } from './hooks/useVocabCard';
+import { getTargetSpeechLang } from './speechLang';
 import type { VocabCardProps } from '@/types/vocabulary';
 
 type Phase = 'listen' | 'speak' | 'review';
 
 export function SpeakingCard({ item, onComplete, onSkip, onCantSpeak }: VocabCardProps) {
+  const speechLang = getTargetSpeechLang();
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
 
@@ -156,7 +158,7 @@ export function SpeakingCard({ item, onComplete, onSkip, onCantSpeak }: VocabCar
         );
         setSound(newSound);
       } catch {
-        Speech.speak(item.word, {
+        Speech.speak(item.word, { language: speechLang,
           rate: slow ? 0.5 : 0.8,
           onDone: () => {
             setIsPlaying(false);
@@ -168,7 +170,7 @@ export function SpeakingCard({ item, onComplete, onSkip, onCantSpeak }: VocabCar
         });
       }
     } else {
-      Speech.speak(item.word, {
+      Speech.speak(item.word, { language: speechLang,
         rate: slow ? 0.5 : 0.8,
         onDone: () => {
           setIsPlaying(false);

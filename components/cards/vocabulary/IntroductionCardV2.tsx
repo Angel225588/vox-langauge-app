@@ -1,15 +1,11 @@
 /**
- * IntroductionCardV2 - Premium New Word Card
+ * IntroductionCardV2 - Clean Centered Word Card
  *
- * FRONT: Image with word/phonetic overlay + translate icon + Play + Slow audio
- * BACK (flip): Definition (target language) + Examples with audio + translate toggle
+ * FRONT: Clean dark card with word + phonetic + Play/Slow audio + translate icon
+ * BACK (flip): Definition + Examples with audio + translate toggle
  *
- * Features:
- * - Custom image from gallery (camera icon top-right)
- * - Play (normal speed) + Slow (🐢) audio buttons
- * - Translate icon to peek at translation without flipping
- * - Tap card to flip → definition + examples
- * - Again / Got it buttons fixed at bottom with interval preview
+ * No background image. Professional, minimal, centered.
+ * Flip to see meaning. Translate icon to peek without flipping.
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -19,7 +15,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  Image,
   ScrollView,
   Pressable,
 } from 'react-native';
@@ -39,7 +34,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '@/constants/designSystem';
-import { Icon } from '@/components/ui/Icon';
 import { useVocabCard } from './hooks/useVocabCard';
 import { calculateSM2 } from '@/lib/spaced-repetition/sm2';
 import { ReviewQuality } from '@/types/flashcard';
@@ -50,24 +44,24 @@ import type { VocabCardProps } from '@/types/vocabulary';
 // =============================================================================
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CARD_HEIGHT = SCREEN_HEIGHT * 0.68;
 
-const getResponsiveValues = (screenWidth: number) => {
-  const isSmall = screenWidth < 360;
-  const isMedium = screenWidth >= 360 && screenWidth < 428;
-
-  return {
-    wordSize: isSmall ? 36 : isMedium ? 42 : 48,
-    wordBackSize: isSmall ? 28 : isMedium ? 32 : 36,
-    phoneticSize: isSmall ? 16 : isMedium ? 18 : 20,
-    definitionSize: isSmall ? 16 : isMedium ? 17 : 18,
-    exampleSize: isSmall ? 17 : isMedium ? 18 : 20,
-    audioButtonSize: isSmall ? 56 : isMedium ? 60 : 64,
-    cardPadding: isSmall ? spacing.md : spacing.lg,
-  };
+// Map target language names to Speech.speak language codes
+const SPEECH_LANG_MAP: Record<string, string> = {
+  french: 'fr-FR', spanish: 'es-ES', english: 'en-US',
+  german: 'de-DE', italian: 'it-IT', portuguese: 'pt-BR',
+  fr: 'fr-FR', es: 'es-ES', en: 'en-US', de: 'de-DE', it: 'it-IT', pt: 'pt-BR',
 };
 
-// Format interval for display
+function getSpeechLang(): string {
+  // Try to get from onboarding store
+  try {
+    const { useOnboardingV3 } = require('@/hooks/useOnboardingV3');
+    const lang = useOnboardingV3.getState()?.target_language;
+    if (lang && SPEECH_LANG_MAP[lang]) return SPEECH_LANG_MAP[lang];
+  } catch {}
+  return 'fr-FR'; // Default to French
+}
+
 function formatInterval(days: number): string {
   if (days === 0) return '< 1 min';
   if (days === 1) return '1 day';
@@ -82,7 +76,7 @@ function formatInterval(days: number): string {
 
 export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps) {
   const insets = useSafeAreaInsets();
-  const responsive = useMemo(() => getResponsiveValues(SCREEN_WIDTH), []);
+  const speechLang = useMemo(() => getSpeechLang(), []);
 
   // State
   const [isFlipped, setIsFlipped] = useState(false);
@@ -91,10 +85,6 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
   const [isPlayingWord, setIsPlayingWord] = useState(false);
   const [isPlayingExample, setIsPlayingExample] = useState<number | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [customImageUri, setCustomImageUri] = useState<string | null>(null);
-
-  // The display image — custom from gallery or item's default
-  const displayImageUri = customImageUri || item.imageUrl;
 
   // Animation
   const flipProgress = useSharedValue(0);
@@ -113,41 +103,31 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
       interval: item.interval || 0,
       repetitions: item.repetitions || 0,
     });
-
     const gotItResult = calculateSM2({
       quality: ReviewQuality.GOOD,
       easeFactor: item.easeFactor || 2.5,
       interval: item.interval || 0,
       repetitions: item.repetitions || 0,
     });
-
-    return {
-      again: againResult.interval,
-      gotIt: gotItResult.interval,
-    };
+    return { again: againResult.interval, gotIt: gotItResult.interval };
   }, [item.easeFactor, item.interval, item.repetitions]);
 
   // Cleanup sound
   useEffect(() => {
-    return () => {
-      if (sound) sound.unloadAsync();
-    };
+    return () => { if (sound) sound.unloadAsync(); };
   }, [sound]);
 
-  // Auto-play BOTH audios (normal then slow) when card first appears
+  // Auto-play on mount
   useEffect(() => {
-    const playBothAudios = async () => {
-      await new Promise(resolve => setTimeout(resolve, 600));
+    const autoPlay = async () => {
+      await new Promise(r => setTimeout(r, 500));
       await playWordAudio(false);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await playWordAudio(true);
     };
-    playBothAudios();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    autoPlay();
   }, []);
 
   // ==========================================================================
-  // AUDIO FUNCTIONS
+  // AUDIO — uses correct language
   // ==========================================================================
 
   const playWordAudio = useCallback(async (slow = false) => {
@@ -167,54 +147,26 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
         );
         setSound(newSound);
       } catch {
-        Speech.speak(item.word, {
-          rate,
-          onDone: () => setIsPlayingWord(false),
-          onError: () => setIsPlayingWord(false),
-        });
+        Speech.speak(item.word, { rate, language: speechLang, onDone: () => setIsPlayingWord(false), onError: () => setIsPlayingWord(false) });
       }
     } else {
-      Speech.speak(item.word, {
-        rate,
-        onDone: () => setIsPlayingWord(false),
-        onError: () => setIsPlayingWord(false),
-      });
+      Speech.speak(item.word, { rate, language: speechLang, onDone: () => setIsPlayingWord(false), onError: () => setIsPlayingWord(false) });
     }
-  }, [item, sound, trackAudioPlay]);
+  }, [item, sound, trackAudioPlay, speechLang]);
 
   const playExampleAudio = useCallback(async (index: number) => {
     const example = item.examples?.[index];
     if (!example) return;
-
     trackAudioPlay();
     setIsPlayingExample(index);
 
-    if (example.audioUrl) {
-      try {
-        if (sound) await sound.unloadAsync();
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: example.audioUrl },
-          { shouldPlay: true, rate: 0.85, shouldCorrectPitch: true },
-          (status) => {
-            if (status.isLoaded && status.didJustFinish) setIsPlayingExample(null);
-          }
-        );
-        setSound(newSound);
-      } catch {
-        Speech.speak(example.text, {
-          rate: 0.85,
-          onDone: () => setIsPlayingExample(null),
-          onError: () => setIsPlayingExample(null),
-        });
-      }
-    } else {
-      Speech.speak(example.text, {
-        rate: 0.85,
-        onDone: () => setIsPlayingExample(null),
-        onError: () => setIsPlayingExample(null),
-      });
-    }
-  }, [item.examples, sound, trackAudioPlay]);
+    Speech.speak(example.text, {
+      rate: 0.85,
+      language: speechLang,
+      onDone: () => setIsPlayingExample(null),
+      onError: () => setIsPlayingExample(null),
+    });
+  }, [item.examples, trackAudioPlay, speechLang]);
 
   // ==========================================================================
   // HANDLERS
@@ -224,11 +176,7 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const newFlipped = !isFlipped;
     setIsFlipped(newFlipped);
-    flipProgress.value = withTiming(newFlipped ? 1 : 0, {
-      duration: 350,
-      easing: Easing.out(Easing.cubic),
-    });
-
+    flipProgress.value = withTiming(newFlipped ? 1 : 0, { duration: 350, easing: Easing.out(Easing.cubic) });
     if (newFlipped && item.examples?.[0]) {
       setTimeout(() => playExampleAudio(0), 500);
     }
@@ -236,11 +184,7 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
 
   const handlePlayWord = useCallback((slow = false) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (isPlayingWord) {
-      Speech.stop();
-      setIsPlayingWord(false);
-      return;
-    }
+    if (isPlayingWord) { Speech.stop(); setIsPlayingWord(false); return; }
     playWordAudio(slow);
   }, [isPlayingWord, playWordAudio]);
 
@@ -251,32 +195,7 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
 
   const handleToggleExampleTranslation = useCallback((index: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShowExampleTranslations(prev => {
-      const newState = [...prev];
-      newState[index] = !newState[index];
-      return newState;
-    });
-  }, []);
-
-  // Pick custom image from gallery (lazy load to avoid native module crash in Expo Go)
-  const handlePickImage = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      const ImagePicker = require('expo-image-picker');
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setCustomImageUri(result.assets[0].uri);
-      }
-    } catch (err) {
-      console.warn('[IntroCard] Image picker not available:', err);
-      // Silently fail — gallery feature not available in Expo Go
-    }
+    setShowExampleTranslations(prev => { const n = [...prev]; n[index] = !n[index]; return n; });
   }, []);
 
   const handleAgain = useCallback(() => {
@@ -293,257 +212,163 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
   // ANIMATIONS
   // ==========================================================================
 
-  const frontAnimatedStyle = useAnimatedStyle(() => {
-    const rotateY = interpolate(flipProgress.value, [0, 0.5, 1], [0, 90, 90]);
-    const opacity = interpolate(flipProgress.value, [0, 0.4], [1, 0]);
-    return {
-      transform: [{ perspective: 1200 }, { rotateY: `${rotateY}deg` }],
-      opacity,
-    };
-  });
+  const frontStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 1200 }, { rotateY: `${interpolate(flipProgress.value, [0, 0.5, 1], [0, 90, 90])}deg` }],
+    opacity: interpolate(flipProgress.value, [0, 0.4], [1, 0]),
+  }));
 
-  const backAnimatedStyle = useAnimatedStyle(() => {
-    const rotateY = interpolate(flipProgress.value, [0, 0.5, 1], [-90, -90, 0]);
-    const opacity = interpolate(flipProgress.value, [0.6, 1], [0, 1]);
-    return {
-      transform: [{ perspective: 1200 }, { rotateY: `${rotateY}deg` }],
-      opacity,
-    };
-  });
+  const backStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 1200 }, { rotateY: `${interpolate(flipProgress.value, [0, 0.5, 1], [-90, -90, 0])}deg` }],
+    opacity: interpolate(flipProgress.value, [0.6, 1], [0, 1]),
+  }));
 
   // ==========================================================================
   // RENDER
   // ==========================================================================
 
   return (
-    <View style={styles.container}>
-      {/* Card Area */}
-      <View style={styles.cardArea}>
-        {/* ================================================================ */}
-        {/* FRONT OF CARD - Full Image with Overlay */}
-        {/* ================================================================ */}
-        <Animated.View style={[styles.card, frontAnimatedStyle]}>
-          <Pressable onPress={handleFlip} style={styles.cardPressable}>
-            {/* Full Background Image */}
-            {displayImageUri ? (
-              <Image
-                source={{ uri: displayImageUri }}
-                style={styles.fullImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.noImageBackground} />
-            )}
-
-            {/* Gradient Overlay */}
-            <LinearGradient
-              colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.85)']}
-              style={styles.frontOverlay}
-            >
-              {/* Top Row: Category + Gallery + Flip hint */}
-              <View style={styles.topRow}>
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{item.category}</Text>
-                </View>
-                <View style={styles.topActions}>
-                  {/* Custom image from gallery */}
-                  <TouchableOpacity
-                    onPress={(e) => { e.stopPropagation(); handlePickImage(); }}
-                    style={styles.topIconBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Ionicons name="camera-outline" size={18} color="rgba(255,255,255,0.7)" />
-                  </TouchableOpacity>
-                  {/* Flip indicator */}
-                  <Ionicons name="sync-outline" size={16} color="rgba(255,255,255,0.4)" />
-                </View>
+    <View style={S.container}>
+      <View style={S.cardArea}>
+        {/* ══════════════ FRONT — Clean centered ══════════════ */}
+        <Animated.View style={[S.card, frontStyle]}>
+          <Pressable onPress={handleFlip} style={S.cardInner}>
+            {/* Category badge top-left */}
+            <View style={S.topRow}>
+              <View style={S.badge}>
+                <Text style={S.badgeText}>{item.category || 'VOCABULARY'}</Text>
               </View>
+              <Ionicons name="sync-outline" size={16} color="rgba(255,255,255,0.3)" />
+            </View>
 
-              {/* Spacer */}
-              <View style={styles.spacer} />
+            {/* Centered content */}
+            <View style={S.centerContent}>
+              {/* Word */}
+              <Text style={S.word}>{item.word}</Text>
 
-              {/* Word + Phonetic + Translation Icon */}
-              <View style={styles.frontContent}>
-                <Text style={[styles.wordFront, { fontSize: responsive.wordSize }]}>
-                  {item.word}
-                </Text>
-                {item.phonetic && (
-                  <Text style={[styles.phoneticFront, { fontSize: responsive.phoneticSize }]}>
-                    /{item.phonetic}/
-                  </Text>
-                )}
+              {/* Phonetic */}
+              {item.phonetic && (
+                <Text style={S.phonetic}>/{item.phonetic}/</Text>
+              )}
 
-                {/* Translate button — peek at translation */}
+              {/* Part of speech */}
+              {item.partOfSpeech && (
+                <Text style={S.pos}>{item.partOfSpeech}</Text>
+              )}
+
+              {/* Audio buttons: Play + Slow */}
+              <View style={S.audioRow}>
                 <TouchableOpacity
-                  onPress={(e) => { e.stopPropagation(); handleToggleTranslation(); }}
-                  style={styles.translateBtn}
+                  onPress={(e) => { e.stopPropagation(); handlePlayWord(false); }}
+                  activeOpacity={0.85}
+                  style={S.audioBtn}
                 >
-                  <Ionicons
-                    name={showTranslation ? 'language' : 'language-outline'}
-                    size={20}
-                    color={showTranslation ? colors.accent.purple : 'rgba(255,255,255,0.8)'}
-                  />
-                  {showTranslation ? (
-                    <Animated.Text entering={FadeIn.duration(200)} style={styles.translationFront}>
-                      {item.translation}
-                    </Animated.Text>
-                  ) : (
-                    <Text style={styles.translationHint}>translate</Text>
-                  )}
+                  <LinearGradient colors={colors.gradients.primary} style={S.audioBtnGrad}>
+                    <Ionicons name={isPlayingWord ? 'pause' : 'play'} size={24} color="#fff" />
+                  </LinearGradient>
                 </TouchableOpacity>
 
-                {/* Audio Buttons */}
-                <View style={styles.audioRow}>
-                  <TouchableOpacity
-                    onPress={(e) => { e.stopPropagation(); handlePlayWord(false); }}
-                    activeOpacity={0.85}
-                  >
-                    <View style={[styles.audioBtn, styles.audioBtnPlay, { width: responsive.audioButtonSize, height: responsive.audioButtonSize }]}>
-                      <Icon name={isPlayingWord ? 'pause' : 'play'} size="lg" color="white" />
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={(e) => { e.stopPropagation(); handlePlayWord(true); }}
-                    activeOpacity={0.85}
-                  >
-                    <View style={[styles.audioBtn, styles.audioBtnSlow, { width: responsive.audioButtonSize, height: responsive.audioButtonSize }]}>
-                      <Text style={{ fontSize: responsive.audioButtonSize * 0.4 }}>🐢</Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.hint}>tap card to see meaning</Text>
+                <TouchableOpacity
+                  onPress={(e) => { e.stopPropagation(); handlePlayWord(true); }}
+                  activeOpacity={0.85}
+                  style={[S.audioBtn, S.audioBtnSlow]}
+                >
+                  <Text style={{ fontSize: 24 }}>🐢</Text>
+                </TouchableOpacity>
               </View>
-            </LinearGradient>
+
+              {/* Translate button */}
+              <TouchableOpacity
+                onPress={(e) => { e.stopPropagation(); handleToggleTranslation(); }}
+                style={S.translateBtn}
+              >
+                <Ionicons
+                  name="language"
+                  size={18}
+                  color={showTranslation ? colors.secondary.DEFAULT : 'rgba(255,255,255,0.6)'}
+                />
+                {showTranslation ? (
+                  <Animated.Text entering={FadeIn.duration(200)} style={S.translationText}>
+                    {item.translation}
+                  </Animated.Text>
+                ) : (
+                  <Text style={S.translateHint}>translate</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Flip hint */}
+            <Text style={S.flipHint}>tap card to see meaning & examples</Text>
           </Pressable>
         </Animated.View>
 
-        {/* ================================================================ */}
-        {/* BACK OF CARD - Entire card clickable */}
-        {/* ================================================================ */}
-        <Animated.View style={[styles.card, styles.cardBack, backAnimatedStyle]}>
-          <Pressable onPress={handleFlip} style={styles.cardPressable}>
-            <ScrollView
-              style={styles.backScrollView}
-              contentContainerStyle={styles.backScrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              {/* Image with Word Overlay */}
-              {displayImageUri && (
-                <View style={styles.backImageContainer}>
-                  <Image
-                    source={{ uri: displayImageUri }}
-                    style={styles.backImage}
-                    resizeMode="cover"
-                  />
-                  <LinearGradient
-                    colors={['transparent', 'rgba(0,0,0,0.8)']}
-                    style={styles.backImageOverlay}
-                  >
-                    <Text style={[styles.wordBack, { fontSize: responsive.wordBackSize }]}>
-                      {item.word}
-                    </Text>
-                    {item.phonetic && (
-                      <Text style={styles.phoneticBack}>/{item.phonetic}/</Text>
-                    )}
-                  </LinearGradient>
-                </View>
-              )}
+        {/* ══════════════ BACK — Definition + Examples ══════════════ */}
+        <Animated.View style={[S.card, S.cardBack, backStyle]}>
+          <Pressable onPress={handleFlip} style={S.cardInner}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xl }}>
+              {/* Word header on back */}
+              <View style={S.backHeader}>
+                <Text style={S.backWord}>{item.word}</Text>
+                {item.phonetic && <Text style={S.backPhonetic}>/{item.phonetic}/</Text>}
+              </View>
 
-              {/* Definition Section - In TARGET language */}
-              <View style={[styles.section, { padding: responsive.cardPadding }]}>
-                <Text style={styles.sectionLabel}>DEFINITION</Text>
-                <Text style={[styles.definitionText, { fontSize: responsive.definitionSize }]}>
+              {/* Definition */}
+              <View style={S.section}>
+                <Text style={S.sectionLabel}>DEFINITION</Text>
+                <Text style={S.definition}>
                   {item.definition || `${item.partOfSpeech ? `(${item.partOfSpeech}) ` : ''}${item.translation}`}
                 </Text>
               </View>
 
-              {/* Examples - Show both if available */}
+              {/* Examples */}
               {item.examples?.slice(0, 2).map((example, idx) => (
-                <Animated.View
-                  key={idx}
-                  entering={FadeInDown.duration(300).delay(idx * 100)}
-                  style={[styles.section, { paddingHorizontal: responsive.cardPadding }]}
-                >
-                  <View style={styles.exampleHeader}>
-                    <Text style={styles.sectionLabel}>EXAMPLE {idx + 1}</Text>
-                    <View style={styles.exampleActions}>
+                <Animated.View key={idx} entering={FadeInDown.duration(300).delay(idx * 100)} style={S.section}>
+                  <View style={S.exampleHeader}>
+                    <Text style={S.sectionLabel}>EXAMPLE {idx + 1}</Text>
+                    <View style={S.exampleActions}>
                       <TouchableOpacity
                         onPress={(e) => { e.stopPropagation(); handleToggleExampleTranslation(idx); }}
-                        style={styles.smallIconBtn}
+                        style={S.smallBtn}
                       >
-                        <Icon
-                          name={showExampleTranslations[idx] ? 'eye' : 'eye-outline'}
-                          size="sm"
-                          color="tertiary"
-                        />
+                        <Ionicons name={showExampleTranslations[idx] ? 'eye' : 'eye-outline'} size={16} color={colors.text.tertiary} />
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={(e) => { e.stopPropagation(); playExampleAudio(idx); }}
-                        style={styles.exampleAudioBtn}
+                        style={[S.smallBtn, { backgroundColor: colors.primary.DEFAULT }]}
                       >
-                        <Icon
-                          name={isPlayingExample === idx ? 'pause' : 'volume-high'}
-                          size="sm"
-                          color="white"
-                        />
+                        <Ionicons name={isPlayingExample === idx ? 'pause' : 'volume-high'} size={16} color="#fff" />
                       </TouchableOpacity>
                     </View>
                   </View>
-                  <Text style={[styles.exampleText, { fontSize: responsive.exampleSize }]}>
-                    "{example.text}"
-                  </Text>
+                  <Text style={S.exampleText}>"{example.text}"</Text>
                   {showExampleTranslations[idx] && (
-                    <Animated.Text entering={FadeIn.duration(200)} style={styles.exampleTranslation}>
+                    <Animated.Text entering={FadeIn.duration(200)} style={S.exampleTrans}>
                       {example.translation}
                     </Animated.Text>
                   )}
                 </Animated.View>
               ))}
 
-              {/* Flip hint at bottom */}
-              <Text style={styles.hintBack}>tap anywhere to flip back</Text>
+              <Text style={S.backHint}>tap to flip back</Text>
             </ScrollView>
           </Pressable>
         </Animated.View>
       </View>
 
-      {/* ================================================================ */}
-      {/* BOTTOM ACTIONS - With Interval Preview */}
-      {/* ================================================================ */}
-      <View style={[styles.actions, { paddingBottom: insets.bottom + spacing.sm }]}>
-        <TouchableOpacity onPress={handleAgain} activeOpacity={0.85} style={styles.btnAgain}>
-          <LinearGradient
-            colors={colors.gradients.error}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.btnInner}
-          >
-            <View style={styles.btnContent}>
-              <View style={styles.btnMain}>
-                <Icon name="refresh" size="md" color="white" />
-                <Text style={styles.btnText}>Again</Text>
-              </View>
-              <Text style={styles.btnInterval}>{formatInterval(intervals.again)}</Text>
-            </View>
+      {/* ══════════════ BOTTOM ACTIONS — Fixed ══════════════ */}
+      <View style={[S.actions, { paddingBottom: insets.bottom + spacing.sm }]}>
+        <TouchableOpacity onPress={handleAgain} activeOpacity={0.85} style={S.actionBtn}>
+          <LinearGradient colors={colors.gradients.error} style={S.actionGrad}>
+            <Ionicons name="refresh" size={20} color="#fff" />
+            <Text style={S.actionText}>Again</Text>
+            <Text style={S.actionInterval}>{formatInterval(intervals.again)}</Text>
           </LinearGradient>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleGotIt} activeOpacity={0.85} style={styles.btnGotIt}>
-          <LinearGradient
-            colors={colors.gradients.success}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.btnInner}
-          >
-            <View style={styles.btnContent}>
-              <View style={styles.btnMain}>
-                <Icon name="checkmark" size="md" color="white" />
-                <Text style={styles.btnText}>Got it</Text>
-              </View>
-              <Text style={styles.btnInterval}>{formatInterval(intervals.gotIt)}</Text>
-            </View>
+        <TouchableOpacity onPress={handleGotIt} activeOpacity={0.85} style={S.actionBtn}>
+          <LinearGradient colors={colors.gradients.success} style={S.actionGrad}>
+            <Ionicons name="checkmark" size={20} color="#fff" />
+            <Text style={S.actionText}>Got it</Text>
+            <Text style={S.actionInterval}>{formatInterval(intervals.gotIt)}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -555,22 +380,16 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
 // STYLES
 // =============================================================================
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+const S = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background.primary },
 
-  cardArea: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
+  // Card area
+  cardArea: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.lg },
 
   card: {
     position: 'absolute',
     width: '100%',
-    height: CARD_HEIGHT,
+    maxHeight: SCREEN_HEIGHT * 0.65,
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
     backfaceVisibility: 'hidden',
@@ -579,279 +398,65 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 10,
-  },
-  cardBack: {
     backgroundColor: colors.background.card,
-  },
-  cardPressable: {
-    flex: 1,
-  },
-
-  // Front - Full image with overlay
-  fullImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-  },
-  noImageBackground: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.background.elevated,
-  },
-  frontOverlay: {
-    flex: 1,
-    padding: spacing.lg,
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  topActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  topIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  categoryBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-  },
-  categoryText: {
-    fontSize: 11,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  spacer: {
-    flex: 1,
-  },
-  frontContent: {
-    alignItems: 'center',
-  },
-  wordFront: {
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-  },
-  phoneticFront: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontStyle: 'italic',
-    marginTop: spacing.xs,
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  translateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: borderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255,255,255,0.06)',
   },
-  translationFront: {
-    color: colors.accent.purple,
-    fontSize: 18,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  translationHint: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 14,
-  },
-  audioRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.md,
-    marginTop: spacing.xl,
-  },
-  audioBtn: {
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  audioBtnPlay: {
-    backgroundColor: colors.primary.DEFAULT,
-  },
-  audioBtnSlow: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  hint: {
-    textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 12,
-    marginTop: spacing.lg,
-  },
+  cardBack: { backgroundColor: colors.background.elevated },
+  cardInner: { flex: 1, padding: spacing.lg },
 
-  // Back
-  backScrollView: {
-    flex: 1,
-  },
-  backScrollContent: {
-    paddingBottom: spacing.xl,
-  },
-  backImageContainer: {
-    width: '100%',
-    height: 160,
-    position: 'relative',
-  },
-  backImage: {
-    width: '100%',
-    height: '100%',
-  },
-  backImageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  wordBack: {
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  phoneticBack: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
+  // Top row
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
+  badge: { backgroundColor: 'rgba(99,102,241,0.15)', paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: borderRadius.full },
+  badgeText: { color: colors.primary.light, fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
 
-  // Sections
-  section: {
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.tertiary,
-    letterSpacing: 1,
-    marginBottom: spacing.xs,
-  },
-  definitionText: {
-    color: colors.text.primary,
-    lineHeight: 26,
-    fontWeight: typography.fontWeight.medium,
-  },
+  // Center content — the main attraction
+  centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  word: { color: colors.text.primary, fontSize: 38, fontWeight: '800', textAlign: 'center', marginBottom: spacing.xs },
+  phonetic: { color: colors.text.tertiary, fontSize: 16, fontStyle: 'italic', marginBottom: spacing.xs },
+  pos: { color: colors.primary.light, fontSize: 12, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase', marginBottom: spacing.lg },
 
-  // Examples
-  exampleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  exampleActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  smallIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exampleAudioBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.primary.DEFAULT,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exampleText: {
-    color: colors.text.primary,
-    fontStyle: 'italic',
-    lineHeight: 28,
-    fontWeight: typography.fontWeight.medium,
-  },
-  exampleTranslation: {
-    color: colors.text.tertiary,
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginTop: spacing.sm,
-    paddingLeft: spacing.sm,
-    borderLeftWidth: 2,
-    borderLeftColor: colors.accent.purple,
-  },
+  // Audio buttons
+  audioRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
+  audioBtn: { width: 56, height: 56, borderRadius: 28, overflow: 'hidden' },
+  audioBtnGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  audioBtnSlow: { backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
 
-  hintBack: {
-    textAlign: 'center',
-    color: colors.text.tertiary,
-    fontSize: 12,
-    opacity: 0.6,
-    marginTop: spacing.lg,
-    paddingBottom: spacing.md,
+  // Translate button
+  translateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm + 2,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: borderRadius.full,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
+  translationText: { color: colors.secondary.DEFAULT, fontSize: 16, fontWeight: '600' },
+  translateHint: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
 
-  // Bottom Actions with Intervals
-  actions: {
-    flexDirection: 'row',
-    paddingTop: spacing.md,
-    paddingHorizontal: spacing.md,
-    gap: spacing.md,
-  },
-  btnAgain: {
-    flex: 1,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-  },
-  btnGotIt: {
-    flex: 1,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-  },
-  btnInner: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  btnContent: {
-    alignItems: 'center',
-  },
-  btnMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  btnText: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-  },
-  btnInterval: {
-    fontSize: typography.fontSize.xs,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginTop: 2,
-  },
+  // Flip hint
+  flipHint: { color: 'rgba(255,255,255,0.25)', fontSize: 12, textAlign: 'center', marginTop: spacing.md },
+
+  // Back card
+  backHeader: { alignItems: 'center', marginBottom: spacing.lg, paddingTop: spacing.md },
+  backWord: { color: colors.text.primary, fontSize: 28, fontWeight: '800' },
+  backPhonetic: { color: colors.text.tertiary, fontSize: 14, fontStyle: 'italic', marginTop: 2 },
+
+  section: { paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  sectionLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: spacing.xs },
+  definition: { color: colors.text.primary, fontSize: 16, lineHeight: 24, fontWeight: '500' },
+
+  exampleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  exampleActions: { flexDirection: 'row', gap: spacing.sm },
+  smallBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  exampleText: { color: colors.text.primary, fontSize: 16, fontStyle: 'italic', lineHeight: 24 },
+  exampleTrans: { color: colors.text.tertiary, fontSize: 14, fontStyle: 'italic', marginTop: spacing.sm, paddingLeft: spacing.sm, borderLeftWidth: 2, borderLeftColor: colors.primary.DEFAULT },
+  backHint: { color: 'rgba(255,255,255,0.2)', fontSize: 12, textAlign: 'center', marginTop: spacing.lg },
+
+  // Bottom actions — fixed
+  actions: { flexDirection: 'row', paddingHorizontal: spacing.md, paddingTop: spacing.md, gap: spacing.md },
+  actionBtn: { flex: 1, borderRadius: borderRadius.lg, overflow: 'hidden' },
+  actionGrad: { alignItems: 'center', paddingVertical: spacing.md },
+  actionText: { color: '#fff', fontSize: typography.fontSize.lg, fontWeight: '700' },
+  actionInterval: { color: 'rgba(255,255,255,0.6)', fontSize: typography.fontSize.xs, marginTop: 2 },
 });
 
 export default IntroductionCardV2;
