@@ -8,13 +8,14 @@
  * type conversions (session → component types), and component rendering.
  */
 import React, { useEffect, useCallback, useState, useRef, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, BackHandler } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { ConfirmExitModal } from '@/components/ui/ConfirmExitModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, borderRadius, typography } from '@/constants/designSystem';
 import { useStairSession } from '@/hooks/useStairSession';
@@ -123,7 +124,18 @@ export default function StairSessionScreen() {
     saveSession({ stairId: id, stepIndex: session.state.stepIndex, results: session.state.results as any, wordsAdded: session.state.wordsAdded, startedAt: session.state.startedAt });
   }, [session.state.stepIndex, id]);
 
-  const handleExit = useCallback(() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.back(); }, [router]);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const handleExitRequest = useCallback(() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowExitConfirm(true); }, []);
+  const handleExit = useCallback(() => { setShowExitConfirm(false); router.back(); }, [router]);
+
+  // Android back button
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!session.state.isLoading) { setShowExitConfirm(true); return true; }
+      return false;
+    });
+    return () => handler.remove();
+  }, [session.state.isLoading]);
   const handleNext = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     session.nextStep(); setVocabIdx(0); setListenPhase('intro'); setReadingRes(null);
@@ -152,7 +164,8 @@ export default function StairSessionScreen() {
   // Steps with header
   return (
     <SafeAreaView style={S.container} edges={['top']}>
-      <SessionHeader currentStep={session.currentStep} stepIndex={session.state.stepIndex} onExit={handleExit} onBack={session.state.stepIndex > 0 ? session.previousStep : handleExit} />
+      <SessionHeader currentStep={session.currentStep} stepIndex={session.state.stepIndex} onExit={handleExitRequest} onBack={session.state.stepIndex > 0 ? session.previousStep : handleExitRequest} />
+      <ConfirmExitModal visible={showExitConfirm} onContinue={() => setShowExitConfirm(false)} onExit={handleExit} progress={`Step ${session.state.stepIndex + 1} of your session`} />
       <Animated.View key={session.currentStep} entering={SlideInRight.duration(300)} exiting={SlideOutLeft.duration(200)} style={S.flex}>
         {session.currentStep === 'vocabulary' && <VocabStep vocab={c.vocabulary} idx={vocabIdx} setIdx={setVocabIdx} onComplete={(r) => { session.submitVocabularyResult(r); handleNext(); }} onAddWord={session.addWordToVocab} />}
         {session.currentStep === 'listening' && <ListenStep listening={c.listening} targetLang={targetLang} phase={listenPhase} setPhase={setListenPhase} startRef={listenStart} onComplete={(r) => { session.submitListeningResult(r); handleNext(); }} />}

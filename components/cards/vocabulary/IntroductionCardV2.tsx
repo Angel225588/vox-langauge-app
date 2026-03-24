@@ -213,13 +213,13 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
   // ==========================================================================
 
   const frontStyle = useAnimatedStyle(() => ({
-    transform: [{ perspective: 1200 }, { rotateY: `${interpolate(flipProgress.value, [0, 0.5, 1], [0, 90, 90])}deg` }],
-    opacity: interpolate(flipProgress.value, [0, 0.4], [1, 0]),
+    opacity: interpolate(flipProgress.value, [0, 0.5], [1, 0]),
+    zIndex: flipProgress.value < 0.5 ? 2 : 0,
   }));
 
   const backStyle = useAnimatedStyle(() => ({
-    transform: [{ perspective: 1200 }, { rotateY: `${interpolate(flipProgress.value, [0, 0.5, 1], [-90, -90, 0])}deg` }],
-    opacity: interpolate(flipProgress.value, [0.6, 1], [0, 1]),
+    opacity: interpolate(flipProgress.value, [0.5, 1], [0, 1]),
+    zIndex: flipProgress.value >= 0.5 ? 2 : 0,
   }));
 
   // ==========================================================================
@@ -399,7 +399,6 @@ const S = StyleSheet.create({
     maxHeight: SCREEN_HEIGHT * 0.65,
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
-    backfaceVisibility: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,

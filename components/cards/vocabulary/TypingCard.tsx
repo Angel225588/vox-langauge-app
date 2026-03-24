@@ -75,6 +75,7 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
   const keyboard = useAnimatedKeyboard();
+  const speechLang = getTargetSpeechLang();
 
   const [input, setInput] = useState('');
   const [showResult, setShowResult] = useState(false);
@@ -180,14 +181,15 @@ export function TypingCard({ item, onComplete, onSkip }: VocabCardProps) {
           Type this word:
         </Animated.Text>
 
-        {/* Translation shown prominently — this is what they need to translate */}
+        {/* Translation shown as plain text — no card/frame */}
         <Animated.View
           entering={FadeInDown.duration(500).delay(200)}
-          style={styles.translationCard}
+          style={styles.translationArea}
         >
+          <Text style={styles.translationLabel}>TRANSLATE TO {(speechLang.split('-')[0] || 'FR').toUpperCase()}</Text>
           <Text style={styles.translationWord}>{item.translation}</Text>
           {item.examples?.[0] && (
-            <Text style={styles.translationContext}>"{item.examples[0].text}"</Text>
+            <Text style={styles.translationContext}>e.g. "{item.examples[0].text}"</Text>
           )}
         </Animated.View>
 
@@ -394,22 +396,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
 
-  // Hero Image Container - Square ratio to show full faces
-  // Translation card (replaces image)
-  translationCard: {
+  // Translation area — plain text, no card/frame
+  translationArea: {
     width: '100%',
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 120,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    ...shadows.lg,
+    paddingVertical: spacing.lg,
+  },
+  translationLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary.light,
+    letterSpacing: 1.5,
+    marginBottom: spacing.sm,
   },
   translationWord: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800',
     color: colors.text.primary,
     textAlign: 'center',

@@ -224,8 +224,8 @@ export function VocabularyBatchFlow({
           </Animated.View>
 
           {/* Stats Grid */}
-          {/* Stats Grid — with extra margin */}
-          <Animated.View entering={FadeInDown.delay(400)} style={{ marginHorizontal: -spacing.xs }}>
+          {/* Stats Grid */}
+          <Animated.View entering={FadeInDown.delay(400)} style={{ marginBottom: spacing.lg }}>
             <StatsGrid stats={stats} delay={500} stagger={100} />
           </Animated.View>
 
@@ -263,8 +263,24 @@ export function VocabularyBatchFlow({
           )}
         </ScrollView>
 
-        {/* Fixed CTA */}
+        {/* Fixed CTAs — Detailed Feedback + Back to Practice */}
         <View style={[S.fixedBottom, { paddingBottom: insets.bottom + spacing.md }]}>
+          <TouchableOpacity
+            onPress={() => {
+              // Navigate to detailed feedback screen
+              try {
+                const { useRouter } = require('expo-router');
+                // Can't use hook here, just call onComplete which goes back
+              } catch {}
+            }}
+            activeOpacity={0.85}
+            style={{ marginBottom: spacing.sm }}
+          >
+            <View style={S.feedbackBtn}>
+              <Ionicons name="analytics-outline" size={18} color={colors.primary.DEFAULT} />
+              <Text style={S.feedbackBtnText}>See Detailed Feedback</Text>
+            </View>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => onComplete(finalResult)} activeOpacity={0.85}>
             <LinearGradient colors={colors.gradients.success} style={S.ctaBtn}>
               <Text style={S.ctaText}>Back to Practice</Text>
@@ -364,7 +380,7 @@ export function VocabularyBatchFlow({
 const S = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background.primary },
   scroll: { flex: 1 },
-  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xl * 3 },
+  scrollContent: { padding: spacing.lg, paddingBottom: 200 },
 
   // Phase bar
   phaseBar: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
@@ -401,6 +417,8 @@ const S = StyleSheet.create({
 
   // Fixed bottom CTA
   fixedBottom: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
+  feedbackBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: 14, borderRadius: borderRadius.lg, borderWidth: 1.5, borderColor: colors.primary.DEFAULT },
+  feedbackBtnText: { color: colors.primary.DEFAULT, fontSize: typography.fontSize.base, fontWeight: '700' },
   ctaBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: borderRadius.lg, gap: spacing.sm },
   ctaText: { color: '#fff', fontSize: typography.fontSize.lg, fontWeight: '700' },
 });

@@ -12,12 +12,13 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { ConfirmExitModal } from '@/components/ui/ConfirmExitModal';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
 import { useAuth } from '@/hooks/useAuth';
 import { VocabularyBatchFlow } from '@/components/cards/vocabulary/VocabularyBatchFlow';
@@ -120,10 +121,26 @@ export default function FlashcardSessionScreen() {
     router.back();
   }, [items, userId, router]);
 
-  const handleExit = useCallback(() => {
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  const handleExitRequest = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowExitConfirm(true);
+  }, []);
+
+  const handleExit = useCallback(() => {
+    setShowExitConfirm(false);
     router.back();
   }, [router]);
+
+  // Android back button
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      setShowExitConfirm(true);
+      return true;
+    });
+    return () => handler.remove();
+  }, []);
 
   // Loading
   if (isLoading) {
@@ -154,7 +171,13 @@ export default function FlashcardSessionScreen() {
       <VocabularyBatchFlow
         items={items}
         onComplete={handleComplete}
+        onExit={handleExitRequest}
+      />
+      <ConfirmExitModal
+        visible={showExitConfirm}
+        onContinue={() => setShowExitConfirm(false)}
         onExit={handleExit}
+        progress={`${items.length} words in this session`}
       />
     </GestureHandlerRootView>
   );

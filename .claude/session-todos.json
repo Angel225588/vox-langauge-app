@@ -1,9 +1,13 @@
 [
   {"text": "Vocabulary batch flow", "status": "done", "agent": "GSD"},
+  {"text": "Speaking card with Whisper pronunciation", "status": "done", "agent": "GSD"},
   {"text": "Language hydration fix (profileLoader)", "status": "done", "agent": "Claude"},
   {"text": "Triple Verification system (/verify)", "status": "done", "agent": "Claude"},
   {"text": "Design Pipeline foundation (Nano Banana)", "status": "done", "agent": "Claude"},
   {"text": "Progress dashboard (auto-updating)", "status": "done", "agent": "Claude"},
+  {"text": "/report slash command", "status": "done", "agent": "Claude"},
+  {"text": "Confirm exit mid-lesson (all 3 sessions)", "status": "done", "agent": "Claude"},
+  {"text": "Feedback trends — verified REAL (not mocked)", "status": "done", "agent": "Claude"},
   {"text": "Reading flow — staircase integration", "status": "in_progress", "agent": "GSD"},
   {"text": "Voice call — scenario wiring in staircase", "status": "queued", "agent": "GSD"},
   {"text": "Listening — staircase content integration", "status": "queued", "agent": "GSD"},

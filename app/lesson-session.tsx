@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Pressable, TouchableOpacity, BackHandler } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -379,6 +379,7 @@ export default function LessonSessionScreen() {
   const [plan, setPlan] = useState<LessonPlan | null>(null);
   const [discoveryContent, setDiscoveryContent] = useState<DiscoveryLessonContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [loadingSlow, setLoadingSlow] = useState(false);
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -392,6 +393,23 @@ export default function LessonSessionScreen() {
   const [showKeepGoing, setShowKeepGoing] = useState(false);
   const [keepGoingLoading, setKeepGoingLoading] = useState(false);
   const [staircaseActivityCount, setStaircaseActivityCount] = useState(0);
+
+  // Android back button → show exit confirmation instead of leaving
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!isLoading && plan) {
+        setShowExitConfirm(true);
+        return true; // Prevent default back behavior
+      }
+      return false;
+    });
+    return () => handler.remove();
+  }, [isLoading, plan]);
+
+  // Progress text for exit confirmation
+  const exitProgressText = plan
+    ? `${plan.activities.filter(a => a.status === 'completed').length} of ${plan.activities.length} activities completed`
+    : undefined;
 
   // Load the active lesson plan, check for pending activity completion, load discovery content
   useEffect(() => {
@@ -725,8 +743,14 @@ export default function LessonSessionScreen() {
     setIsLoading(false);
   }, []);
 
-  // Handle early exit
-  const handleExit = useCallback(async () => {
+  // Handle early exit — show confirmation first
+  const handleExitRequest = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowExitConfirm(true);
+  }, []);
+
+  const handleExitConfirmed = useCallback(async () => {
+    setShowExitConfirm(false);
     await clearActiveLessonPlan();
     router.replace('/(tabs)/home');
   }, [router]);
@@ -869,6 +893,16 @@ export default function LessonSessionScreen() {
 
   // ─── Activity Router ─────────────────────────────
 
+  // ─── Exit Confirmation Modal (renders over any activity) ───
+  const exitModal = (
+    <ConfirmExitModal
+      visible={showExitConfirm}
+      onContinue={() => setShowExitConfirm(false)}
+      onExit={handleExitConfirmed}
+      progress={exitProgressText}
+    />
+  );
+
   switch (currentActivity.type) {
     case 'vocabulary': {
       // 3-tier waterfall: Discovery content → Stair content → Word bank
@@ -928,14 +962,17 @@ export default function LessonSessionScreen() {
       }
 
       return (
-        <VocabularyPracticeScreen
-          item={lessonVocab[0]}
-          userId={user?.id || 'anonymous'}
-          onComplete={handleWordComplete}
-          onExit={handleExit}
-          onPointsEarned={handlePointsEarned}
-          fullFlow={true}
-        />
+        <>
+          <VocabularyPracticeScreen
+            item={lessonVocab[0]}
+            userId={user?.id || 'anonymous'}
+            onComplete={handleWordComplete}
+            onExit={handleExitRequest}
+            onPointsEarned={handlePointsEarned}
+            fullFlow={true}
+          />
+          {exitModal}
+        </>
       );
     }
 
