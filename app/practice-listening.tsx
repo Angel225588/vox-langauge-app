@@ -177,6 +177,86 @@ function normalizeExerciseContent(ex: ListeningExercise): NormalizedContent | nu
 }
 
 // ═════════════════════════════════════════════════════════
+// LIBRARY CONTENT — Template content for library lectures
+// ═════════════════════════════════════════════════════════
+
+const LIBRARY_CONTENT: Record<string, NormalizedContent> = {
+  'listening-1': {
+    title: 'At the Cafe',
+    dialogueLines: [
+      { speaker: 'Serveur', text: 'Bonjour ! Bienvenue. Qu\'est-ce que je vous sers ?', translation: 'Hello! Welcome. What can I get you?' },
+      { speaker: 'Client', text: 'Bonjour ! Je voudrais un café crème, s\'il vous plaît.', translation: 'Hello! I\'d like a coffee with cream, please.' },
+      { speaker: 'Serveur', text: 'Bien sûr. Un grand ou un petit ?', translation: 'Of course. A large or a small?' },
+      { speaker: 'Client', text: 'Un grand, s\'il vous plaît. Et un croissant aussi.', translation: 'A large, please. And a croissant too.' },
+      { speaker: 'Serveur', text: 'Excellent choix. Vous désirez autre chose ?', translation: 'Excellent choice. Would you like anything else?' },
+      { speaker: 'Client', text: 'Non merci, ce sera tout.', translation: 'No thanks, that\'ll be all.' },
+      { speaker: 'Serveur', text: 'Ça fait cinq euros cinquante, s\'il vous plaît.', translation: 'That\'s five euros fifty, please.' },
+      { speaker: 'Client', text: 'Voici. Merci beaucoup !', translation: 'Here you go. Thank you very much!' },
+    ],
+    vocabulary: [
+      { word: 'un café crème', translation: 'coffee with cream', phonetic: '/kafe kʁɛm/' },
+      { word: 's\'il vous plaît', translation: 'please (formal)', phonetic: '/sil vu plɛ/' },
+      { word: 'un croissant', translation: 'a croissant', phonetic: '/kʁwasɑ̃/' },
+      { word: 'ce sera tout', translation: 'that\'ll be all', phonetic: '/sə sʁa tu/' },
+    ],
+    questions: [
+      { question: 'What did the customer order?', options: ['Coffee with cream and a croissant', 'Tea and a sandwich', 'Orange juice', 'Water'], correctIndex: 0 },
+      { question: 'How much was the total?', options: ['€3.50', '€5.50', '€7.00', '€4.00'], correctIndex: 1 },
+    ],
+    beforeQuestions: [
+      { question: 'Where does this conversation take place?', options: ['A cafe', 'A restaurant', 'A shop', 'An office'], correctIndex: 0 },
+    ],
+    afterQuestions: [
+      { question: 'What size coffee did the customer choose?', options: ['Small', 'Large', 'Medium', 'Extra large'], correctIndex: 1 },
+      { question: 'What did the server ask after taking the order?', options: ['How to pay', 'If they wanted anything else', 'Their name', 'Where to sit'], correctIndex: 1 },
+    ],
+  },
+  'listening-2': {
+    title: 'Business Meeting',
+    dialogueLines: [
+      { speaker: 'Sophie', text: 'Bonjour tout le monde. Merci d\'être venus.', translation: 'Hello everyone. Thank you for coming.' },
+      { speaker: 'Marc', text: 'Bonjour Sophie. De quoi allons-nous parler aujourd\'hui ?', translation: 'Hello Sophie. What are we going to talk about today?' },
+      { speaker: 'Sophie', text: 'J\'aimerais discuter du nouveau projet. Nous devons respecter les délais.', translation: 'I\'d like to discuss the new project. We need to meet the deadlines.' },
+      { speaker: 'Marc', text: 'D\'accord. Quelles sont les prochaines étapes ?', translation: 'Alright. What are the next steps?' },
+      { speaker: 'Sophie', text: 'Premièrement, nous devons finaliser le budget. Ensuite, on commence le développement.', translation: 'First, we need to finalize the budget. Then, we start development.' },
+      { speaker: 'Marc', text: 'Je suis d\'accord. Je peux préparer une présentation pour vendredi.', translation: 'I agree. I can prepare a presentation for Friday.' },
+      { speaker: 'Sophie', text: 'Parfait. Est-ce que quelqu\'un a des questions ?', translation: 'Perfect. Does anyone have questions?' },
+      { speaker: 'Marc', text: 'Non, c\'est très clair. Merci Sophie.', translation: 'No, it\'s very clear. Thank you Sophie.' },
+    ],
+    vocabulary: [
+      { word: 'les délais', translation: 'the deadlines', phonetic: '/le delɛ/' },
+      { word: 'le budget', translation: 'the budget', phonetic: '/lə byʒɛ/' },
+      { word: 'les prochaines étapes', translation: 'the next steps', phonetic: '/le pʁɔʃɛn etap/' },
+      { word: 'une présentation', translation: 'a presentation', phonetic: '/yn pʁezɑ̃tasjɔ̃/' },
+    ],
+    questions: [
+      { question: 'What is the main topic of the meeting?', options: ['A new project', 'A holiday party', 'Employee reviews', 'Office move'], correctIndex: 0 },
+      { question: 'What will Marc prepare?', options: ['A report', 'A presentation for Friday', 'A budget', 'An email'], correctIndex: 1 },
+    ],
+    beforeQuestions: [
+      { question: 'How many speakers are in this dialogue?', options: ['One', 'Two', 'Three', 'Four'], correctIndex: 1 },
+    ],
+    afterQuestions: [
+      { question: 'What needs to happen first before development?', options: ['Finalize the budget', 'Hire new people', 'Get approval from the CEO', 'Write a proposal'], correctIndex: 0 },
+      { question: 'How did Marc react to the plan?', options: ['He disagreed', 'He agreed and offered to help', 'He asked for more time', 'He left the meeting'], correctIndex: 1 },
+    ],
+  },
+};
+
+function buildLibraryContent(
+  lectureId: string,
+  title: string,
+  category: string,
+  langCode: string,
+): NormalizedContent | null {
+  const template = LIBRARY_CONTENT[lectureId];
+  if (template) return template;
+
+  // Generic fallback for unknown lecture IDs
+  return null;
+}
+
+// ═════════════════════════════════════════════════════════
 // COMPONENT
 // ═════════════════════════════════════════════════════════
 
@@ -361,7 +441,6 @@ export default function PracticeListeningScreen() {
         try {
           const parsed: ListeningContent = JSON.parse(params.discoveryContent);
           const normalized = normalizeDiscoveryContent(parsed);
-          // Accept content if it has ANY question set (questions, beforeQuestions, or afterQuestions)
           const hasAnyQuestions = normalized && normalized.dialogueLines.length > 0 &&
             ((normalized.questions?.length ?? 0) > 0 ||
              (normalized.beforeQuestions?.length ?? 0) > 0 ||
@@ -371,19 +450,30 @@ export default function PracticeListeningScreen() {
             setStage(normalized.vocabulary.length > 0 ? 'vocab_prescreen' : 'stage1_listen');
             return;
           }
-          console.warn('[PracticeListening] Discovery content malformed, falling back to AI generation');
+          console.warn('[PracticeListening] Discovery content malformed, falling back');
         } catch (parseErr) {
           console.warn('[PracticeListening] Discovery content parse failed:', parseErr);
         }
       }
 
-      // Fall back to AI generation (practice tab mode)
-      if (!user?.id) {
-        setError('Sign in to generate listening exercises.');
-        return;
+      // Library lecture: build template content from lecture data
+      if (params.lectureId) {
+        const templateContent = buildLibraryContent(
+          params.lectureId,
+          params.lectureTitle || 'Listening Practice',
+          params.lectureCategory || 'general',
+          targetLangCode,
+        );
+        if (templateContent) {
+          setContent(templateContent);
+          setStage(templateContent.vocabulary.length > 0 ? 'vocab_prescreen' : 'stage1_listen');
+          return;
+        }
       }
 
-      const exercise = await generateListeningContent(user.id, undefined, v3Store.target_language);
+      // Fall back to AI generation (practice tab mode)
+      const userId = user?.id || 'anonymous';
+      const exercise = await generateListeningContent(userId, undefined, v3Store.target_language || undefined);
       if (!exercise) {
         setError('Could not generate listening exercise. Check your learning path.');
         return;

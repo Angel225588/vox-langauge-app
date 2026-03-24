@@ -33,6 +33,7 @@ import { VoxIcon } from '@/components/ui/rewards';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserMetrics } from '@/hooks/useUserMetrics';
+import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { glass } from '@/constants/designSystem';
 
 // ─── PRACTICE ZONE PALETTE ───
@@ -61,7 +62,7 @@ const GRID_ITEMS = [
   { title: 'Vocabulary', sub: 'Word bank & review', icon: 'albums-outline' as const, color: PZ.green, route: '/vocabulary-dashboard', badge: '', requiresAuth: false },
   { title: 'Reading', sub: 'Read aloud & feedback', icon: 'book-outline' as const, color: PZ.purple, route: '/reading-library', badge: '', requiresAuth: true },
   { title: 'Writing', sub: 'AI prompt', icon: 'create-outline' as const, color: PZ.gold, route: '/practice-writing', badge: '', requiresAuth: true },
-  { title: 'Listening', sub: 'Dialogue exercises', icon: 'headset-outline' as const, color: PZ.rose, route: '/listening-library', badge: '', requiresAuth: true },
+  { title: 'Listening', sub: 'Dialogue exercises', icon: 'headset-outline' as const, color: PZ.rose, route: '/listening-library', badge: '', requiresAuth: false },
   { title: 'Library', sub: 'Scenario decks', icon: 'library-outline' as const, color: PZ.cyan, route: '/vox-library', badge: '', requiresAuth: true },
   { title: 'Flow', sub: 'Guided session', icon: 'water-outline' as const, color: PZ.cyan, route: '', badge: 'GUIDED', requiresAuth: true },
 ];
@@ -744,6 +745,7 @@ export default function PracticeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { metrics } = useUserMetrics();
+  const v3 = useOnboardingV3();
   const [showDevTools, setShowDevTools] = useState(false);
 
   const handleVoiceConversation = useCallback(() => {
@@ -751,8 +753,27 @@ export default function PracticeScreen() {
       router.push('/(auth)/onboarding-v3/signup' as any);
       return;
     }
-    router.push('/voice-conversation');
-  }, [router, user]);
+    // Default scenario for quick practice — guided flow
+    const defaultScenario = {
+      id: 'quick-practice',
+      title: 'Free Practice',
+      description: 'Open conversation practice in your target language',
+      context: 'A friendly conversation to practice speaking',
+      aiRole: 'Conversation Partner',
+      userRole: 'Learner',
+      objectives: ['Introduce yourself', 'Ask about their day', 'Describe your work', 'End the conversation politely'],
+      language: v3.target_language || 'english',
+      difficulty: 'intermediate' as const,
+      category: 'general',
+      suggestedPhrases: [],
+      keyVocabulary: [],
+      suggestedDuration: 300,
+    };
+    router.push({
+      pathname: '/voice-practice/[scenarioId]' as any,
+      params: { scenarioId: 'quick-practice', scenarioData: JSON.stringify(defaultScenario) },
+    });
+  }, [router, user, v3.target_language]);
 
   // ─── Gate: unauthenticated users see sign-up screen ───
   // If they completed onboarding, go straight to signup (not full onboarding again)

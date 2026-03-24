@@ -688,22 +688,29 @@ export default function LessonSessionScreen() {
     } else if (type === 'voice_call') {
       const rawVoice = discoveryContent?.activities[currentActivity.id];
       const voiceContent = rawVoice?.type === 'voice_call' ? rawVoice as VoiceCallContent : undefined;
+      const duration = currentActivity.config.type === 'voice_call'
+        ? currentActivity.config.duration_seconds
+        : 60;
+      const voiceScenario = {
+        id: currentActivity.id,
+        title: voiceContent?.scenarioTitle || 'Practice Conversation',
+        description: voiceContent?.scenarioDescription || 'Language practice session',
+        context: voiceContent?.scenarioDescription || '',
+        aiRole: 'Conversation Partner',
+        userRole: 'Learner',
+        objectives: voiceContent?.suggestedTopics || ['Practice speaking', 'Use new vocabulary', 'Maintain the conversation'],
+        language: useOnboardingV3.getState().target_language || 'english',
+        difficulty: 'intermediate',
+        category: 'lesson',
+        suggestedPhrases: voiceContent?.keyVocabulary || [],
+        keyVocabulary: voiceContent?.keyVocabulary || [],
+        suggestedDuration: duration,
+      };
       router.replace({
-        pathname: '/voice-conversation',
+        pathname: '/voice-practice/[scenarioId]' as any,
         params: {
-          stairStepId: plan.stair_id,
-          returnToSession: 'true',
-          planId: plan.id,
-          activityId: currentActivity.id,
-          maxDuration: String(
-            currentActivity.config.type === 'voice_call'
-              ? currentActivity.config.duration_seconds
-              : 60
-          ),
-          ...(voiceContent ? {
-            scenarioTitle: voiceContent.scenarioTitle,
-            scenarioDescription: voiceContent.scenarioDescription,
-          } : {}),
+          scenarioId: currentActivity.id,
+          scenarioData: JSON.stringify(voiceScenario),
         },
       });
     } else if (type === 'writing') {

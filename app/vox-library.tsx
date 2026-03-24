@@ -124,8 +124,25 @@ export default function VoxLibraryScreen() {
     : [];
 
   const handleScenarioPress = (scenario: VoxScenarioSeed) => {
-    // Navigate to voice conversation with this scenario pre-selected
-    router.push('/voice-conversation');
+    const voiceScenario = {
+      id: scenario.id || scenario.title.toLowerCase().replace(/\s+/g, '-'),
+      title: scenario.title,
+      description: scenario.description || scenario.title,
+      context: scenario.description || '',
+      aiRole: scenario.ai_persona?.role || 'Conversation Partner',
+      userRole: 'Learner',
+      objectives: scenario.objectives || ['Practice speaking', 'Use key vocabulary', 'Maintain the conversation'],
+      language: scenario.language || 'english',
+      difficulty: scenario.difficulty || 'intermediate',
+      category: scenario.category || 'general',
+      suggestedPhrases: scenario.key_phrases || [],
+      keyVocabulary: scenario.key_vocabulary || [],
+      suggestedDuration: 300,
+    };
+    router.push({
+      pathname: '/voice-practice/[scenarioId]' as any,
+      params: { scenarioId: voiceScenario.id, scenarioData: JSON.stringify(voiceScenario) },
+    });
   };
 
   return (
