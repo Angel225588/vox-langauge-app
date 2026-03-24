@@ -554,10 +554,13 @@ Respond in JSON:
   }
 
   // ═══ FEEDBACK PHASE ═══
+  const feedbackWordCount = userText.trim().split(/\s+/).filter(Boolean).length;
+  const feedbackPoints = feedback ? 15 + Math.round(feedback.score / 10) : 0;
+
   return (
     <SafeAreaView style={s.container}>
       <Header onBack={handleBack} />
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: 200 }]} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.duration(400)}>
           {/* Score */}
           <View style={{ alignItems: 'center', marginBottom: 24 }}>
@@ -573,12 +576,32 @@ Respond in JSON:
               </Text>
             </View>
             <Text style={s.scoreSummary}>{feedback?.summary}</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 4 }}>
+              {feedbackWordCount} words • {feedbackPoints} points earned
+            </Text>
           </View>
+
+          {/* YOUR VERSION vs CORRECTED VERSION */}
+          <View style={[s.feedbackSection, { marginBottom: 16 }]}>
+            <Text style={[s.feedbackLabel, { color: C.sub }]}>YOUR VERSION</Text>
+            <View style={[s.scenarioCard, { marginTop: 8, borderLeftWidth: 3, borderLeftColor: C.gold }]}>
+              <Text style={[s.scenarioText, { lineHeight: 22, fontSize: 14 }]}>{userText}</Text>
+            </View>
+          </View>
+
+          {feedback?.correctedText && feedback.correctedText !== userText && (
+            <View style={[s.feedbackSection, { marginBottom: 16 }]}>
+              <Text style={[s.feedbackLabel, { color: C.green }]}>CORRECTED VERSION</Text>
+              <View style={[s.scenarioCard, { marginTop: 8, borderLeftWidth: 3, borderLeftColor: C.green }]}>
+                <Text style={[s.scenarioText, { lineHeight: 22, fontSize: 14 }]}>{feedback.correctedText}</Text>
+              </View>
+            </View>
+          )}
 
           {/* Strengths */}
           {feedback?.strengths && feedback.strengths.length > 0 && (
             <View style={s.feedbackSection}>
-              <Text style={[s.feedbackLabel, { color: C.green }]}>Strengths</Text>
+              <Text style={[s.feedbackLabel, { color: C.green }]}>What you did well</Text>
               {feedback.strengths.map((s2, i) => (
                 <View key={i} style={s.feedbackRow}>
                   <Ionicons name="checkmark-circle" size={16} color={C.green} />
@@ -591,43 +614,48 @@ Respond in JSON:
           {/* Improvements */}
           {feedback?.improvements && feedback.improvements.length > 0 && (
             <View style={s.feedbackSection}>
-              <Text style={[s.feedbackLabel, { color: C.gold }]}>To Improve</Text>
+              <Text style={[s.feedbackLabel, { color: C.gold }]}>Better ways to say it</Text>
               {feedback.improvements.map((imp, i) => (
                 <View key={i} style={s.feedbackRow}>
-                  <Ionicons name="trending-up" size={16} color={C.gold} />
+                  <Ionicons name="bulb-outline" size={16} color={C.gold} />
                   <Text style={s.feedbackText}>{imp}</Text>
                 </View>
               ))}
             </View>
           )}
-
-          {/* Corrected text */}
-          {feedback?.correctedText && (
-            <View style={[s.scenarioCard, { marginTop: 16 }]}>
-              <Text style={s.scenarioLabel}>CORRECTED VERSION</Text>
-              <Text style={[s.scenarioText, { lineHeight: 24 }]}>{feedback.correctedText}</Text>
-            </View>
-          )}
-
-          {/* Actions */}
-          <View style={{ gap: 12, marginTop: 24 }}>
-            <TouchableOpacity onPress={loadContent} activeOpacity={0.8}>
-              <LinearGradient colors={[C.gold, '#D97706']} style={s.ctaBtn}>
-                <Ionicons name="refresh" size={18} color="#fff" />
-                <Text style={s.ctaText}>New Writing Task</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleDone}
-              style={[s.ctaBtn, { backgroundColor: C.card }]}
-            >
-              <Text style={[s.ctaText, { color: C.sub }]}>
-                {isSessionActivity ? 'Continue Lesson' : 'Back to Practice'}
-              </Text>
-            </TouchableOpacity>
-          </View>
         </Animated.View>
       </ScrollView>
+
+      {/* FIXED BOTTOM CTAs */}
+      <View style={s.fixedBottom}>
+        <TouchableOpacity
+          onPress={handleDone}
+          activeOpacity={0.85}
+        >
+          <View style={[s.ctaBtn, { backgroundColor: 'rgba(99,102,241,0.12)', borderWidth: 1.5, borderColor: 'rgba(99,102,241,0.3)' }]}>
+            <Ionicons name="analytics-outline" size={18} color="#818CF8" />
+            <Text style={[s.ctaText, { color: '#818CF8' }]}>See Detailed Feedback</Text>
+          </View>
+        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+          <TouchableOpacity onPress={loadContent} activeOpacity={0.8} style={{ flex: 1 }}>
+            <View style={[s.ctaBtn, { backgroundColor: C.card }]}>
+              <Ionicons name="refresh" size={16} color={C.sub} />
+              <Text style={[s.ctaText, { color: C.sub, fontSize: 14 }]}>Restart</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.8}
+            style={{ flex: 1 }}
+          >
+            <LinearGradient colors={[C.green, '#059669']} style={s.ctaBtn}>
+              <Text style={[s.ctaText, { fontSize: 14 }]}>Complete</Text>
+              <Ionicons name="checkmark" size={16} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -704,6 +732,7 @@ const s = StyleSheet.create({
   openerText: { fontSize: 14, fontStyle: 'italic', color: C.text },
 
   bottomBar: { padding: 20, paddingBottom: 10 },
+  fixedBottom: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 30, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
   ctaBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, borderRadius: 14, paddingVertical: 16,
