@@ -27,6 +27,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/hooks/useAuth';
 import { generateWritingContent, type WritingPrompt } from '@/lib/ai/practiceGenerator';
 import type { WritingContent } from '@/lib/lesson/discoveryGenerator';
@@ -72,6 +73,12 @@ export default function PracticeWritingScreen() {
     discoveryContent?: string;
     planId?: string;
     stairStepId?: string;
+    scenarioId?: string;
+    scenarioTitle?: string;
+    scenarioPrompt?: string;
+    scenarioKeyPhrases?: string;
+    scenarioWordTarget?: string;
+    scenarioCategory?: string;
   }>();
   const isSessionActivity = params.returnToSession === 'true';
 
@@ -89,6 +96,22 @@ export default function PracticeWritingScreen() {
     setFeedback(null);
 
     try {
+      // Library scenario: use passed data directly (no AI needed)
+      if (params.scenarioPrompt) {
+        const normalized: WritingPrompt = {
+          title: params.scenarioTitle || 'Writing Practice',
+          scenario: params.scenarioCategory || 'Practice',
+          prompt: params.scenarioPrompt,
+          keyPhrases: (params.scenarioKeyPhrases || '').split('|||').filter(Boolean),
+          wordCountTarget: parseInt(params.scenarioWordTarget || '60', 10),
+          exampleOpener: '',
+          rubric: [],
+        };
+        setPrompt(normalized);
+        setPhase('prompt');
+        return;
+      }
+
       // Try discovery content from route params first (lesson session mode)
       if (params.discoveryContent) {
         const parsed: WritingContent = JSON.parse(params.discoveryContent);
@@ -116,7 +139,7 @@ export default function PracticeWritingScreen() {
       }
 
       const targetLang = useOnboardingV3.getState().target_language;
-      const content = await generateWritingContent(user.id, undefined, targetLang);
+      const content = await generateWritingContent(user.id, undefined, targetLang || undefined);
       if (!content) {
         setError('Could not generate writing prompt. Check your learning path.');
         return;
@@ -343,13 +366,44 @@ Respond in JSON:
   }, [isSessionActivity, router]);
 
   // Return to lesson session or practice tab
-  const handleDone = useCallback(() => {
+  const handleDone = useCallback(async () => {
+    // Mark scenario as completed in library
+    if (params.scenarioId) {
+      try {
+        const raw = await AsyncStorage.getItem('vox_writing_library_completed');
+        const completed = raw ? JSON.parse(raw) : [];
+        if (!completed.includes(params.scenarioId)) {
+          completed.push(params.scenarioId);
+          await AsyncStorage.setItem('vox_writing_library_completed', JSON.stringify(completed));
+        }
+      } catch {}
+    }
+
     if (isSessionActivity) {
       router.replace('/lesson-session');
     } else {
-      router.back();
+      // Navigate to feedback detail with real scores
+      router.push({
+        pathname: '/feedback-detail',
+        params: {
+          scores: JSON.stringify({
+            articulation: feedback?.score || 0,
+            fluency: feedback?.score ? Math.round(feedback.score * 0.9) : 0,
+            communication: feedback?.score || 0,
+            scenario: feedback?.score || 0,
+            wordsLearned: userText.trim().split(/\s+/).filter(Boolean).length,
+            pointsEarned: feedback?.score ? 15 + Math.round(feedback.score / 10) : 0,
+            timeSpent: 0,
+            cefrLevel: feedback?.score && feedback.score >= 80 ? 'B2' : feedback?.score && feedback.score >= 60 ? 'B1' : 'A2',
+          }),
+          stairTitle: prompt?.title || 'Writing Practice',
+          stairId: params.scenarioId || 'writing',
+          isDiscovery: 'false',
+          scenario: prompt?.title || 'Writing Practice',
+        },
+      });
     }
-  }, [isSessionActivity, router]);
+  }, [isSessionActivity, router, feedback, userText, prompt, params.scenarioId]);
 
   const wordCount = userText.trim().split(/\s+/).filter(Boolean).length;
 

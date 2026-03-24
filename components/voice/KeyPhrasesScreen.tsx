@@ -12,6 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTTS } from '@/hooks/useTTS';
+import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
 
@@ -35,6 +37,23 @@ export function KeyPhrasesScreen({
   onBack,
   onPlayPhrase,
 }: KeyPhrasesScreenProps) {
+  const v3 = useOnboardingV3();
+  const langCode = v3.target_language === 'french' ? 'fr'
+    : v3.target_language === 'spanish' ? 'es' : 'en';
+  const { speak, isSpeaking, stop } = useTTS({ defaultLanguage: langCode as any });
+
+  const handlePlay = async (text: string) => {
+    if (isSpeaking) {
+      await stop();
+      return;
+    }
+    if (onPlayPhrase) {
+      onPlayPhrase(text);
+    } else {
+      await speak(text, langCode as any);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Header */}
@@ -68,7 +87,7 @@ export function KeyPhrasesScreen({
               style={styles.playButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onPlayPhrase?.(phrase.text);
+                handlePlay(phrase.text);
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >

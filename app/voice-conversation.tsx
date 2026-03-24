@@ -405,8 +405,14 @@ export default function VoiceConversationScreen() {
       );
       return;
     }
-    setSelectedScenario(scenario);
-    setFlowState('goal'); // Go to goal page first
+    // Route to new guided voice practice flow
+    router.push({
+      pathname: '/voice-practice/[scenarioId]' as any,
+      params: {
+        scenarioId: scenario.id,
+        scenarioData: JSON.stringify(scenario),
+      },
+    });
   };
 
   const handleStartCall = async () => {

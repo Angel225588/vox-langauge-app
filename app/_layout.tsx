@@ -157,6 +157,7 @@ export default function RootLayout() {
           <Stack.Screen name="reading-goal" options={{ headerShown: false }} />
           <Stack.Screen name="listening-library" options={{ headerShown: false }} />
           <Stack.Screen name="practice-writing" options={{ headerShown: false }} />
+          <Stack.Screen name="writing-library" options={{ headerShown: false }} />
           <Stack.Screen name="practice-listening" options={{ headerShown: false }} />
           <Stack.Screen name="voice-conversation" options={{ headerShown: false }} />
           <Stack.Screen name="voice-practice/[scenarioId]" options={{ headerShown: false, gestureEnabled: false }} />

@@ -120,7 +120,24 @@ export default function GuidedVoicePracticeScreen() {
           ? savedTranscriptRef.current
           : messages;
 
-      console.log(`[VoicePractice] Analyzing ${transcript.length} messages`);
+      const userTurns = transcript.filter((m: any) => m.role === 'user').length;
+      console.log(`[VoicePractice] Analyzing ${transcript.length} messages (${userTurns} user turns)`);
+
+      // No user turns = no real practice happened
+      if (userTurns === 0) {
+        setResults({
+          overallScore: 0,
+          kpis: { articulation: 0, fluency: 0, communication: 0, scenario: 0 },
+          pointsEarned: 0,
+          objectivesCompleted: scenario.objectives.map(() => false),
+          feedbackSummary: 'No conversation detected. Try speaking during the call to get feedback.',
+          fullFeedback: null,
+          duration: sessionDuration,
+        });
+        return;
+      }
+
+      // Real conversation — analyze it
       const feedback = await analyzeConversation({
         messages: transcript,
         scenario: scenario.title,
@@ -143,16 +160,23 @@ export default function GuidedVoicePracticeScreen() {
               feedback.feedback.communication +
               feedback.feedback.scenario) / 4
           )
-        : 65;
+        : Math.min(userTurns * 15, 60); // Proportional to effort, max 60 without AI analysis
 
-      // Calculate points: 20 base + 5/turn + 5 per objective
-      const turns = transcript.filter((m: any) => m.role === 'user').length;
-      const pointsEarned = 20 + turns * 5 + completedCount * 5;
+      // Points earned proportional to actual effort
+      // No base points — must actually speak to earn
+      const pointsEarned = Math.round(
+        userTurns * 5 +                       // 5 per turn spoken
+        completedCount * 5 +                   // 5 per objective completed
+        (sessionDuration > 60 ? 10 : 0) +     // 10 bonus for 1+ minute call
+        (overallScore > 70 ? 10 : 0)           // 10 bonus for good score
+      );
 
-      // Save points
-      try {
-        await updateStreakData({ pointsToAdd: pointsEarned });
-      } catch {}
+      // Save points (only if earned)
+      if (pointsEarned > 0) {
+        try {
+          await updateStreakData({ pointsToAdd: pointsEarned });
+        } catch {}
+      }
 
       setResults({
         overallScore,
@@ -163,21 +187,25 @@ export default function GuidedVoicePracticeScreen() {
               communication: feedback.feedback.communication,
               scenario: feedback.feedback.scenario,
             }
-          : { articulation: 70, fluency: 65, communication: 72, scenario: 68 },
+          : { articulation: 0, fluency: 0, communication: 0, scenario: 0 },
         pointsEarned,
         objectivesCompleted,
-        feedbackSummary: feedback?.feedback?.overallMessage || 'Good practice session.',
+        feedbackSummary: feedback?.feedback?.overallMessage || 'Keep practicing to improve your scores.',
         fullFeedback: feedback?.feedback || null,
         duration: sessionDuration,
       });
     } catch (err) {
       console.error('[VoicePractice] Feedback analysis failed:', err);
+      const userTurnsFallback = savedTranscriptRef.current.filter(m => m.role === 'user').length;
       setResults({
-        overallScore: 65,
-        kpis: { articulation: 65, fluency: 60, communication: 68, scenario: 62 },
-        pointsEarned: 20,
+        overallScore: userTurnsFallback > 0 ? 50 : 0,
+        kpis: { articulation: 0, fluency: 0, communication: 0, scenario: 0 },
+        pointsEarned: userTurnsFallback > 0 ? userTurnsFallback * 5 : 0,
         objectivesCompleted: scenario.objectives.map(() => false),
-        feedbackSummary: 'Great effort! Keep practicing to improve.',
+        feedbackSummary: userTurnsFallback > 0
+          ? 'We couldn\'t analyze this session. Your effort is still tracked.'
+          : 'No conversation detected.',
+        fullFeedback: null,
         duration: sessionDuration,
       });
     } finally {

@@ -61,7 +61,7 @@ const PZ = {
 const GRID_ITEMS = [
   { title: 'Vocabulary', sub: 'Word bank & review', icon: 'albums-outline' as const, color: PZ.green, route: '/vocabulary-dashboard', badge: '', requiresAuth: false },
   { title: 'Reading', sub: 'Read aloud & feedback', icon: 'book-outline' as const, color: PZ.purple, route: '/reading-library', badge: '', requiresAuth: true },
-  { title: 'Writing', sub: 'AI prompt', icon: 'create-outline' as const, color: PZ.gold, route: '/practice-writing', badge: '', requiresAuth: true },
+  { title: 'Writing', sub: 'AI prompt', icon: 'create-outline' as const, color: PZ.gold, route: '/writing-library', badge: '', requiresAuth: false },
   { title: 'Listening', sub: 'Dialogue exercises', icon: 'headset-outline' as const, color: PZ.rose, route: '/listening-library', badge: '', requiresAuth: false },
   { title: 'Library', sub: 'Scenario decks', icon: 'library-outline' as const, color: PZ.cyan, route: '/vox-library', badge: '', requiresAuth: true },
   { title: 'Flow', sub: 'Guided session', icon: 'water-outline' as const, color: PZ.cyan, route: '', badge: 'GUIDED', requiresAuth: true },
@@ -753,57 +753,10 @@ export default function PracticeScreen() {
       router.push('/(auth)/onboarding-v3/signup' as any);
       return;
     }
-    // Default scenario with language-specific phrases
-    const lang = v3.target_language || 'english';
-    const phrases: Record<string, string[]> = {
-      french: [
-        'Bonjour, je m\'appelle...',
-        'Comment allez-vous aujourd\'hui ?',
-        'Je travaille dans le domaine de...',
-        'Qu\'est-ce que vous faites dans la vie ?',
-        'C\'est très intéressant !',
-        'Enchanté de vous connaître',
-        'Au revoir, bonne journée !',
-      ],
-      spanish: [
-        'Hola, me llamo...',
-        '¿Cómo está usted hoy?',
-        'Trabajo en el campo de...',
-        '¿A qué se dedica usted?',
-        '¡Es muy interesante!',
-        'Encantado de conocerle',
-        '¡Adiós, que tenga un buen día!',
-      ],
-      english: [
-        'Hello, my name is...',
-        'How are you doing today?',
-        'I work in the field of...',
-        'What do you do for a living?',
-        'That\'s really interesting!',
-        'Nice to meet you',
-        'Goodbye, have a great day!',
-      ],
-    };
-    const defaultScenario = {
-      id: 'quick-practice',
-      title: 'Free Practice',
-      description: 'Open conversation practice in your target language',
-      context: 'A friendly conversation to practice speaking',
-      aiRole: 'Conversation Partner',
-      userRole: 'Learner',
-      objectives: ['Introduce yourself', 'Ask about their day', 'Describe your work', 'End the conversation politely'],
-      language: lang,
-      difficulty: 'intermediate' as const,
-      category: 'general',
-      suggestedPhrases: phrases[lang] || phrases.english,
-      keyVocabulary: [],
-      suggestedDuration: 300,
-    };
-    router.push({
-      pathname: '/voice-practice/[scenarioId]' as any,
-      params: { scenarioId: 'quick-practice', scenarioData: JSON.stringify(defaultScenario) },
-    });
-  }, [router, user, v3.target_language]);
+    // Go to scenario selection — shows personalized scenarios from onboarding + feedback
+    router.push('/voice-conversation' as any);
+  }, [router, user]);
+
 
   // ─── Gate: unauthenticated users see sign-up screen ───
   // If they completed onboarding, go straight to signup (not full onboarding again)

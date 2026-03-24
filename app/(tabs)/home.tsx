@@ -410,27 +410,7 @@ export default function HomeScreen() {
             >
               <VoiceCTA
                 cefrLevel={featureAccess.cefr}
-                onPress={() => {
-                  const defaultScenario = {
-                    id: 'quick-practice',
-                    title: 'Free Practice',
-                    description: 'Open conversation practice',
-                    context: 'A friendly conversation',
-                    aiRole: 'Conversation Partner',
-                    userRole: 'Learner',
-                    objectives: ['Introduce yourself', 'Ask about their day', 'Describe your work', 'End politely'],
-                    language: v3.target_language || 'english',
-                    difficulty: 'intermediate',
-                    category: 'general',
-                    suggestedPhrases: [],
-                    keyVocabulary: [],
-                    suggestedDuration: 300,
-                  };
-                  router.push({
-                    pathname: '/voice-practice/[scenarioId]' as any,
-                    params: { scenarioId: 'quick-practice', scenarioData: JSON.stringify(defaultScenario) },
-                  });
-                }}
+                onPress={() => router.push('/voice-conversation' as any)}
               />
             </Animated.View>
           )}
