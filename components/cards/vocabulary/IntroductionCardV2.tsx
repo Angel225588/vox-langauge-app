@@ -309,15 +309,22 @@ export function IntroductionCardV2({ item, onComplete, onSkip }: VocabCardProps)
               <View style={S.backHeader}>
                 <Text style={S.backWord}>{item.word}</Text>
                 {item.phonetic && <Text style={S.backPhonetic}>/{item.phonetic}/</Text>}
+                {item.partOfSpeech && <Text style={S.backPos}>{item.partOfSpeech}</Text>}
               </View>
 
-              {/* Definition */}
+              {/* Translation — always show on back */}
               <View style={S.section}>
-                <Text style={S.sectionLabel}>DEFINITION</Text>
-                <Text style={S.definition}>
-                  {item.definition || `${item.partOfSpeech ? `(${item.partOfSpeech}) ` : ''}${item.translation}`}
-                </Text>
+                <Text style={S.sectionLabel}>TRANSLATION</Text>
+                <Text style={S.definition}>{item.translation}</Text>
               </View>
+
+              {/* Definition — if different from translation */}
+              {item.definition && item.definition !== item.translation && (
+                <View style={S.section}>
+                  <Text style={S.sectionLabel}>DEFINITION</Text>
+                  <Text style={S.definition}>{item.definition}</Text>
+                </View>
+              )}
 
               {/* Examples */}
               {item.examples?.slice(0, 2).map((example, idx) => (
@@ -439,6 +446,7 @@ const S = StyleSheet.create({
   backHeader: { alignItems: 'center', marginBottom: spacing.lg, paddingTop: spacing.md },
   backWord: { color: colors.text.primary, fontSize: 28, fontWeight: '800' },
   backPhonetic: { color: colors.text.tertiary, fontSize: 14, fontStyle: 'italic', marginTop: 2 },
+  backPos: { color: colors.primary.light, fontSize: 11, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase', marginTop: spacing.xs },
 
   section: { paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   sectionLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: spacing.xs },

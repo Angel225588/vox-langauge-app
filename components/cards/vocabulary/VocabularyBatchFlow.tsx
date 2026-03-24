@@ -224,7 +224,8 @@ export function VocabularyBatchFlow({
           </Animated.View>
 
           {/* Stats Grid */}
-          <Animated.View entering={FadeInDown.delay(400)}>
+          {/* Stats Grid — with extra margin */}
+          <Animated.View entering={FadeInDown.delay(400)} style={{ marginHorizontal: -spacing.xs }}>
             <StatsGrid stats={stats} delay={500} stagger={100} />
           </Animated.View>
 

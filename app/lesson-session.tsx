@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
+import { ConfirmExitModal } from '@/components/ui/ConfirmExitModal';
 import {
   advanceActivity,
   calculateLessonScores,
