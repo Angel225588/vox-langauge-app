@@ -3,6 +3,7 @@ import { View, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/hooks/useAuth';
+import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { supabase } from '@/lib/db/supabase';
 import { createPersonalizedPath } from '@/lib/services/pathGeneration';
 import { adaptV3ToOnboardingData } from '@/lib/services/v3DataAdapter';
@@ -23,9 +24,15 @@ export default function Index() {
     if (user) {
       checkOnboardingStatus();
     } else {
-      // Not authenticated — go directly to V3 onboarding welcome
-      hasNavigated.current = true;
-      router.replace('/(auth)/onboarding-v3');
+      // Not authenticated — check if onboarding was already completed (unauthenticated flow)
+      const v3 = useOnboardingV3.getState();
+      if (v3.completed && v3.target_language) {
+        hasNavigated.current = true;
+        router.replace('/(tabs)/home');
+      } else {
+        hasNavigated.current = true;
+        router.replace('/(auth)/onboarding-v3');
+      }
     }
   }, [user, initialized]);
 

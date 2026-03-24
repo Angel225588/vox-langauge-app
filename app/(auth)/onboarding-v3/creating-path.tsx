@@ -230,8 +230,10 @@ export default function CreatingPathRoute() {
     hasNavigated.current = true;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     // Go to home — staircase is ready, user taps first stair to begin
+    // Mark onboarding as completed but DO NOT reset the store —
+    // profile, home, and practice tabs all read from it.
+    v3Store.setField('completed', true);
     router.replace('/(tabs)/home');
-    setTimeout(() => v3Store.reset(), 200);
   }, []);
 
   const updateStep = useCallback((index: number, status: StepStatus) => {

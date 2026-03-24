@@ -89,30 +89,56 @@ export default function FlashcardSessionScreen() {
     }
   }, []);
 
-  // Handle batch flow completion
+  // Handle batch flow completion — save points, FSRS, metrics
   const handleComplete = useCallback(async (result: BatchFlowResult) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Update FSRS — words to review get "again", rest get "good"
+    const accuracy = result.totalAttempts > 0
+      ? Math.round((result.totalCorrect / result.totalAttempts) * 100)
+      : 0;
+    const points = result.totalCorrect * 10;
+
     try {
+      // 1. Update FSRS — words to review get "again", rest get "good"
       const reviewWords = new Set(result.wordsToReview);
       if (items) {
         for (const item of items) {
-          const quality = reviewWords.has(item.word) ? 1 : 3; // 1 = again, 3 = good
+          const quality = reviewWords.has(item.word) ? 1 : 3;
           await recordReview(item.id, quality, 'flashcard_session');
         }
       }
 
-      // Award points
-      const points = result.totalCorrect * 10;
+      // 2. Save points to streak data (practice tab KPIs)
       if (points > 0) {
         await updateStreakData(userId, points);
       }
 
+      // 3. Save to competency metrics (for the Update Content analysis)
+      try {
+        const { savePracticeScore } = require('@/lib/db/competencyMetrics');
+        // Save as multiple practice types since vocab covers listening + writing
+        await savePracticeScore(userId, 'listening', {
+          articulation: accuracy,
+          fluency: Math.round(accuracy * 0.85),
+          communication: accuracy,
+          scenario: accuracy,
+        }, { source: 'vocabulary_sprint', wordsReviewed: result.totalWords });
+
+        if (result.correctByPhase?.write) {
+          await savePracticeScore(userId, 'writing', {
+            articulation: Math.round((result.correctByPhase.write / result.totalWords) * 100),
+            communication: accuracy,
+          }, { source: 'vocabulary_sprint' });
+        }
+      } catch (metricsErr) {
+        console.warn('[FlashcardSession] Metrics save failed:', metricsErr);
+      }
+
       console.log('[FlashcardSession] Complete:', {
-        accuracy: Math.round((result.totalCorrect / result.totalAttempts) * 100),
-        wordsToReview: result.wordsToReview.length,
+        accuracy,
         points,
+        wordsToReview: result.wordsToReview.length,
+        totalWords: result.totalWords,
       });
     } catch (err) {
       console.warn('[FlashcardSession] Error saving results:', err);
@@ -127,6 +153,34 @@ export default function FlashcardSessionScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShowExitConfirm(true);
   }, []);
+
+  // Handle detailed feedback navigation
+  const handleFeedback = useCallback((result: BatchFlowResult) => {
+    const accuracy = result.totalAttempts > 0
+      ? Math.round((result.totalCorrect / result.totalAttempts) * 100)
+      : 0;
+    const points = result.totalCorrect * 10;
+
+    router.push({
+      pathname: '/feedback-detail',
+      params: {
+        scores: JSON.stringify({
+          articulation: accuracy,
+          fluency: Math.round(accuracy * 0.9),
+          communication: accuracy,
+          scenario: accuracy,
+          wordsLearned: result.totalWords,
+          pointsEarned: points,
+          timeSpent: result.timeSeconds,
+          cefrLevel: 'B1',
+        }),
+        stairTitle: 'Vocabulary Sprint',
+        stairId: 'vocab-sprint',
+        isDiscovery: 'false',
+        scenario: 'Vocabulary Practice',
+      },
+    });
+  }, [router]);
 
   const handleExit = useCallback(() => {
     setShowExitConfirm(false);
@@ -172,6 +226,7 @@ export default function FlashcardSessionScreen() {
         items={items}
         onComplete={handleComplete}
         onExit={handleExitRequest}
+        onFeedback={handleFeedback}
       />
       <ConfirmExitModal
         visible={showExitConfirm}

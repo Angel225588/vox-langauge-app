@@ -77,6 +77,8 @@ interface VocabularyBatchFlowProps {
   onComplete: (result: BatchFlowResult) => void;
   /** Called when user exits early */
   onExit: () => void;
+  /** Called when user wants detailed feedback — passes scores for the feedback screen */
+  onFeedback?: (result: BatchFlowResult) => void;
   /** Skip phases (e.g., skip speaking if can't speak) */
   skipPhases?: BatchPhase[];
 }
@@ -89,6 +91,7 @@ export function VocabularyBatchFlow({
   items,
   onComplete,
   onExit,
+  onFeedback,
   skipPhases = [],
 }: VocabularyBatchFlowProps) {
   const insets = useSafeAreaInsets();
@@ -265,22 +268,18 @@ export function VocabularyBatchFlow({
 
         {/* Fixed CTAs — Detailed Feedback + Back to Practice */}
         <View style={[S.fixedBottom, { paddingBottom: insets.bottom + spacing.md }]}>
-          <TouchableOpacity
-            onPress={() => {
-              // Navigate to detailed feedback screen
-              try {
-                const { useRouter } = require('expo-router');
-                // Can't use hook here, just call onComplete which goes back
-              } catch {}
-            }}
-            activeOpacity={0.85}
-            style={{ marginBottom: spacing.sm }}
-          >
-            <View style={S.feedbackBtn}>
-              <Ionicons name="analytics-outline" size={18} color={colors.primary.DEFAULT} />
-              <Text style={S.feedbackBtnText}>See Detailed Feedback</Text>
-            </View>
-          </TouchableOpacity>
+          {onFeedback && (
+            <TouchableOpacity
+              onPress={() => onFeedback(finalResult)}
+              activeOpacity={0.85}
+              style={{ marginBottom: spacing.sm }}
+            >
+              <View style={S.feedbackBtn}>
+                <Ionicons name="analytics-outline" size={18} color={colors.primary.DEFAULT} />
+                <Text style={S.feedbackBtnText}>See Detailed Feedback</Text>
+              </View>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={() => onComplete(finalResult)} activeOpacity={0.85}>
             <LinearGradient colors={colors.gradients.success} style={S.ctaBtn}>
               <Text style={S.ctaText}>Back to Practice</Text>
