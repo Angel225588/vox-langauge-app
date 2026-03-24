@@ -24,6 +24,7 @@ import { GlassInput } from '@/components/ui/glass/GlassInput';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, glass } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
 
@@ -41,6 +42,7 @@ export default function SignupScreen() {
   const insets = useSafeAreaInsets();
   const { first_name } = useOnboardingV3();
   const { signUp } = useAuth();
+  const { t } = useTranslation('onboarding');
 
   const [fullName, setFullName] = useState(first_name || '');
   const [email, setEmail] = useState('');
@@ -56,19 +58,19 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     if (!fullName.trim()) {
-      Alert.alert('Missing name', 'Please enter your name.');
+      Alert.alert(t('common.error'), t('signup.errors.enter_name'));
       return;
     }
     if (!email.trim()) {
-      Alert.alert('Missing email', 'Please enter your email address.');
+      Alert.alert(t('common.error'), t('signup.errors.enter_email'));
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Weak password', 'Password must be at least 6 characters.');
+      Alert.alert(t('common.error'), t('signup.errors.password_too_short'));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Mismatch', 'Passwords do not match.');
+      Alert.alert(t('common.error'), t('signup.errors.passwords_mismatch'));
       return;
     }
 
@@ -79,15 +81,15 @@ export default function SignupScreen() {
       if (error) {
         if (error.message?.toLowerCase().includes('already registered')) {
           Alert.alert(
-            'Account exists',
-            'An account with this email already exists. Would you like to sign in?',
+            t('signup.alerts.account_exists_title'),
+            t('signup.alerts.account_exists_message'),
             [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Sign in', onPress: () => router.push('/(auth)/onboarding-v3/login') },
+              { text: t('signup.alerts.cancel'), style: 'cancel' },
+              { text: t('login.sign_in_button'), onPress: () => router.push('/(auth)/onboarding-v3/login') },
             ],
           );
         } else {
-          Alert.alert('Signup failed', error.message || 'Something went wrong. Please try again.');
+          Alert.alert(t('signup.alerts.signup_failed'), error.message || t('signup.alerts.signup_failed_message'));
         }
         setLoading(false);
         return;
@@ -96,9 +98,9 @@ export default function SignupScreen() {
       // Email confirmation required
       if (data.user && !data.session) {
         Alert.alert(
-          'Check your email',
-          'We sent a confirmation link to your email. Please verify to continue.',
-          [{ text: 'OK', onPress: () => router.push('/(auth)/onboarding-v3/login') }],
+          t('signup.alerts.check_email_title'),
+          t('signup.alerts.check_email_message'),
+          [{ text: t('common.ok'), onPress: () => router.push('/(auth)/onboarding-v3/login') }],
         );
         setLoading(false);
         return;
@@ -109,7 +111,7 @@ export default function SignupScreen() {
       router.push('/(auth)/onboarding-v3/creating-path');
     } catch (err) {
       setLoading(false);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      Alert.alert(t('common.error'), t('signup.errors.unexpected_error'));
     }
   };
 
@@ -131,9 +133,9 @@ export default function SignupScreen() {
         >
           {/* Header */}
           <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-            <Text style={styles.header}>Save your progress</Text>
+            <Text style={styles.header}>{t('signup.title')}</Text>
             <Text style={styles.subtitle}>
-              Create an account to unlock your personalized path
+              {t('signup.subtitle')}
             </Text>
           </Animated.View>
 
@@ -150,19 +152,19 @@ export default function SignupScreen() {
           {/* Form */}
           <Animated.View entering={FadeInUp.duration(400).delay(300)} style={styles.formSection}>
             <GlassInput
-              label="Full name"
+              label={t('signup.full_name_label')}
               value={fullName}
               onChangeText={setFullName}
-              placeholder="Your name"
+              placeholder={t('signup.full_name_placeholder')}
               autoCapitalize="words"
               autoCorrect={false}
             />
 
             <GlassInput
-              label="Email"
+              label={t('signup.email_label')}
               value={email}
               onChangeText={setEmail}
-              placeholder="you@example.com"
+              placeholder={t('signup.email_placeholder')}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
@@ -170,10 +172,10 @@ export default function SignupScreen() {
             />
 
             <GlassInput
-              label="Password"
+              label={t('signup.password_label')}
               value={password}
               onChangeText={setPassword}
-              placeholder="At least 6 characters"
+              placeholder={t('signup.password_placeholder')}
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
@@ -181,10 +183,10 @@ export default function SignupScreen() {
             />
 
             <GlassInput
-              label="Confirm password"
+              label={t('signup.confirm_password_label')}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              placeholder="Re-enter your password"
+              placeholder={t('signup.confirm_password_placeholder')}
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
@@ -200,19 +202,19 @@ export default function SignupScreen() {
               disabled={!isValid}
               loading={loading}
             >
-              Create account
+              {t('signup.continue')}
             </GlassButton>
 
             <Text style={styles.privacyNote}>
-              We never sell your data or show ads.
+              {t('signup.terms_text')} {t('signup.terms_of_service')} {t('signup.and')} {t('signup.privacy_policy')}
             </Text>
           </Animated.View>
 
           {/* Sign in link */}
           <Animated.View entering={FadeInUp.duration(300).delay(600)} style={styles.signInRow}>
-            <Text style={styles.signInText}>Already have an account? </Text>
+            <Text style={styles.signInText}>{t('signup.have_account')} </Text>
             <Pressable onPress={() => router.push('/(auth)/onboarding-v3/login')}>
-              <Text style={styles.signInLink}>Sign in</Text>
+              <Text style={styles.signInLink}>{t('signup.sign_in')}</Text>
             </Pressable>
           </Animated.View>
         </ScrollView>

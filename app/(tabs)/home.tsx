@@ -46,59 +46,7 @@ const LANG_FLAGS: Record<string, string> = {
 
 const { width, height } = Dimensions.get('window');
 
-// Mock staircase data (will be replaced with real data from database)
-const MOCK_STAIRS = [
-  {
-    id: '1',
-    order: 1,
-    title: 'Professional Greetings',
-    emoji: 'hand-left-outline',
-    description: 'Master formal introductions for job interviews',
-    status: 'completed' as const,
-    vocabulary_count: 25,
-    estimated_days: 2,
-  },
-  {
-    id: '2',
-    order: 2,
-    title: 'Self Introduction',
-    emoji: 'briefcase-outline',
-    description: 'Present your background and experience confidently',
-    status: 'current' as const,
-    vocabulary_count: 35,
-    estimated_days: 3,
-  },
-  {
-    id: '3',
-    order: 3,
-    title: 'Discussing Experience',
-    emoji: 'bar-chart-outline',
-    description: 'Talk about your work history and achievements',
-    status: 'locked' as const,
-    vocabulary_count: 45,
-    estimated_days: 4,
-  },
-  {
-    id: '4',
-    order: 4,
-    title: 'Strengths & Weaknesses',
-    emoji: 'shield-checkmark-outline',
-    description: 'Answer common interview questions professionally',
-    status: 'locked' as const,
-    vocabulary_count: 40,
-    estimated_days: 3,
-  },
-  {
-    id: '5',
-    order: 5,
-    title: 'Salary Negotiation',
-    emoji: 'cash-outline',
-    description: 'Discuss compensation with confidence',
-    status: 'locked' as const,
-    vocabulary_count: 50,
-    estimated_days: 5,
-  },
-];
+// No mock stairs — premium app shows only real personalized content
 
 // ─── Voice CTA with flowing gradient animation ──────
 // Aurora-like color shift + pulsing mic icon to suggest "speaking"
@@ -280,12 +228,12 @@ export default function HomeScreen() {
     loadPreviewStairs().then(setPreviewStairs);
   }, []);
 
-  // Priority: real Supabase stairs > preview stairs from onboarding > mock data
+  // Priority: real Supabase stairs > preview stairs from onboarding > empty
   const stairs = hasPath && realStairs.length > 0
     ? realStairs
     : previewStairs && previewStairs.length > 0
       ? previewStairs
-      : MOCK_STAIRS;
+      : [];
 
   // ─── Staggered Stair Reveal Animation ─────────────
   // Reveals stairs one by one with 250ms delay between each.

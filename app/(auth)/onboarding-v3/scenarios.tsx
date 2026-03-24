@@ -26,6 +26,7 @@ import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { GlassProgressBar } from '@/components/ui/glass/GlassProgressBar';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, borderRadius, glass } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
 
@@ -291,6 +292,7 @@ function AddScenarioSheet({
   onClose: () => void;
   onAdd: (scenario: string) => void;
 }) {
+  const { t } = useTranslation('onboarding');
   const [text, setText] = useState('');
 
   const handleAdd = () => {
@@ -318,7 +320,7 @@ function AddScenarioSheet({
 
           {/* Header */}
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Add a scenario</Text>
+            <Text style={styles.sheetTitle}>{t('scenarios.custom_add')}</Text>
             <Pressable onPress={onClose} hitSlop={12}>
               <Ionicons name="close-circle" size={28} color={colors.text.disabled} />
             </Pressable>
@@ -329,7 +331,7 @@ function AddScenarioSheet({
             <TextInput
               value={text}
               onChangeText={setText}
-              placeholder="e.g., Medical rounds with senior staff"
+              placeholder={t('scenarios.custom_placeholder')}
               placeholderTextColor={colors.text.disabled}
               style={styles.sheetInput}
               autoFocus
@@ -349,7 +351,7 @@ function AddScenarioSheet({
             disabled={text.trim().length < 3}
             onPress={handleAdd}
           >
-            Add scenario
+            {t('scenarios.custom_add')}
           </GlassButton>
         </View>
       </KeyboardAvoidingView>
@@ -362,6 +364,7 @@ function AddScenarioSheet({
 export default function ScenariosScreen() {
   const insets = useSafeAreaInsets();
   const { profession, scenarios: savedScenarios, setField } = useOnboardingV3();
+  const { t } = useTranslation('onboarding');
 
   const [selected, setSelected] = useState<string[]>(savedScenarios);
   const [showSheet, setShowSheet] = useState(false);
@@ -408,7 +411,7 @@ export default function ScenariosScreen() {
           {/* Header row with counter + add button */}
           <Animated.View entering={FadeInDown.duration(400).delay(100)}>
             <View style={styles.headerRow}>
-              <Text style={styles.header}>What situations{'\n'}matter most?</Text>
+              <Text style={styles.header}>{t('scenarios.header')}</Text>
               <View style={styles.headerActions}>
                 <View style={styles.counterBadge}>
                   <Text style={styles.counterText}>{selected.length}/{MAX_SCENARIOS}</Text>
@@ -426,7 +429,7 @@ export default function ScenariosScreen() {
 
           <Animated.View entering={FadeInDown.duration(400).delay(200)}>
             <Text style={styles.subtitle}>
-              Pick up to {MAX_SCENARIOS}. We'll build your lessons around these.
+              {t('scenarios.subtitle')}
             </Text>
           </Animated.View>
 
@@ -467,7 +470,7 @@ export default function ScenariosScreen() {
             disabled={!isValid}
             onPress={handleContinue}
           >
-            Continue
+            {t('scenarios.continue')}
           </GlassButton>
         </View>
 

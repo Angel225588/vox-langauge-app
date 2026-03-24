@@ -9,6 +9,61 @@
     "already_have_account": "Vous avez déjà un compte ?",
     "sign_in": "Se connecter"
   },
+  "name": {
+    "header": "D'abord, comment devons-nous vous appeler ?",
+    "subtitle": "Nous l'utiliserons pour personnaliser votre expérience",
+    "placeholder": "Votre prénom",
+    "continue": "Continuer"
+  },
+  "target_language": {
+    "header": "{{name}}, quelle langue avez-vous besoin ?",
+    "header_no_name": "Quelle langue avez-vous besoin ?"
+  },
+  "goal": {
+    "header": "Pourquoi avez-vous besoin du {{language}} ?",
+    "header_no_lang": "Quel est votre objectif ?",
+    "subtitle": "Cela façonne votre parcours d'apprentissage",
+    "continue": "Continuer"
+  },
+  "goals": {
+    "lead_present": "Diriger des réunions et présenter avec confiance",
+    "conversations": "Tenir des conversations professionnelles couramment",
+    "write_communicate": "Écrire et communiquer clairement au travail",
+    "live_abroad": "Vivre et fonctionner dans un nouveau pays",
+    "connect_people": "Se connecter avec les gens dans leur langue",
+    "something_else": "Autre chose ?",
+    "custom_placeholder": "Décrivez votre objectif...",
+    "custom_hint": "ex: Présenter les résultats trimestriels aux parties prenantes",
+    "back_to_options": "Retour aux options"
+  },
+  "lang_names": {
+    "english": "anglais",
+    "french": "français",
+    "spanish": "espagnol"
+  },
+  "level": {
+    "header": "Quel est votre niveau en {{language}} ?",
+    "header_no_lang": "Quel est votre niveau actuel ?"
+  },
+  "profession": {
+    "header": "Que faites-vous dans la vie ?",
+    "subtitle": "Cela nous aide à adapter les scénarios et le vocabulaire à votre monde professionnel",
+    "custom_placeholder": "ex: Architecte, Infirmier, Chef de produit...",
+    "continue": "Continuer"
+  },
+  "scenarios": {
+    "header": "Quelles conversations comptent le plus ?",
+    "subtitle": "Choisissez vos scénarios principaux. Nous construirons votre parcours autour de ceux-ci.",
+    "continue": "Continuer",
+    "custom_add": "Ajouter le vôtre",
+    "custom_placeholder": "Décrivez un scénario..."
+  },
+  "first_lesson": {
+    "header": "Votre première leçon",
+    "subtitle": "Votre session de découverte",
+    "scenarios_label": "Vos scénarios :",
+    "start": "Commencer à apprendre"
+  },
   "languages": {
     "title": "Choisissez vos langues",
     "subtitle": "Personnalisons votre parcours d'apprentissage",

@@ -9,6 +9,61 @@
     "already_have_account": "¿Ya tienes una cuenta?",
     "sign_in": "Iniciar sesión"
   },
+  "name": {
+    "header": "Primero, ¿cómo debemos llamarte?",
+    "subtitle": "Lo usaremos para personalizar tu experiencia",
+    "placeholder": "Tu nombre",
+    "continue": "Continuar"
+  },
+  "target_language": {
+    "header": "{{name}}, ¿qué idioma necesitas?",
+    "header_no_name": "¿Qué idioma necesitas?"
+  },
+  "goal": {
+    "header": "¿Para qué necesitas {{language}}?",
+    "header_no_lang": "¿Cuál es tu objetivo?",
+    "subtitle": "Esto da forma a tu ruta de aprendizaje",
+    "continue": "Continuar"
+  },
+  "goals": {
+    "lead_present": "Liderar reuniones y presentar con confianza",
+    "conversations": "Mantener conversaciones profesionales con fluidez",
+    "write_communicate": "Escribir y comunicar claramente en el trabajo",
+    "live_abroad": "Vivir y funcionar en un nuevo país",
+    "connect_people": "Conectar con personas en su idioma",
+    "something_else": "¿Algo más?",
+    "custom_placeholder": "Describe tu objetivo...",
+    "custom_hint": "ej: Presentar resultados trimestrales a las partes interesadas",
+    "back_to_options": "Volver a opciones"
+  },
+  "lang_names": {
+    "english": "inglés",
+    "french": "francés",
+    "spanish": "español"
+  },
+  "level": {
+    "header": "¿Cuánto {{language}} sabes?",
+    "header_no_lang": "¿Cuál es tu nivel actual?"
+  },
+  "profession": {
+    "header": "¿A qué te dedicas?",
+    "subtitle": "Esto nos ayuda a adaptar escenarios y vocabulario a tu mundo profesional",
+    "custom_placeholder": "ej: Arquitecto, Enfermero, Gerente de producto...",
+    "continue": "Continuar"
+  },
+  "scenarios": {
+    "header": "¿Qué conversaciones importan más?",
+    "subtitle": "Elige tus escenarios principales. Construiremos tu ruta alrededor de estos.",
+    "continue": "Continuar",
+    "custom_add": "Agrega el tuyo",
+    "custom_placeholder": "Describe un escenario..."
+  },
+  "first_lesson": {
+    "header": "Tu primera lección",
+    "subtitle": "Tu sesión de descubrimiento",
+    "scenarios_label": "Tus escenarios:",
+    "start": "Empezar a aprender"
+  },
   "languages": {
     "title": "Elige tus idiomas",
     "subtitle": "Personalicemos tu viaje de aprendizaje",

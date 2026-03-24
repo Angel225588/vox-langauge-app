@@ -46,13 +46,13 @@ export function adaptV3ToOnboardingData(v3: OnboardingV3Data): OnboardingData {
     max_practice_time: v3.schedule_time ? v3.schedule_time + 15 : null,
     days_per_week: v3.schedule_days ?? null,
 
-    // Smart defaults (V3 intentionally omits these for fewer screens)
-    timeline: '3-6_months',
+    // Inferred from V3 data (not hardcoded)
+    timeline: v3.schedule_days && v3.schedule_days >= 5 ? '1-3_months' : '3-6_months',
     target_accent: null,
-    why_now: null,
+    why_now: v3.goal_custom || null,
     previous_attempts: null,
-    commitment_stakes: v3.scenarios[0] || null,
-    stakes: v3.scenarios[0] || null,
+    commitment_stakes: v3.goal_custom || v3.goal || null,
+    stakes: v3.goal_custom || v3.goal || null,
   };
 }
 

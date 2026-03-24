@@ -31,6 +31,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { supabase } from '@/lib/db/supabase';
+import { syncProfileToSupabase } from '@/lib/db/profileSync';
 import { createPersonalizedPath } from '@/lib/services/pathGeneration';
 import { adaptV3ToOnboardingData, validateV3Data } from '@/lib/services/v3DataAdapter';
 import { storeUserLevel } from '@/lib/utils/levelGating';
@@ -320,12 +321,24 @@ export default function CreatingPathRoute() {
       const step2Start = Date.now();
       updateStep(1, 'in_progress');
       try {
+        // Validate: scenarios must exist for a meaningful staircase
+        const scenarios = v3Data.scenarios.length > 0
+          ? v3Data.scenarios
+          : v3Data.custom_scenarios.length > 0
+            ? v3Data.custom_scenarios
+            : ['General conversation', 'Daily life situations']; // Minimal fallback
+
         const previewStairs = generatePreviewStairs({
-          scenarios: v3Data.scenarios,
+          scenarios,
           target_language: v3Data.target_language || 'english',
-          profession: v3Data.profession || undefined,
+          profession: v3Data.profession || v3Data.profession_custom || undefined,
           proficiency_level: v3Data.proficiency_level || undefined,
         });
+
+        if (previewStairs.length === 0) {
+          console.error('[CreatingPath] Staircase generated 0 stairs — scenarios:', scenarios);
+        }
+
         await storePreviewStairs(previewStairs);
         updateStep(1, 'done');
       } catch (err) {
@@ -369,6 +382,9 @@ export default function CreatingPathRoute() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // Sync profile to Supabase so it persists across app restarts
+        await syncProfileToSupabase(user.id, v3Data);
+
         await clearPreviewStairs();
         const validationError = validateV3Data(v3Data);
         if (validationError) {

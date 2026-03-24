@@ -21,12 +21,14 @@ import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { GlassInput } from '@/components/ui/glass/GlassInput';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { signIn } = useAuth();
+  const { t } = useTranslation('onboarding');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,11 +38,11 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim()) {
-      Alert.alert('Missing email', 'Please enter your email address.');
+      Alert.alert(t('common.error'), t('login.errors.enter_email'));
       return;
     }
     if (!password) {
-      Alert.alert('Missing password', 'Please enter your password.');
+      Alert.alert(t('common.error'), t('login.errors.enter_password'));
       return;
     }
 
@@ -49,7 +51,7 @@ export default function LoginScreen() {
       const { error } = await signIn(email.trim(), password);
 
       if (error) {
-        Alert.alert('Sign in failed', error.message || 'Invalid email or password.');
+        Alert.alert(t('common.error'), error.message || t('login.errors.invalid_credentials'));
         setLoading(false);
         return;
       }
@@ -59,7 +61,7 @@ export default function LoginScreen() {
       router.replace('/');
     } catch (err) {
       setLoading(false);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      Alert.alert(t('common.error'), t('login.errors.unexpected_error'));
     }
   };
 
@@ -81,17 +83,17 @@ export default function LoginScreen() {
         >
           {/* Header */}
           <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-            <Text style={styles.header}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to continue your path</Text>
+            <Text style={styles.header}>{t('login.title')}</Text>
+            <Text style={styles.subtitle}>{t('login.subtitle')}</Text>
           </Animated.View>
 
           {/* Form */}
           <Animated.View entering={FadeInUp.duration(400).delay(200)} style={styles.formSection}>
             <GlassInput
-              label="Email"
+              label={t('login.email_label')}
               value={email}
               onChangeText={setEmail}
-              placeholder="you@example.com"
+              placeholder={t('login.email_placeholder')}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
@@ -100,10 +102,10 @@ export default function LoginScreen() {
             />
 
             <GlassInput
-              label="Password"
+              label={t('login.password_label')}
               value={password}
               onChangeText={setPassword}
-              placeholder="Your password"
+              placeholder={t('login.password_placeholder')}
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
@@ -119,7 +121,7 @@ export default function LoginScreen() {
               disabled={!isValid}
               loading={loading}
             >
-              Sign in
+              {t('login.sign_in_button')}
             </GlassButton>
           </Animated.View>
 
@@ -128,9 +130,9 @@ export default function LoginScreen() {
 
           {/* Signup link */}
           <Animated.View entering={FadeInUp.duration(300).delay(500)} style={styles.signUpRow}>
-            <Text style={styles.signUpText}>Don't have an account? </Text>
+            <Text style={styles.signUpText}>{t('login.no_account')} </Text>
             <Pressable onPress={() => router.push('/(auth)/onboarding-v3/signup')}>
-              <Text style={styles.signUpLink}>Sign up</Text>
+              <Text style={styles.signUpLink}>{t('login.sign_up')}</Text>
             </Pressable>
           </Animated.View>
         </ScrollView>

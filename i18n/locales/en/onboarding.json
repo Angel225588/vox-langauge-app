@@ -9,6 +9,61 @@
     "already_have_account": "Already have an account?",
     "sign_in": "Sign In"
   },
+  "name": {
+    "header": "First, what should we call you?",
+    "subtitle": "We'll use this to personalize your experience",
+    "placeholder": "Your first name",
+    "continue": "Continue"
+  },
+  "target_language": {
+    "header": "{{name}}, what language do you need?",
+    "header_no_name": "What language do you need?"
+  },
+  "goal": {
+    "header": "What do you need {{language}} for?",
+    "header_no_lang": "What's your goal?",
+    "subtitle": "This shapes your learning path",
+    "continue": "Continue"
+  },
+  "goals": {
+    "lead_present": "Lead meetings and present with confidence",
+    "conversations": "Hold professional conversations fluently",
+    "write_communicate": "Write and communicate clearly at work",
+    "live_abroad": "Live and function in a new country",
+    "connect_people": "Connect with people in their language",
+    "something_else": "Something else?",
+    "custom_placeholder": "Describe your goal...",
+    "custom_hint": "e.g., Present quarterly results to stakeholders",
+    "back_to_options": "Back to options"
+  },
+  "lang_names": {
+    "english": "English",
+    "french": "French",
+    "spanish": "Spanish"
+  },
+  "level": {
+    "header": "How much {{language}} do you know?",
+    "header_no_lang": "What's your current level?"
+  },
+  "profession": {
+    "header": "What do you do?",
+    "subtitle": "This helps us tailor scenarios and vocabulary to your professional world",
+    "custom_placeholder": "e.g., Architect, Nurse, Product Manager...",
+    "continue": "Continue"
+  },
+  "scenarios": {
+    "header": "What conversations matter most?",
+    "subtitle": "Pick your top scenarios. We'll build your path around these.",
+    "continue": "Continue",
+    "custom_add": "Add your own",
+    "custom_placeholder": "Describe a scenario..."
+  },
+  "first_lesson": {
+    "header": "Your first lesson",
+    "subtitle": "Your discovery session",
+    "scenarios_label": "Your scenarios:",
+    "start": "Start Learning"
+  },
   "languages": {
     "title": "Choose Your Languages",
     "subtitle": "Let's personalize your learning journey",

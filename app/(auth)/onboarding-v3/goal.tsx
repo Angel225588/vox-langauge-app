@@ -17,32 +17,27 @@ import { GlassProgressBar } from '@/components/ui/glass/GlassProgressBar';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { GlassInput } from '@/components/ui/glass/GlassInput';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, borderRadius, glass } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
 
 const TOTAL_STEPS = 6;
 
-const LANG_DISPLAY: Record<string, string> = {
-  english: 'English',
-  french: 'French',
-  spanish: 'Spanish',
-};
-
 // ─── Goal data ──────────────────────────────────────
 
 interface GoalOption {
   id: string;
-  label: string;
+  labelKey: string; // i18n key
   icon: React.ComponentProps<typeof Ionicons>['name'];
   tint: string;
 }
 
 const GOALS: GoalOption[] = [
-  { id: 'lead_present', label: 'Lead meetings and present with confidence', icon: 'mic-outline', tint: 'rgba(0, 54, 255, 0.12)' },
-  { id: 'conversations', label: 'Hold professional conversations fluently', icon: 'chatbubbles-outline', tint: 'rgba(6, 214, 160, 0.12)' },
-  { id: 'write_communicate', label: 'Write and communicate clearly at work', icon: 'document-text-outline', tint: 'rgba(0, 163, 255, 0.12)' },
-  { id: 'live_abroad', label: 'Live and function in a new country', icon: 'globe-outline', tint: 'rgba(245, 158, 11, 0.12)' },
-  { id: 'connect_people', label: 'Connect with people in their language', icon: 'people-outline', tint: 'rgba(236, 72, 153, 0.12)' },
+  { id: 'lead_present', labelKey: 'goals.lead_present', icon: 'mic-outline', tint: 'rgba(0, 54, 255, 0.12)' },
+  { id: 'conversations', labelKey: 'goals.conversations', icon: 'chatbubbles-outline', tint: 'rgba(6, 214, 160, 0.12)' },
+  { id: 'write_communicate', labelKey: 'goals.write_communicate', icon: 'document-text-outline', tint: 'rgba(0, 163, 255, 0.12)' },
+  { id: 'live_abroad', labelKey: 'goals.live_abroad', icon: 'globe-outline', tint: 'rgba(245, 158, 11, 0.12)' },
+  { id: 'connect_people', labelKey: 'goals.connect_people', icon: 'people-outline', tint: 'rgba(236, 72, 153, 0.12)' },
 ];
 
 const GOAL_TINT_SELECTED: Record<string, string> = {
@@ -68,11 +63,13 @@ function GoalCard({
   selected,
   onPress,
   index,
+  label,
 }: {
   goal: GoalOption;
   selected: boolean;
   onPress: () => void;
   index: number;
+  label: string;
 }) {
   const scale = useSharedValue(1);
 
@@ -122,7 +119,7 @@ function GoalCard({
             ]}
             numberOfLines={2}
           >
-            {goal.label}
+            {label}
           </Text>
 
           {/* Check indicator */}
@@ -144,25 +141,27 @@ function GoalCard({
 export default function GoalScreen() {
   const insets = useSafeAreaInsets();
   const { target_language, goal, goal_custom, setField } = useOnboardingV3();
+  const { t } = useTranslation('onboarding');
   const [selected, setSelected] = useState(goal);
   const [showCustom, setShowCustom] = useState(!!goal_custom);
   const [customText, setCustomText] = useState(goal_custom);
   const navigating = useRef(false);
 
-  const langDisplay = LANG_DISPLAY[target_language || 'english'] || 'this language';
+  // Use translated language names so French users see "français" not "French"
+  const langDisplay = t(`lang_names.${target_language}`, { defaultValue: target_language || '' });
   const isCustomValid = showCustom && customText.trim().length > 5;
 
   const handleSelect = (id: string) => {
     if (navigating.current) return;
     const g = GOALS.find(g => g.id === id);
     if (!g) return;
-    setSelected(g.label);
+    setSelected(id);
     setShowCustom(false);
     setCustomText('');
 
-    // Auto-advance after brief pause
+    // Store the goal ID (language-independent) not the translated label
     navigating.current = true;
-    setField('goal', g.label);
+    setField('goal', id);
     setField('goal_custom', '');
     setField('current_step', 4);
     setTimeout(() => {
@@ -193,10 +192,10 @@ export default function GoalScreen() {
           {/* Header — dual font styling */}
           <Animated.View entering={FadeInDown.duration(400).delay(100)}>
             <Text style={styles.header}>
-              What do you need{'\n'}{langDisplay} for?
+              {langDisplay ? t('goal.header', { language: langDisplay }) : t('goal.header_no_lang')}
             </Text>
             <Text style={styles.headerHint}>
-              or tell us in your own words
+              {t('goal.subtitle')}
             </Text>
           </Animated.View>
 
@@ -206,7 +205,8 @@ export default function GoalScreen() {
               <GoalCard
                 key={g.id}
                 goal={g}
-                selected={selected === g.label && !showCustom}
+                label={t(g.labelKey)}
+                selected={selected === g.id && !showCustom}
                 onPress={() => handleSelect(g.id)}
                 index={i}
               />
@@ -226,7 +226,7 @@ export default function GoalScreen() {
                     <View style={[styles.iconCircle, { backgroundColor: 'rgba(255, 255, 255, 0.06)' }]}>
                       <Ionicons name="add" size={22} color={colors.text.tertiary} />
                     </View>
-                    <Text style={styles.customCardLabel}>Something else?</Text>
+                    <Text style={styles.customCardLabel}>{t('goals.something_else')}</Text>
                   </View>
                 </Pressable>
               ) : (
@@ -234,10 +234,10 @@ export default function GoalScreen() {
                   <GlassInput
                     value={customText}
                     onChangeText={setCustomText}
-                    placeholder="Describe your goal..."
+                    placeholder={t('goals.custom_placeholder')}
                     autoFocusOnMount
                     multiline
-                    hint="e.g., Present quarterly results to French-speaking stakeholders"
+                    hint={t('goals.custom_hint')}
                   />
                   <Pressable
                     onPress={() => {
@@ -245,7 +245,7 @@ export default function GoalScreen() {
                       setCustomText('');
                     }}
                   >
-                    <Text style={styles.backToOptions}>Back to options</Text>
+                    <Text style={styles.backToOptions}>{t('goals.back_to_options')}</Text>
                   </Pressable>
                 </View>
               )}
@@ -261,7 +261,7 @@ export default function GoalScreen() {
               disabled={!isCustomValid}
               onPress={handleCustomContinue}
             >
-              Continue
+              {t('goal.continue')}
             </GlassButton>
           </View>
         )}

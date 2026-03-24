@@ -24,6 +24,7 @@ import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { useLanguage } from '@/i18n/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { LANGUAGES_WITH_TRANSLATIONS, type SupportedLanguageCode, getLanguageInfo } from '@/i18n/types';
 import { colors, spacing, typography } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
@@ -100,6 +101,7 @@ export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const { native_language, setField } = useOnboardingV3();
   const { changeLanguage, currentLanguage } = useLanguage();
+  const { t } = useTranslation('onboarding');
 
   const displayLang = LANG_NAMES[native_language] || native_language;
 
@@ -114,7 +116,7 @@ export default function WelcomeScreen() {
         {
           options: [...langOptions, 'Cancel'],
           cancelButtonIndex: langOptions.length,
-          title: 'App language',
+          title: t('languages.title'),
         },
         (index) => {
           if (index < LANGUAGES_WITH_TRANSLATIONS.length) {
@@ -139,7 +141,7 @@ export default function WelcomeScreen() {
           },
         };
       });
-      Alert.alert('App language', 'Choose your language', [
+      Alert.alert(t('languages.title'), t('languages.subtitle'), [
         ...buttons,
         { text: 'Cancel', style: 'cancel' },
       ]);
@@ -163,7 +165,7 @@ export default function WelcomeScreen() {
           entering={FadeInUp.duration(400).delay(300)}
           style={styles.taglineSection}
         >
-          <Text style={styles.tagline}>Your voice, in any language.</Text>
+          <Text style={styles.tagline}>{t('welcome.slogan_line1')} {t('welcome.slogan_line2')}</Text>
         </Animated.View>
 
         {/* Personalization promise */}
@@ -172,8 +174,7 @@ export default function WelcomeScreen() {
           style={styles.promiseSection}
         >
           <Text style={styles.promiseText}>
-            We build a learning path just for you.{'\n'}
-            The more specific you are, the more personal it gets.
+            {t('welcome.subtitle')}
           </Text>
         </Animated.View>
 
@@ -185,7 +186,7 @@ export default function WelcomeScreen() {
           entering={FadeIn.duration(300).delay(600)}
           style={styles.langIndicator}
         >
-          <Text style={styles.langText}>We'll speak to you in {displayLang}</Text>
+          <Text style={styles.langText}>{t('languages.your_native_language')}: {displayLang}</Text>
           <Pressable onPress={handleChangeLanguage}>
             <Text style={styles.langChange}>Change</Text>
           </Pressable>
@@ -204,7 +205,7 @@ export default function WelcomeScreen() {
               router.push('/(auth)/onboarding-v3/name');
             }}
           >
-            Get Started
+            {t('welcome.get_started')}
           </GlassButton>
         </Animated.View>
 
@@ -213,9 +214,9 @@ export default function WelcomeScreen() {
           entering={FadeIn.duration(300).delay(800)}
           style={[styles.signInRow, { paddingBottom: insets.bottom + spacing.lg }]}
         >
-          <Text style={styles.signInText}>Already have an account? </Text>
+          <Text style={styles.signInText}>{t('welcome.already_have_account')} </Text>
           <Pressable onPress={() => router.push('/(auth)/onboarding-v3/login')}>
-            <Text style={styles.signInLink}>Sign in</Text>
+            <Text style={styles.signInLink}>{t('welcome.sign_in')}</Text>
           </Pressable>
         </Animated.View>
       </View>

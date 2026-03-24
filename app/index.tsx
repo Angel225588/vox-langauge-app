@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/db/supabase';
 import { createPersonalizedPath } from '@/lib/services/pathGeneration';
 import { adaptV3ToOnboardingData } from '@/lib/services/v3DataAdapter';
+import { loadProfileFromSupabase } from '@/lib/db/profileSync';
 import { colors } from '@/constants/designSystem';
 
 const ONBOARDING_COMPLETED_KEY = 'vox-onboarding-completed';
@@ -46,7 +47,8 @@ export default function Index() {
       }
 
       if (staircase) {
-        // User has completed onboarding, go to home
+        // User has completed onboarding — load profile from Supabase into Zustand
+        await loadProfileFromSupabase(user.id);
         hasNavigated.current = true;
         router.replace('/(tabs)/home');
         return;

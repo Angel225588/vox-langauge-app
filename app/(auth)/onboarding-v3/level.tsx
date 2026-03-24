@@ -16,6 +16,7 @@ import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { GlassProgressBar } from '@/components/ui/glass/GlassProgressBar';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useOnboardingV3, type ProficiencyLevel } from '@/hooks/useOnboardingV3';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, borderRadius } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
 
@@ -140,6 +141,7 @@ function LevelCard({
 export default function LevelScreen() {
   const insets = useSafeAreaInsets();
   const { target_language, proficiency_level, setField } = useOnboardingV3();
+  const { t } = useTranslation('onboarding');
   const [selected, setSelected] = useState<ProficiencyLevel | null>(proficiency_level);
 
   const langDisplay = LANG_DISPLAY[target_language || 'english'] || 'this language';
@@ -164,7 +166,7 @@ export default function LevelScreen() {
         {/* Header */}
         <View style={styles.headerSection}>
           <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-            <Text style={styles.header}>How much {langDisplay}{'\n'}do you know?</Text>
+            <Text style={styles.header}>{langDisplay ? t('level.header', { language: langDisplay }) : t('level.header_no_lang')}</Text>
           </Animated.View>
         </View>
 
@@ -194,7 +196,7 @@ export default function LevelScreen() {
             disabled={!selected}
             onPress={handleContinue}
           >
-            See my first lesson
+            {t('common.continue')}
           </GlassButton>
         </Animated.View>
       </View>

@@ -26,6 +26,7 @@ import * as Haptics from 'expo-haptics';
 import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { GlassProgressBar } from '@/components/ui/glass/GlassProgressBar';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, borderRadius, glass } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
 
@@ -178,6 +179,7 @@ function ProfessionSearchSheet({
   onSelect: (profession: string) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('onboarding');
   const [searchText, setSearchText] = useState('');
   const inputRef = useRef<TextInput>(null);
 
@@ -213,7 +215,7 @@ function ProfessionSearchSheet({
 
           {/* Header */}
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>What do you do?</Text>
+            <Text style={styles.sheetTitle}>{t('profession.header')}</Text>
             <Pressable onPress={onClose} hitSlop={12}>
               <Ionicons name="close-circle" size={28} color={colors.text.disabled} />
             </Pressable>
@@ -226,7 +228,7 @@ function ProfessionSearchSheet({
               ref={inputRef}
               value={searchText}
               onChangeText={setSearchText}
-              placeholder="Search or type your role..."
+              placeholder={t('profession.custom_placeholder')}
               placeholderTextColor={colors.text.disabled}
               style={styles.searchInput}
               autoFocus
@@ -291,6 +293,7 @@ function ProfessionSearchSheet({
 export default function ProfessionScreen() {
   const insets = useSafeAreaInsets();
   const { first_name, profession, setField } = useOnboardingV3();
+  const { t } = useTranslation('onboarding');
   const [selected, setSelected] = useState(profession);
   const [showSheet, setShowSheet] = useState(false);
   const navigating = useRef(false);
@@ -340,13 +343,13 @@ export default function ProfessionScreen() {
           {/* Header */}
           <Animated.View entering={FadeInDown.duration(400).delay(100)}>
             <Text style={styles.header}>
-              What's your world{first_name ? `, ${first_name}` : ''}?
+              {t('profession.header')}{first_name ? `, ${first_name}` : ''}
             </Text>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.duration(400).delay(200)}>
             <Text style={styles.subtitle}>
-              We'll shape your vocabulary around what you actually do
+              {t('profession.subtitle')}
             </Text>
           </Animated.View>
 

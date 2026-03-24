@@ -14,6 +14,7 @@ import { GlassProgressBar } from '@/components/ui/glass/GlassProgressBar';
 import { GlassInput } from '@/components/ui/glass/GlassInput';
 import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
 
@@ -22,6 +23,7 @@ const TOTAL_STEPS = 6;
 export default function NameScreen() {
   const insets = useSafeAreaInsets();
   const { first_name, setField } = useOnboardingV3();
+  const { t } = useTranslation('onboarding');
   const [name, setName] = useState(first_name);
 
   const isValid = name.trim().length >= 2;
@@ -46,12 +48,12 @@ export default function NameScreen() {
           {/* Content */}
           <View style={styles.content}>
             <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-              <Text style={styles.header}>First, what should we call you?</Text>
+              <Text style={styles.header}>{t('name.header')}</Text>
             </Animated.View>
 
             <Animated.View entering={FadeInDown.duration(400).delay(200)}>
               <Text style={styles.subtitle}>
-                We'll use this to personalize your experience
+                {t('name.subtitle')}
               </Text>
             </Animated.View>
 
@@ -59,7 +61,7 @@ export default function NameScreen() {
               <GlassInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Your first name"
+                placeholder={t('name.placeholder')}
                 autoFocusOnMount
                 large
                 autoCapitalize="words"
@@ -80,7 +82,7 @@ export default function NameScreen() {
               disabled={!isValid}
               onPress={handleContinue}
             >
-              Continue
+              {t('name.continue')}
             </GlassButton>
           </Animated.View>
         </View>

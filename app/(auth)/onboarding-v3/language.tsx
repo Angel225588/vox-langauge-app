@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { GlassBackground } from '@/components/ui/glass/GlassBackground';
 import { GlassProgressBar } from '@/components/ui/glass/GlassProgressBar';
 import { useOnboardingV3, type TargetLanguage } from '@/hooks/useOnboardingV3';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, borderRadius, glass } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
 
@@ -128,6 +129,7 @@ function LanguageCard({
 export default function LanguageScreen() {
   const insets = useSafeAreaInsets();
   const { first_name, target_language, setField } = useOnboardingV3();
+  const { t } = useTranslation('onboarding');
   const [selected, setSelected] = useState<TargetLanguage | null>(target_language);
   const navigating = useRef(false);
 
@@ -155,7 +157,9 @@ export default function LanguageScreen() {
         <View style={styles.headerSection}>
           <Animated.View entering={FadeInDown.duration(400).delay(100)}>
             <Text style={styles.header}>
-              {first_name ? `${first_name}, what` : 'What'} language do you need?
+              {first_name
+                ? t('target_language.header', { name: first_name })
+                : t('target_language.header_no_name')}
             </Text>
           </Animated.View>
         </View>

@@ -462,37 +462,36 @@ export default function ProfileScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 Alert.alert(
                   'Update Learning Content',
-                  'This will regenerate your session content based on your current profile, selected scenarios, and feedback history. Your vocabulary and progress will be kept.\n\nContinue?',
+                  'This will analyze your progress, find weak areas, and rebuild your learning path with fresh scenarios.\n\nYour vocabulary and progress will be kept.\n\nContinue?',
                   [
                     { text: 'Cancel', style: 'cancel' },
                     {
                       text: 'Update',
                       onPress: async () => {
                         try {
-                          const { invalidateIfProfileChanged } = require('@/lib/utils/profileFingerprint');
-                          const { generatePreviewStairs, storePreviewStairs } = require('@/lib/services/previewStairs');
+                          const { updateLearningContent } = require('@/lib/services/contentUpdate');
                           const v3Data = v3Store.getOnboardingData();
 
-                          // Force regenerate stairs
-                          const previewStairs = generatePreviewStairs({
-                            scenarios: v3Data.scenarios,
-                            target_language: v3Data.target_language || 'english',
-                            profession: v3Data.profession || undefined,
-                            proficiency_level: v3Data.proficiency_level || undefined,
-                          });
-                          await storePreviewStairs(previewStairs);
-
-                          // Invalidate caches
-                          await invalidateIfProfileChanged({
+                          const result = await updateLearningContent({
                             target_language: v3Data.target_language || 'english',
                             native_language: v3Data.native_language || 'english',
                             proficiency_level: v3Data.proficiency_level || 'starting_fresh',
-                            scenarios: [...(v3Data.scenarios || []), ...(v3Data.custom_scenarios || [])],
                             profession: v3Data.profession || v3Data.profession_custom || undefined,
+                            scenarios: [...(v3Data.scenarios || []), ...(v3Data.custom_scenarios || [])],
+                            userId: user?.id || 'anonymous',
                           });
 
                           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                          Alert.alert('Content Updated', 'Your learning path has been refreshed with updated scenarios and content.');
+
+                          const details = [];
+                          if (result.weakAreas.length > 0) details.push(`Weak areas: ${result.weakAreas.join(', ')}`);
+                          if (result.strongAreas.length > 0) details.push(`Strong areas: ${result.strongAreas.join(', ')}`);
+                          details.push(result.message);
+
+                          Alert.alert(
+                            '✅ Content Updated',
+                            details.join('\n\n') + '\n\nGo to the home tab to see your refreshed staircase.',
+                          );
                         } catch (err) {
                           console.error('[Profile] Update content error:', err);
                           Alert.alert('Error', 'Could not update content. Please try again.');

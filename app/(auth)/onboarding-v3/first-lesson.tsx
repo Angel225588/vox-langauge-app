@@ -16,6 +16,7 @@ import { GlassButton } from '@/components/ui/glass/GlassButton';
 import { GlassBadge } from '@/components/ui/glass/GlassBadge';
 import { useOnboardingV3 } from '@/hooks/useOnboardingV3';
 import { getLevelGroup, getLessonTemplate, getActivityColor } from '@/lib/lesson';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, glass, borderRadius } from '@/constants/designSystem';
 import { fonts } from '@/constants/fonts';
 
@@ -28,6 +29,7 @@ const LANG_DISPLAY: Record<string, string> = {
 export default function FirstLessonScreen() {
   const insets = useSafeAreaInsets();
   const data = useOnboardingV3();
+  const { t } = useTranslation('onboarding');
 
   const langDisplay = LANG_DISPLAY[data.target_language || 'english'] || 'English';
 
@@ -45,7 +47,7 @@ export default function FirstLessonScreen() {
         >
           {/* Lesson label */}
           <Animated.View entering={FadeInDown.duration(400).delay(100)} style={styles.labelRow}>
-            <Text style={styles.lessonLabel}>Your first lesson</Text>
+            <Text style={styles.lessonLabel}>{t('first_lesson.header')}</Text>
             {data.scenarios[0] && (
               <GlassBadge label={data.scenarios[0]} selected accent size="sm" showCheck={false} />
             )}
@@ -82,7 +84,7 @@ export default function FirstLessonScreen() {
 
                 {/* Discovery session header with duration */}
                 <View style={styles.discoveryHeader}>
-                  <Text style={styles.discoveryTitle}>Your discovery session</Text>
+                  <Text style={styles.discoveryTitle}>{t('first_lesson.subtitle')}</Text>
                   <View style={styles.durationBadge}>
                     <Ionicons name="time-outline" size={12} color={colors.text.primary} />
                     <Text style={styles.durationText}>~{template.estimated_minutes} min</Text>
@@ -128,7 +130,7 @@ export default function FirstLessonScreen() {
                 {/* Scenario chips */}
                 {data.scenarios.length > 0 && (
                   <View style={styles.scenariosPreview}>
-                    <Text style={styles.previewLabel}>Your scenarios:</Text>
+                    <Text style={styles.previewLabel}>{t('first_lesson.scenarios_label')}</Text>
                     <View style={styles.scenarioChips}>
                       {data.scenarios.map((s) => (
                         <GlassBadge key={s} label={s} selected accent size="sm" showCheck={false} />
@@ -159,7 +161,7 @@ export default function FirstLessonScreen() {
               router.push('/(auth)/onboarding-v3/creating-path');
             }}
           >
-            Let's go
+            {t('first_lesson.start')}
           </GlassButton>
           <GlassButton
             variant="ghost"
