@@ -40,6 +40,8 @@ import { ListeningCard } from './ListeningCard';
 import { SpeakingCard } from '@/components/cards/SpeakingCard';
 import { getTargetSpeechLang } from './speechLang';
 import { TypingCard } from './TypingCard';
+import { ScoreRing, StatsGrid } from '@/components/feedback';
+import type { StatItem } from '@/components/feedback';
 import type { VocabularyItem, VocabCardResult } from '@/types/vocabulary';
 
 // ============================================================================
@@ -189,49 +191,68 @@ export function VocabularyBatchFlow({
     const accuracy = finalResult.totalAttempts > 0
       ? Math.round((finalResult.totalCorrect / finalResult.totalAttempts) * 100)
       : 0;
+    const points = finalResult.totalCorrect * 10;
+
+    const stats: StatItem[] = [
+      { icon: '📚', value: finalResult.totalWords, label: 'Words', color: '#3D6BFF' },
+      { icon: '✅', value: `${accuracy}%`, label: 'Accuracy', color: accuracy >= 70 ? '#10B981' : '#F59E0B' },
+      { icon: '⭐', value: points, label: 'Points', color: '#F59E0B' },
+      { icon: '⏱', value: `${Math.floor(finalResult.timeSeconds / 60)}m`, label: 'Time', color: '#8B5CF6' },
+    ];
 
     return (
       <View style={S.container}>
         <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Score */}
-          <Animated.View entering={FadeInDown.delay(100)} style={S.resultScore}>
-            <View style={[S.scoreCircle, { borderColor: accuracy >= 70 ? colors.success.DEFAULT : colors.warning.DEFAULT }]}>
-              <Text style={S.scoreValue}>{accuracy}%</Text>
-            </View>
-            <Text style={S.scoreLabel}>
-              {accuracy >= 90 ? 'Excellent!' : accuracy >= 70 ? 'Good work!' : accuracy >= 50 ? 'Keep practicing' : 'Let\'s review these'}
+          {/* Congrats header */}
+          <Animated.View entering={FadeInDown.delay(100)} style={{ alignItems: 'center', marginBottom: spacing.lg }}>
+            <Text style={{ fontSize: 48, marginBottom: spacing.sm }}>
+              {accuracy >= 80 ? '🎉' : accuracy >= 50 ? '💪' : '📖'}
             </Text>
-            <Text style={S.scoreTime}>
-              {Math.floor(finalResult.timeSeconds / 60)}m {finalResult.timeSeconds % 60}s • {finalResult.totalWords} words
+            <Text style={{ color: colors.text.primary, fontSize: 24, fontWeight: '800', textAlign: 'center' }}>
+              {accuracy >= 80 ? 'Excellent Work!' : accuracy >= 50 ? 'Good Progress!' : 'Keep Practicing!'}
+            </Text>
+            <Text style={{ color: colors.text.secondary, fontSize: typography.fontSize.base, marginTop: spacing.xs, textAlign: 'center' }}>
+              You earned {points} points
             </Text>
           </Animated.View>
 
+          {/* Score Ring */}
+          <Animated.View entering={FadeInDown.delay(200)} style={{ alignItems: 'center', marginBottom: spacing.xl }}>
+            <ScoreRing score={accuracy} size={140} label="Overall" delay={300} />
+          </Animated.View>
+
+          {/* Stats Grid */}
+          <Animated.View entering={FadeInDown.delay(400)}>
+            <StatsGrid stats={stats} delay={500} stagger={100} />
+          </Animated.View>
+
           {/* Phase breakdown */}
-          <Animated.View entering={FadeInDown.delay(200)} style={S.breakdownCard}>
+          <Animated.View entering={FadeInDown.delay(600)} style={S.breakdownCard}>
+            <Text style={{ color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: spacing.sm }}>BREAKDOWN</Text>
             {Object.entries(PHASE_INFO).filter(([k]) => k !== 'results' && !skipPhases.includes(k as BatchPhase)).map(([phase, info], i) => {
               const correct = phaseResults[phase] || 0;
               const pct = items.length > 0 ? Math.round((correct / items.length) * 100) : 0;
               return (
-                <Animated.View key={phase} entering={FadeInDown.delay(250 + i * 60)} style={S.breakdownRow}>
+                <View key={phase} style={S.breakdownRow}>
                   <View style={[S.breakdownDot, { backgroundColor: info.color }]} />
                   <Text style={S.breakdownLabel}>{info.label}</Text>
                   <View style={S.breakdownBar}>
                     <View style={[S.breakdownFill, { width: `${Math.max(pct, 5)}%`, backgroundColor: info.color }]} />
                   </View>
                   <Text style={S.breakdownPct}>{correct}/{items.length}</Text>
-                </Animated.View>
+                </View>
               );
             })}
           </Animated.View>
 
           {/* Words to review */}
           {finalResult.wordsToReview.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(400)} style={S.reviewCard}>
+            <Animated.View entering={FadeInDown.delay(700)} style={S.reviewCard}>
               <Text style={S.reviewTitle}>Words to review</Text>
               <View style={S.reviewChips}>
-                {finalResult.wordsToReview.map((word, i) => (
+                {finalResult.wordsToReview.map((w, i) => (
                   <View key={i} style={S.reviewChip}>
-                    <Text style={S.reviewChipText}>{word}</Text>
+                    <Text style={S.reviewChipText}>{w}</Text>
                   </View>
                 ))}
               </View>
@@ -243,7 +264,7 @@ export function VocabularyBatchFlow({
         <View style={[S.fixedBottom, { paddingBottom: insets.bottom + spacing.md }]}>
           <TouchableOpacity onPress={() => onComplete(finalResult)} activeOpacity={0.85}>
             <LinearGradient colors={colors.gradients.success} style={S.ctaBtn}>
-              <Text style={S.ctaText}>Continue</Text>
+              <Text style={S.ctaText}>Back to Practice</Text>
               <Ionicons name="arrow-forward" size={20} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
