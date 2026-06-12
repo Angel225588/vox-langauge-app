@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vox — Get fluent with someone who gets it</title>
+<meta name="description" content="Vox matches you with a partner at your level. You talk for 30 minutes, you help each other, you both get better. No app. No points. Just a real conversation. Start on WhatsApp." />
+
+<!-- Open Graph -->
+<meta property="og:title" content="Vox — Get fluent with someone who gets it" />
+<meta property="og:description" content="Real people, matched properly, in a space built to make you comfortable enough to actually speak. Start on WhatsApp." />
+<meta property="og:type" content="website" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     Vox Design Tokens (from constants/designSystem.ts)
+     ───────────────────────────────────────────────────────────── */
+  :root {
+    --bg-primary: #0A0E1A;
+    --bg-secondary: #0F1729;
+    --bg-card: #1A1F3A;
+    --bg-elevated: #222845;
+
+    --primary: #0036FF;
+    --primary-light: #3D6BFF;
+    --accent-blue: #00A3FF;
+    --secondary: #06D6A0;
+    --secondary-light: #4ECDC4;
+
+    --text-primary: #F9FAFB;
+    --text-secondary: #D1D5DB;
+    --text-tertiary: #9CA3AF;
+
+    --glass-surface: rgba(255, 255, 255, 0.05);
+    --glass-surface-strong: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-border-bright: rgba(255, 255, 255, 0.16);
+    --accent-border: rgba(0, 54, 255, 0.30);
+    --glow-primary: rgba(0, 54, 255, 0.45);
+    --glow-teal: rgba(6, 214, 160, 0.35);
+
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 24px;
+    --r-2xl: 32px;
+    --r-full: 9999px;
+
+    --font-display: 'DM Sans', system-ui, sans-serif;
+    --font-body: 'Source Sans 3', system-ui, sans-serif;
+
+    --maxw: 1080px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Ambient background glow orbs */
+  .ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.45;
+  }
+  .orb-1 { width: 540px; height: 540px; background: var(--primary); top: -180px; right: -160px; }
+  .orb-2 { width: 460px; height: 460px; background: var(--secondary); bottom: -200px; left: -160px; opacity: 0.28; }
+  .orb-3 { width: 360px; height: 360px; background: var(--accent-blue); top: 40%; left: 50%; transform: translateX(-50%); opacity: 0.18; }
+
+  .wrap { position: relative; z-index: 1; }
+  .container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.12; letter-spacing: -0.02em; }
+
+  .grad-text {
+    background: linear-gradient(120deg, var(--accent-blue), var(--secondary-light));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ─── Nav ─────────────────────────────────────────────── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    background: rgba(10, 14, 26, 0.6);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .brand { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: -0.03em; display: flex; align-items: center; gap: 9px; }
+  .brand-dot {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+    box-shadow: 0 0 14px var(--glow-primary);
+  }
+  .nav-cta { display: none; }
+
+  /* ─── Buttons ─────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: var(--font-display); font-weight: 700; font-size: 17px;
+    padding: 16px 30px; border-radius: var(--r-full); border: none; cursor: pointer;
+    text-decoration: none; color: #fff; white-space: nowrap;
+    background: linear-gradient(120deg, var(--primary), var(--accent-blue));
+    box-shadow: 0 8px 30px var(--glow-primary), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px var(--glow-primary), inset 0 1px 0 rgba(255,255,255,0.3); }
+  .btn:active { transform: translateY(0) scale(0.98); }
+  .btn-sm { padding: 11px 20px; font-size: 15px; }
+  .wa-icon { width: 20px; height: 20px; flex-shrink: 0; }
+
+  .reassure { margin-top: 14px; font-size: 14.5px; color: var(--text-tertiary); }
+  .reassure strong { color: var(--secondary-light); font-weight: 600; }
+
+  /* ─── Sections ────────────────────────────────────────── */
+  section { padding: 92px 0; }
+  .eyebrow {
+    display: inline-block; font-family: var(--font-display); font-weight: 700;
+    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--secondary-light); margin-bottom: 16px;
+  }
+
+  /* Hero */
+  .hero { padding: 72px 0 84px; text-align: center; }
+  .hero h1 { font-size: clamp(40px, 8vw, 68px); font-weight: 800; max-width: 14ch; margin: 0 auto 22px; }
+  .hero p.sub { font-size: clamp(17px, 2.4vw, 21px); color: var(--text-secondary); max-width: 40ch; margin: 0 auto 34px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 26px;
+    padding: 8px 16px; border-radius: var(--r-full);
+    background: var(--glass-surface); border: 1px solid var(--glass-border);
+    font-size: 13.5px; color: var(--text-secondary); font-weight: 600;
+  }
+  .pill .live { width: 8px; height: 8px; border-radius: 50%; background: var(--secondary); box-shadow: 0 0 10px var(--glow-teal); }
+
+  /* Glass card */
+  .card {
+    background: var(--glass-surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-xl);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    padding: 30px;
+  }
+
+  /* How it works */
+  .section-head { text-align: center; max-width: 640px; margin: 0 auto 54px; }
+  .section-head h2 { font-size: clamp(30px, 5vw, 44px); margin-bottom: 14px; }
+  .section-head p { color: var(--text-secondary); font-size: 18px; }
+
+  .steps { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  .step { position: relative; }
+  .step .num {
+    width: 46px; height: 46px; border-radius: 14px; margin-bottom: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #fff;
+    background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+    box-shadow: 0 6px 20px var(--glow-primary);
+  }
+  .step h3 { font-size: 21px; margin-bottom: 9px; }
+  .step p { color: var(--text-secondary); font-size: 16px; }
+
+  /* Why different — compare */
+  .compare { display: grid; grid-template-columns: 1fr; gap: 18px; }
+  .compare .card { padding: 26px; }
+  .compare .lbl { font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 10px; }
+  .compare .desc { color: var(--text-secondary); font-size: 16px; }
+  .compare .vox {
+    border-color: var(--accent-border);
+    background: linear-gradient(135deg, rgba(0,54,255,0.12), rgba(0,54,255,0.03));
+    box-shadow: 0 10px 40px rgba(0,54,255,0.18);
+  }
+  .compare .vox .lbl { color: var(--accent-blue); }
+  .compare .vox .desc { color: var(--text-primary); }
+
+  /* Manifesto */
+  .manifesto { text-align: center; }
+  .manifesto .card {
+    padding: 60px 40px;
+    background: linear-gradient(135deg, rgba(6,214,160,0.08), rgba(0,54,255,0.06));
+    border-color: var(--glass-border-bright);
+  }
+  .manifesto h2 { font-size: clamp(28px, 5vw, 42px); margin-bottom: 22px; max-width: 18ch; margin-left: auto; margin-right: auto; }
+  .manifesto p { color: var(--text-secondary); font-size: 18.5px; max-width: 52ch; margin: 0 auto; }
+
+  /* Proof */
+  .proof { text-align: center; }
+  .proof .quote { font-family: var(--font-display); font-weight: 700; font-size: clamp(24px, 4.4vw, 38px); line-height: 1.3; max-width: 20ch; margin: 0 auto 18px; letter-spacing: -0.02em; }
+  .proof .attr { color: var(--text-tertiary); font-size: 16px; }
+
+  /* FAQ */
+  .faq { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  details.qa {
+    background: var(--glass-surface); border: 1px solid var(--glass-border);
+    border-radius: var(--r-lg); padding: 4px 22px; transition: border-color 0.2s ease;
+  }
+  details.qa[open] { border-color: var(--accent-border); }
+  details.qa summary {
+    list-style: none; cursor: pointer; padding: 18px 0;
+    font-family: var(--font-display); font-weight: 600; font-size: 18px;
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  }
+  details.qa summary::-webkit-details-marker { display: none; }
+  details.qa summary .chev { color: var(--accent-blue); font-size: 22px; transition: transform 0.2s ease; flex-shrink: 0; }
+  details.qa[open] summary .chev { transform: rotate(45deg); }
+  details.qa .ans { padding: 0 0 20px; color: var(--text-secondary); font-size: 16px; }
+
+  /* Final CTA */
+  .final { text-align: center; }
+  .final h2 { font-size: clamp(32px, 6vw, 52px); font-weight: 800; margin-bottom: 30px; max-width: 16ch; margin-left: auto; margin-right: auto; }
+
+  /* Footer */
+  footer { padding: 48px 0 120px; border-top: 1px solid var(--glass-border); text-align: center; }
+  footer .brand { justify-content: center; margin-bottom: 14px; }
+  footer p { color: var(--text-tertiary); font-size: 14px; max-width: 44ch; margin: 0 auto; }
+  footer .priv { margin-top: 12px; }
+  footer a { color: var(--text-secondary); text-decoration: none; border-bottom: 1px solid var(--glass-border); }
+
+  /* Sticky mobile CTA bar */
+  .sticky-cta {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: rgba(10, 14, 26, 0.85);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border-top: 1px solid var(--glass-border);
+    display: none;
+  }
+  .sticky-cta .btn { width: 100%; }
+
+  /* Scroll reveal */
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* ─── Responsive ──────────────────────────────────────── */
+  @media (min-width: 720px) {
+    .steps { grid-template-columns: repeat(3, 1fr); }
+    .compare { grid-template-columns: repeat(3, 1fr); }
+    .nav-cta { display: inline-flex; }
+  }
+  @media (max-width: 719px) {
+    section { padding: 68px 0; }
+    .sticky-cta { display: block; }
+    footer { padding-bottom: 130px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { transition: none; opacity: 1; transform: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="ambient" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<div class="wrap">
+  <!-- Nav -->
+  <nav>
+    <div class="container nav-inner">
+      <div class="brand"><span class="brand-dot"></span>Vox</div>
+      <a class="btn btn-sm nav-cta" data-wa href="#">Find my partner</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="container">
+      <span class="pill reveal"><span class="live"></span> Early access — limited spots</span>
+      <h1 class="reveal">Get fluent with <span class="grad-text">someone who gets it.</span></h1>
+      <p class="sub reveal">Vox matches you with a partner at your level. You talk for 30 minutes, you help each other, you both get better. No app. No points. No pressure — just a real conversation.</p>
+      <div class="reveal">
+        <a class="btn" data-wa href="#">
+          <svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.043v.001zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+          Find my partner on WhatsApp
+        </a>
+        <p class="reassure"><strong>Free</strong> while in early access · 30 minutes · No app to download</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- How it works -->
+  <section id="how">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">How it works</span>
+        <h2>Three steps. That's it.</h2>
+        <p>No setup, no homework. Your first conversation can happen this week.</p>
+      </div>
+      <div class="steps">
+        <div class="card step reveal">
+          <div class="num">1</div>
+          <h3>Tell us your language &amp; level</h3>
+          <p>One quick chat on WhatsApp — and a 30-second voice note so we hear where you really are.</p>
+        </div>
+        <div class="card step reveal">
+          <div class="num">2</div>
+          <h3>We match you with a partner</h3>
+          <p>Same level, real person, matched by hand — never an algorithm guessing.</p>
+        </div>
+        <div class="card step reveal">
+          <div class="num">3</div>
+          <h3>You talk for 30 minutes</h3>
+          <p>Guided, low-pressure, and you help each other. The fastest way to fluency is a real conversation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why different -->
+  <section id="why">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Why Vox</span>
+        <h2>Not another app. Not a paid tutor.</h2>
+        <p>Everyone else is either too cold or too chaotic. Vox is the missing middle.</p>
+      </div>
+      <div class="compare">
+        <div class="card reveal">
+          <div class="lbl">Language apps</div>
+          <div class="desc">Leave you talking to a screen. You learn about a language but never actually speak it.</div>
+        </div>
+        <div class="card reveal">
+          <div class="lbl">Paid tutors</div>
+          <div class="desc">Feel like work you pay to perform at. Useful, but expensive and full of pressure.</div>
+        </div>
+        <div class="card vox reveal">
+          <div class="lbl">Vox</div>
+          <div class="desc">Real people, matched properly, in a space built to make you comfortable enough to actually speak.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Manifesto -->
+  <section id="manifesto" class="manifesto">
+    <div class="container">
+      <div class="card reveal">
+        <span class="eyebrow">Our promise</span>
+        <h2>A place to connect and help.</h2>
+        <p>The person on the other side of your screen knows something you want — and you know something they want. Vox exists to make that exchange feel natural, safe, and human. You're not a student here. You're not a customer. You're someone with a world to share, talking to someone ready to learn it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Proof -->
+  <section id="proof" class="proof">
+    <div class="container reveal">
+      <span class="eyebrow">It's already working</span>
+      <p class="quote">"Can we do that <span class="grad-text">again?</span>"</p>
+      <p class="attr">— what partners say the moment their first 30 minutes end. That's the only metric we care about.</p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Questions</span>
+        <h2>Good to know</h2>
+      </div>
+      <div class="faq">
+        <details class="qa reveal"><summary>Is it free? <span class="chev">+</span></summary><div class="ans">Yes — completely free while we're in early access.</div></details>
+        <details class="qa reveal"><summary>Which languages? <span class="chev">+</span></summary><div class="ans">Tell us what you want to practice. We're matching English first and growing from there.</div></details>
+        <details class="qa reveal"><summary>How much time does it take? <span class="chev">+</span></summary><div class="ans">One 30-minute conversation to start. That's the whole commitment.</div></details>
+        <details class="qa reveal"><summary>Do I need to download anything? <span class="chev">+</span></summary><div class="ans">No. Everything starts on WhatsApp — where you already are.</div></details>
+        <details class="qa reveal"><summary>What about my privacy? <span class="chev">+</span></summary><div class="ans">We collect only what's needed to match you, we never sell your data, and we never share your conversations. Ever.</div></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section id="start" class="final">
+    <div class="container reveal">
+      <h2>Ready for a real conversation?</h2>
+      <a class="btn" data-wa href="#">
+        <svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.043v.001zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+        Start on WhatsApp
+      </a>
+      <p class="reassure"><strong>Free</strong> · 30 minutes · No app to download</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="brand"><span class="brand-dot"></span>Vox</div>
+      <p>The professional way to get fluent — through real conversations with real people.</p>
+      <p class="priv">Privacy-first. We never sell your data or share your conversations.</p>
+    </div>
+  </footer>
+
+  <!-- Sticky mobile CTA -->
+  <div class="sticky-cta">
+    <a class="btn" data-wa href="#">
+      <svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.043v.001zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+      Find my partner on WhatsApp
+    </a>
+  </div>
+</div>
+
+<script>
+  /* ─────────────────────────────────────────────────────────────
+     CONFIG — set your WhatsApp number here (international format,
+     digits only, no + or spaces). e.g. "447911123456"
+     ───────────────────────────────────────────────────────────── */
+  const WHATSAPP_NUMBER = "1XXXXXXXXXX";          // TODO: replace with real number
+  const PREFILLED_MESSAGE = "Hi Vox — I want to practice my language. Here's my level:";
+
+  (function () {
+    const href = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(PREFILLED_MESSAGE);
+    document.querySelectorAll("[data-wa]").forEach(function (a) { a.setAttribute("href", href); });
+
+    // Scroll reveal
+    const els = document.querySelectorAll(".reveal");
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.12 });
+      els.forEach(function (el) { io.observe(el); });
+    } else {
+      els.forEach(function (el) { el.classList.add("in"); });
+    }
+  })();
+</script>
+</body>
+</html>
