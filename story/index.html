@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vox — There's a version of you that speaks</title>
+<meta name="description" content="One real conversation a week, with someone at your level. 30 minutes. No app, no grades, no pressure. Your first conversation is one message away." />
+
+<meta property="og:title" content="Vox — There's a version of you that speaks" />
+<meta property="og:description" content="One real conversation a week, with someone at your level. Start on WhatsApp." />
+<meta property="og:type" content="website" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800;9..40,900&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg: #0A0E1A;
+    --bg-2: #0F1729;
+    --blue: #0036FF;
+    --blue-bright: #00A3FF;
+    --teal: #06D6A0;
+    --teal-light: #4ECDC4;
+    --text: #F9FAFB;
+    --text-2: #D1D5DB;
+    --text-3: #9CA3AF;
+    --glass: rgba(255,255,255,0.06);
+    --glass-border: rgba(255,255,255,0.10);
+    --glow: rgba(0,54,255,0.45);
+    --font-d: 'DM Sans', system-ui, sans-serif;
+    --font-b: 'Source Sans 3', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: var(--font-b);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Progress line */
+  .progress {
+    position: fixed; top: 0; left: 0; height: 3px; width: 100%;
+    transform-origin: 0 50%; transform: scaleX(0); z-index: 100;
+    background: linear-gradient(90deg, var(--blue), var(--blue-bright), var(--teal));
+  }
+
+  /* Ambient */
+  .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(110px); }
+  .orb-a { width: 60vmax; height: 60vmax; background: radial-gradient(circle, rgba(0,54,255,0.20), transparent 65%); top: -25vmax; right: -20vmax; }
+  .orb-b { width: 50vmax; height: 50vmax; background: radial-gradient(circle, rgba(6,214,160,0.10), transparent 65%); bottom: -22vmax; left: -18vmax; }
+
+  main { position: relative; z-index: 1; }
+
+  /* Brand */
+  .brandbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 90;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 24px;
+    pointer-events: none;
+  }
+  .brand {
+    font-family: var(--font-d); font-weight: 900; font-size: 21px; letter-spacing: -0.03em;
+    display: flex; align-items: center; gap: 8px; pointer-events: auto;
+  }
+  .brand-dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--blue-bright)); box-shadow: 0 0 14px var(--glow); }
+
+  /* Scenes */
+  .scene {
+    min-height: 100svh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 18vh 24px;
+    text-align: center;
+  }
+  .scene-inner { max-width: 880px; }
+
+  .kicker {
+    font-family: var(--font-d); font-weight: 700; font-size: 13px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--teal-light); margin-bottom: 26px; display: block;
+  }
+
+  .line {
+    font-family: var(--font-d); font-weight: 800; letter-spacing: -0.03em;
+    font-size: clamp(34px, 7.2vw, 76px); line-height: 1.08;
+  }
+  .line .w { display: inline-block; }
+  .line + .line { margin-top: 0.35em; }
+
+  .grad {
+    background: linear-gradient(110deg, var(--blue-bright), var(--teal-light));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .dim { color: var(--text-3); }
+
+  .sub {
+    margin-top: 30px; font-size: clamp(17px, 2.3vw, 21px);
+    color: var(--text-2); max-width: 44ch; margin-left: auto; margin-right: auto;
+  }
+
+  /* The hiding word effect */
+  .hide-word { position: relative; display: inline-block; color: var(--text); }
+
+  /* Rhythm cards (scene 4) */
+  .rhythm {
+    margin-top: 44px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+  }
+  .beat {
+    font-family: var(--font-d); font-weight: 700; font-size: clamp(15px, 2vw, 18px);
+    padding: 14px 24px; border-radius: 9999px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .beat em { font-style: normal; color: var(--teal-light); }
+
+  /* CTA */
+  .btn {
+    display: inline-flex; align-items: center; gap: 11px;
+    font-family: var(--font-d); font-weight: 800; font-size: 18px;
+    padding: 18px 34px; border-radius: 9999px; text-decoration: none; color: #fff;
+    background: linear-gradient(120deg, var(--blue), var(--blue-bright));
+    box-shadow: 0 10px 36px var(--glow), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .btn:hover { transform: translateY(-2px) scale(1.02); }
+  .btn:active { transform: scale(0.98); }
+  .wa { width: 21px; height: 21px; }
+  .reassure { margin-top: 16px; font-size: 14.5px; color: var(--text-3); }
+  .reassure b { color: var(--teal-light); font-weight: 600; }
+
+  .cta-block { margin-top: 40px; }
+
+  /* Floating CTA (appears after the pain scene) */
+  .float-cta {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 95;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    display: flex; justify-content: center;
+    background: linear-gradient(to top, rgba(10,14,26,0.95), rgba(10,14,26,0.75) 60%, transparent);
+    opacity: 0; transform: translateY(110%); transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+  }
+  .float-cta.show { opacity: 1; transform: none; pointer-events: auto; }
+  .float-cta .btn { font-size: 16px; padding: 15px 28px; width: min(420px, 100%); justify-content: center; }
+
+  /* Final scene */
+  .final .line { font-size: clamp(38px, 8vw, 84px); }
+
+  footer {
+    position: relative; z-index: 1;
+    padding: 56px 24px 140px; text-align: center;
+    border-top: 1px solid var(--glass-border);
+  }
+  footer .brand { justify-content: center; margin-bottom: 12px; }
+  footer p { color: var(--text-3); font-size: 14px; max-width: 46ch; margin: 0 auto; }
+
+  .scroll-hint {
+    position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%);
+    color: var(--text-3); font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;
+    font-family: var(--font-d); font-weight: 700;
+  }
+  .scroll-hint::after {
+    content: ""; display: block; width: 1px; height: 34px; margin: 10px auto 0;
+    background: linear-gradient(to bottom, var(--teal), transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .float-cta { opacity: 1; transform: none; pointer-events: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="ambient" aria-hidden="true">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+</div>
+
+<div class="brandbar">
+  <div class="brand"><span class="brand-dot"></span>Vox</div>
+</div>
+
+<main>
+
+  <!-- Scene 1 — The hook: the persona's better self -->
+  <section class="scene" id="s1" style="position: relative;">
+    <div class="scene-inner">
+      <h1 class="line reveal">There's a version of you<br /><span class="grad">that speaks.</span></h1>
+      <p class="sub">Not perfectly. <strong>Freely.</strong></p>
+    </div>
+    <div class="scroll-hint">Meet them</div>
+  </section>
+
+  <!-- Scene 2 — The pain: live the moment -->
+  <section class="scene" id="s2">
+    <div class="scene-inner">
+      <span class="kicker">You know the moment</span>
+      <h2 class="line reveal">The meeting.<br />The question.<br />The word — <span class="hide-word" id="hideWord">right there</span> —<br /><span class="dim">that won't come out.</span></h2>
+    </div>
+  </section>
+
+  <!-- Scene 3 — The truth -->
+  <section class="scene" id="s3">
+    <div class="scene-inner">
+      <span class="kicker">Here's the truth</span>
+      <h2 class="line reveal">It's not your memory.<br />It's the <span class="grad">silence</span>.</h2>
+      <p class="sub">You've studied alone for years. Nobody ever learned to speak by being quiet.</p>
+    </div>
+  </section>
+
+  <!-- Scene 4 — The promise: the rhythm -->
+  <section class="scene" id="s4">
+    <div class="scene-inner">
+      <span class="kicker">So we made it simple</span>
+      <h2 class="line reveal">One person. Your level.<br /><span class="grad">Every week.</span></h2>
+      <div class="rhythm">
+        <span class="beat reveal-up">🗣 <em>30 minutes</em> of real talk</span>
+        <span class="beat reveal-up">🤝 Matched <em>by hand</em></span>
+        <span class="beat reveal-up">📱 Starts on <em>WhatsApp</em></span>
+      </div>
+      <p class="sub">No teachers. No grades. No app to download. Just someone who gets it — because they're climbing too.</p>
+    </div>
+  </section>
+
+  <!-- Scene 5 — The frame -->
+  <section class="scene" id="s5">
+    <div class="scene-inner">
+      <span class="kicker">Our only rule</span>
+      <h2 class="line reveal">This is a place to<br /><span class="grad">connect and help.</span></h2>
+      <p class="sub">You know something they want. They know something you want. Thirty minutes later, you've both grown — and you both want to come back.</p>
+    </div>
+  </section>
+
+  <!-- Scene 6 — The ask -->
+  <section class="scene final" id="s6">
+    <div class="scene-inner">
+      <h2 class="line reveal">Your first conversation<br />is <span class="grad">one message away.</span></h2>
+      <div class="cta-block reveal-up">
+        <a class="btn" data-wa href="#">
+          <svg class="wa" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.043v.001zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+          Start talking
+        </a>
+        <p class="reassure"><b>Free</b> in early access · 30 minutes · We match you personally</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="brand"><span class="brand-dot"></span>Vox</div>
+  <p>Fluency through real conversations with real people.</p>
+  <p style="margin-top:10px;">Privacy-first. We never sell your data or share your conversations.</p>
+</footer>
+
+<!-- Floating CTA -->
+<div class="float-cta" id="floatCta">
+  <a class="btn" data-wa href="#">
+    <svg class="wa" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.043v.001zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+    Start talking
+  </a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script>
+  /* ── CONFIG ─────────────────────────────────────────────── */
+  const WHATSAPP_NUMBER = "33766356373";
+  const PREFILLED_MESSAGE = "Hi Vox — I want to start talking. Here's my level:";
+
+  (function () {
+    const href = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(PREFILLED_MESSAGE);
+    document.querySelectorAll("[data-wa]").forEach(a => a.setAttribute("href", href));
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || typeof gsap === "undefined") return;
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    /* Progress line */
+    gsap.to("#progress", {
+      scaleX: 1, ease: "none",
+      scrollTrigger: { trigger: document.body, start: "top top", end: "bottom bottom", scrub: 0.3 }
+    });
+
+    /* Split headline lines into words for staggered reveals */
+    document.querySelectorAll(".line.reveal").forEach(line => {
+      const walk = (node) => {
+        [...node.childNodes].forEach(child => {
+          if (child.nodeType === 3 && child.textContent.trim()) {
+            const frag = document.createDocumentFragment();
+            child.textContent.split(/(\s+)/).forEach(part => {
+              if (part.trim()) {
+                const s = document.createElement("span");
+                s.className = "w"; s.textContent = part;
+                frag.appendChild(s);
+              } else if (part) {
+                frag.appendChild(document.createTextNode(part));
+              }
+            });
+            node.replaceChild(frag, child);
+          } else if (child.nodeType === 1 && child.tagName !== "BR" && !child.classList.contains("w")) {
+            walk(child);
+          }
+        });
+      };
+      walk(line);
+
+      gsap.from(line.querySelectorAll(".w"), {
+        yPercent: 110, opacity: 0, duration: 0.85, stagger: 0.055, ease: "power3.out",
+        scrollTrigger: { trigger: line, start: "top 78%", once: true }
+      });
+    });
+
+    /* Subtexts + kickers drift in */
+    document.querySelectorAll(".sub, .kicker").forEach(el => {
+      gsap.from(el, {
+        y: 26, opacity: 0, duration: 0.9, ease: "power2.out",
+        scrollTrigger: { trigger: el, start: "top 84%", once: true }
+      });
+    });
+
+    /* Rhythm beats pop in */
+    gsap.from(".beat", {
+      y: 30, opacity: 0, scale: 0.92, duration: 0.6, stagger: 0.12, ease: "back.out(1.6)",
+      scrollTrigger: { trigger: ".rhythm", start: "top 85%", once: true }
+    });
+
+    /* CTA block */
+    document.querySelectorAll(".cta-block").forEach(el => {
+      gsap.from(el, {
+        y: 34, opacity: 0, duration: 1, ease: "power2.out",
+        scrollTrigger: { trigger: el, start: "top 86%", once: true }
+      });
+    });
+
+    /* The word that "hides" — flickers away and back */
+    const hw = document.getElementById("hideWord");
+    if (hw) {
+      ScrollTrigger.create({
+        trigger: "#s2", start: "top 55%", once: true,
+        onEnter: () => {
+          gsap.timeline({ delay: 0.9 })
+            .to(hw, { opacity: 0.12, filter: "blur(5px)", duration: 0.5, ease: "power2.in" })
+            .to(hw, { opacity: 1, filter: "blur(0px)", duration: 0.7, ease: "power2.out", delay: 0.55 });
+        }
+      });
+    }
+
+    /* Ambient orbs drift with scroll */
+    gsap.to(".orb-a", { yPercent: 28, ease: "none", scrollTrigger: { trigger: document.body, start: "top top", end: "bottom bottom", scrub: 1 } });
+    gsap.to(".orb-b", { yPercent: -22, ease: "none", scrollTrigger: { trigger: document.body, start: "top top", end: "bottom bottom", scrub: 1 } });
+
+    /* Floating CTA appears after the truth scene, hides at final scene */
+    const floatCta = document.getElementById("floatCta");
+    ScrollTrigger.create({
+      trigger: "#s3", start: "top 60%", endTrigger: "#s6", end: "top 70%",
+      onEnter: () => floatCta.classList.add("show"),
+      onLeave: () => floatCta.classList.remove("show"),
+      onEnterBack: () => floatCta.classList.add("show"),
+      onLeaveBack: () => floatCta.classList.remove("show"),
+    });
+  })();
+</script>
+</body>
+</html>

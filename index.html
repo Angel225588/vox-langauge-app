@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vox — Landing Preview</title>
+<meta name="robots" content="noindex" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: #0A0E1A; color: #F9FAFB;
+    min-height: 100svh; display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .box { max-width: 560px; width: 100%; text-align: center; }
+  h1 { font-weight: 800; font-size: 30px; letter-spacing: -0.02em; margin-bottom: 8px; }
+  p { color: #9CA3AF; margin-bottom: 32px; font-size: 16px; }
+  a.v {
+    display: block; text-decoration: none; color: #F9FAFB;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 20px; padding: 26px; margin-bottom: 16px; text-align: left;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  a.v:hover { transform: translateY(-2px); border-color: rgba(0,163,255,0.5); }
+  a.v .t { font-weight: 800; font-size: 20px; margin-bottom: 4px; }
+  a.v .d { color: #9CA3AF; font-size: 14.5px; font-weight: 400; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+         padding: 4px 10px; border-radius: 999px; margin-bottom: 10px; }
+  .tag-a { background: rgba(0,54,255,0.18); color: #3D6BFF; }
+  .tag-b { background: rgba(6,214,160,0.15); color: #4ECDC4; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>Vox — Landing Preview</h1>
+    <p>Two versions. Same goal: one tap to a real conversation. Which one makes you want to click?</p>
+    <a class="v" href="/classic/">
+      <span class="tag tag-a">Version A · Classic</span>
+      <div class="t">Get fluent with someone who gets it</div>
+      <div class="d">Structured long-scroll: how it works, why it's different, manifesto, FAQ.</div>
+    </a>
+    <a class="v" href="/story/">
+      <span class="tag tag-b">Version B · Story (Fable)</span>
+      <div class="t">There's a version of you that speaks</div>
+      <div class="d">GSAP scroll-story: live the moment the word hides, then the way out. Minimal, cinematic.</div>
+    </a>
+  </div>
+</body>
+</html>
